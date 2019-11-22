@@ -1,6 +1,14 @@
+//
+//  ReportTableViewContorller.m
+//
+//
+//  Created by ms on 2019/11/21.
+//
 
 #import "ReportTableManager.h"
 #import <Foundation/Foundation.h>
+#import "ReportTableView.h"
+#import "ReportTableViewModel.h"
 
 @interface ReportTableManager()
 
@@ -8,15 +16,13 @@
 
 @implementation ReportTableManager
 
-// RCT_EXPORT_VIEW_PROPERTY(size, NSInteger)
+RCT_EXPORT_VIEW_PROPERTY(data, NSArray)
 
 RCT_EXPORT_MODULE(ReportTableManager)
 
-
 - (UIView *)view
 {
-  UIView *tempView = [[UIView alloc] init];
-  return tempView;
+    return [[ReportTableViewModel alloc] init];
 }
 
 

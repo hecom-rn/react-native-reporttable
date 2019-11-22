@@ -1,9 +1,8 @@
 import React from 'react';
-import {View} from 'react-native';
+import {SafeAreaView} from 'react-native';
 import ReportTableView from './ReportTableView';
 
 interface Props {
- 
 }
 
 export default class ReportTable extends React.PureComponent<Props> {
@@ -14,10 +13,9 @@ export default class ReportTable extends React.PureComponent<Props> {
 
     render() {
         return (
-            <ReportTableView
-                {...this.props}
-            >
-            </ReportTableView>
+            <SafeAreaView style={{flex: 1}}>
+                <ReportTableView {...this.props} />
+            </SafeAreaView>
         );
     }
 }
