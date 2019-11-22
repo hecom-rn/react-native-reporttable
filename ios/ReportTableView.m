@@ -13,59 +13,41 @@
 @interface ReportTableView () <SpreadsheetViewDelegate, SpreadsheetViewDataSource>
 
 @property (nonatomic, strong) SpreadsheetView *spreadsheetView;
+@property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
+@property (nonatomic, strong) NSMutableArray<ForzenRange *> *frozenArray;
+@property (nonatomic, strong) NSArray *cloumsHight;
+@property (nonatomic, strong) NSArray *rowsWidth;
 
 @end
 
 @implementation ReportTableView
 
+
+
 - (instancetype)init
 {
     self = [super init];
     if (self) {
-     
+        self.reportTableModel = [[ReportTableModel alloc] init];
         CGFloat hairline = 1 / [UIScreen mainScreen].scale;
-         self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
-         self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width:hairline color:[UIColor grayColor]];
+        self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
+        self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width:hairline color:[UIColor grayColor]];
          
-         [self.spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier:[ReportTableCell description]];
-         [self.spreadsheetView flashScrollIndicators];
+        [self.spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier:[ReportTableCell description]];
+        [self.spreadsheetView flashScrollIndicators];
     }
     return self;
 }
 
-- (void)setDataSource:(NSMutableArray<NSArray<ReportTableModel *> *> *)dataSource {
-    _dataSource = dataSource;
+- (void)setReportTableModel:(ReportTableModel *)reportTableModel{
+    _reportTableModel = reportTableModel;
+    self.dataSource = reportTableModel.dataSource;
+    self.frozenArray = reportTableModel.frozenArray;
+    self.cloumsHight = reportTableModel.cloumsHight;
+    self.rowsWidth = reportTableModel.rowsWidth;
+
     [self.spreadsheetView reloadData];
 }
-
-//- (NSMutableArray<NSArray<ReportTableModel *> *> *)dataSource{
-//    if (!dataSource) {
-//        _dataSource = [NSMutableArray array];
-//        for (int i = 0; i <500; i ++) {
-//            NSMutableArray *rowArr = [NSMutableArray array];
-//            for (int j = 1 ; j < 7; j ++) {
-//                ReportTableModel *model = [[ReportTableModel alloc] init];
-//                model.keyIndex = j + i * 7;
-//                [rowArr addObject:model];
-//                if (i < 20 && i > 2 && j == 1) {
-//                    model.keyIndex = 15;
-//                }
-//                if (i < 10 && i > 2 && (j == 2 || j == 3)) {
-//                    model.keyIndex = 19;
-//                }
-//                if (i < 18 && i > 11 && j == 2) {
-//                    model.keyIndex = 85;
-//                }
-//            }
-//            [_dataSource addObject:rowArr];
-//        }
-//        _dataSource[0][1].keyIndex = 1;
-//        return _dataSource;
-//    }
-//    return _dataSource;
-//}
-
-
 
 - (SpreadsheetView *)spreadsheetView {
     if (!_spreadsheetView) {
@@ -84,28 +66,32 @@
 
 //MARK: DataSource
 - (NSInteger)numberOfColumns:(SpreadsheetView *)spreadsheetView {
-    return self.dataSource.count;
+    if (self.dataSource.count > 0) {
+        return self.dataSource[0].count;
+    } else {
+        return 0;
+    }
 }
 
 - (NSInteger)numberOfRows:(SpreadsheetView *)spreadsheetView {
-    return self.dataSource[0].count;
+    return self.dataSource.count;
 }
 
 - (CGFloat)spreadsheetView:(SpreadsheetView *)spreadsheetView widthForColumn:(NSInteger)column {
-    return 50;
+    return [self.rowsWidth[column] floatValue];
 }
 
 - (CGFloat)spreadsheetView:(SpreadsheetView *)spreadsheetView heightForRow:(NSInteger)row {
-    return 34.f;
+    return [self.cloumsHight[row] floatValue];
 }
 
-//- (NSInteger)frozenColumns:(SpreadsheetView *)spreadsheetView {
-//    return 3;
-//}
-//
-//- (NSInteger)frozenRows:(SpreadsheetView *)spreadsheetView {
-//    return 2;
-//}
+- (NSInteger)frozenColumns:(SpreadsheetView *)spreadsheetView {
+    return self.reportTableModel.frozenColumns;
+}
+
+- (NSInteger)frozenRows:(SpreadsheetView *)spreadsheetView {
+    return self.reportTableModel.frozenRows;;
+}
 
 - (NSArray<ZMJCellRange *> *)mergedCells:(SpreadsheetView *)spreadsheetView {
     NSMutableArray<ZMJCellRange *> *result = [NSMutableArray array];
@@ -119,14 +105,14 @@
 
 - (ZMJCell *)spreadsheetView:(SpreadsheetView *)spreadsheetView cellForItemAt:(NSIndexPath *)indexPath {
     NSInteger column = indexPath.column;
-    NSInteger row    = indexPath.row;
-    
-    ReportTableModel *model = self.dataSource[row][column];
-    
+    NSInteger row = indexPath.row;
+
+    ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
     cell.label.text = [NSString stringWithFormat:@"%ld", model.keyIndex];
-//    cell.gridlines.left  = [GridStyle borderStyleNone];
-//    cell.gridlines.right = [GridStyle borderStyleNone];
+    cell.label.backgroundColor = model.backgroundColor;
+    cell.label.textColor = model.textColor;
+    cell.label.font = [UIFont boldSystemFontOfSize:model.fontSize];
     return cell;
 }
 

@@ -6,8 +6,9 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <React/RCTView.h>
 
-@interface ReportTableViewModel: UIView
+@interface ReportTableViewModel: RCTView
 
 @end
 

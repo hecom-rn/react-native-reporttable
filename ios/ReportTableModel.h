@@ -7,11 +7,12 @@
 
 #import <Foundation/Foundation.h>
 
-@interface ReportTableModel : NSObject
-
+@interface ItemModel : NSObject
 @property (nonatomic, assign) NSInteger keyIndex;
+@property (nonatomic, strong) UIColor *backgroundColor;
+@property (nonatomic, strong) UIColor *textColor;
 @property (nonatomic, assign) BOOL used;
-
+@property (nonatomic, assign) CGFloat fontSize;
 @end
 
 
@@ -23,3 +24,15 @@
 @end
 
 
+@interface ReportTableModel : NSObject
+@property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
+@property (nonatomic, strong) NSMutableArray<ForzenRange *> *frozenArray;
+@property (nonatomic, strong) NSArray *cloumsHight;
+@property (nonatomic, strong) NSArray *rowsWidth;
+@property (nonatomic, assign) NSInteger frozenColumns;
+@property (nonatomic, assign) NSInteger frozenRows;
+@property (nonatomic, assign) float minWidth;
+@property (nonatomic, assign) float maxWidth;
+@property (nonatomic, assign) float minHeight;
+
+@end

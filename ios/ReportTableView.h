@@ -10,8 +10,7 @@
 @class ReportTableModel, ForzenRange;
 @interface ReportTableView : UIView
 
-@property (nonatomic, strong) NSMutableArray<NSArray<ReportTableModel *> *> *dataSource;
-@property (nonatomic, strong) NSMutableArray<ForzenRange *> *frozenArray;
+@property (nonatomic, strong) ReportTableModel *reportTableModel;
 
 @end
 

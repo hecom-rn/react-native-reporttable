@@ -12,6 +12,7 @@
 - (UILabel *)label {
     if (!_label) {
         _label = [UILabel new];
+        _label.numberOfLines = 0;
     }
     return _label;
 }
