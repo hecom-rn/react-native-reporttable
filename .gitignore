@@ -5,8 +5,6 @@ gradle/wrapper
 build
 *.iml
 local.properties
-*.jsx
-*.js
 *.xcworkspace
 *.xcodeproj/*
 !*.xcodeproj/project.pbxproj

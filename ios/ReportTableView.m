@@ -31,9 +31,8 @@
         self.reportTableModel = [[ReportTableModel alloc] init];
         CGFloat hairline = 1 / [UIScreen mainScreen].scale;
         self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
-        self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width:hairline color:[UIColor grayColor]];
-         
-        [self.spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier:[ReportTableCell description]];
+        self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color:[UIColor grayColor]];
+        [self.spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier: [ReportTableCell description]];
         [self.spreadsheetView flashScrollIndicators];
     }
     return self;
@@ -55,6 +54,7 @@
             SpreadsheetView *ssv = [SpreadsheetView new];
             ssv.dataSource = self;
             ssv.delegate = self;
+            ssv.bounces = false;
             ssv.frame = self.bounds;
             ssv.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
             [self addSubview:ssv];
@@ -109,7 +109,7 @@
 
     ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
-    cell.label.text = [NSString stringWithFormat:@"%ld", model.keyIndex];
+    cell.label.text = model.title;
     cell.label.backgroundColor = model.backgroundColor;
     cell.label.textColor = model.textColor;
     cell.label.font = [UIFont boldSystemFontOfSize:model.fontSize];
@@ -118,6 +118,12 @@
 
 /// Delegate
 - (void)spreadsheetView:(SpreadsheetView *)spreadsheetView didSelectItemAt:(NSIndexPath *)indexPath {
+    NSInteger column = indexPath.column;
+    NSInteger row = indexPath.row;
+    ItemModel *model = self.dataSource[row][column];
+    if (self.reportTableModel.onClickEvent != nil) {
+        self.reportTableModel.onClickEvent(@{@"keyIndex": [NSNumber numberWithInteger:model.keyIndex]});
+    }
     NSLog(@"Selected: (row: %ld, column: %ld)", (long)indexPath.row, (long)indexPath.column);
 }
 

@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "ReportTableView.h"
 #import "ReportTableViewModel.h"
+#import <React/RCTComponent.h>
 
 @interface ReportTableManager()
 
@@ -16,6 +17,7 @@
 
 @implementation ReportTableManager
 
+RCT_EXPORT_VIEW_PROPERTY(onClickEvent, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(data, NSArray)
 RCT_EXPORT_VIEW_PROPERTY(minWidth, float)
 RCT_EXPORT_VIEW_PROPERTY(maxWidth, float)

@@ -15,6 +15,7 @@
 @property (nonatomic, strong) ReportTableView * reportTableView;
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
 @property (nonatomic, strong) ReportTableModel *reportTabelModel;
+@property (nonatomic, assign) NSInteger propertyCount;
 
 @end
 
@@ -41,6 +42,7 @@
     self = [super initWithFrame:frame];
     if (self) {
         self.reportTabelModel = [[ReportTableModel alloc] init];
+        self.propertyCount = 0;
     }
     return self;
 }
@@ -116,48 +118,97 @@
 - (CGFloat)getTextWidth:(NSString *)text withTextSize:(CGFloat)fontSize {
     CGFloat textW = [text boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, 50) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:fontSize]} context:nil].size.width;
     return textW;
-
 }
 
 - (void)setData:(NSArray *)data {
     NSMutableArray *dataSource = [NSMutableArray arrayWithArray:data];
+    self.reportTabelModel.dataSource = dataSource;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
+- (void)setMinWidth:(float)minWidth {
+    self.reportTabelModel.minWidth = minWidth;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
+- (void)setMaxWidth:(float)maxWidth {
+    self.reportTabelModel.maxWidth = maxWidth;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
+- (void)setMinHeight:(float)minHeight {
+    self.reportTabelModel.minHeight = minHeight;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
+- (void)setFrozenColumns:(NSInteger)frozenColumns {
+    self.reportTabelModel.frozenColumns = frozenColumns;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
+- (void)setFrozenRows:(NSInteger)frozenRows {
+    self.reportTabelModel.frozenRows = frozenRows;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
+- (void)setOnClickEvent:(RCTDirectEventBlock)onClickEvent {
+    self.reportTabelModel.onClickEvent = onClickEvent;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
+- (void)reloadCheck {
+    if (self.propertyCount >= 7) {
+        [self integratedDataSource];
+    }
+}
+
+- (void)integratedDataSource {
+    NSMutableArray *dataSource = [NSMutableArray arrayWithArray: self.reportTabelModel.dataSource];
     NSMutableArray *cloumsHight = [NSMutableArray array];
     NSMutableArray *rowsWidth = [NSMutableArray array];
-    CGFloat minWidth = 50;
-    CGFloat maxWidth = 120;
-    CGFloat minHeight = 40;
-    
+    CGFloat minWidth = self.reportTabelModel.minWidth;
+    CGFloat maxWidth = self.reportTabelModel.maxWidth;
+    CGFloat minHeight = self.reportTabelModel.minHeight;
+   
     for (int i = 0; i < dataSource.count; i++) {
-        NSArray *rowArr = dataSource[i];
-        NSMutableArray *modelArr = [NSMutableArray array];
-        CGFloat rowWith = minWidth;
-        CGFloat columnHeigt = minHeight;
-        for (int j = 0; j < rowArr.count; j ++) {
-            if (i == 0) {
-                [rowsWidth addObject:[NSNumber numberWithFloat:minWidth]];
-            }
-            NSDictionary *dir = rowArr[j];
-            ItemModel *model = [[ItemModel alloc] init];
-            model.keyIndex = [RCTConvert NSInteger:[dir objectForKey:@"keyIndex"]];
-            model.backgroundColor = [RCTConvert UIColor:[dir objectForKey:@"backgroundColor"]];
-            model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
-            model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]];
-            
-            CGFloat textW = [self getTextWidth:[NSString stringWithFormat:@"%ld", model.keyIndex] withTextSize:model.fontSize];
-            if (textW > rowWith) {
-                if (textW < maxWidth) {
-                    rowWith = textW;
-                } else {
-                    rowWith = maxWidth;
-                    columnHeigt = (ceilf(textW / maxWidth) - 1) * (model.fontSize + 2) + minHeight;
-                }
+       NSArray *rowArr = dataSource[i];
+       NSMutableArray *modelArr = [NSMutableArray array];
+       CGFloat rowWith = minWidth;
+       CGFloat columnHeigt = minHeight;
+       for (int j = 0; j < rowArr.count; j ++) {
+           if (i == 0) {
+               [rowsWidth addObject:[NSNumber numberWithFloat:minWidth]];
+           }
+           NSDictionary *dir = rowArr[j];
+           ItemModel *model = [[ItemModel alloc] init];
+           model.keyIndex = [RCTConvert NSInteger:[dir objectForKey:@"keyIndex"]];
+           model.title = [RCTConvert NSString:[dir objectForKey:@"title"]];
+           model.backgroundColor = [RCTConvert UIColor:[dir objectForKey:@"backgroundColor"]];
+           model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
+           model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]];
+           
+           CGFloat textW = [self getTextWidth: model.title withTextSize: model.fontSize];
+           if (textW > rowWith) {
+               if (textW < maxWidth) {
+                   rowWith = textW;
+               } else {
+                   rowWith = maxWidth;
+                   columnHeigt = (ceilf(textW / maxWidth) - 1) * (model.fontSize + 2) + minHeight;
+               }
             } else {
-                rowWith = minWidth;
+               rowWith = minWidth;
             }
             if ([rowsWidth[j] floatValue] < rowWith) {
-                rowsWidth[j] = [NSNumber numberWithFloat:rowWith];
+               rowsWidth[j] = [NSNumber numberWithFloat:rowWith];
             }
-     
+    
             [modelArr addObject:model];
         }
         [cloumsHight addObject:[NSNumber numberWithFloat:columnHeigt]];
@@ -168,30 +219,7 @@
     self.reportTabelModel.dataSource = self.dataSource;
     self.reportTabelModel.rowsWidth = rowsWidth;
     self.reportTabelModel.cloumsHight = cloumsHight;
-    
     self.reportTableView.reportTableModel = self.reportTabelModel;
 }
-
-- (void)setMinWidth:(float)minWidth {
-    self.reportTabelModel.minWidth = minWidth;
-}
-
-- (void)setMaxWidth:(float)maxWidth {
-    self.reportTabelModel.maxWidth = maxWidth;
-}
-
-- (void)setMinHeight:(float)minHeight {
-    self.reportTabelModel.minHeight = minHeight;
-}
-
-- (void)setFrozenColumns:(NSInteger)frozenColumns {
-     self.reportTabelModel.frozenColumns = frozenColumns;
-}
-
-- (void)setFrozenRows:(NSInteger)frozenRows {
-     self.reportTabelModel.frozenRows = frozenRows;
-}
-
-
 
 @end

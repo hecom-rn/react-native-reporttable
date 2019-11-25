@@ -6,13 +6,17 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <React/RCTComponent.h>
 
 @interface ItemModel : NSObject
+@property (nonatomic, strong) NSString *title;
 @property (nonatomic, assign) NSInteger keyIndex;
 @property (nonatomic, strong) UIColor *backgroundColor;
 @property (nonatomic, strong) UIColor *textColor;
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) CGFloat fontSize;
+
+
 @end
 
 
@@ -22,7 +26,6 @@
 @property (nonatomic, assign) NSInteger endX;
 @property (nonatomic, assign) NSInteger endY;
 @end
-
 
 @interface ReportTableModel : NSObject
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
@@ -34,5 +37,6 @@
 @property (nonatomic, assign) float minWidth;
 @property (nonatomic, assign) float maxWidth;
 @property (nonatomic, assign) float minHeight;
+@property (nonatomic, copy) RCTDirectEventBlock onClickEvent;
 
 @end
