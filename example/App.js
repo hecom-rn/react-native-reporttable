@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, processColor } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 import ReportTable from '@hecom/reportTable'
 
@@ -30,13 +30,14 @@ class App extends React.Component {
         return (
             <View style={styles.view}>
                 <ReportTable
-                    style={{width: 375, height: 700, marginTop: 100}}
+                    style={{marginTop: 100}}
                     data={this.dataSource}
                     minWidth={50}
                     maxWidth={120}
                     minHeight={40}
                     frozenColumns={1}
                     frozenRows={1}
+                    size={{width: 300, height: 500}}
                     onClickEvent={({nativeEvent})=> {
                         console.log(nativeEvent);
                     }}

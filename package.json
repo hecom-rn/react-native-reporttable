@@ -2,18 +2,30 @@
   "name": "@hecom/reportTable",
   "version": "1.0.0",
   "description": "report Table Component",
-  "main": "index.tsx",
+  "main": "index.js",
+  "types": "./index.d.ts",
   "scripts": {
     "patch": "npm version patch -m 'Bump version %s';git push origin master --tags",
     "minor": "npm version minor -m 'Bump version %s';git push origin master --tags"
   },
+  "keywords": [
+    "react-component",
+    "react-native",
+    "ios",
+    "android",
+    "table",
+    "report-table",
+    "report"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hecom-rn/ReportTable.git"
   },
   "author": "mashuai",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "prop-types": "^15.5.10"
+  },
   "peerDependencies": {
     "react-native": ">=0.48"
   },
