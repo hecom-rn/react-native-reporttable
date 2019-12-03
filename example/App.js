@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 
 import ReportTable from '@hecom/reportTable'
 
@@ -37,6 +37,11 @@ class App extends React.Component {
                     minHeight={40}
                     frozenColumns={1}
                     frozenRows={1}
+                    headerView={() => (
+                        <Text style={{width: 750, height: 100, backgroundColor: 'red'}} >
+                            {'行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了'}
+                        </Text>
+                    )}
                     size={{width: 300, height: 500}}
                     onClickEvent={({nativeEvent})=> {
                         console.log(nativeEvent);

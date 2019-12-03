@@ -9,13 +9,16 @@
 #import "ReportTableModel.h"
 #import "ReportTableView.h"
 #import <React/RCTConvert.h>
+#import "ReportTableHeaderView.h"
 
 @interface ReportTableViewModel();
 
 @property (nonatomic, strong) ReportTableView * reportTableView;
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
 @property (nonatomic, strong) ReportTableModel *reportTabelModel;
+@property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 @property (nonatomic, assign) NSInteger propertyCount;
+@property (nonatomic, weak)   RCTBridge *bridge;
 
 @end
 
@@ -31,16 +34,26 @@
 - (ReportTableView *)reportTableView {
     if (!_reportTableView) {
         _reportTableView = [[ReportTableView alloc] init];
-        _reportTableView.frame = [UIScreen mainScreen].bounds;
         [self addSubview:_reportTableView];
     }
     return _reportTableView;
 }
 
-- (instancetype)initWithFrame:(CGRect)frame
-{
-    self = [super initWithFrame:frame];
+- (ReportTableHeaderScrollView *)headerScrollView{
+    if (!_headerScrollView) {
+        ReportTableHeaderView *headerView = [[ReportTableHeaderView alloc] initWithBridge:self.bridge];
+        _headerScrollView = [[ReportTableHeaderScrollView alloc] init];
+        _headerScrollView.bounces = true;
+        [_headerScrollView addSubview: headerView];
+    }
+    return _headerScrollView;
+}
+
+
+- (id)initWithBridge:(RCTBridge *)bridge {
+    self = [super init];
     if (self) {
+        self.bridge = bridge;
         self.reportTabelModel = [[ReportTableModel alloc] init];
         self.propertyCount = 0;
     }
@@ -163,8 +176,22 @@
     [self reloadCheck];
 }
 
+- (void)setSize:(CGSize)size {
+    self.reportTableView.frame = CGRectMake(0, 0, size.width, size.height);
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
+- (void)setHeaderViewSize:(CGSize)headerViewSize {
+    if (headerViewSize.width != 0) {
+        self.headerScrollView.contentSize = headerViewSize;
+    }
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)reloadCheck {
-    if (self.propertyCount >= 7) {
+    if (self.propertyCount >= 9) {
         [self integratedDataSource];
     }
 }
@@ -219,6 +246,15 @@
     self.reportTabelModel.dataSource = self.dataSource;
     self.reportTabelModel.rowsWidth = rowsWidth;
     self.reportTabelModel.cloumsHight = cloumsHight;
+    
+    if (_headerScrollView != nil) {
+        CGSize headerSize = self.headerScrollView.contentSize;
+        self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerSize.height);
+        headerSize.height = 0;
+        self.headerScrollView.contentSize = headerSize;
+        self.reportTableView.headerScrollView = self.headerScrollView;
+    }
+    
     self.reportTableView.reportTableModel = self.reportTabelModel;
 }
 

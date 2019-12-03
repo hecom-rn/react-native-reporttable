@@ -15,8 +15,6 @@
 @property (nonatomic, strong) UIColor *textColor;
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) CGFloat fontSize;
-
-
 @end
 
 
@@ -26,6 +24,7 @@
 @property (nonatomic, assign) NSInteger endX;
 @property (nonatomic, assign) NSInteger endY;
 @end
+
 
 @interface ReportTableModel : NSObject
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;

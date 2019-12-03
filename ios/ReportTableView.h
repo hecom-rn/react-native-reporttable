@@ -7,10 +7,11 @@
 
 #import <UIKit/UIKit.h>
 
-@class ReportTableModel, ForzenRange;
+@class ReportTableModel, ForzenRangel, ReportTableHeaderScrollView;
 @interface ReportTableView : UIView
 
 @property (nonatomic, strong) ReportTableModel *reportTableModel;
+@property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 
 @end
 

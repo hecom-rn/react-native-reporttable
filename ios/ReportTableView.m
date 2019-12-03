@@ -9,8 +9,9 @@
 #import <ZMJGanttChart/ZMJGanttChart.h>
 #import "ReportTableCell.h"
 #import "ReportTableModel.h"
+#import "ReportTableHeaderView.h"
 
-@interface ReportTableView () <SpreadsheetViewDelegate, SpreadsheetViewDataSource>
+@interface ReportTableView () <SpreadsheetViewDelegate, SpreadsheetViewDataSource, UIScrollViewDelegate>
 
 @property (nonatomic, strong) SpreadsheetView *spreadsheetView;
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
@@ -23,11 +24,24 @@
 @implementation ReportTableView
 
 
+- (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
+    self.spreadsheetView.tableHeaderView = headerScrollView;
+    _headerScrollView = headerScrollView;
+    _headerScrollView.showsHorizontalScrollIndicator = NO;
+    _headerScrollView.showsVerticalScrollIndicator = NO;
+    __weak typeof(self)weak_self = self;
+    _headerScrollView.isEndeDrag = ^(BOOL isEndeDrag) {
+        weak_self.headerScrollView.isUserScouce = false;
+        [weak_self sendSubviewToBack:weak_self.headerScrollView];
+    };
+    [self insertSubview:_headerScrollView atIndex:0];
+}
 
 - (instancetype)init
 {
     self = [super init];
     if (self) {
+        self.clipsToBounds = true;
         self.reportTableModel = [[ReportTableModel alloc] init];
         CGFloat hairline = 1 / [UIScreen mainScreen].scale;
         self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
@@ -53,10 +67,17 @@
         _spreadsheetView = ({
             SpreadsheetView *ssv = [SpreadsheetView new];
             ssv.dataSource = self;
-            ssv.delegate = self;
-            ssv.bounces = false;
-            ssv.frame = self.bounds;
+            ssv.delegate   = self;
             ssv.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+            ssv.frame = self.bounds;
+            ssv.bounces = false;
+            __weak typeof(self)weak_self = self;
+            ssv.overlayView.touchOnHeader = ^(BOOL isTouchOnHeader) {
+                if (isTouchOnHeader == YES) {
+                    weak_self.headerScrollView.isUserScouce = true;
+                    [weak_self bringSubviewToFront:weak_self.headerScrollView];
+                }
+            };
             [self addSubview:ssv];
             ssv;
         });

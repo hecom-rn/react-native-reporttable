@@ -17,6 +17,8 @@
 
 @implementation ReportTableManager
 
+RCT_EXPORT_VIEW_PROPERTY(size, CGSize)
+RCT_EXPORT_VIEW_PROPERTY(headerViewSize, CGSize)
 RCT_EXPORT_VIEW_PROPERTY(onClickEvent, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(data, NSArray)
 RCT_EXPORT_VIEW_PROPERTY(minWidth, float)
@@ -25,11 +27,13 @@ RCT_EXPORT_VIEW_PROPERTY(minHeight, float)
 RCT_EXPORT_VIEW_PROPERTY(frozenColumns, int)
 RCT_EXPORT_VIEW_PROPERTY(frozenRows, int)
 
+
+
 RCT_EXPORT_MODULE(ReportTableManager)
 
 - (UIView *)view
 {
-    return [[ReportTableViewModel alloc] init];
+    return [[ReportTableViewModel alloc] initWithBridge: self.bridge];
 }
 
 
