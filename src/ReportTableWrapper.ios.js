@@ -1,8 +1,8 @@
 import React from 'react';
-import {processColor} from 'react-native';
+import {processColor, AppRegistry} from 'react-native';
 import ReportTableView from './ReportTableView';
 
-export default class ReportTable extends React.Component{
+export default class ReportTableWrapper extends React.Component{
 
     static defaultProps = {
         data: [[]],
@@ -12,8 +12,8 @@ export default class ReportTable extends React.Component{
         frozenColumns: 0,
         frozenRows: 0,
         size: {
-            width: 1,
-            height: 1,
+            width: 0,
+            height: 0,
         },
         onClickEvent: () => {},
     };
@@ -24,7 +24,6 @@ export default class ReportTable extends React.Component{
             return itemArr.map(item => {
                 // default itemValue
                 return {
-                    fontSize: 10, 
                     ...item,
                     backgroundColor: item.backgroundColor ? processColor(item.backgroundColor) : processColor('#fff'),
                     textColor: item.textColor ? processColor(item.textColor) : processColor('#222'),
@@ -32,13 +31,20 @@ export default class ReportTable extends React.Component{
             })
         });
         this.onClickEvent = ({nativeEvent: {keyIndex}}) => {
-            props.onClickEvent && onClickEvent(keyIndex);
+            props.onClickEvent && props.onClickEvent(keyIndex);
         };
+        this.headerViewSize = {width: 0, height:0}
+        if (props.headerView) {
+            AppRegistry.registerComponent('ReportTableHeaderView', () => props.headerView);
+            const {width, height} = props.headerView().props.style;
+            this.headerViewSize = {height, width};
+        }
     }
 
     render() {
         return (
             <ReportTableView 
+                headerViewSize={this.headerViewSize}
                 {...this.props}
                 data={this.data}
                 onClickEvent={this.onClickEvent}
