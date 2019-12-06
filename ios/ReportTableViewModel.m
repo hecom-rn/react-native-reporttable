@@ -190,8 +190,14 @@
     [self reloadCheck];
 }
 
+- (void)setOnScrollEnd:(RCTDirectEventBlock)onScrollEnd {
+    self.reportTabelModel.onScrollEnd = onScrollEnd;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)reloadCheck {
-    if (self.propertyCount >= 9) {
+    if (self.propertyCount >= 10) {
         [self integratedDataSource];
     }
 }

@@ -71,6 +71,11 @@
             ssv.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
             ssv.frame = self.bounds;
             ssv.bounces = false;
+            ssv.onScrollEnd = ^(BOOL isOnEnd) {
+                if (self.reportTableModel.onScrollEnd != nil) {
+                    self.reportTableModel.onScrollEnd(@{@"isEnd": @YES});
+                }
+            };
             __weak typeof(self)weak_self = self;
             ssv.overlayView.touchOnHeader = ^(BOOL isTouchOnHeader) {
                 if (isTouchOnHeader == YES) {

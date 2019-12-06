@@ -20,6 +20,7 @@ declare module "@hecom/reportTable"{
         frozenColumns?: number;
         frozenRows?: number;
         onClickEvent?: () => void;
+        onScrollEnd?: () => void;
     }
 
     export interface DataSource {
