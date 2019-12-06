@@ -130,8 +130,8 @@
 
     ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
+    cell.contentView.backgroundColor = model.backgroundColor;
     cell.label.text = model.title;
-    cell.label.backgroundColor = model.backgroundColor;
     cell.label.textColor = model.textColor;
     cell.label.font = [UIFont boldSystemFontOfSize:model.fontSize];
     return cell;
@@ -143,7 +143,11 @@
     NSInteger row = indexPath.row;
     ItemModel *model = self.dataSource[row][column];
     if (self.reportTableModel.onClickEvent != nil) {
-        self.reportTableModel.onClickEvent(@{@"keyIndex": [NSNumber numberWithInteger:model.keyIndex]});
+        self.reportTableModel.onClickEvent(@{
+            @"keyIndex": [NSNumber numberWithInteger:model.keyIndex],
+            @"rowIndex": [NSNumber numberWithInteger:row],
+            @"columnIndex": [NSNumber numberWithInteger:column]
+        });
     }
     NSLog(@"Selected: (row: %ld, column: %ld)", (long)indexPath.row, (long)indexPath.column);
 }

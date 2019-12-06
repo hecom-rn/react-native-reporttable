@@ -200,8 +200,8 @@
     NSMutableArray *dataSource = [NSMutableArray arrayWithArray: self.reportTabelModel.dataSource];
     NSMutableArray *cloumsHight = [NSMutableArray array];
     NSMutableArray *rowsWidth = [NSMutableArray array];
-    CGFloat minWidth = self.reportTabelModel.minWidth;
-    CGFloat maxWidth = self.reportTabelModel.maxWidth;
+    CGFloat minWidth = self.reportTabelModel.minWidth; //margin
+    CGFloat maxWidth = self.reportTabelModel.maxWidth; //margin
     CGFloat minHeight = self.reportTabelModel.minHeight;
    
     for (int i = 0; i < dataSource.count; i++) {
@@ -222,12 +222,12 @@
            model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]];
            
            CGFloat textW = [self getTextWidth: model.title withTextSize: model.fontSize];
-           if (textW > rowWith) {
-               if (textW < maxWidth) {
+           if (textW > rowWith - 2 * 6) { //margin
+               if (textW < maxWidth - 2 * 6) {
                    rowWith = textW;
                } else {
                    rowWith = maxWidth;
-                   columnHeigt = (ceilf(textW / maxWidth) - 1) * (model.fontSize + 2) + minHeight;
+                   columnHeigt = (ceilf(textW / (maxWidth - 2 * 6)) - 1) * (model.fontSize + 2) + minHeight;
                }
             } else {
                rowWith = minWidth;
@@ -247,8 +247,19 @@
     self.reportTabelModel.rowsWidth = rowsWidth;
     self.reportTabelModel.cloumsHight = cloumsHight;
     
+    
+    CGFloat tableHeigt = 0;
+    for (int i = 0; i < cloumsHight.count; i++) {
+        tableHeigt += [cloumsHight[i] floatValue];
+    }
     if (_headerScrollView != nil) {
         CGSize headerSize = self.headerScrollView.contentSize;
+        tableHeigt += headerSize.height;
+        
+        CGRect tableRect = self.reportTableView.frame;
+        tableRect.size.height = MIN(tableRect.size.height, tableHeigt + 5);
+        self.reportTableView.frame = tableRect;
+    
         self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerSize.height);
         headerSize.height = 0;
         self.headerScrollView.contentSize = headerSize;
