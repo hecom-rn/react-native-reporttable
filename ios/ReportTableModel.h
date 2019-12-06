@@ -37,5 +37,6 @@
 @property (nonatomic, assign) float maxWidth;
 @property (nonatomic, assign) float minHeight;
 @property (nonatomic, copy) RCTDirectEventBlock onClickEvent;
+@property (nonatomic, copy) RCTDirectEventBlock onScrollEnd;
 
 @end
