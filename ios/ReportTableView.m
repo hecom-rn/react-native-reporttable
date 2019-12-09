@@ -32,6 +32,7 @@
     __weak typeof(self)weak_self = self;
     _headerScrollView.isEndeDrag = ^(BOOL isEndeDrag) {
         weak_self.headerScrollView.isUserScouce = false;
+        self.spreadsheetView.tableView.scrollEnabled = true;
         [weak_self sendSubviewToBack:weak_self.headerScrollView];
     };
     [self insertSubview:_headerScrollView atIndex:0];
@@ -80,6 +81,7 @@
             ssv.overlayView.touchOnHeader = ^(BOOL isTouchOnHeader) {
                 if (isTouchOnHeader == YES) {
                     weak_self.headerScrollView.isUserScouce = true;
+                    ssv.tableView.scrollEnabled = false;
                     [weak_self bringSubviewToFront:weak_self.headerScrollView];
                 }
             };
