@@ -21,6 +21,14 @@ export default class ReportTableWrapper extends React.Component{
 
     constructor(props) {
         super(props);
+        this.handleData(props);
+    }
+
+    UNSAFE_componentWillReceiveProps(nextProps) {
+        this.handleData(nextProps);
+    }
+
+    handleData = (props) => {
         this.data = props.data.map(itemArr => {
             return itemArr.map(item => {
                 // default itemValue
@@ -35,7 +43,7 @@ export default class ReportTableWrapper extends React.Component{
             props.onClickEvent && props.onClickEvent({keyIndex, rowIndex, columnIndex});
         };
         this.headerViewSize = {width: 0, height:0}
-        if (props.headerView) {
+        if (props.headerView()) {
             AppRegistry.registerComponent('ReportTableHeaderView', () => props.headerView);
             const {width, height} = props.headerView().props.style;
             this.headerViewSize = {height, width};

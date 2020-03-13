@@ -198,6 +198,7 @@
 
 - (void)reloadCheck {
     if (self.propertyCount >= 10) {
+        self.propertyCount = 0;
         [self integratedDataSource];
     }
 }
