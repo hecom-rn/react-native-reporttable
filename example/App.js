@@ -7,23 +7,23 @@ class App extends React.Component {
     constructor(props) {
         super(props);
         this.dataSource = [];
-        const colmnCount = 500;
+        const colmnCount = 30;
         const rowCount = 10;
         for (let i = 0; i < colmnCount; i++) {
             const arr = [];
             for (let j = 1; j <= rowCount; j++) {
                 arr.push({
                     keyIndex: j + i * rowCount,
-                    title: j + i * rowCount,
-                    backgroundColor: i % 2 === 0 ? '#eee': '#fff',
+                    title: j + i * rowCount + "",
+                    backgroundColor: i % 2 === 0 ? '#eeeeee': '#ffffff',
                     fontSize: 10,
-                    textColor: '#222',
+                    textColor: '#222222',
                 });
             }
             this.dataSource.push(arr);
         }
-        this.dataSource[3][3].keyIndex = 33;
-        this.dataSource[1][1].title = 1123123811231823098;
+        // this.dataSource[3][3].keyIndex = 33;
+        // this.dataSource[1][1].title = "1123123811231823098";
     }
 
     render() {
