@@ -25,11 +25,6 @@ public class RNReportTableModule extends ReactContextBaseJavaModule {
 
 
   @ReactMethod
-  public void setReportData(String data){
-    android.widget.Toast.makeText(reactContext, data, android.widget.Toast.LENGTH_SHORT).show();
-  }
-
-  @ReactMethod
   public void setFreeze(String freeze){
 
       if("0".equals(freeze)){ //冻猪

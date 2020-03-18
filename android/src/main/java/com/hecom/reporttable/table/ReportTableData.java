@@ -62,7 +62,7 @@ public class ReportTableData {
                         JsonTableBean jsonTableBean = new JsonTableBean("-");
                         rowBean[column] =  jsonTableBean;
                     }else{
-                        strArr[column][row] = (String) rowObj.get(valueKey);
+                        strArr[column][row] = (String) rowObj.get(valueKey).toString();
                         JsonTableBean columnBean = new Gson().fromJson(rowObj.toString(),JsonTableBean.class);
                         rowBean[column] =  columnBean;
                     }

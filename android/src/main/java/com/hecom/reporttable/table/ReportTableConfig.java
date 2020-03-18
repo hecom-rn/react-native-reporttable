@@ -20,13 +20,21 @@ import com.hecom.reporttable.table.bean.TableConfigBean;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReactContext;
 
 public class ReportTableConfig {
     private SmartTable<String> table;
     private ReportTableData reportTableData = new ReportTableData();
     private String[][] dataArr;
     private Context context;
-    private String defaultColor = "#000000";
+    private String defaultBorderColor = "#000000";
+    private String defaultTextColor = "#000000";
+    private String defaultBgColor = "#ffffff";
     private int defaultWidth = 50;
     private int defaultHeight = 30;
     private int strUnit = 10;
@@ -45,7 +53,7 @@ public class ReportTableConfig {
         this.context = context;
         table = new SmartTable<String>(context);
         LineStyle lineStyle = new LineStyle();
-        lineStyle.setColor(Color.parseColor(defaultColor));
+        lineStyle.setColor(Color.parseColor(defaultBorderColor));
         table.getConfig().setHorizontalPadding(0).setVerticalPadding(0)
                 .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false)
                 .setContentGridStyle(lineStyle);
@@ -56,105 +64,65 @@ public class ReportTableConfig {
         if(json == null){
             return;
         }
+       SmartTable<String> table =  ((SmartTable<String>)view);
         this.configBean = configBean;
-        final int columnHeight = configBean.getMinHeight();
+        int minWidth = configBean.getMinWidth();
+        int minHeight = configBean.getMinHeight();
+
         try {
             if(reportTableData == null){
                 reportTableData = new ReportTableData();
             }
             String[][] dataArr = reportTableData.mergeTable(json);
-            computeWidth(dataArr);
             final JsonTableBean[][] tabArr = reportTableData.getTabArr();
-            final ArrayTableData<String> tableData = ArrayTableData.create("",null, dataArr,  new IDrawFormat<String>() {
+            final ArrayTableData<String> tableData = ArrayTableData.create("",null, dataArr,  null);
+            tableData.setMinWidth( DensityUtils.dp2px(this.context,minWidth));
+            tableData.setMinHeight( DensityUtils.dp2px(this.context,minHeight));
+            tableData.setUserCellRange(reportTableData.getMergeList());
+            table.getConfig().setContentCellBackgroundFormat(new ICellBackgroundFormat<CellInfo>() {
                 @Override
-                public int measureWidth(Column<String> column, int position, TableConfig config) {
-                    int width = defaultWidth;
-                    if(columnMapWidth.containsKey(position)){
-                        width = columnMapWidth.get(position);
+                public void drawBackground(Canvas canvas, Rect rect, CellInfo cellInfo, Paint paint) {
+                    JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
+                    String color = defaultBgColor;
+                    if(tableBean != null && !"".equals(tableBean.getBackgroundColor()) && tableBean.getBackgroundColor() != null){
+                        color = tableBean.getBackgroundColor();
                     }
-                    return DensityUtils.dp2px(context,width);
+                    DrawUtils.fillBackground(canvas,rect.left,rect.top,rect.right,rect.bottom,Color.parseColor(color), paint);
                 }
 
                 @Override
-                public int measureHeight(Column<String> column, int position, TableConfig config) {
-                    return DensityUtils.dp2px(context,columnHeight);
-                }
-
-                @Override
-                public void draw(Canvas c, Rect rect, CellInfo<String> cellInfo, TableConfig config) {
-                    try {
-                        if(cellInfo.data != null){
-                            JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
-                            Paint paint = config.getPaint();
-                            paint.setStyle(Paint.Style.FILL);
-                            if(tableBean.getFontSize() > 0){
-                                paint.setTextSize(DensityUtils.dp2px(context ,tableBean.getFontSize()));
-                            }
-                            if(!"".equals(tableBean.getBackgroundColor())){
-                                DrawUtils.fillBackground(c,rect.left,rect.top,rect.right,rect.bottom,Color.parseColor(tableBean.getBackgroundColor()), paint);
-                            }
-                            if(!"".equals(tableBean.getTextColor())){
-                                paint.setColor(Color.parseColor(tableBean.getTextColor()));
-                            }
-                            if(!"".equals(tableBean.getTitle())){
-                                DrawUtils.drawSingleText(c,paint,rect,tableBean.getTitle());
-                            }else{
-                                DrawUtils.drawSingleText(c,paint,rect,"-");
-                            }
-                        }
-                    } catch (java.lang.Exception exception) {
-                        exception.printStackTrace();
+                public int getTextColor(CellInfo cellInfo) {
+                    JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
+                    if(tableBean != null && !"".equals(tableBean.getTextColor()) && tableBean.getTextColor() != null){
+                        return  Color.parseColor(tableBean.getTextColor());
                     }
+                    return  Color.parseColor(defaultTextColor);
                 }
             });
-            tableData.setUserCellRange(reportTableData.getMergeList());
+            final Context mContext = context;
             tableData.setOnItemClickListener(new ArrayTableData.OnItemClickListener<String>(){
 
                 @Override
                 public void onClick(Column<String> column, String value, String s, int col, int row) {
-                                        
-                }
-            });
-            ((SmartTable<String>)view).setTableData(tableData);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void computeWidth(String[][] strArr){
-        if(columnMapWidth == null){
-            columnMapWidth = new HashMap<>();
-        }
-        columnMapWidth.clear();
-        for (int i = 0; i < strArr.length; i++) {
-            String[] columnArr = strArr[i];
-            int width = computeColumnWidth(this.configBean.getMinWidth(), columnArr);
-            if(!columnMapWidth.containsKey(i)){
-                columnMapWidth.put(i, width);
-            }
-        }
-    }
-
-    public int computeColumnWidth(int minWidth ,String[] jsonArr){
-        int maxLen = minWidth;
-        int maxWidth = this.configBean.getMaxWidth();
-        try {
-            for (int i = 0; i < jsonArr.length; i++) {
-                if(jsonArr[i] != null){
-                    int currentLen = jsonArr[i].length() * strUnit;
-                    if(currentLen > maxLen ){
-                        if(currentLen < maxWidth){
-                            maxLen = currentLen;
-                        }else{
-                            maxLen = maxWidth;
+                    try {
+                        JsonTableBean tableBean = tabArr[row][col];
+                        int keyIndex = tableBean.getKeyIndex();
+                        if( mContext != null){
+                            WritableMap map = Arguments.createMap();
+                            map.putInt("keyIndex", keyIndex);
+                            map.putInt("rowIndex", row);
+                            map.putInt("columnIndex", col);
+                            ((ReactContext)mContext).getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("com.hecom.reporttable.clickData",map);
                         }
+                    } catch (java.lang.Exception exception) {
+                        exception.printStackTrace();
+                        System.out.println("点击异常---"+exception);
                     }
                 }
-            }
+            });
+            table.setTableData(tableData);
         } catch (Exception e) {
             e.printStackTrace();
-            return maxLen;
         }
-        return maxLen;
     }
 }

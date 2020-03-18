@@ -19,6 +19,9 @@ import com.facebook.react.BuildConfig;
 import com.hecom.reporttable.table.ReportTableConfig;
 import com.facebook.react.bridge.ReactMethod;
 import com.hecom.reporttable.table.bean.TableConfigBean;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class RNReportTableManager extends SimpleViewManager<View> {
     private ThemedReactContext mReactContext;
@@ -39,26 +42,69 @@ public class RNReportTableManager extends SimpleViewManager<View> {
     }
 
     @ReactProp(name = "data")
-    public void setCardData(View view, String jsonData) {
+    public void setData(View view, String dataSource) {
         if(reportTableConfig == null){
             return;
         }
-        TableConfigBean configBean = new TableConfigBean(this.minWidth, this.maxWidth, this.minHeight);
-        reportTableConfig.setReportTableData(view, jsonData, configBean);
+
+        String jsonData = "";
+        int minHeight = 40;
+        int minWidth = 50;
+        int maxWidth = 120;
+
+        try {
+            JSONObject object = new JSONObject(dataSource);
+            if(object.has("data")){
+                Object dataObj = object.get("data");
+                jsonData = dataObj.toString();
+            }
+            if(object.has("minHeight")){
+                minHeight = (int) object.get("minHeight");
+            }
+            if(object.has("minWidth")){
+                minWidth = (int) object.get("minWidth");
+            }
+            if(object.has("maxWidth")){
+                maxWidth = (int) object.get("maxWidth");
+            }
+            TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
+            reportTableConfig.setReportTableData(view, jsonData, configBean);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
-    @ReactProp(name = "minHeight")
-    public void setMinHeight(View view, int minHeight) {
-        this.minHeight = minHeight;
-    }
 
-    @ReactProp(name = "minWidth")
-    public void setMinWidth(View view, int minWidth) {
-        this.minWidth = minWidth;
-    }
+    private void setConfig(String dataSource){
+        String jsonData = "";
+        int minHeight = 40;
+        int minWidth = 50;
+        int maxWidth = 120;
 
-    @ReactProp(name = "maxWidth")
-    public void setMaxWidth(View view, int maxWidth) {
-        this.maxWidth = maxWidth;
+        try {
+            JSONObject object = new JSONObject(dataSource);
+            if(object.has("data")){
+                Object dataObj = object.get("data");
+                 jsonData = dataObj.toString();
+            }
+            if(object.has("minHeight")){
+                 minHeight = (int) object.get("minHeight");
+            }
+            if(object.has("minWidth")){
+                 minWidth = (int) object.get("minWidth");
+            }
+            if(object.has("maxWidth")){
+                 maxWidth = (int) object.get("maxWidth");
+            }
+//            if(object.has("frozenRows")){
+//                frozenRows = (int) object.get("frozenRows");
+//            }
+//            if(object.has("frozenColumns")){
+//                frozenColumns = (int) object.get("frozenColumns");
+//            }
+            TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 }
