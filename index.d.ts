@@ -1,4 +1,4 @@
-declare module "@hecom/reportTable"{
+declare module "@hecom/react-native-report-table"{
     import * as React from 'react';
     import * as ReactNative from "react-native";
 
