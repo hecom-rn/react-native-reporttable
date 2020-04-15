@@ -6,7 +6,7 @@
 
 ## install
 
-**Yarn:** `@hecom/reportTable`
+**Yarn add:** `react-native-reportTable`
 
 > iOS
 
