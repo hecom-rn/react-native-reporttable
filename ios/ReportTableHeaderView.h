@@ -18,6 +18,7 @@ typedef void (^EndDrag)(BOOL isEndeDrag);
 @interface ReportTableHeaderScrollView: UIScrollView
 @property (nonatomic, copy) EndDrag isEndeDrag;
 @property (nonatomic, assign) BOOL isUserScouce;
+@property (nonatomic, assign) CGFloat offset;
 
 @end
 

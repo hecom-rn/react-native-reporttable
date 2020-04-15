@@ -135,9 +135,14 @@
 
 - (void)setData:(NSArray *)data {
     NSMutableArray *dataSource = [NSMutableArray arrayWithArray:data];
-    self.reportTabelModel.dataSource = dataSource;
-    self.propertyCount += 1;
-    [self reloadCheck];
+    if (self.reportTabelModel.dataSource.count > 0) {
+        self.reportTabelModel.dataSource = dataSource; // update
+        [self integratedDataSource];
+    } else {
+        self.reportTabelModel.dataSource = dataSource;
+        self.propertyCount += 1;
+        [self reloadCheck];
+    }
 }
 
 - (void)setMinWidth:(float)minWidth {
@@ -210,7 +215,8 @@
     CGFloat minWidth = self.reportTabelModel.minWidth; //margin
     CGFloat maxWidth = self.reportTabelModel.maxWidth; //margin
     CGFloat minHeight = self.reportTabelModel.minHeight;
-   
+    [self.dataSource removeAllObjects]; // clear
+    
     for (int i = 0; i < dataSource.count; i++) {
        NSArray *rowArr = dataSource[i];
        NSMutableArray *modelArr = [NSMutableArray array];

@@ -21,6 +21,7 @@
     self = [super init];
     if (self) {
         self.delegate = self;
+        self.offset = 0;
     }
     return self;
 }
@@ -28,15 +29,11 @@
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     if (self.isUserScouce == true) {
         CGPoint offset = scrollView.contentOffset;
-        offset.y = 0;
+        offset.y = self.frame.size.height + self.offset;
         self.contentOffset = offset;
     }
 }
-- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
-    if (self.isEndeDrag != nil) {
-        self.isEndeDrag(true);
-    }
-}
+
 @end
 
 

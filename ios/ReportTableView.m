@@ -18,6 +18,8 @@
 @property (nonatomic, strong) NSMutableArray<ForzenRange *> *frozenArray;
 @property (nonatomic, strong) NSArray *cloumsHight;
 @property (nonatomic, strong) NSArray *rowsWidth;
+@property (nonatomic, assign) BOOL isOnHeader;
+
 
 @end
 
@@ -29,13 +31,8 @@
     _headerScrollView = headerScrollView;
     _headerScrollView.showsHorizontalScrollIndicator = NO;
     _headerScrollView.showsVerticalScrollIndicator = NO;
-    __weak typeof(self)weak_self = self;
-    _headerScrollView.isEndeDrag = ^(BOOL isEndeDrag) {
-        weak_self.headerScrollView.isUserScouce = false;
-        self.spreadsheetView.tableView.scrollEnabled = true;
-        [weak_self sendSubviewToBack:weak_self.headerScrollView];
-    };
     [self insertSubview:_headerScrollView atIndex:0];
+    self.isOnHeader = false;
 }
 
 - (instancetype)init
@@ -78,12 +75,19 @@
                 }
             };
             __weak typeof(self)weak_self = self;
-            ssv.overlayView.touchOnHeader = ^(BOOL isTouchOnHeader) {
-                if (isTouchOnHeader == YES) {
+            ssv.overlayView.touchPoint = ^(CGPoint point) {
+                BOOL isOnHeader = point.y < weak_self.headerScrollView.frame.size.height && ssv.contentOffset.y <= 0;
+                if (isOnHeader == YES && self.isOnHeader == false) {
+                    weak_self.headerScrollView.offset = ssv.contentOffset.y;
                     weak_self.headerScrollView.isUserScouce = true;
                     ssv.tableView.scrollEnabled = false;
                     [weak_self bringSubviewToFront:weak_self.headerScrollView];
+                } else if (isOnHeader == false && self.isOnHeader == true) {
+                    weak_self.headerScrollView.isUserScouce = false;
+                    weak_self.spreadsheetView.tableView.scrollEnabled = true;
+                    [weak_self sendSubviewToBack:weak_self.headerScrollView];
                 }
+                self.isOnHeader = isOnHeader;
             };
             [self addSubview:ssv];
             ssv;
