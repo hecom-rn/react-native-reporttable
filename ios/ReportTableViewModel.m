@@ -189,7 +189,8 @@
 
 - (void)setHeaderViewSize:(CGSize)headerViewSize {
     if (headerViewSize.width != 0) {
-        self.headerScrollView.contentSize = headerViewSize;
+        self.headerScrollView.frame = CGRectMake(0, 0, 0, headerViewSize.height);
+        self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, 0);
     }
     self.propertyCount += 1;
     [self reloadCheck];
@@ -265,19 +266,17 @@
     for (int i = 0; i < cloumsHight.count; i++) {
         tableHeigt += [cloumsHight[i] floatValue];
     }
-    if (_headerScrollView != nil) {
-        CGSize headerSize = self.headerScrollView.contentSize;
-        tableHeigt += headerSize.height;
-        
-        CGRect tableRect = self.reportTableView.frame;
-        tableRect.size.height = MIN(tableRect.size.height, tableHeigt + 5);
-        self.reportTableView.frame = tableRect;
     
+    if (_headerScrollView != nil) {
+        CGSize headerSize = self.headerScrollView.frame.size;
+        tableHeigt += headerSize.height;
         self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerSize.height);
-        headerSize.height = 0;
-        self.headerScrollView.contentSize = headerSize;
         self.reportTableView.headerScrollView = self.headerScrollView;
     }
+    
+    CGRect tableRect = self.reportTableView.frame;
+    tableRect.size.height = MIN(tableRect.size.height, tableHeigt + 5);
+    self.reportTableView.frame = tableRect;
     
     self.reportTableView.reportTableModel = self.reportTabelModel;
 }
