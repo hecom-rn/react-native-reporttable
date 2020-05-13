@@ -189,8 +189,8 @@
 
 - (void)setHeaderViewSize:(CGSize)headerViewSize {
     if (headerViewSize.width != 0) {
-        self.headerScrollView.frame = CGRectMake(0, 0, 0, headerViewSize.height);
         self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, 0);
+        self.headerScrollView.frame = CGRectMake(0, 0, self.headerScrollView.frame.size.width, headerViewSize.height);
     }
     self.propertyCount += 1;
     [self reloadCheck];
