@@ -19,6 +19,7 @@
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 @property (nonatomic, assign) NSInteger propertyCount;
 @property (nonatomic, weak)   RCTBridge *bridge;
+@property (nonatomic, strong) ReportTableHeaderView *headerView;
 
 @end
 
@@ -39,9 +40,11 @@
     return _reportTableView;
 }
 
-- (ReportTableHeaderScrollView *)headerScrollView{
+
+- (ReportTableHeaderScrollView *)headerScrollView {
     if (!_headerScrollView) {
         ReportTableHeaderView *headerView = [[ReportTableHeaderView alloc] initWithBridge:self.bridge];
+        self.headerView = headerView;
         _headerScrollView = [[ReportTableHeaderScrollView alloc] init];
         _headerScrollView.bounces = true;
         [_headerScrollView addSubview: headerView];
@@ -191,6 +194,7 @@
     if (headerViewSize.width != 0) {
         self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, 0);
         self.headerScrollView.frame = CGRectMake(0, 0, self.headerScrollView.frame.size.width, headerViewSize.height);
+        self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
     }
     self.propertyCount += 1;
     [self reloadCheck];

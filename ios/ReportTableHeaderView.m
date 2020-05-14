@@ -45,26 +45,17 @@
 @implementation ReportTableHeaderView
 {
   RCTRootView *_resizableRootView;
-  UITextView *_currentSizeTextView;
-  BOOL _sizeUpdated;
 }
 
 - (id)initWithBridge:(RCTBridge *)bridge {
-    self = [super init];
-    if (self) {
-         _sizeUpdated = NO;
 
-         _resizableRootView = [[RCTRootView alloc] initWithBridge:bridge
-                                                       moduleName:@"ReportTableHeaderView"
-                                                initialProperties:@{}];
-
-         [_resizableRootView setSizeFlexibility:RCTRootViewSizeFlexibilityHeight];
-         _resizableRootView.delegate = self;
-         [self addSubview:_resizableRootView];
-    }
-    return self;
+    _resizableRootView = [[RCTRootView alloc] initWithBridge:bridge
+                                                moduleName:@"ReportTableHeaderView"
+                                            initialProperties:@{}];
+    [_resizableRootView setSizeFlexibility:RCTRootViewSizeFlexibilityHeight];
+    _resizableRootView.delegate = self;
+    return _resizableRootView;
 }
-
 
 - (NSArray<UIView<RCTComponent> *> *)reactSubviews
 {
@@ -73,16 +64,12 @@
   return @[];
 }
 
-
 #pragma mark - RCTRootViewDelegate
 
 - (void)rootViewDidChangeIntrinsicSize:(RCTRootView *)rootView
 {
   CGRect newFrame = rootView.frame;
   newFrame.size = rootView.intrinsicContentSize;
-  if (!_sizeUpdated) {
-    _sizeUpdated = TRUE;
-  }
   rootView.frame = newFrame;
 }
 
