@@ -15,6 +15,8 @@
 @property (nonatomic, strong) UIColor *textColor;
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) CGFloat fontSize;
+@property (nonatomic, assign) BOOL isLeft;
+@property (nonatomic, assign) NSInteger marginVertical;
 @end
 
 
@@ -38,5 +40,5 @@
 @property (nonatomic, assign) float minHeight;
 @property (nonatomic, copy) RCTDirectEventBlock onClickEvent;
 @property (nonatomic, copy) RCTDirectEventBlock onScrollEnd;
-
+@property (nonatomic, strong) UIColor *lineColor;
 @end

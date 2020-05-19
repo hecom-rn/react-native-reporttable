@@ -4,21 +4,6 @@ import ReportTableView from './ReportTableView';
 
 export default class ReportTableWrapper extends React.Component{
 
-    static defaultProps = {
-        data: [[]],
-        minWidth: 50,
-        minHeight: 40,
-        maxWidth: 120,
-        frozenColumns: 0,
-        frozenRows: 0,
-        size: {
-            width: 0,
-            height: 0,
-        },
-        onClickEvent: () => {},
-        onScrollEnd: () => {},
-    };
-
     constructor(props) {
         super(props);
         this.handleData(props);
@@ -33,6 +18,7 @@ export default class ReportTableWrapper extends React.Component{
             return itemArr.map(item => {
                 // default itemValue
                 return {
+                    marginVertical: props.marginVertical,
                     ...item,
                     backgroundColor: item.backgroundColor ? processColor(item.backgroundColor) : processColor('#fff'),
                     textColor: item.textColor ? processColor(item.textColor) : processColor('#222'),

@@ -41,9 +41,6 @@
     if (self) {
         self.clipsToBounds = true;
         self.reportTableModel = [[ReportTableModel alloc] init];
-        CGFloat hairline = 1 / [UIScreen mainScreen].scale;
-        self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
-        self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color:[UIColor grayColor]];
         [self.spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier: [ReportTableCell description]];
         [self.spreadsheetView flashScrollIndicators];
     }
@@ -56,6 +53,10 @@
     self.frozenArray = reportTableModel.frozenArray;
     self.cloumsHight = reportTableModel.cloumsHight;
     self.rowsWidth = reportTableModel.rowsWidth;
+    
+    CGFloat hairline = 1;
+    self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
+    self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: reportTableModel.lineColor];
 
     [self.spreadsheetView reloadData];
 }
@@ -76,18 +77,19 @@
             };
             __weak typeof(self)weak_self = self;
             ssv.overlayView.touchPoint = ^(CGPoint point) {
-                BOOL isOnHeader = point.y < weak_self.headerScrollView.frame.size.height && ssv.contentOffset.y <= 0;
+                BOOL isOnHeader = point.y < (weak_self.headerScrollView.frame.size.height -  weak_self.headerScrollView.contentOffset.y) && ssv.contentOffset.y <= 0;
                 if (isOnHeader == YES && weak_self.isOnHeader == false) {
                     weak_self.headerScrollView.offset = ssv.contentOffset.y;
                     weak_self.headerScrollView.isUserScouce = true;
                     ssv.tableView.scrollEnabled = false;
                     [weak_self bringSubviewToFront:weak_self.headerScrollView];
+                    weak_self.isOnHeader = isOnHeader;
                 } else if (isOnHeader == false && weak_self.isOnHeader == true) {
                     weak_self.headerScrollView.isUserScouce = false;
                     weak_self.spreadsheetView.tableView.scrollEnabled = true;
                     [weak_self sendSubviewToBack:weak_self.headerScrollView];
+                    weak_self.isOnHeader = isOnHeader;
                 }
-                weak_self.isOnHeader = isOnHeader;
             };
             [self addSubview:ssv];
             ssv;
@@ -142,8 +144,10 @@
     ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
     cell.contentView.backgroundColor = model.backgroundColor;
+    cell.marginVertical = model.marginVertical;
     cell.label.text = model.title;
     cell.label.textColor = model.textColor;
+    cell.label.textAlignment = model.isLeft ? NSTextAlignmentLeft : NSTextAlignmentRight;
     cell.label.font = [UIFont boldSystemFontOfSize:model.fontSize];
     return cell;
 }

@@ -4,6 +4,23 @@ import ReportTableWrapper from './ReportTableWrapper';
 
 export default class ReportTable extends React.Component{
 
+    static defaultProps = {
+        data: [[]],
+        minWidth: 50,
+        minHeight: 40,
+        maxWidth: 120,
+        frozenColumns: 0,
+        frozenRows: 0,
+        marginVertical: 12,
+        lineColor: '#E6E8EA',
+        size: {
+            width: 0,
+            height: 0,
+        },
+        onClickEvent: () => {},
+        onScrollEnd: () => {},
+    };
+
     // 处理通用逻辑
     constructor(props) {
         super(props);

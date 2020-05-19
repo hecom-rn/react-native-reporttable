@@ -206,8 +206,14 @@
     [self reloadCheck];
 }
 
+- (void)setLineColor:(UIColor *)lineColor {
+    self.reportTabelModel.lineColor = lineColor;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)reloadCheck {
-    if (self.propertyCount >= 10) {
+    if (self.propertyCount >= 11) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
@@ -238,14 +244,16 @@
            model.backgroundColor = [RCTConvert UIColor:[dir objectForKey:@"backgroundColor"]];
            model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
            model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]];
-           
+           model.isLeft = [RCTConvert BOOL:[dir objectForKey:@"isLeft"]];
+           model.marginVertical = [RCTConvert NSInteger:[dir objectForKey:@"marginVertical"]];
            CGFloat textW = [self getTextWidth: model.title withTextSize: model.fontSize];
-           if (textW > rowWith - 2 * 6) { //margin
-               if (textW < maxWidth - 2 * 6) {
+           if (textW > rowWith - 2 * model.marginVertical) { //margin
+               if (textW < maxWidth - 2 * model.marginVertical) {
                    rowWith = textW;
                } else {
                    rowWith = maxWidth;
-                   columnHeigt = (ceilf(textW / (maxWidth - 2 * 6)) - 1) * (model.fontSize + 2) + minHeight;
+                   NSInteger height = (ceilf(textW / (maxWidth - 2 * model.marginVertical)) - 1) * (model.fontSize + 2) + minHeight;
+                   columnHeigt = MAX(columnHeigt, height);
                }
             } else {
                rowWith = minWidth;
@@ -268,7 +276,7 @@
     
     CGFloat tableHeigt = 0;
     for (int i = 0; i < cloumsHight.count; i++) {
-        tableHeigt += [cloumsHight[i] floatValue];
+        tableHeigt += [cloumsHight[i] floatValue] + 1; // speHeight
     }
     
     if (_headerScrollView != nil) {
@@ -279,7 +287,7 @@
     }
     
     CGRect tableRect = self.reportTableView.frame;
-    tableRect.size.height = MIN(tableRect.size.height, tableHeigt + 5);
+    tableRect.size.height = MIN(tableRect.size.height, tableHeigt);
     self.reportTableView.frame = tableRect;
     
     self.reportTableView.reportTableModel = self.reportTabelModel;

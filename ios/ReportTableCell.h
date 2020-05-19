@@ -12,4 +12,6 @@
 
 @property (nonatomic, strong) UILabel *label;
 
+@property (nonatomic, assign) NSInteger marginVertical;
+
 @end

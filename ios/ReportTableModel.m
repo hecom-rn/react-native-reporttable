@@ -49,7 +49,12 @@
 
 
 @implementation ItemModel
-
+- (NSInteger)marginVertical {
+    if (!_marginVertical) {
+        return 6;
+    }
+    return _marginVertical;
+}
 @end
 
 @implementation ForzenRange

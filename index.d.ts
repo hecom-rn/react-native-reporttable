@@ -21,6 +21,8 @@ declare module "@hecom/react-native-report-table"{
         frozenRows?: number;
         onClickEvent?: () => void;
         onScrollEnd?: () => void;
+        lineColor?: string;
+        marginVertical?: number; // item
     }
 
     export interface DataSource {
@@ -29,13 +31,10 @@ declare module "@hecom/react-native-report-table"{
         backgroundColor?: string;
         fontSize?: number;
         textColor?: string;
+        isLeft?: boolean;
     }
 
     export default class ReportTable extends React.Component<ReportTableProps>{
     }
 
 }
-
-
-
-
