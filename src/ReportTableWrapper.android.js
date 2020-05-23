@@ -16,7 +16,7 @@ export default class ReportTableWrapper extends React.Component{
             cannotSeeHeader: false,
             isListener: true
         };
-        this.headerHeight = this.props.headerView() && this.props.headerView().props.style
+        this.headerHeight = this.props.headerView && this.props.headerView().props.style
             && this.props.headerView().props.style.height;
 
         this._panResponder = PanResponder.create({
