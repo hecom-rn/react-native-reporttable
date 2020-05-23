@@ -28,8 +28,10 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         valueMap = new HashMap<>();
     }
 
+    private static final String TAG = "TextDrawFormat";
+
     @Override
-    public int measureWidth(Column<T> column, int position, TableConfig config) {
+    public int measureWidth(Column<T>column, int position, TableConfig config) {
 
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
@@ -45,7 +47,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     }
 
     @Override
-    public void draw(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+    public void draw(Canvas c,Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+//        Log.e(TAG, "draw");
         Paint paint = config.getPaint();
         setTextPaint(config,cellInfo, paint);
         if(cellInfo.column.getTextAlign() !=null) {

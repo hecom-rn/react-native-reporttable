@@ -71,27 +71,27 @@ public class AnnotationParser<T>  {
             field.setAccessible(true);
             Class<?> fieldClass = field.getType();
             Annotation fieldAnnotation = field.getAnnotation(SmartColumn.class);
-           if(fieldAnnotation != null){
-               SmartColumn smartColumn = (SmartColumn) fieldAnnotation;
-               ColumnType type = smartColumn.type();
-               if(type == ColumnType.Own) {
-                   String fieldName =parentFieldName != null? (parentFieldName+field.getName()) :field.getName();
-                   createColumn(fieldName,field, columns, parentMap, isArray, true,smartColumn);
-               }else if(type == ColumnType.Child){
-                   String fieldName = (parentFieldName != null ?parentFieldName:Column.INVAL_VALUE)
-                           +field.getName()+".";
-                   getColumnAnnotation(fieldClass,fieldName,columns,parentMap,isArray);
-               }else if(type == ColumnType.ArrayChild || type == ColumnType.ArrayOwn){
-                   fieldClass = getParameterizedType(field);
-                   String fieldName = (parentFieldName != null ?parentFieldName:Column.INVAL_VALUE)
-                           +field.getName();
-                   if(type == ColumnType.ArrayOwn) {
-                       createColumn(fieldName, field, columns, parentMap, true,false, smartColumn);
-                   }else {
-                       getColumnAnnotation(fieldClass, fieldName + ".", columns, parentMap, true);
-                   }
-               }
-           }
+            if(fieldAnnotation != null){
+                SmartColumn smartColumn = (SmartColumn) fieldAnnotation;
+                ColumnType type = smartColumn.type();
+                if(type == ColumnType.Own) {
+                    String fieldName =parentFieldName != null? (parentFieldName+field.getName()) :field.getName();
+                    createColumn(fieldName,field, columns, parentMap, isArray, true,smartColumn);
+                }else if(type == ColumnType.Child){
+                    String fieldName = (parentFieldName != null ?parentFieldName:Column.INVAL_VALUE)
+                            +field.getName()+".";
+                    getColumnAnnotation(fieldClass,fieldName,columns,parentMap,isArray);
+                }else if(type == ColumnType.ArrayChild || type == ColumnType.ArrayOwn){
+                    fieldClass = getParameterizedType(field);
+                    String fieldName = (parentFieldName != null ?parentFieldName:Column.INVAL_VALUE)
+                            +field.getName();
+                    if(type == ColumnType.ArrayOwn) {
+                        createColumn(fieldName, field, columns, parentMap, true,false, smartColumn);
+                    }else {
+                        getColumnAnnotation(fieldClass, fieldName + ".", columns, parentMap, true);
+                    }
+                }
+            }
 
         }
     }
@@ -148,7 +148,7 @@ public class AnnotationParser<T>  {
 
     private Class<?> getParameterizedType(Field field){
 
-        if(field.getType() == List.class) {
+        if(field.getType() == java.util.List.class) {
             Type genericType = field.getGenericType();
             if (genericType == null) {
                 throw new TableException("ColumnType Array field List  must be with generics");
@@ -162,7 +162,7 @@ public class AnnotationParser<T>  {
                 throw new TableException("ColumnType Array field List  must be with generics");
             }
         }else if(field.getType().isArray()){
-                return field.getType().getComponentType();
+            return field.getType().getComponentType();
         }else{
             throw new TableException("ColumnType Array field  must be List or Array");
         }

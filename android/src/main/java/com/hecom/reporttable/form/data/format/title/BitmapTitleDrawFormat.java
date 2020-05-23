@@ -82,6 +82,11 @@ public abstract class BitmapTitleDrawFormat implements ITitleDrawFormat {
         }
     }
 
+    @Override
+    public void draw(Canvas c, Column column, Rect rect, TableConfig config, int row) {
+
+    }
+
     public boolean drawBackground(Canvas c, Column column, Rect rect, TableConfig config) {
         ICellBackgroundFormat<Column> backgroundFormat = config.getColumnCellBackgroundFormat();
         if(isDrawBackground && backgroundFormat != null){
@@ -116,3 +121,4 @@ public abstract class BitmapTitleDrawFormat implements ITitleDrawFormat {
         isDrawBackground = drawBackground;
     }
 }
+

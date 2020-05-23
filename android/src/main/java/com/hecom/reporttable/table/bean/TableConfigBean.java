@@ -2,6 +2,25 @@ package com.hecom.reporttable.table.bean;
 
 public class TableConfigBean {
     private int minWidth;
+    private int frozenRows;
+
+    public int getFrozenRows() {
+        return frozenRows;
+    }
+
+    public void setFrozenRows(int frozenRows) {
+        this.frozenRows = frozenRows;
+    }
+
+    public int getFrozenColumns() {
+        return frozenColumns;
+    }
+
+    public void setFrozenColumns(int frozenColumns) {
+        this.frozenColumns = frozenColumns;
+    }
+
+    private int frozenColumns;
 
     public int getMinWidth() {
         return minWidth;
@@ -28,6 +47,8 @@ public class TableConfigBean {
     }
 
     private int maxWidth;
+
+
     private int minHeight;
 
     public TableConfigBean(int minWidth, int maxWidth, int minHeight) {

@@ -7,6 +7,7 @@ import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.column.Column;
 
 
+
 /**
  * Created by huang on 2017/11/6.
  */
@@ -31,4 +32,5 @@ public interface ITitleDrawFormat {
     void draw(Canvas c, Column column, Rect rect, TableConfig config);
 
 
+    void draw(Canvas c, Column column, Rect rect, TableConfig config, int row);
 }

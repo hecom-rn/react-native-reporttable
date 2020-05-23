@@ -26,8 +26,9 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
+import android.widget.Toast;
 
-public class ReportTableConfig {
+public class ReportTableConfig implements TableConfig.OnScrollChangeListener{
     private SmartTable<String> table;
     private ReportTableData reportTableData = new ReportTableData();
     private String[][] dataArr;
@@ -120,9 +121,21 @@ public class ReportTableConfig {
                     }
                 }
             });
+
+            for (int i = 0; i < configBean.getFrozenColumns(); i++) {
+                tableData.getArrayColumns().get(i).setFixed(true);
+            }
+
+              table.getConfig().setFixedLines(configBean.getFrozenRows(), this);
             table.setTableData(tableData);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+        @Override
+        public void showUnFixedArea() {
+            //Toast.makeText(context, "showUnFixedArea", Toast.LENGTH_SHORT).show();
+             ((ReactContext)context).getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("com.hecom.reporttable.showUnFixedArea",null);
+        }
 }

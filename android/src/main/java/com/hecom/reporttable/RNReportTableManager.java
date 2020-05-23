@@ -43,49 +43,64 @@ public class RNReportTableManager extends SimpleViewManager<View> {
 
     @ReactProp(name = "data")
     public void setData(View view, String dataSource) {
-         if(reportTableConfig == null){
-                    return;
-                }
+        if(reportTableConfig == null){
+            return;
+        }
 
-                String jsonData = "";
-                int minHeight = 40;
-                int minWidth = 50;
-                int maxWidth = 120;
+        String jsonData = "";
+        int minHeight = 40;
+        int minWidth = 50;
+        int maxWidth = 120;
+        int frozenRows = -1;
+        int frozenColumns = -1;
+        try {
+            JSONObject object = new JSONObject(dataSource);
+            if(object.has("data")){
+                Object dataObj = object.get("data");
+                jsonData = dataObj.toString();
+            }
+            if(object.has("minHeight")){
+                minHeight = transformDataType(object.get("minHeight"));
+            }
+            if(object.has("minWidth")){
+                  minWidth = transformDataType(object.get("minWidth"));
+            }
+            if(object.has("maxWidth")){
+                maxWidth = transformDataType(object.get("maxWidth"));
+            }
+            if(object.has("frozenRows")){
+                frozenRows = (int) object.get("frozenRows");
+            }
+            if(object.has("frozenColumns")){
+                frozenColumns = (int) object.get("frozenColumns");
+            }
+            TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
+            if(frozenColumns != -1){
+                configBean.setFrozenColumns(frozenColumns);
+            }
+            if(frozenRows != -1){
+                configBean.setFrozenRows(frozenRows);
+            }
 
-                try {
-                    JSONObject object = new JSONObject(dataSource);
-                    if(object.has("data")){
-                        Object dataObj = object.get("data");
-                        jsonData = dataObj.toString();
-                    }
-                    if(object.has("minHeight")){
-                        minHeight = transformDataType(object.get("minHeight"));
-                    }
-                    if(object.has("minWidth")){
-                        minWidth = transformDataType(object.get("minWidth")); ;
-
-                    }
-                    if(object.has("maxWidth")){
-                        maxWidth = transformDataType(object.get("maxWidth"));;
-                    }
-                    TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
-                    reportTableConfig.setReportTableData(view, jsonData, configBean);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+            reportTableConfig.setReportTableData(view, jsonData, configBean);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
-    private int transformDataType(Object data){
-            int result = 0;
-            if(data instanceof Double){
-                result = (int)Math.round(((Double)data));
-            }else if(data instanceof Float){
-                result = (int)Math.round(((Float)data));
-            }else if(data instanceof Integer){
-                result = (int)data;
-            }
-            return result;
-        }
+
+     private int transformDataType(Object data){
+                int result = 0;
+                if(data instanceof Double){
+                    result = (int)Math.round(((Double)data));
+                }else if(data instanceof Float){
+                    result = (int)Math.round(((Float)data));
+                }else if(data instanceof Integer){
+                    result = (int)data;
+                }
+                return result;
+    }
+
 
     private void setConfig(String dataSource){
         String jsonData = "";
@@ -97,16 +112,16 @@ public class RNReportTableManager extends SimpleViewManager<View> {
             JSONObject object = new JSONObject(dataSource);
             if(object.has("data")){
                 Object dataObj = object.get("data");
-                 jsonData = dataObj.toString();
+                jsonData = dataObj.toString();
             }
             if(object.has("minHeight")){
-                 minHeight = (int) object.get("minHeight");
+                minHeight = (int) object.get("minHeight");
             }
             if(object.has("minWidth")){
-                 minWidth = (int) object.get("minWidth");
+                minWidth = (int) object.get("minWidth");
             }
             if(object.has("maxWidth")){
-                 maxWidth = (int) object.get("maxWidth");
+                maxWidth = (int) object.get("maxWidth");
             }
 //            if(object.has("frozenRows")){
 //                frozenRows = (int) object.get("frozenRows");

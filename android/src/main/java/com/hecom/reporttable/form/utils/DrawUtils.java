@@ -17,9 +17,12 @@ import com.hecom.reporttable.form.data.style.FontStyle;
  * Created by huang on 2017/11/1.
  */
 
+
 public class DrawUtils {
 
-    public static int getTextHeight(FontStyle style, Paint paint){
+    private static final String TAG = "DrawUtils";
+
+    public static int getTextHeight(FontStyle style,Paint paint){
         style.fillPaint(paint);
         Paint.FontMetrics fontMetrics = paint.getFontMetrics();
         return (int) (fontMetrics.descent - fontMetrics.ascent);
@@ -31,7 +34,7 @@ public class DrawUtils {
     }
 
     public static float getTextCenterY(int centerY,Paint paint){
-       return centerY-((paint.descent() + paint.ascent()) / 2);
+        return centerY-((paint.descent() + paint.ascent()) / 2);
     }
 
     public static float getTextCenterX(int left,int right,Paint paint){
@@ -123,7 +126,9 @@ public class DrawUtils {
      * @param rect
      */
     public static void drawMultiText(Canvas canvas,Paint paint,Rect rect,String[] values){
+//        Log.e(TAG, "drawMultiText");
         for(int i =0;i <values.length;i++) {
+//            Log.e(TAG, values[i]);
             int centerY = (int) ((rect.bottom + rect.top) / 2+ (values.length/2f-i-0.5)*getTextHeight(paint));
             canvas.drawText(values[values.length-i-1], DrawUtils.getTextCenterX(rect.left, rect.right, paint),
                     DrawUtils.getTextCenterY(centerY, paint), paint);
@@ -143,3 +148,4 @@ public class DrawUtils {
     }
 
 }
+

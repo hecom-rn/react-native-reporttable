@@ -19,6 +19,7 @@ import com.hecom.reporttable.form.data.style.LineStyle;
  * 表格90%配置都在这里
  */
 
+
 public class TableConfig {
     /**
      * 默认字体样式
@@ -211,6 +212,20 @@ public class TableConfig {
      * 缩放值
      */
     private  float zoom = 1;
+    /**
+     * 固定的行数
+     */
+    private int fixedLines = 0;
+    /**
+     * 滚动事件监听器
+     */
+    private OnScrollChangeListener scrollChangeListener;
+
+    public interface OnScrollChangeListener {
+
+        void showUnFixedArea();
+
+    }
 
     public FontStyle getContentStyle() {
         if(contentStyle == null){
@@ -459,6 +474,20 @@ public class TableConfig {
 
     public void setZoom(float zoom) {
         this.zoom = zoom;
+    }
+
+    public int getFixedLines() {
+        return fixedLines;
+    }
+
+    public TableConfig setFixedLines(int fixedLines, OnScrollChangeListener scrollChangeListener) {
+        this.fixedLines = fixedLines;
+        this.scrollChangeListener = scrollChangeListener;
+        return this;
+    }
+
+    public OnScrollChangeListener getScrollChangeListener() {
+        return scrollChangeListener;
     }
 
     public int getColumnTitleHorizontalPadding() {
