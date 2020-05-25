@@ -65,6 +65,9 @@ export default class ReportTableWrapper extends React.Component{
         }
     }
 
+    componentWillUnmount() {
+        this.listener && this.listener.remove();
+    }
 
     _onVerticalScroll = (event) => {
         const {isListener} = this.state;
