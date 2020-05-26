@@ -41,4 +41,5 @@
 @property (nonatomic, copy) RCTDirectEventBlock onClickEvent;
 @property (nonatomic, copy) RCTDirectEventBlock onScrollEnd;
 @property (nonatomic, strong) UIColor *lineColor;
+@property (nonatomic, assign) CGRect tableRect;
 @end

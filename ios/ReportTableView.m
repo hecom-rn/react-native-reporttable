@@ -27,11 +27,14 @@
 
 
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
-    self.spreadsheetView.tableHeaderView = headerScrollView;
+    if (!_headerScrollView) {
+        self.spreadsheetView.tableHeaderView = headerScrollView;
+        
+    }
     _headerScrollView = headerScrollView;
-    _headerScrollView.showsHorizontalScrollIndicator = NO;
-    _headerScrollView.showsVerticalScrollIndicator = NO;
-    [self insertSubview:_headerScrollView atIndex:0];
+    self.headerScrollView.isUserScouce = false;
+    self.spreadsheetView.tableView.scrollEnabled = true;
+    [self sendSubviewToBack:_headerScrollView];
     self.isOnHeader = false;
 }
 
@@ -77,7 +80,7 @@
             };
             __weak typeof(self)weak_self = self;
             ssv.overlayView.touchPoint = ^(CGPoint point) {
-                BOOL isOnHeader = point.y < (weak_self.headerScrollView.frame.size.height -  weak_self.headerScrollView.contentOffset.y) && ssv.contentOffset.y <= 0;
+                BOOL isOnHeader = (point.y - ssv.overlayView.contentOffset.y) < (weak_self.headerScrollView.frame.size.height -  weak_self.headerScrollView.contentOffset.y) && ssv.contentOffset.y <= 0;
                 if (isOnHeader == YES && weak_self.isOnHeader == false) {
                     weak_self.headerScrollView.offset = ssv.contentOffset.y;
                     weak_self.headerScrollView.isUserScouce = true;

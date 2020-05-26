@@ -46,8 +46,11 @@
         ReportTableHeaderView *headerView = [[ReportTableHeaderView alloc] initWithBridge:self.bridge];
         self.headerView = headerView;
         _headerScrollView = [[ReportTableHeaderScrollView alloc] init];
+        _headerScrollView.showsHorizontalScrollIndicator = NO;
+        _headerScrollView.showsVerticalScrollIndicator = NO;
         _headerScrollView.bounces = true;
         [_headerScrollView addSubview: headerView];
+        [self.reportTableView addSubview: _headerScrollView];
     }
     return _headerScrollView;
 }
@@ -185,7 +188,7 @@
 }
 
 - (void)setSize:(CGSize)size {
-    self.reportTableView.frame = CGRectMake(0, 0, size.width, size.height);
+    self.reportTabelModel.tableRect = CGRectMake(0, 0, size.width, size.height);
     self.propertyCount += 1;
     [self reloadCheck];
 }
@@ -193,7 +196,6 @@
 - (void)setHeaderViewSize:(CGSize)headerViewSize {
     if (headerViewSize.width != 0) {
         self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, 0);
-        self.headerScrollView.frame = CGRectMake(0, 0, self.headerScrollView.frame.size.width, headerViewSize.height);
         self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
     }
     self.propertyCount += 1;
@@ -273,20 +275,17 @@
     self.reportTabelModel.rowsWidth = rowsWidth;
     self.reportTabelModel.cloumsHight = cloumsHight;
     
-    
-    CGFloat tableHeigt = 0;
+    CGFloat tableHeigt = 1;
     for (int i = 0; i < cloumsHight.count; i++) {
         tableHeigt += [cloumsHight[i] floatValue] + 1; // speHeight
     }
     
-    if (_headerScrollView != nil) {
-        CGSize headerSize = self.headerScrollView.frame.size;
-        tableHeigt += headerSize.height;
-        self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerSize.height);
-        self.reportTableView.headerScrollView = self.headerScrollView;
-    }
-    
-    CGRect tableRect = self.reportTableView.frame;
+    CGSize headerSize = self.headerView.frame.size;
+    tableHeigt += headerSize.height;
+    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTabelModel.tableRect.size.width, headerSize.height);
+    self.reportTableView.headerScrollView = self.headerScrollView;
+
+    CGRect tableRect = self.reportTabelModel.tableRect;
     tableRect.size.height = MIN(tableRect.size.height, tableHeigt);
     self.reportTableView.frame = tableRect;
     
