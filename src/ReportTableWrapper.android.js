@@ -16,8 +16,15 @@ export default class ReportTableWrapper extends React.Component{
             cannotSeeHeader: false,
             isListener: true
         };
-        this.headerHeight = this.props.headerView && this.props.headerView().props.style
-            && this.props.headerView().props.style.height;
+        try {
+            if (this.props && this.props.headerView && this.props.headerView.props) {
+                this.headerHeight = this.props.headerView.props.style.height;
+            } else {
+                this.headerHeight = 0;
+            }
+        } catch (e) {
+            this.headerHeight = 0;
+        }
 
         this._panResponder = PanResponder.create({
             onStartShouldSetPanResponder: (evt, gestureState) => true,
@@ -51,13 +58,20 @@ export default class ReportTableWrapper extends React.Component{
 
 
     componentDidMount() {
-        this.listener = DeviceEventEmitter.addListener('com.hecom.reporttable.clickData', (data) => {
+        this.listenerClickData = DeviceEventEmitter.addListener('com.hecom.reporttable.clickData', (data) => {
             if(data){
-                const {keyIndex, rowIndex, columnIndex} = data;
+                const {keyIndex, rowIndex, columnIndex, textColor} = data;
+                if('#222222' == textColor){
+                    return;
+                }
                 this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex});
             }
         });
-        if(!this.headerHeight){
+        this.listenerScrollToBottom = DeviceEventEmitter.addListener('com.hecom.reporttable.scrollToBottom', () => {
+            const {onScrollEnd} = this.props;
+            onScrollEnd && onScrollEnd();
+        });
+        if(this.headerHeight == 0){
             this.setState({
                 isShowShadow: false,
                 cannotSeeHeader: true,
@@ -66,7 +80,8 @@ export default class ReportTableWrapper extends React.Component{
     }
 
     componentWillUnmount() {
-        this.listener && this.listener.remove();
+        this.listenerClickData && this.listenerClickData.remove();
+        this.listenerScrollToBottom && this.listenerScrollToBottom.remove();
     }
 
     _onVerticalScroll = (event) => {

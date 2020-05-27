@@ -1,11 +1,12 @@
 package com.hecom.reporttable.form.component;
 
 
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
-
+import android.util.Log;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
@@ -27,10 +28,9 @@ import java.util.List;
  * Created by huang on 2017/11/1.
  * 表格内容绘制
  */
-
 public class TableProvider<T> implements TableClickObserver {
 
-
+    private Context context;
     private Rect scaleRect;
     private Rect showRect;
     private TableConfig config;
@@ -54,14 +54,15 @@ public class TableProvider<T> implements TableClickObserver {
     private CellInfo cellInfo = new CellInfo();
     private boolean isFirstDraw = true;  //是否首次绘制
     private boolean isShowUnFixedArea;  //非固定区域是否已全部可见
+    private boolean isScrollToBottom;  //是否滚动至底部
     private List<Integer> fixedTops = new ArrayList<>();  //固定行的top列表
     private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
     //private int fixedLinesHeight;  //固定行的总高度
 
     //private static final String TAG = "TableProvider";
 
-    public TableProvider() {
-
+    public TableProvider(Context context) {
+        this.context = context;
         clickPoint = new PointF(-1, -1);
         clipRect = new Rect();
         tempRect  = new Rect();
@@ -423,8 +424,8 @@ public class TableProvider<T> implements TableClickObserver {
                 }
                 //根部需要固定，同时固定所有子类
             }else if(isPerColumnFixed && info.top != 0){
-                left = (int) (clipRect.left - info.width * zoom);
-                left += (info.left -parentColumnInfo.left);
+                    left = (int) (clipRect.left - info.width * zoom);
+                    left += (info.left -parentColumnInfo.left);
             }else if(isPerColumnFixed){
                 canvas.save();
                 canvas.clipRect(clipRect.left, showRect.top, showRect.right,
@@ -597,11 +598,14 @@ public class TableProvider<T> implements TableClickObserver {
                                 }
                                 operation.checkSelectedPoint(i, j, correctCellRect);
                                 cellInfo.set(column,data,value,i,j);
-                                if(isFirstDraw || j < config.getFixedLines()) {
+                                config.setPartlyCellZoom(1);
+                                if(config.getFixedLines() == 0) {
+                                    drawContentCell(canvas, cellInfo, correctCellRect, config);
+                                } else if(isFirstDraw || j < config.getFixedLines()) {
                                     drawContentCell(canvas, cellInfo, correctCellRect, config);
                                 } else if(!isFirstDraw && j >= config.getFixedLines()) {
                                     if(correctCellRect.top >= fixedBottoms.get(config.getFixedLines() - 1)) {
-                                        //绘制部分单元格
+                                        //绘制完整单元格
                                         drawContentCell(canvas, cellInfo, correctCellRect, config);
                                         if (j == config.getFixedLines() && config.getScrollChangeListener() != null && !isShowUnFixedArea) {
                                             //非固定区域可见
@@ -609,25 +613,37 @@ public class TableProvider<T> implements TableClickObserver {
                                             config.getScrollChangeListener().showUnFixedArea();
                                             //Log.e(TAG, "showUnFixedArea");
                                         }
-                                    } else if (j == config.getFixedLines() && isShowUnFixedArea) {
-                                        //非固定区域不可见
-                                        isShowUnFixedArea = false;
-                                        //Log.e(TAG, "isShowUnFixedArea false");
+                                    } else {
+                                        if (j == config.getFixedLines() && isShowUnFixedArea) {
+                                            //非固定区域不可见
+                                            isShowUnFixedArea = false;
+                                            //Log.e(TAG, "isShowUnFixedArea false");
+                                        }
+                                        if(correctCellRect.bottom > fixedBottoms.get(config.getFixedLines() - 1) + dip2px(context, 5)) {
+                                            //float partlyCellZoom = (correctCellRect.bottom - fixedBottoms.get(config.getFixedLines() - 1)) / (float) correctCellRect.height();
+                                            //绘制部分单元格
+                                            //config.setPartlyCellZoom(partlyCellZoom);
+                                            Rect partCellRect = new Rect(correctCellRect.left, fixedBottoms.get(config.getFixedLines() - 1), correctCellRect.right, correctCellRect.bottom);
+                                            drawContentCell(canvas, cellInfo, partCellRect, config);
+                                        }
                                     }
                                 }
-                            } else if(!isFirstDraw && !fixedBottoms.isEmpty() && j == config.getFixedLines()) {
-                                //Log.e(TAG, "correctCellRect: " + correctCellRect.toString());
-                                //Log.e(TAG, "showRect: Rect(0, 151 - 1080, 1700)" + showRect.toString());
-                                //Log.e(TAG, "drawContentCell not need");
                             }
                         } else {
-                            if(j == config.getFixedLines()) {
-                                //Log.e(TAG, "break");
-                            }
                             break;
                         }
                     }
                     top = bottom;
+                }
+                if(top == showRect.bottom && !isScrollToBottom) {
+                    //滚动至底部
+                    isScrollToBottom = true;
+                    config.getScrollChangeListener().scrollToBottom();
+                    //Log.e(TAG, "drawContent scrollToBottom");
+                } else if(top > showRect.bottom && isScrollToBottom) {
+                    //未滚动至底部
+                    isScrollToBottom = false;
+                    //Log.e(TAG, "drawContent not scrollToBottom");
                 }
                 left = tempLeft + width;
             } else {
@@ -813,6 +829,11 @@ public class TableProvider<T> implements TableClickObserver {
 
     public SelectionOperation getOperation() {
         return operation;
+    }
+
+    private int dip2px(Context context, float dpValue) {
+        final float scale = context.getResources().getDisplayMetrics().density;
+        return (int) (dpValue * scale + 0.5f);
     }
 
 }

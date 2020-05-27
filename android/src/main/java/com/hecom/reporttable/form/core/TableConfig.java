@@ -217,6 +217,10 @@ public class TableConfig {
      */
     private int fixedLines = 0;
     /**
+     * 部分大小单元格缩放值
+     */
+    private float partlyCellZoom = 1;
+    /**
      * 滚动事件监听器
      */
     private OnScrollChangeListener scrollChangeListener;
@@ -224,6 +228,8 @@ public class TableConfig {
     public interface OnScrollChangeListener {
 
         void showUnFixedArea();
+
+        void scrollToBottom();
 
     }
 
@@ -474,6 +480,14 @@ public class TableConfig {
 
     public void setZoom(float zoom) {
         this.zoom = zoom;
+    }
+
+    public void setPartlyCellZoom(float partlyCellZoom) {
+        this.partlyCellZoom = partlyCellZoom;
+    }
+
+    public float getPartlyCellZoom() {
+        return partlyCellZoom;
     }
 
     public int getFixedLines() {

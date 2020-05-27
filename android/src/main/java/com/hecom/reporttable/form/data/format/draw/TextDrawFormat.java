@@ -69,7 +69,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         if(backgroundFormat!=null && backgroundFormat.getTextColor(cellInfo) != TableConfig.INVALID_COLOR){
             paint.setColor(backgroundFormat.getTextColor(cellInfo));
         }
-        paint.setTextSize(paint.getTextSize()*config.getZoom());
+        paint.setTextSize(paint.getTextSize()*config.getZoom()*config.getPartlyCellZoom());
 
     }
 

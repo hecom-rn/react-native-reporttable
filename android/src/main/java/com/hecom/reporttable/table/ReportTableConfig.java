@@ -113,6 +113,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener{
                             map.putInt("keyIndex", keyIndex);
                             map.putInt("rowIndex", row);
                             map.putInt("columnIndex", col);
+                            map.putString("textColor", tableBean.getTextColor());
                             ((ReactContext)mContext).getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("com.hecom.reporttable.clickData",map);
                         }
                     } catch (java.lang.Exception exception) {
@@ -137,5 +138,11 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener{
         public void showUnFixedArea() {
             //Toast.makeText(context, "showUnFixedArea", Toast.LENGTH_SHORT).show();
              ((ReactContext)context).getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("com.hecom.reporttable.showUnFixedArea",null);
+        }
+
+          @Override
+        public void scrollToBottom() {
+           // Toast.makeText(context, "滑动到底部", Toast.LENGTH_SHORT).show();
+           ((ReactContext)context).getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("com.hecom.reporttable.scrollToBottom",null);
         }
 }

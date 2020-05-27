@@ -61,23 +61,23 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
 
     public SmartTable(Context context) {
         super(context);
-        init();
+        init(context);
     }
 
     public SmartTable(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
+        init(context);
     }
 
     public SmartTable(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init();
+        init(context);
     }
 
     /**
      * 初始化
      */
-    private void init() {
+    private void init(Context context) {
         FontStyle.setDefaultTextSpSize(getContext(), 13);
         config = new TableConfig();
         config.dp10 = DensityUtils.dp2px(getContext(), 10);
@@ -87,7 +87,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         xAxis = new XSequence<>();
         yAxis = new YSequence<>();
         parser = new TableParser<>();
-        provider = new TableProvider<>();
+        provider = new TableProvider<>(context);
         config.setPaint(paint);
         measurer = new TableMeasurer<>();
         tableTitle = new TableTitle();
