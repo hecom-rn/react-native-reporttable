@@ -18,7 +18,7 @@ export default class ReportTableWrapper extends React.Component{
             return itemArr.map(item => {
                 // default itemValue
                 return {
-                    marginVertical: props.marginVertical,
+                    paddingHorizontal: props.textPaddingHorizontal,
                     ...item,
                     backgroundColor: item.backgroundColor ? processColor(item.backgroundColor) : processColor('#fff'),
                     textColor: item.textColor ? processColor(item.textColor) : processColor('#222'),

@@ -247,14 +247,14 @@
            model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
            model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]];
            model.isLeft = [RCTConvert BOOL:[dir objectForKey:@"isLeft"]];
-           model.marginVertical = [RCTConvert NSInteger:[dir objectForKey:@"marginVertical"]];
+           model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
            CGFloat textW = [self getTextWidth: model.title withTextSize: model.fontSize];
-           if (textW > rowWith - 2 * model.marginVertical) { //margin
-               if (textW < maxWidth - 2 * model.marginVertical) {
+           if (textW > rowWith - 2 * model.textPaddingHorizontal) { //margin
+               if (textW < maxWidth - 2 * model.textPaddingHorizontal) {
                    rowWith = textW;
                } else {
                    rowWith = maxWidth;
-                   NSInteger height = (ceilf(textW / (maxWidth - 2 * model.marginVertical)) - 1) * (model.fontSize + 2) + minHeight;
+                   NSInteger height = (ceilf(textW / (maxWidth - 2 * model.textPaddingHorizontal)) - 1) * (model.fontSize + 2) + minHeight;
                    columnHeigt = MAX(columnHeigt, height);
                }
             } else {

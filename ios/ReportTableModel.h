@@ -16,7 +16,7 @@
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) CGFloat fontSize;
 @property (nonatomic, assign) BOOL isLeft;
-@property (nonatomic, assign) NSInteger marginVertical;
+@property (nonatomic, assign) NSInteger textPaddingHorizontal;
 @end
 
 

@@ -17,8 +17,8 @@
     return _label;
 }
 
-- (void)setMarginVertical:(NSInteger)marginVertical {
-    CGFloat marginHor = marginVertical;
+- (void)setTextPaddingHorizontal:(NSInteger)textPaddingHorizontal {
+    CGFloat marginHor = textPaddingHorizontal;
     [self.contentView addConstraints:@[
                                 // 左边
                                 [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:marginHor],

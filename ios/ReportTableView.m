@@ -147,7 +147,7 @@
     ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
     cell.contentView.backgroundColor = model.backgroundColor;
-    cell.marginVertical = model.marginVertical;
+    cell.textPaddingHorizontal = model.textPaddingHorizontal;
     cell.label.text = model.title;
     cell.label.textColor = model.textColor;
     cell.label.textAlignment = model.isLeft ? NSTextAlignmentLeft : NSTextAlignmentRight;

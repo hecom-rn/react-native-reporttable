@@ -49,11 +49,11 @@
 
 
 @implementation ItemModel
-- (NSInteger)marginVertical {
-    if (!_marginVertical) {
+- (NSInteger)textPaddingHorizontal {
+    if (!_textPaddingHorizontal) {
         return 6;
     }
-    return _marginVertical;
+    return _textPaddingHorizontal;
 }
 @end
 

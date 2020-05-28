@@ -12,6 +12,6 @@
 
 @property (nonatomic, strong) UILabel *label;
 
-@property (nonatomic, assign) NSInteger marginVertical;
+@property (nonatomic, assign) NSInteger textPaddingHorizontal;
 
 @end
