@@ -141,9 +141,6 @@ export default class ReportTableWrapper extends React.Component {
                         onClickEvent={({nativeEvent: data}) => {
                             if (data) {
                                 const {keyIndex, rowIndex, columnIndex, textColor} = data;
-                                if ('#222222' == textColor) {
-                                    return;
-                                }
                                 this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex});
                             }
                         }}
