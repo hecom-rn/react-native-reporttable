@@ -66,4 +66,14 @@ public class TableConfigBean {
     }
 
     private int textPaddingHorizontal;
+
+    private String lineColor;
+
+    public String getLineColor() {
+        return lineColor;
+    }
+
+    public void setLineColor(String lineColor) {
+        this.lineColor = lineColor;
+    }
 }

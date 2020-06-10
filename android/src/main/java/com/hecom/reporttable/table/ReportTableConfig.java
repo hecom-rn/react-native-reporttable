@@ -33,7 +33,6 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
     private ReportTableData reportTableData = new ReportTableData();
     private String[][] dataArr;
     private Context context;
-    private String defaultBorderColor = "#000000";
     private String defaultTextColor = "#000000";
     private String defaultBgColor = "#ffffff";
     private int defaultWidth = 50;
@@ -53,11 +52,8 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
     public SmartTable<String> createReportTable(Context context) {
         this.context = context;
         table = new SmartTable<String>(context);
-        LineStyle lineStyle = new LineStyle();
-        lineStyle.setColor(Color.parseColor(defaultBorderColor));
         table.getConfig().setHorizontalPadding(0).setVerticalPadding(0)
-                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false)
-                .setContentGridStyle(lineStyle);
+                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false);
         return table;
     }
 
@@ -142,9 +138,13 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 tableData.getArrayColumns().get(i).setFixed(true);
             }
 
+            LineStyle lineStyle = new LineStyle();
+            lineStyle.setColor(Color.parseColor(configBean.getLineColor()));
+            table.getConfig().setContentGridStyle(lineStyle);
+
             table.getConfig().setFixedLines(configBean.getFrozenRows(), this);
             table.getConfig().setTextLeftOffset(configBean.getTextPaddingHorizontal());
-            table.getConfig().setTextRightOffset(configBean.getTextPaddingHorizontal);
+            table.getConfig().setTextRightOffset(configBean.getTextPaddingHorizontal());
             table.setTableData(tableData);
         } catch (Exception e) {
             e.printStackTrace();

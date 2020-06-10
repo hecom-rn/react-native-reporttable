@@ -50,6 +50,7 @@ public class RNReportTableManager extends SimpleViewManager<View> {
         int frozenRows = -1;
         int frozenColumns = -1;
         int textPaddingHorizontal = 12;
+        String lineColor = "#000000";
         try {
             JSONObject object = new JSONObject(dataSource);
             if (object.has("data")) {
@@ -82,7 +83,12 @@ public class RNReportTableManager extends SimpleViewManager<View> {
             if(object.has("textPaddingHorizontal")){
                 textPaddingHorizontal =  (int)object.get("textPaddingHorizontal");
             }
+
+             if(object.has("lineColor")){
+                lineColor =  (String)object.get("lineColor");
+             }
             configBean.setTextPaddingHorizontal(textPaddingHorizontal);
+            configBean.setLineColor(lineColor);
             reportTableConfig.setReportTableData(view, jsonData, configBean);
         } catch (JSONException e) {
             e.printStackTrace();
