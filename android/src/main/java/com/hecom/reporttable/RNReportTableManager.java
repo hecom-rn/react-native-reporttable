@@ -49,6 +49,7 @@ public class RNReportTableManager extends SimpleViewManager<View> {
         int maxWidth = 120;
         int frozenRows = -1;
         int frozenColumns = -1;
+        int textPaddingHorizontal = 12;
         try {
             JSONObject object = new JSONObject(dataSource);
             if (object.has("data")) {
@@ -78,6 +79,10 @@ public class RNReportTableManager extends SimpleViewManager<View> {
                 configBean.setFrozenRows(frozenRows);
             }
 
+            if(object.has("textPaddingHorizontal")){
+                textPaddingHorizontal =  (int)object.get("textPaddingHorizontal");
+            }
+            configBean.setTextPaddingHorizontal(textPaddingHorizontal);
             reportTableConfig.setReportTableData(view, jsonData, configBean);
         } catch (JSONException e) {
             e.printStackTrace();

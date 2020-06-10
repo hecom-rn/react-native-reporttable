@@ -56,4 +56,14 @@ public class TableConfigBean {
         this.maxWidth = maxWidth;
         this.minHeight = minHeight;
     }
+
+    public int getTextPaddingHorizontal() {
+        return textPaddingHorizontal;
+    }
+
+    public void setTextPaddingHorizontal(int textPaddingHorizontal) {
+        this.textPaddingHorizontal = textPaddingHorizontal;
+    }
+
+    private int textPaddingHorizontal;
 }

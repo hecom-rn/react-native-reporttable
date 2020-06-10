@@ -662,4 +662,19 @@ public class TableConfig {
         this.textLeftOffset = textLeftOffset;
         return this;
     }
+
+   public int getTextRightOffset() {
+        return textRightOffset;
+    }
+
+    public TableConfig setTextRightOffset(int textRightOffset) {
+        this.textRightOffset = textRightOffset;
+        return this;
+    }
+
+    /**
+     * 文字右边偏移
+     */
+
+    private int textRightOffset = 0;
 }

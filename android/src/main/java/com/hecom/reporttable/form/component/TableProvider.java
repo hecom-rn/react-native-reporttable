@@ -677,6 +677,7 @@ public class TableProvider<T> implements TableClickObserver {
             config.getTableGridFormat().drawContentGrid(c,cellInfo.col,cellInfo.row,rect,cellInfo,config.getPaint());
         }
         rect.left += config.getTextLeftOffset();
+        rect.right = rect.right - config.getTextRightOffset();
         cellInfo.column.getDrawFormat().draw(c,rect, cellInfo,  config);
     }
 

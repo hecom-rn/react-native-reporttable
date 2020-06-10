@@ -23,6 +23,7 @@ import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.TableConfigBean;
+import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -75,7 +76,19 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             }
             String[][] dataArr = reportTableData.mergeTable(json);
             final JsonTableBean[][] tabArr = reportTableData.getTabArr();
-            final ArrayTableData<String> tableData = ArrayTableData.create("", null, dataArr, null);
+             TextDrawFormat mTextDrawFormat =  new TextDrawFormat<JsonTableBean>(){
+                                @Override
+                                public void setTextPaint(TableConfig config, CellInfo<JsonTableBean> cellInfo, Paint paint) {
+                                    super.setTextPaint(config, cellInfo, paint);
+                                    JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
+                                    if(tableBean.isLeft()){
+                                        paint.setTextAlign(Paint.Align.LEFT);
+                                    }else{
+                                        paint.setTextAlign(Paint.Align.RIGHT);
+                                    }
+                                }
+                            };
+            final ArrayTableData<String> tableData = ArrayTableData.create("", null, dataArr, mTextDrawFormat);
             tableData.setMinWidth(DensityUtils.dp2px(this.context, minWidth));
             tableData.setMinHeight(DensityUtils.dp2px(this.context, minHeight));
             tableData.setUserCellRange(reportTableData.getMergeList());
@@ -130,6 +143,8 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             }
 
             table.getConfig().setFixedLines(configBean.getFrozenRows(), this);
+            table.getConfig().setTextLeftOffset(configBean.getTextPaddingHorizontal());
+            table.getConfig().setTextRightOffset(configBean.getTextPaddingHorizontal);
             table.setTableData(tableData);
         } catch (Exception e) {
             e.printStackTrace();

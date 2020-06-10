@@ -71,4 +71,16 @@ public class JsonTableBean {
     }
 
     private String textColor;
+
+    private boolean isLeft;
+
+
+    public boolean isLeft() {
+        return isLeft;
+    }
+
+    public void setLeft(boolean left) {
+        isLeft = left;
+    }
+
 }
