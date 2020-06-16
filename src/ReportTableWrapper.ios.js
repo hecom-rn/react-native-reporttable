@@ -1,5 +1,5 @@
 import React from 'react';
-import {processColor, AppRegistry} from 'react-native';
+import {processColor, AppRegistry, View} from 'react-native';
 import ReportTableView from './ReportTableView';
 
 export default class ReportTableWrapper extends React.Component{
@@ -29,8 +29,8 @@ export default class ReportTableWrapper extends React.Component{
             props.onClickEvent && props.onClickEvent({keyIndex, rowIndex, columnIndex});
         };
         this.headerViewSize = {width: 0, height:0}
+        AppRegistry.registerComponent('ReportTableHeaderView', () => props.headerView || <View />);
         if (props.headerView && props.headerView()) {
-            AppRegistry.registerComponent('ReportTableHeaderView', () => props.headerView);
             const {width, height} = props.headerView().props.style;
             this.headerViewSize = {height, width};
         }
