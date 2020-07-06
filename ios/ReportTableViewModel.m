@@ -269,6 +269,9 @@
         [cloumsHight addObject:[NSNumber numberWithFloat:columnHeigt]];
         [self.dataSource addObject:modelArr];
     }
+    for (int i = 0; i < rowsWidth.count; i++) {
+        rowsWidth[i] = [NSNumber numberWithFloat: [rowsWidth[i] floatValue] - 1 - 1.0/rowsWidth.count];
+    }
     NSMutableArray<ForzenRange *> *frozenArray = [self generateMergeRange:self.dataSource];
     self.reportTabelModel.frozenArray = frozenArray;
     self.reportTabelModel.dataSource = self.dataSource;
