@@ -29,7 +29,8 @@ export default class ReportTableWrapper extends React.Component{
             props.onClickEvent && props.onClickEvent({keyIndex, rowIndex, columnIndex});
         };
         this.headerViewSize = {width: 0, height:0}
-        AppRegistry.registerComponent('ReportTableHeaderView', () => props.headerView || <View />);
+        const defultHeader = () => <View />;
+        AppRegistry.registerComponent('ReportTableHeaderView', () => props.headerView || defultHeader);
         if (props.headerView && props.headerView()) {
             const {width, height} = props.headerView().props.style;
             this.headerViewSize = {height, width};
