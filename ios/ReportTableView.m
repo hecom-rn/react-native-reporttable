@@ -164,7 +164,9 @@
         self.reportTableModel.onClickEvent(@{
             @"keyIndex": [NSNumber numberWithInteger:model.keyIndex],
             @"rowIndex": [NSNumber numberWithInteger:row],
-            @"columnIndex": [NSNumber numberWithInteger:column]
+            @"columnIndex": [NSNumber numberWithInteger:column],
+            @"verticalCount": [NSNumber numberWithInteger:model.verCount],
+            @"horizontalCount": [NSNumber numberWithInteger:model.horCount]
         });
     }
     NSLog(@"Selected: (row: %ld, column: %ld)", (long)indexPath.row, (long)indexPath.column);

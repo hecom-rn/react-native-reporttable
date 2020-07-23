@@ -55,6 +55,21 @@
     }
     return _textPaddingHorizontal;
 }
+
+- (NSInteger)horCount {
+    if (!_horCount) {
+        return 1;
+    }
+    return _horCount;
+}
+
+- (NSInteger)verCount {
+    if (!_verCount) {
+        return 1;
+    }
+    return _verCount;
+}
+
 @end
 
 @implementation ForzenRange

@@ -19,10 +19,18 @@ declare module "@hecom/react-native-report-table"{
         maxWidth?: number;
         frozenColumns?: number;
         frozenRows?: number;
-        onClickEvent?: () => void;
+        onClickEvent?: () => ItemCilck;
         onScrollEnd?: () => void;
         lineColor?: string;
         marginVertical?: number; // item
+    }
+
+    export interface ItemCilck {
+        keyIndex: number;
+        rowIndex: number;
+        columnIndex: number;
+        verticalCount: number; 
+        horizontalCount: number; 
     }
 
     export interface DataSource {

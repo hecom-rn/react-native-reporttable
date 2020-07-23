@@ -25,8 +25,8 @@ export default class ReportTableWrapper extends React.Component{
                 }
             })
         });
-        this.onClickEvent = ({nativeEvent: {keyIndex, rowIndex, columnIndex}}) => {
-            props.onClickEvent && props.onClickEvent({keyIndex, rowIndex, columnIndex});
+        this.onClickEvent = ({nativeEvent: {keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount}}) => {
+            props.onClickEvent && props.onClickEvent({keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount});
         };
         this.headerViewSize = {width: 0, height:0}
         const defultHeader = () => <View />;

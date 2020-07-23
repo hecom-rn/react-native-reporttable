@@ -73,6 +73,9 @@
         for (int j = 0; j < rowArr.count; j ++) { // j = rowIndex
              NSInteger sameRowLength = [self jungleSameLength:[self rowWithIndex:j columnIndex:i]];
              NSInteger samecolumnLength = [self jungleSameLength:[self columnWithIndex:j columnIndex:i]];
+             ItemModel *model = dataSource[i][j];
+             model.horCount = sameRowLength ;
+             model.verCount = samecolumnLength;
              if (sameRowLength > 1 || samecolumnLength > 1) {
                 ForzenRange *forzenRange = [[ForzenRange alloc] init];
                 forzenRange.startX = i;
