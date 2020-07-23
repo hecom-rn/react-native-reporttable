@@ -30,6 +30,7 @@
 
 @interface ReportTableModel : NSObject
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
+@property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *data;
 @property (nonatomic, strong) NSMutableArray<ForzenRange *> *frozenArray;
 @property (nonatomic, strong) NSArray *cloumsHight;
 @property (nonatomic, strong) NSArray *rowsWidth;

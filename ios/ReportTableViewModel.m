@@ -141,11 +141,11 @@
 
 - (void)setData:(NSArray *)data {
     NSMutableArray *dataSource = [NSMutableArray arrayWithArray:data];
-    if (self.reportTabelModel.dataSource.count > 0) {
-        self.reportTabelModel.dataSource = dataSource; // update
+    if (self.reportTabelModel.data.count > 0) {
+        self.reportTabelModel.data = dataSource; // update
         [self integratedDataSource];
     } else {
-        self.reportTabelModel.dataSource = dataSource;
+        self.reportTabelModel.data = dataSource;
         self.propertyCount += 1;
         [self reloadCheck];
     }
@@ -171,14 +171,22 @@
 
 - (void)setFrozenColumns:(NSInteger)frozenColumns {
     self.reportTabelModel.frozenColumns = frozenColumns;
-    self.propertyCount += 1;
-    [self reloadCheck];
+    if (self.reportTabelModel.dataSource.count > 0) {
+        [self integratedDataSource];
+    } else {
+        self.propertyCount += 1;
+        [self reloadCheck];
+    }
 }
 
 - (void)setFrozenRows:(NSInteger)frozenRows {
     self.reportTabelModel.frozenRows = frozenRows;
-    self.propertyCount += 1;
-    [self reloadCheck];
+    if (self.reportTabelModel.dataSource.count > 0) {
+        [self integratedDataSource];
+    } else {
+        self.propertyCount += 1;
+        [self reloadCheck];
+    }
 }
 
 - (void)setOnClickEvent:(RCTDirectEventBlock)onClickEvent {
@@ -222,7 +230,7 @@
 }
 
 - (void)integratedDataSource {
-    NSMutableArray *dataSource = [NSMutableArray arrayWithArray: self.reportTabelModel.dataSource];
+    NSMutableArray *dataSource = [NSMutableArray arrayWithArray: self.reportTabelModel.data];
     NSMutableArray *cloumsHight = [NSMutableArray array];
     NSMutableArray *rowsWidth = [NSMutableArray array];
     CGFloat minWidth = self.reportTabelModel.minWidth; //margin

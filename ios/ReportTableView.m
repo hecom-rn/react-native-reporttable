@@ -13,7 +13,6 @@
 
 @interface ReportTableView () <SpreadsheetViewDelegate, SpreadsheetViewDataSource, UIScrollViewDelegate>
 
-@property (nonatomic, strong) SpreadsheetView *spreadsheetView;
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
 @property (nonatomic, strong) NSMutableArray<ForzenRange *> *frozenArray;
 @property (nonatomic, strong) NSArray *cloumsHight;
@@ -61,6 +60,7 @@
     self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
     self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: reportTableModel.lineColor];
 
+    
     [self.spreadsheetView reloadData];
 }
 
@@ -127,7 +127,7 @@
 }
 
 - (NSInteger)frozenRows:(SpreadsheetView *)spreadsheetView {
-    return self.reportTableModel.frozenRows;;
+    return self.reportTableModel.frozenRows;
 }
 
 - (NSArray<ZMJCellRange *> *)mergedCells:(SpreadsheetView *)spreadsheetView {
