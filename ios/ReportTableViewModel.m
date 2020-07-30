@@ -225,8 +225,14 @@
     [self reloadCheck];
 }
 
+- (void)setSupportPressFrozen:(BOOL)supportPressFrozen {
+    self.reportTabelModel.supportPressFrozen = supportPressFrozen;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)reloadCheck {
-    if (self.propertyCount >= 11) {
+    if (self.propertyCount >= 12) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }

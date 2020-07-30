@@ -14,4 +14,8 @@
 
 @property (nonatomic, assign) NSInteger textPaddingHorizontal;
 
+@property (nonatomic, assign) BOOL isLocked;
+
+@property (nonatomic, strong) UIImageView *lockImageView;
+
 @end

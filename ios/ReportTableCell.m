@@ -17,6 +17,7 @@
     return _label;
 }
 
+
 - (void)setTextPaddingHorizontal:(NSInteger)textPaddingHorizontal {
     CGFloat marginHor = textPaddingHorizontal;
     [self.contentView addConstraints:@[
@@ -24,13 +25,28 @@
                                 [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:marginHor],
                                   
                                 // 右边
-                                [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant: - marginHor],
+                                [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant: self.isLocked ? - marginHor - self.lockImageView.frame.size.width : - marginHor],
                                 
                                 [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeCenterY multiplier:1.0 constant: 0],
                             
                                 ]
     ];
 }
+
+- (UIImageView *)lockImageView {
+    if (!_lockImageView) {
+        NSString * path = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"ReportTableView" ofType:@"bundle"]];
+        NSString *imgNameFile = [path stringByAppendingPathComponent:@"lock@2x.png"];
+        UIImage *image = [UIImage imageWithContentsOfFile:imgNameFile];
+
+        _lockImageView = [[UIImageView alloc] initWithImage: image];
+        self.lockImageView.frame = CGRectMake(self.frame.size.width - 14 - 4, self.frame.size.height / 2 - 7, 14, 14);
+        [self.contentView addSubview:_lockImageView];
+    }
+    return _lockImageView;
+}
+
+
 
 - (instancetype)initWithFrame:(CGRect)frame
 {
@@ -40,6 +56,7 @@
         self.label.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
         [self.contentView addSubview:self.label];
         self.label.translatesAutoresizingMaskIntoConstraints = false;
+        
     }
     return self;
 }

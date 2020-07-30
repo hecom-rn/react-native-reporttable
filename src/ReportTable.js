@@ -19,6 +19,7 @@ export default class ReportTable extends React.Component{
         },
         onClickEvent: () => {},
         onScrollEnd: () => {},
+        supportPressFrozen: false,
     };
 
     // 处理通用逻辑

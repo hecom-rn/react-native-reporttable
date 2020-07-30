@@ -146,6 +146,7 @@
 
     ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
+    cell.isLocked = YES;
     cell.contentView.backgroundColor = model.backgroundColor;
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
     cell.label.text = model.title;
@@ -169,7 +170,11 @@
             @"horizontalCount": [NSNumber numberWithInteger:model.horCount]
         });
     }
-    NSLog(@"Selected: (row: %ld, column: %ld)", (long)indexPath.row, (long)indexPath.column);
+    if (row == 0 && self.reportTableModel.supportPressFrozen == true) {
+        NSInteger newFrozenColums = column + model.horCount;
+        self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums ? 0 : newFrozenColums;
+        [self.spreadsheetView reloadData];
+    }
 }
 
 @end
