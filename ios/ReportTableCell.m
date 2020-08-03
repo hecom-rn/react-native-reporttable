@@ -43,12 +43,7 @@
 
 - (UIImageView *)lockImageView {
     if (!_lockImageView) {
-        NSBundle *bundle = [NSBundle bundleForClass:[ReportTableView class]];
-        NSURL *url = [bundle URLForResource:@"ReportTableView" withExtension:@"bundle"];
-        NSBundle *imageBundle = [NSBundle bundleWithURL:url];
-        NSString *path = [imageBundle pathForResource:@"reportTableLock" ofType:@"png"];
-        
-        UIImage *image = [UIImage imageWithContentsOfFile:path];
+        UIImage *image = [UIImage imageNamed:@"reportTableLock"];
         _lockImageView = [[UIImageView alloc] initWithImage: image];
         _lockImageView.translatesAutoresizingMaskIntoConstraints = false;
         _lockImageView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
