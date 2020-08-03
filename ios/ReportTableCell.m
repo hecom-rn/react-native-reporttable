@@ -6,6 +6,7 @@
 //
 
 #import "ReportTableCell.h"
+#import "ReportTableView.h"
 
 @implementation ReportTableCell
 
@@ -21,27 +22,42 @@
 - (void)setTextPaddingHorizontal:(NSInteger)textPaddingHorizontal {
     CGFloat marginHor = textPaddingHorizontal;
     [self.contentView addConstraints:@[
-                                // 左边
                                 [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:marginHor],
-                                  
-                                // 右边
-                                [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant: self.isLocked ? - marginHor - self.lockImageView.frame.size.width : - marginHor],
-                                
+
+                                [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant: self.isLocked ? - marginHor - 14 : - marginHor],
+
                                 [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeCenterY multiplier:1.0 constant: 0],
-                            
                                 ]
     ];
 }
 
+- (void)setIsLocked:(BOOL)isLocked {
+    if (isLocked == true) {
+        self.lockImageView.hidden = false;
+    } else {
+        if (_lockImageView) {
+            [_lockImageView removeFromSuperview];
+        }
+    }
+}
+
 - (UIImageView *)lockImageView {
     if (!_lockImageView) {
-        NSString * path = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"ReportTableView" ofType:@"bundle"]];
-        NSString *imgNameFile = [path stringByAppendingPathComponent:@"lock@2x.png"];
-        UIImage *image = [UIImage imageWithContentsOfFile:imgNameFile];
-
+        NSBundle *bundle = [NSBundle bundleForClass:[ReportTableView class]];
+        NSURL *url = [bundle URLForResource:@"ReportTableView" withExtension:@"bundle"];
+        NSBundle *imageBundle = [NSBundle bundleWithURL:url];
+        NSString *path = [imageBundle pathForResource:@"reportTableLock" ofType:@"png"];
+        
+        UIImage *image = [UIImage imageWithContentsOfFile:path];
         _lockImageView = [[UIImageView alloc] initWithImage: image];
-        self.lockImageView.frame = CGRectMake(self.frame.size.width - 14 - 4, self.frame.size.height / 2 - 7, 14, 14);
-        [self.contentView addSubview:_lockImageView];
+        _lockImageView.translatesAutoresizingMaskIntoConstraints = false;
+        _lockImageView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
+        [self.contentView addSubview: _lockImageView];
+        [self.contentView addConstraints:@[
+                                    [NSLayoutConstraint constraintWithItem:_lockImageView attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant: -10],
+                                    [NSLayoutConstraint constraintWithItem:_lockImageView attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeCenterY multiplier:1.0 constant: 0],
+                                    ]
+        ];
     }
     return _lockImageView;
 }

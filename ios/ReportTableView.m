@@ -146,7 +146,7 @@
 
     ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
-    cell.isLocked = YES;
+    cell.isLocked = column < self.reportTableModel.frozenColumns && row == 0;
     cell.contentView.backgroundColor = model.backgroundColor;
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
     cell.label.text = model.title;
