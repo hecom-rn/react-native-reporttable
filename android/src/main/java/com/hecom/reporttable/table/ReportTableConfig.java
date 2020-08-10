@@ -61,7 +61,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
         if (json == null) {
             return;
         }
-        SmartTable<String> table = ((SmartTable<String>) view);
+        final SmartTable<String> table = ((SmartTable<String>) view);
         this.configBean = configBean;
         int minWidth = configBean.getMinWidth();
         int minHeight = configBean.getMinHeight();
@@ -115,6 +115,10 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
 
                 @Override
                 public void onClick(Column<String> column, String value, String s, int col, int row) {
+                    if(row == 0){
+                        table.setTableData(tableData);
+                        return;
+                    }
                     try {
                         JsonTableBean tableBean = tabArr[row][col];
                         int keyIndex = tableBean.getKeyIndex();

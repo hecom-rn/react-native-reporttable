@@ -23,6 +23,9 @@ import com.hecom.reporttable.form.listener.TableClickObserver;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import java.util.ArrayList;
 import java.util.List;
+import com.hecom.reporttable.R;
+import com.hecom.reporttable.form.data.format.draw.TextImageDrawFormat;
+import com.hecom.reporttable.form.utils.DensityUtils;
 
 /**
  * Created by huang on 2017/11/1.
@@ -57,7 +60,7 @@ public class TableProvider<T> implements TableClickObserver {
     private boolean isScrollToBottom;  //是否滚动至底部
     private List<Integer> fixedTops = new ArrayList<>();  //固定行的top列表
     private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
-    //private int fixedLinesHeight;  //固定行的总高度
+    private MyTextImageDrawFormat myTextImageDrawFormat;
 
     //private static final String TAG = "TableProvider";
 
@@ -68,6 +71,8 @@ public class TableProvider<T> implements TableClickObserver {
         tempRect  = new Rect();
         operation = new SelectionOperation();
         gridDrawer  = new GridDrawer<>();
+        int size = DensityUtils.dp2px(context,15);
+        myTextImageDrawFormat = new MyTextImageDrawFormat(size, size, TextImageDrawFormat.RIGHT, 10);
     }
 
     /**
@@ -95,216 +100,6 @@ public class TableProvider<T> implements TableClickObserver {
         }
         if (tipColumn != null) {
             drawTip(canvas, tipPoint.x, tipPoint.y, tipColumn, tipPosition);
-        }
-    }
-
-    private void drawFixedLines(Canvas canvas) {
-        //获取固定的行数
-        int fixedLines = config.getFixedLines();
-        if(fixedLines > 0) {
-            //绘制固定的行
-            for (int i = 0; i < fixedLines; i++) {
-                drawFixedLineContent(canvas, i);
-                canvas.restore();
-                canvas.save();
-                canvas.clipRect(this.showRect);
-            }
-//            float top;
-//            float left = scaleRect.left;
-//            //计算固定行的总高度
-//            //calculateFixedLinesHeight();
-//            List<Column> columns = tableData.getChildColumns();
-//            clipRect.set(showRect);
-////            clipRect.left = showRect.left;
-////            clipRect.top = showRect.top;
-////            clipRect.right = showRect.right;
-////            clipRect.bottom = fixedLinesHeight;
-//            TableInfo info = tableData.getTableInfo();
-//            int columnSize = columns.size();
-////            int dis = config.isFixedCountRow() ? info.getCountHeight()
-////                    : showRect.bottom + info.getCountHeight() - scaleRect.bottom;
-////            int fillBgBottom = showRect.bottom - Math.max(dis, 0);
-//            List<ColumnInfo> childColumnInfo = tableData.getChildColumnInfos();
-//            boolean isPerFixed = false;
-//            int clipCount = 0;
-//            Rect correctCellRect;
-//            TableInfo tableInfo = tableData.getTableInfo();
-//            for (int i = 0; i < columnSize; i++) {
-//                //遍历列
-//                top = scaleRect.top;
-//                Column column = columns.get(i);
-//                float width = column.getComputeWidth()*config.getZoom();
-//                float tempLeft = left;
-//                //根据根部标题是否固定
-//                Column topColumn = childColumnInfo.get(i).getTopParent().column;
-//                //Log.e(TAG, topColumn.toString());
-//                if (topColumn.isFixed()) {
-//                    isPerFixed = false;
-//                    if(tempLeft < clipRect.left){
-//                        left = clipRect.left;
-//                        clipRect.left +=width;
-//                        isPerFixed = true;
-//                    }
-//                }else if(isPerFixed){
-//                    canvas.save();
-//                    canvas.clipRect(clipRect);
-//                    isPerFixed = false;
-//                    clipCount++;
-//                }
-//                float right = left + width;
-//
-//                if (left < showRect.right) {
-//                    int realPosition = 0;
-//                    for (int j = 0; j < fixedLines; j++) {
-//                        //遍历行
-//                        String value = column.format(j);
-//                        int skip =tableInfo.getSeizeCellSize(column,j);
-//                        int totalLineHeight =0;
-//                        for(int k = realPosition;k<realPosition+skip;k++){
-//                            totalLineHeight += info.getLineHeightArray()[k];
-//                        }
-//                        realPosition+=skip;
-//                        float bottom = top + totalLineHeight*config.getZoom();
-//                        tempRect.set((int) left, (int) top, (int) right, (int) bottom);
-//                        correctCellRect = gridDrawer.correctCellRect(j, i, tempRect, config.getZoom()); //矫正格子的大小
-//                        if (correctCellRect != null) {
-//                            if(isFirstDraw) {
-//                                //保存固定行的top、bottom
-//                                fixedTops.add(correctCellRect.top);
-//                                fixedBottoms.add(correctCellRect.bottom);
-//                            }
-//                            //单元格的实际位置
-//                            //Log.e(TAG, correctCellRect.toString());
-//                            if (correctCellRect.top < showRect.bottom) {
-//                                if (correctCellRect.right > showRect.left && correctCellRect.bottom > showRect.top) {
-//                                    Object data = column.getDatas().get(j);
-//                                    //Log.e(TAG, data.toString());
-//                                    if (DrawUtils.isClick(correctCellRect, clickPoint)) {
-//                                        operation.setSelectionRect(i, j, correctCellRect);
-//                                        tipPoint.x = (left + right) / 2;
-//                                        tipPoint.y = (top + bottom) / 2;
-//                                        tipColumn = column;
-//                                        tipPosition = j;
-//                                        clickColumn(column, j, value, data);
-//                                        isClickPoint = true;
-//                                        clickPoint.set(-Integer.MAX_VALUE, -Integer.MAX_VALUE);
-//                                    }
-//                                    operation.checkSelectedPoint(i, j, correctCellRect);
-//                                    cellInfo.set(column,data,value,i,j);
-//                                    if(!isFirstDraw) {
-//                                        //使用固定行的top、bottom
-//                                        correctCellRect.top = fixedTops.get(j);
-//                                        correctCellRect.bottom = fixedBottoms.get(j);
-//                                    }
-//                                    Log.e(TAG, "drawContentCell: " + correctCellRect.toString());
-//                                    drawContentCell(canvas,cellInfo,correctCellRect,config);
-//                                }
-//                            } else {
-//                                break;
-//                            }
-//                        }
-//                        top = bottom;
-//                    }
-//                    left = tempLeft + width;
-//                } else {
-//                    break;
-//                }
-//            }
-//            for(int i = 0;i < clipCount;i++){
-//                canvas.restore();
-//            }
-//            if (config.isFixedCountRow()) {
-//                canvas.restore();
-//            }
-//            if(isFirstDraw) {
-//                isFirstDraw = false;
-//            }
-//            int fixedLinesHeight = fixedBottoms.get(config.getFixedLines() - 1);
-//            scaleRect.top += fixedLinesHeight;
-//            showRect.top += fixedLinesHeight;
-//            if(config.getContentBackground() !=null){
-//                tempRect.set(showRect.left, showRect.top, showRect.right, fixedLinesHeight);
-//                config.getContentBackground().drawBackground(canvas,tempRect,config.getPaint());
-//            }
-//            if (config.isFixedCountRow()) {
-//                canvas.save();
-//                //canvas.clipRect(showRect.left, showRect.top, showRect.right, fixedLinesHeight);
-//                canvas.clipRect(showRect);
-//            }
-        }
-    }
-
-//    private void calculateFixedLinesHeight() {
-//        fixedLinesHeight = 0;
-//        float top = scaleRect.top;
-//        List<Column> columns = tableData.getChildColumns();
-//        Column column = columns.get(0);
-//        TableInfo tableInfo = tableData.getTableInfo();
-//        int realPosition = 0;
-//        for (int j = 0; j < config.getFixedLines(); j++) {
-//            //遍历行
-//            int skip = tableInfo.getSeizeCellSize(column, j);
-//            int totalLineHeight = 0;
-//            for (int k = realPosition; k < realPosition + skip; k++) {
-//                totalLineHeight += tableInfo.getLineHeightArray()[k];
-//            }
-//            realPosition += skip;
-//            float bottom = top + totalLineHeight * config.getZoom();
-//            fixedLinesHeight += bottom;
-//        }
-//        Log.e(TAG, "fixedLinesHeight: " + fixedLinesHeight);
-//    }
-
-    private void drawFixedLineContent(Canvas canvas, int row) {
-        int dis = showRect.top - scaleRect.top;
-        TableInfo tableInfo = tableData.getTableInfo();
-        int titleHeight = tableInfo.getTitleHeight() * tableInfo.getMaxLevel();
-        int clipHeight = config.isFixedTitle() ? titleHeight : Math.max(0, titleHeight - dis);
-//        if(config.getColumnTitleBackground() !=null){
-//            tempRect.set(showRect.left, showRect.top, showRect.right,
-//                    showRect.top + clipHeight);
-//            config.getColumnTitleBackground().drawBackground(canvas,tempRect,config.getPaint());
-//        }
-        clipRect.set(showRect);
-        List<ColumnInfo> columnInfoList = tableData.getColumnInfos();
-        float zoom = config.getZoom();
-        boolean isPerColumnFixed = false;
-        int clipCount = 0;
-        ColumnInfo parentColumnInfo = null;
-        for (ColumnInfo info : columnInfoList) {
-            int left = (int) (info.left*zoom + scaleRect.left);
-            //根据top ==0是根部，根据最根部的Title判断是否需要固定
-            if (info.top == 0 && info.column.isFixed()) {
-                if (left < clipRect.left) {
-                    parentColumnInfo = info;
-                    left = clipRect.left;
-                    fillColumnTitle(canvas, info, left, row);
-                    clipRect.left += info.width * zoom;
-                    isPerColumnFixed = true;
-                    continue;
-                }
-                //根部需要固定，同时固定所有子类
-            }else if(isPerColumnFixed && info.top != 0){
-                left = (int) (clipRect.left - info.width * zoom);
-                left += (info.left -parentColumnInfo.left);
-            }else if(isPerColumnFixed){
-                canvas.save();
-                canvas.clipRect(clipRect.left, showRect.top, showRect.right,
-                        showRect.top + clipHeight);
-                isPerColumnFixed = false;
-                clipCount++;
-            }
-            fillColumnTitle(canvas, info, left, row);
-        }
-        for(int i = 0;i < clipCount;i++){
-            canvas.restore();
-        }
-        if (config.isFixedTitle()) {
-            scaleRect.top += titleHeight;
-            showRect.top += titleHeight;
-        } else {
-            showRect.top += clipHeight;
-            scaleRect.top += titleHeight;
         }
     }
 
@@ -561,6 +356,7 @@ public class TableProvider<T> implements TableClickObserver {
                 int realPosition = 0;
                 for (int j = 0; j < size; j++) {
                     //遍历行
+                    boolean isDrawLock = (j == 0 && column.isFixed());
                     String value = column.format(j);
                     int skip =tableInfo.getSeizeCellSize(column,j);
                     int totalLineHeight =0;
@@ -600,31 +396,29 @@ public class TableProvider<T> implements TableClickObserver {
                                 cellInfo.set(column,data,value,i,j);
                                 config.setPartlyCellZoom(1);
                                 if(config.getFixedLines() == 0) {
-                                    drawContentCell(canvas, cellInfo, correctCellRect, config);
+                                    drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
                                 } else if(isFirstDraw || j < config.getFixedLines()) {
-                                    drawContentCell(canvas, cellInfo, correctCellRect, config);
+                                    drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
                                 } else if(!isFirstDraw && j >= config.getFixedLines()) {
                                     if(correctCellRect.top >= fixedBottoms.get(config.getFixedLines() - 1)) {
                                         //绘制完整单元格
-                                        drawContentCell(canvas, cellInfo, correctCellRect, config);
+                                        drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
                                         if (j == config.getFixedLines() && config.getScrollChangeListener() != null && !isShowUnFixedArea) {
                                             //非固定区域可见
                                             isShowUnFixedArea = true;
                                             config.getScrollChangeListener().showUnFixedArea();
-                                            //Log.e(TAG, "showUnFixedArea");
                                         }
                                     } else {
                                         if (j == config.getFixedLines() && isShowUnFixedArea) {
                                             //非固定区域不可见
                                             isShowUnFixedArea = false;
-                                            //Log.e(TAG, "isShowUnFixedArea false");
                                         }
                                         if(correctCellRect.bottom > fixedBottoms.get(config.getFixedLines() - 1) + dip2px(context, 5)) {
                                             //float partlyCellZoom = (correctCellRect.bottom - fixedBottoms.get(config.getFixedLines() - 1)) / (float) correctCellRect.height();
                                             //绘制部分单元格
                                             //config.setPartlyCellZoom(partlyCellZoom);
                                             Rect partCellRect = new Rect(correctCellRect.left, fixedBottoms.get(config.getFixedLines() - 1), correctCellRect.right, correctCellRect.bottom);
-                                            drawContentCell(canvas, cellInfo, partCellRect, config);
+                                            drawContentCell(canvas, cellInfo, partCellRect, config, isDrawLock);
                                         }
                                     }
                                 }
@@ -639,11 +433,9 @@ public class TableProvider<T> implements TableClickObserver {
                     //滚动至底部
                     isScrollToBottom = true;
                     config.getScrollChangeListener().scrollToBottom();
-                    //Log.e(TAG, "drawContent scrollToBottom");
                 } else if(top > showRect.bottom && isScrollToBottom) {
                     //未滚动至底部
                     isScrollToBottom = false;
-                    //Log.e(TAG, "drawContent not scrollToBottom");
                 }
                 left = tempLeft + width;
             } else {
@@ -667,8 +459,9 @@ public class TableProvider<T> implements TableClickObserver {
      * @param cellInfo 格子信息
      * @param rect 方位
      * @param config 表格配置
+     * @param isDrawLock 是否绘制锁标志
      */
-    protected void drawContentCell(Canvas c, CellInfo<T> cellInfo, Rect rect,TableConfig config) {
+    protected void drawContentCell(Canvas c, CellInfo<T> cellInfo, Rect rect,TableConfig config, boolean isDrawLock) {
         if(config.getContentCellBackgroundFormat()!= null){
             config.getContentCellBackgroundFormat().drawBackground(c,rect,cellInfo,config.getPaint());
         }
@@ -677,8 +470,11 @@ public class TableProvider<T> implements TableClickObserver {
             config.getTableGridFormat().drawContentGrid(c,cellInfo.col,cellInfo.row,rect,cellInfo,config.getPaint());
         }
         rect.left += config.getTextLeftOffset();
-        rect.right = rect.right - config.getTextRightOffset();
-        cellInfo.column.getDrawFormat().draw(c,rect, cellInfo,  config);
+        if(isDrawLock) {
+            myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+        } else {
+            cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+        }
     }
 
     /**
@@ -835,6 +631,24 @@ public class TableProvider<T> implements TableClickObserver {
     private int dip2px(Context context, float dpValue) {
         final float scale = context.getResources().getDisplayMetrics().density;
         return (int) (dpValue * scale + 0.5f);
+    }
+
+    private final class MyTextImageDrawFormat extends TextImageDrawFormat<T> {
+
+        public MyTextImageDrawFormat(int imageWidth, int imageHeight, int direction, int drawPadding) {
+            super(imageWidth, imageHeight, direction, drawPadding);
+        }
+
+        @Override
+        protected Context getContext() {
+            return context;
+        }
+
+        @Override
+        protected int getResourceID(T object, String value, int position) {
+            return R.mipmap.icon_lock;
+        }
+
     }
 
 }

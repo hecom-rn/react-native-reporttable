@@ -41,6 +41,7 @@ public class TableData<T> {
     private OnItemClickListener onItemClickListener;
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
+    private int curFixedColumnIndex = -1;  //当前锁定的列号
 
     /**
      *
@@ -414,6 +415,27 @@ public class TableData<T> {
                         if (onItemClickListener != null) {
                             int index = childColumns.indexOf(column);
                             TableData.this.onItemClickListener.onClick(column, value, t, index, position);
+                            if(position == 0) {
+                                if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
+                                    //前面列全部锁定
+                                    for (int i = 0; i <= index; i++) {
+                                        columns.get(i).setFixed(true);
+                                    }
+                                    curFixedColumnIndex = index;
+                                } else if(index < curFixedColumnIndex) {
+                                    //后面列取消锁定
+                                    for (int i = index + 1; i <= curFixedColumnIndex; i++) {
+                                        columns.get(i).setFixed(false);
+                                    }
+                                    curFixedColumnIndex = index;
+                                } else {
+                                    //全部列取消锁定
+                                    for (int i = 0; i <= index; i++) {
+                                        columns.get(i).setFixed(false);
+                                    }
+                                    curFixedColumnIndex = -1;
+                                }
+                            }
                         }
                     }
                 });
