@@ -225,8 +225,8 @@
     [self reloadCheck];
 }
 
-- (void)setSupportPressFrozen:(BOOL)supportPressFrozen {
-    self.reportTabelModel.supportPressFrozen = supportPressFrozen;
+- (void)setFrozenCount:(NSInteger)frozenCount {
+    self.reportTabelModel.frozenCount = frozenCount;
     self.propertyCount += 1;
     [self reloadCheck];
 }

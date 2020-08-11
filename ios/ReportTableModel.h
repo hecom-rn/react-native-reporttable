@@ -45,5 +45,5 @@
 @property (nonatomic, copy) RCTDirectEventBlock onScrollEnd;
 @property (nonatomic, strong) UIColor *lineColor;
 @property (nonatomic, assign) CGRect tableRect;
-@property (nonatomic, assign) BOOL supportPressFrozen;
+@property (nonatomic, assign) NSInteger frozenCount;
 @end

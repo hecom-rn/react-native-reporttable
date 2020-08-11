@@ -24,7 +24,7 @@
     [self.contentView addConstraints:@[
                                 [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:marginHor],
 
-                                [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant: self.isLocked ? - marginHor * 2 - 14 : - marginHor],
+                                [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant: self.lockImageView ? - marginHor * 2 - 14 : - marginHor],
 
                                 [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeCenterY multiplier:1.0 constant: 0],
                                 ]
@@ -33,18 +33,23 @@
 
 - (void)setIsLocked:(BOOL)isLocked {
     if (isLocked == true) {
-        self.lockImageView.hidden = false;
-    } else {
-        if (_lockImageView) {
-            [_lockImageView removeFromSuperview];
-        }
+        self.lockImageView.image = [UIImage imageNamed: @"reportTableLock"];
     }
+}
+
+- (void)setIsUnLocked:(BOOL)isUnLocked {
+     if (isUnLocked == true) {
+         self.lockImageView.image = [UIImage imageNamed: @"reportTableUnLock"];
+     } else {
+         if (_lockImageView) {
+             [_lockImageView removeFromSuperview];
+         }
+     }
 }
 
 - (UIImageView *)lockImageView {
     if (!_lockImageView) {
-        UIImage *image = [UIImage imageNamed:@"reportTableLock"];
-        _lockImageView = [[UIImageView alloc] initWithImage: image];
+        _lockImageView = [[UIImageView alloc] init];
         _lockImageView.translatesAutoresizingMaskIntoConstraints = false;
         _lockImageView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
         [self.contentView addSubview: _lockImageView];

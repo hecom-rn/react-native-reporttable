@@ -29,7 +29,7 @@ RCT_EXPORT_VIEW_PROPERTY(frozenColumns, int)
 RCT_EXPORT_VIEW_PROPERTY(frozenRows, int)
 RCT_EXPORT_VIEW_PROPERTY(lineColor, UIColor)
 
-RCT_EXPORT_VIEW_PROPERTY(supportPressFrozen, BOOL)
+RCT_EXPORT_VIEW_PROPERTY(frozenCount, int)
 
 RCT_EXPORT_MODULE(ReportTableManager)
 
