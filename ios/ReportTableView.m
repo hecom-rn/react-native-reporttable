@@ -152,9 +152,9 @@
                 cell.isUnLocked = column + 1 != self.reportTableModel.frozenColumns;
                 cell.isLocked = column + 1 == self.reportTableModel.frozenColumns;
             }
-        } else if ( self.reportTableModel.frozenCount > 0) {
-            cell.isLocked = column < self.reportTableModel.frozenColumns && row == 0;
-            cell.isUnLocked = column < self.reportTableModel.frozenCount && row == 0;
+        } else if (self.reportTableModel.frozenCount > 0) {
+            cell.isUnLocked = column < self.reportTableModel.frozenCount;
+            cell.isLocked = column < self.reportTableModel.frozenColumns;
         }
     }
     cell.contentView.backgroundColor = model.backgroundColor;
