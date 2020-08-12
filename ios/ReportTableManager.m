@@ -30,6 +30,7 @@ RCT_EXPORT_VIEW_PROPERTY(frozenRows, int)
 RCT_EXPORT_VIEW_PROPERTY(lineColor, UIColor)
 
 RCT_EXPORT_VIEW_PROPERTY(frozenCount, int)
+RCT_EXPORT_VIEW_PROPERTY(frozenPoint, int)
 
 RCT_EXPORT_MODULE(ReportTableManager)
 

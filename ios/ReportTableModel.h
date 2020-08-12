@@ -46,4 +46,5 @@
 @property (nonatomic, strong) UIColor *lineColor;
 @property (nonatomic, assign) CGRect tableRect;
 @property (nonatomic, assign) NSInteger frozenCount;
+@property (nonatomic, assign) NSInteger frozenPoint;
 @end

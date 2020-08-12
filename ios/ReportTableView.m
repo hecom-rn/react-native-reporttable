@@ -146,8 +146,17 @@
 
     ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
-    cell.isUnLocked = column < self.reportTableModel.frozenCount && row == 0;
-    cell.isLocked = column < self.reportTableModel.frozenColumns && row == 0;
+    if (row == 0) {
+        if (self.reportTableModel.frozenPoint > 0) {
+            if (column + 1 == self.reportTableModel.frozenPoint) {
+                cell.isUnLocked = column + 1 != self.reportTableModel.frozenColumns;
+                cell.isLocked = column + 1 == self.reportTableModel.frozenColumns;
+            }
+        } else if ( self.reportTableModel.frozenCount > 0) {
+            cell.isLocked = column < self.reportTableModel.frozenColumns && row == 0;
+            cell.isUnLocked = column < self.reportTableModel.frozenCount && row == 0;
+        }
+    }
     cell.contentView.backgroundColor = model.backgroundColor;
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
     cell.label.text = model.title;
@@ -171,10 +180,17 @@
             @"horizontalCount": [NSNumber numberWithInteger:model.horCount]
         });
     }
-    NSInteger newFrozenColums = column + model.horCount;
-    if (row == 0 && self.reportTableModel.frozenCount >= newFrozenColums) {
-        self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums ? 0 : newFrozenColums;
-        [self.spreadsheetView reloadData];
+    if (row == 0) {
+        NSInteger newFrozenColums = column + model.horCount;
+        if (self.reportTableModel.frozenPoint > 0) {
+            if (newFrozenColums == self.reportTableModel.frozenPoint) {
+                self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == self.reportTableModel.frozenPoint ? 0 : self.reportTableModel.frozenPoint;
+                [self.spreadsheetView reloadData];
+            }
+        } else if (self.reportTableModel.frozenCount >= newFrozenColums) {
+            self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums ? 0 : newFrozenColums;
+            [self.spreadsheetView reloadData];
+        }
     }
 }
 

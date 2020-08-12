@@ -231,8 +231,14 @@
     [self reloadCheck];
 }
 
+- (void)setFrozenPoint:(NSInteger)frozenPoint {
+    self.reportTabelModel.frozenPoint = frozenPoint;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)reloadCheck {
-    if (self.propertyCount >= 12) {
+    if (self.propertyCount >= 13) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
