@@ -24,6 +24,7 @@ import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
+import com.hecom.reporttable.form.data.table.TableData;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -128,21 +129,6 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 @Override
                 public void onClick(Column<String> column, String value, String s, int col, int row) {
                     if(row == 0){
-                         boolean refreshTable = false;
-                         if(frozenPoint > 0){
-                             if(col == frozenPoint){
-                                refreshTable = true;
-                             }
-                          }else{
-                             if(frozenCount > 0){
-                                 if(col <= frozenCount){
-                                    refreshTable = true;
-                                 }
-                             }
-                           }
-                           if(!refreshTable){
-                                return;
-                           }
                          new Handler().postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
@@ -170,6 +156,25 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
 
                 }
             });
+
+            tableData.setOnResponseItemClickListener(new TableData.OnResponseItemClickListener() {
+                        @Override
+                        public boolean responseOnClick(Column column, String value, Object o, int col, int row) {
+                            boolean responseOnClick = false;
+                            if(row == 0){
+                                if(frozenPoint > 0 && col == frozenPoint){
+                                    responseOnClick = true;
+                                }else {
+                                    if(frozenCount > 0 && col < frozenCount){
+                                        responseOnClick = true;
+                                    }
+                                }
+                            }else{
+                                responseOnClick = true;
+                            }
+                            return responseOnClick;
+                        }
+                    });
 
             for (int i = 0; i < configBean.getFrozenColumns(); i++) {
                 tableData.getArrayColumns().get(i).setFixed(true);

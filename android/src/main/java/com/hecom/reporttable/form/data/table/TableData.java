@@ -42,6 +42,7 @@ public class TableData<T> {
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
     private int curFixedColumnIndex = -1;  //当前锁定的列号
+    private OnResponseItemClickListener onResponseItemClickListener;
 
     /**
      *
@@ -413,7 +414,12 @@ public class TableData<T> {
                     @Override
                     public void onClick(Column column, String value, Object t, int position) {
                         if (onItemClickListener != null) {
-                            int index = childColumns.indexOf(column);
+                           int index = childColumns.indexOf(column);
+                            boolean isResponseOnClick = true;
+                            if(onResponseItemClickListener != null){
+                                isResponseOnClick = onResponseItemClickListener.responseOnClick(column, value, t, index, position);
+                            }
+                            if(!isResponseOnClick) return;
                             TableData.this.onItemClickListener.onClick(column, value, t, index, position);
                             if(position == 0) {
                                 if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
@@ -443,6 +449,9 @@ public class TableData<T> {
         }
     }
 
+      public void setOnResponseItemClickListener(final OnResponseItemClickListener onResponseItemClickListener) {
+            this.onResponseItemClickListener = onResponseItemClickListener;
+        }
 
     /**
      * 设置表格行点击事件
@@ -498,4 +507,11 @@ public class TableData<T> {
     public interface OnColumnClickListener<T>{
         void onClick(Column column, List<T> t, int col, int row);
     }
+
+      /**
+         * 是否响应表格单元格Cell点击事件接口
+         */
+        public interface  OnResponseItemClickListener<T>{
+            boolean responseOnClick(Column<T> column,String value, T t, int col,int row);
+        }
 }
