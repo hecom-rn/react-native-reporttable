@@ -50,6 +50,17 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
         return table;
     }
 
+    private int frozenCount = 0;
+    private int frozenPoint = 0;
+    public void setFrozenCount(int frozenCount) {
+        this.frozenCount = frozenCount;
+    }
+
+    public void setFrozenPoint(int frozenPoint) {
+        this.frozenPoint = frozenPoint;
+    }
+
+
     public SmartTable<String> createReportTable(Context context) {
         this.context = context;
         table = new SmartTable<String>(context);
@@ -117,6 +128,21 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 @Override
                 public void onClick(Column<String> column, String value, String s, int col, int row) {
                     if(row == 0){
+                         boolean refreshTable = false;
+                         if(frozenPoint > 0){
+                             if(col == frozenPoint){
+                                refreshTable = true;
+                             }
+                          }else{
+                             if(frozenCount > 0){
+                                 if(col <= frozenCount){
+                                    refreshTable = true;
+                                 }
+                             }
+                           }
+                           if(!refreshTable){
+                                return;
+                           }
                          new Handler().postDelayed(new Runnable() {
                                 @Override
                                 public void run() {

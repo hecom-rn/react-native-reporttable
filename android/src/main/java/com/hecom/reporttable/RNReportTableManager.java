@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 public class RNReportTableManager extends SimpleViewManager<View> {
     private ThemedReactContext mReactContext;
     public static ReportTableConfig reportTableConfig = new ReportTableConfig();
-    ;
+
     private int minWidth = 30;
     private int maxWidth = 50;
     private int minHeight = 30;
@@ -51,6 +51,8 @@ public class RNReportTableManager extends SimpleViewManager<View> {
         int frozenColumns = -1;
         int textPaddingHorizontal = 12;
         String lineColor = "#000000";
+        int frozenCount = 0;
+        int frozenPoint = 0;
         try {
             JSONObject object = new JSONObject(dataSource);
             if (object.has("data")) {
@@ -87,9 +89,21 @@ public class RNReportTableManager extends SimpleViewManager<View> {
              if(object.has("lineColor")){
                 lineColor =  (String)object.get("lineColor");
              }
+
+             if(object.has("frozenCount")){
+                 frozenCount = (int) object.get("frozenCount");
+             }
+
+              if(object.has("frozenPoint")){
+                 frozenPoint = (int) object.get("frozenPoint");
+              }
             configBean.setTextPaddingHorizontal(textPaddingHorizontal);
             configBean.setLineColor(lineColor);
+            reportTableConfig.getTable().getProvider().setFrozenCount(frozenCount);
+            reportTableConfig.getTable().getProvider().setFrozenPoint(frozenPoint);
             reportTableConfig.setReportTableData(view, jsonData, configBean);
+            reportTableConfig.setFrozenCount(frozenCount);
+            reportTableConfig.setFrozenPoint(frozenPoint);
         } catch (JSONException e) {
             e.printStackTrace();
         }

@@ -162,14 +162,16 @@ export default class ReportTableWrapper extends React.Component {
     }
 
     _toAndroidData = () => {
-        const {data, size, minWidth, minHeight, maxWidth, frozenColumns, frozenRows} = this.props;
+        const {data, size, minWidth, minHeight, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint} = this.props;
         const dataSource = {
             data: data,
             minWidth: minWidth,
             minHeight: minHeight,
             maxWidth: maxWidth,
             frozenRows: frozenRows,
-            frozenColumns: frozenColumns
+            frozenColumns: frozenColumns,
+            frozenPoint: frozenPoint,
+            frozenCount: frozenCount
         };
         const dataStr = JSON.stringify(dataSource);
         return dataStr;

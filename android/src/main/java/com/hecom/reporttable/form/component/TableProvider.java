@@ -62,6 +62,16 @@ public class TableProvider<T> implements TableClickObserver {
     private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
     private MyTextImageDrawFormat myTextImageDrawFormat;
 
+     private int frozenCount = 0;
+     private int frozenPoint = 0;
+    public void setFrozenCount(int frozenCount) {
+        this.frozenCount = frozenCount;
+    }
+
+    public void setFrozenPoint(int frozenPoint) {
+        this.frozenPoint = frozenPoint;
+    }
+
     //private static final String TAG = "TableProvider";
 
     public TableProvider(Context context) {
@@ -471,15 +481,36 @@ public class TableProvider<T> implements TableClickObserver {
             }
             rect.left += config.getTextLeftOffset();
             if(cellInfo.row == 0){
-                if(isDrawLock){
-                    myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
-                }else{
-                    myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
-                }
-                myTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            }else{
-                cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
-            }
+                        if(frozenPoint > 0){
+                            if(cellInfo.col == frozenPoint - 1){
+                                if(isDrawLock){
+                                    myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
+                                }else{
+                                    myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
+                                }
+                                rect.right = rect.right - 30;
+                                myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                            }else{
+                                cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+                            }
+                        }else{
+                            if(frozenCount > 0){
+                                if(cellInfo.col <= frozenCount){
+                                    if(isDrawLock){
+                                        myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
+                                    }else{
+                                        myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
+                                    }
+                                }
+                                rect.right = rect.right - 30;
+                                myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                            }else{
+                                cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+                            }
+                        }
+                    }else{
+                        cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+                    }
       }
 
 
