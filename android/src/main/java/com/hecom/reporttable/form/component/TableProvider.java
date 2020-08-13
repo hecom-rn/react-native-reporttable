@@ -462,20 +462,26 @@ public class TableProvider<T> implements TableClickObserver {
      * @param isDrawLock 是否绘制锁标志
      */
     protected void drawContentCell(Canvas c, CellInfo<T> cellInfo, Rect rect,TableConfig config, boolean isDrawLock) {
-        if(config.getContentCellBackgroundFormat()!= null){
-            config.getContentCellBackgroundFormat().drawBackground(c,rect,cellInfo,config.getPaint());
-        }
-        if(config.getTableGridFormat() !=null){
-            config.getContentGridStyle().fillPaint(config.getPaint());
-            config.getTableGridFormat().drawContentGrid(c,cellInfo.col,cellInfo.row,rect,cellInfo,config.getPaint());
-        }
-        rect.left += config.getTextLeftOffset();
-        if(isDrawLock) {
-            myTextImageDrawFormat.draw(c, rect, cellInfo, config);
-        } else {
-            cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
-        }
-    }
+            if(config.getContentCellBackgroundFormat()!= null){
+                config.getContentCellBackgroundFormat().drawBackground(c,rect,cellInfo,config.getPaint());
+            }
+            if(config.getTableGridFormat() !=null){
+                config.getContentGridStyle().fillPaint(config.getPaint());
+                config.getTableGridFormat().drawContentGrid(c,cellInfo.col,cellInfo.row,rect,cellInfo,config.getPaint());
+            }
+            rect.left += config.getTextLeftOffset();
+            if(cellInfo.row == 0){
+                if(isDrawLock){
+                    myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
+                }else{
+                    myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
+                }
+                myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            }else{
+                cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+            }
+      }
+
 
     /**
      * 点击格子
@@ -634,21 +640,29 @@ public class TableProvider<T> implements TableClickObserver {
     }
 
     private final class MyTextImageDrawFormat extends TextImageDrawFormat<T> {
+           public int getResourceId() {
+               return resourceId;
+           }
 
-        public MyTextImageDrawFormat(int imageWidth, int imageHeight, int direction, int drawPadding) {
-            super(imageWidth, imageHeight, direction, drawPadding);
-        }
+           public void setResourceId(int resourceId) {
+               this.resourceId = resourceId;
+           }
 
-        @Override
-        protected Context getContext() {
-            return context;
-        }
+           private int resourceId;
 
-        @Override
-        protected int getResourceID(T object, String value, int position) {
-            return R.mipmap.icon_lock;
-        }
+           public MyTextImageDrawFormat(int imageWidth, int imageHeight, int direction, int drawPadding) {
+               super(imageWidth, imageHeight, direction, drawPadding);
+           }
 
-    }
+           @Override
+           protected Context getContext() {
+               return context;
+           }
+
+           @Override
+           protected int getResourceID(T object, String value, int position) {
+               return getResourceId();
+           }
+       }
 
 }

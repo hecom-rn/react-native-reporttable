@@ -87,7 +87,7 @@ public abstract class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
                 break;
             case RIGHT:
                 this.rect.set(rect.left,rect.top,rect.right-(imgWidth+drawPadding),rect.bottom);
-                textDrawFormat.draw(c,this.rect,cellInfo,config);
+                textDrawFormat.drawImageText(c,this.rect,cellInfo,config);
                 int imgLeft = (rect.right+rect.left)/2+ textDrawFormat.measureWidth(cellInfo.column,cellInfo.row,config)/2 + drawPadding;
                 this.rect.set(imgLeft,rect.top,imgLeft+imgWidth,rect.bottom);
                 super.draw(c,this.rect,cellInfo,config);

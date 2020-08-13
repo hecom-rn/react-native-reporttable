@@ -14,6 +14,7 @@ import com.hecom.reporttable.form.utils.DrawUtils;
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;
+import com.hecom.reporttable.table.bean.JsonTableBean;
 
 /**
  * Created by huang on 2017/10/30.
@@ -56,6 +57,30 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         }
         drawText(c, cellInfo.value, rect, paint);
     }
+
+
+    public void drawImageText(Canvas c,Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+        //Log.e(TAG, "draw");
+        JsonTableBean tableBean = null;
+        try {
+            tableBean = (JsonTableBean) cellInfo.data;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        boolean isLeft = false;
+        if(tableBean != null){
+            isLeft = tableBean.isLeft();
+        }
+        Paint paint = config.getPaint();
+        setTextPaint(config,cellInfo, paint);
+        if(isLeft){
+            paint.setTextAlign(Paint.Align.LEFT);
+        }else{
+            paint.setTextAlign(Paint.Align.RIGHT);
+        }
+        drawText(c, cellInfo.value, rect, paint);
+    }
+
 
     protected void drawText(Canvas c, String value, Rect rect, Paint paint) {
         DrawUtils.drawMultiText(c,paint,rect,getSplitString(value));

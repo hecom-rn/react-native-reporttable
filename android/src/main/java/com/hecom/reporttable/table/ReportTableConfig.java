@@ -27,6 +27,7 @@ import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
 
 import java.util.HashMap;
 import java.util.Map;
+import android.os.Handler;
 
 public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
     private SmartTable<String> table;
@@ -116,8 +117,13 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 @Override
                 public void onClick(Column<String> column, String value, String s, int col, int row) {
                     if(row == 0){
-                        table.setTableData(tableData);
-                        return;
+                         new Handler().postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                      table.setTableData(tableData);
+                                }
+                         }, 10);
+                         return;
                     }
                     try {
                         JsonTableBean tableBean = tabArr[row][col];
@@ -135,6 +141,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                         exception.printStackTrace();
                         System.out.println("点击异常---" + exception);
                     }
+
                 }
             });
 
