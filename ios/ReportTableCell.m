@@ -7,6 +7,7 @@
 
 #import "ReportTableCell.h"
 #import "ReportTableView.h"
+#import <Masonry/Masonry.h>
 
 @implementation ReportTableCell
 
@@ -21,14 +22,12 @@
 
 - (void)setTextPaddingHorizontal:(NSInteger)textPaddingHorizontal {
     CGFloat marginHor = textPaddingHorizontal;
-    [self.contentView addConstraints:@[
-                                [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:marginHor],
-
-                                [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant: _lockImageView ? - marginHor * 2 - 10 : - marginHor],
-
-                                [NSLayoutConstraint constraintWithItem:self.label attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeCenterY multiplier:1.0 constant: 0],
-                                ]
-    ];
+    [self.label mas_makeConstraints:^(MASConstraintMaker *make) {
+         make.right.equalTo(self.contentView.mas_right).offset(_lockImageView != nil ? - marginHor * 2 - 10 : - marginHor);
+         make.left.equalTo(self.contentView.mas_left).offset(textPaddingHorizontal);
+         make.centerY.equalTo(self.contentView.mas_centerY);
+     }];
+     [self.label layoutIfNeeded];
 }
 
 - (void)setIsLocked:(BOOL)isLocked {
@@ -40,24 +39,31 @@
 - (void)setIsUnLocked:(BOOL)isUnLocked {
      if (isUnLocked == true) {
          self.lockImageView.image = [UIImage imageNamed: @"reportTableUnLock"];
-     } else {
-         if (_lockImageView) {
-             [_lockImageView removeFromSuperview];
-         }
      }
+}
+
+- (void)updateContentView:(NSInteger)textPaddingHorizontal {
+    if (_lockImageView) {
+        [_lockImageView removeFromSuperview];
+        _lockImageView = nil;
+        [self.label mas_updateConstraints:^(MASConstraintMaker *make) {
+             make.right.equalTo(self.contentView.mas_right).offset(_lockImageView != nil ? - textPaddingHorizontal * 2 - 10 : - textPaddingHorizontal);
+        }];
+        [self.label layoutIfNeeded];
+    }
 }
 
 - (UIImageView *)lockImageView {
     if (!_lockImageView) {
         _lockImageView = [[UIImageView alloc] init];
-        _lockImageView.translatesAutoresizingMaskIntoConstraints = false;
-        _lockImageView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
         [self.contentView addSubview: _lockImageView];
-        [self.contentView addConstraints:@[
-                                    [NSLayoutConstraint constraintWithItem:_lockImageView attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant: -10],
-                                    [NSLayoutConstraint constraintWithItem:_lockImageView attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeCenterY multiplier:1.0 constant: 0],
-                                    ]
-        ];
+        [_lockImageView mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.right.equalTo(self.contentView.mas_right).offset(-10);
+            make.centerY.equalTo(self.contentView.mas_centerY);
+            make.height.mas_equalTo(14);
+            make.width.mas_equalTo(13);
+        }];
+        [_lockImageView layoutIfNeeded];
     }
     return _lockImageView;
 }
@@ -72,7 +78,6 @@
         self.label.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
         [self.contentView addSubview:self.label];
         self.label.translatesAutoresizingMaskIntoConstraints = false;
-        
     }
     return self;
 }

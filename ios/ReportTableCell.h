@@ -19,4 +19,6 @@
 
 @property (nonatomic, strong) UIImageView *lockImageView;
 
+- (void)updateContentView:(NSInteger)textPaddingHorizontal;
+
 @end

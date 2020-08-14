@@ -151,11 +151,19 @@
             if (column + 1 == self.reportTableModel.frozenPoint) {
                 cell.isUnLocked = column + 1 != self.reportTableModel.frozenColumns;
                 cell.isLocked = column + 1 == self.reportTableModel.frozenColumns;
+            } else {
+                [cell updateContentView: model.textPaddingHorizontal];
             }
         } else if (self.reportTableModel.frozenCount > 0) {
-            cell.isUnLocked = column < self.reportTableModel.frozenCount;
-            cell.isLocked = column < self.reportTableModel.frozenColumns;
+            if (column < self.reportTableModel.frozenCount) {
+                cell.isUnLocked = column < self.reportTableModel.frozenCount;
+                cell.isLocked = column < self.reportTableModel.frozenColumns;
+            } else {
+                [cell updateContentView: model.textPaddingHorizontal];
+            }
         }
+    } else {
+        [cell updateContentView: model.textPaddingHorizontal];
     }
     cell.contentView.backgroundColor = model.backgroundColor;
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
