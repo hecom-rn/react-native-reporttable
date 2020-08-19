@@ -67,7 +67,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        boolean isLeft = false;
+        boolean isLeft = true;
         if(tableBean != null){
             isLeft = tableBean.isLeft();
         }

@@ -12,9 +12,10 @@ import com.hecom.reporttable.table.bean.TableConfigBean;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-
+import org.json.JSONArray;
 import java.util.Map;
-
+import java.util.List;
+import java.util.ArrayList;
 import javax.annotation.Nullable;
 
 public class RNReportTableManager extends SimpleViewManager<View> {
@@ -55,9 +56,18 @@ public class RNReportTableManager extends SimpleViewManager<View> {
         int frozenPoint = 0;
         try {
             JSONObject object = new JSONObject(dataSource);
+
+             if(object.has("frozenCount")){
+                 frozenCount = (int) object.get("frozenCount");
+             }
+
+             if(object.has("frozenPoint")){
+                 frozenPoint = (int) object.get("frozenPoint");
+             }
+
             if (object.has("data")) {
                 Object dataObj = object.get("data");
-                jsonData = dataObj.toString();
+                jsonData = formatJson(dataObj.toString(), frozenCount, frozenPoint);
             }
             if (object.has("minHeight")) {
                 minHeight = transformDataType(object.get("minHeight"));
@@ -90,13 +100,7 @@ public class RNReportTableManager extends SimpleViewManager<View> {
                 lineColor =  (String)object.get("lineColor");
              }
 
-             if(object.has("frozenCount")){
-                 frozenCount = (int) object.get("frozenCount");
-             }
 
-              if(object.has("frozenPoint")){
-                 frozenPoint = (int) object.get("frozenPoint");
-              }
             configBean.setTextPaddingHorizontal(textPaddingHorizontal);
             configBean.setLineColor(lineColor);
             reportTableConfig.getTable().getProvider().setFrozenCount(frozenCount);
@@ -163,4 +167,48 @@ public class RNReportTableManager extends SimpleViewManager<View> {
             e.printStackTrace();
         }
     }
+
+
+
+   public String formatJson(String json, int frozenCount, int frozenPoint){
+           if(frozenCount == 0 && frozenPoint == 0) return json.toString();
+           int changePoint = frozenPoint > 0 ? frozenPoint : frozenCount;
+           List<String> list = new ArrayList<String>();
+           try {
+               JSONArray jsonArray = new JSONArray(json);
+               JSONArray jsonArray1 =  (JSONArray) jsonArray.get(0);
+               for (int i = 0; i < changePoint; i++) {
+                   JSONObject object =  (JSONObject) jsonArray1.get(i);
+                   if(object.has("item")){
+                       JSONObject item = object.getJSONObject("item");
+                       if(item.has("value")){
+                           String value = item.getString("value");
+                           if(value != null && value.length() > 8){
+                               list.add(value);
+                           }
+                       }
+                   }
+               }
+               for (int i = 0; i < list.size(); i++) {
+                   String value = list.get(i);
+                   String spaceWidth = "        ";
+                   if(value.length() > 8){
+                      int spaceNum = value.length() - 8;
+                      int maxNum = 5;
+                      if(spaceNum > maxNum){
+                          spaceNum = maxNum;
+                      }
+                       for (int j = 0; j < spaceNum; j++) {
+                           spaceWidth = spaceWidth + " ";
+                       }
+                   }
+                   json = json.replace( value, value + spaceWidth );
+               }
+              return json;
+           } catch (Exception e) {
+               e.printStackTrace();
+               System.out.println("异常：-----"+e.toString());
+               return json;
+           }
+       }
 }

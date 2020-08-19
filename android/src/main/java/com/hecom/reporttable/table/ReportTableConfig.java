@@ -162,7 +162,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                         public boolean responseOnClick(Column column, String value, Object o, int col, int row) {
                             boolean responseOnClick = false;
                             if(row == 0){
-                                if(frozenPoint > 0 && col == frozenPoint){
+                                if(frozenPoint > 0 && col == frozenPoint  - 1){
                                     responseOnClick = true;
                                 }else {
                                     if(frozenCount > 0 && col < frozenCount){

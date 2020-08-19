@@ -480,6 +480,7 @@ public class TableProvider<T> implements TableClickObserver {
                 config.getTableGridFormat().drawContentGrid(c,cellInfo.col,cellInfo.row,rect,cellInfo,config.getPaint());
             }
             rect.left += config.getTextLeftOffset();
+            rect.right = rect.right - config.getTextRightOffset();
             if(cellInfo.row == 0){
                         if(frozenPoint > 0){
                             if(cellInfo.col == frozenPoint - 1){
