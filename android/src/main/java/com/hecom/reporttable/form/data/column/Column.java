@@ -742,49 +742,52 @@ public class Column<T> implements Comparable<Column> {
         this.ranges = ranges;
     }
 
-   public String format(int position, int frozenCount,int frozenPoint){
-        if(position >=0 && position< datas.size()){
-            return format(datas.get(position), position, frozenCount, frozenPoint);
-        }
-        return INVAL_VALUE;
-    }
 
-    public String format(T t, int row,int frozenCount,int frozenPoint){
-        String value;
-        if (format != null) {
-            value = format.format(t);
-        } else {
-            value = t == null ? INVAL_VALUE : t.toString();
+     public String format(int position, int frozenCount,int frozenPoint){
+            if(position >=0 && position< datas.size()){
+                return format(datas.get(position), position, frozenCount, frozenPoint);
+            }
+            return INVAL_VALUE;
         }
-        value = addWrapSymbol(value, row, frozenCount, frozenPoint);
-        return value;
-    }
 
-     public String addWrapSymbol(String value, int row, int frozenCount,int frozenPoint){
-            //是否小于长度8 是否是冻结的行和列 其它
-            if (value.length() <= maxLineNum) return value;
-            boolean isDrawTextImage = false;
-            if(row == 0){
-                if(frozenPoint > 0 && column == frozenPoint  - 1){
-                    isDrawTextImage = true;
-                }else {
-                    if(frozenCount > 0 && column < frozenCount){
+        public String format(T t, int row,int frozenCount,int frozenPoint){
+            String value;
+            if (format != null) {
+                value = format.format(t);
+            } else {
+                value = t == null ? INVAL_VALUE : t.toString();
+            }
+            value = addWrapSymbol(value, row, frozenCount, frozenPoint);
+            return value;
+        }
+
+         public String addWrapSymbol(String value, int row, int frozenCount,int frozenPoint){
+                //是否小于长度8 是否是冻结的行和列 其它
+                if (value.length() <= maxLineNum) return value;
+                boolean isDrawTextImage = false;
+                if(row == 0){
+                    if(frozenPoint > 0 && column == frozenPoint  - 1){
                         isDrawTextImage = true;
+                    }else {
+                        if(frozenCount > 0 && column < frozenCount){
+                            isDrawTextImage = true;
+                        }
                     }
                 }
-            }
-            String spaceStr = isDrawTextImage ?  "      " : "";
-            String newStr = "";
-            try {
-                for (int i = 0; i < value.length(); i = i + maxLineNum) {
-                    int lastIndex = (value.length() - i > maxLineNum ) ? (i + maxLineNum) : value.length();
-                    String tempStr = value.substring( i, lastIndex );
-                    newStr = newStr + "\n" + tempStr + spaceStr;
+                String spaceStr = isDrawTextImage ?  "      " : "";
+                String newStr = "";
+                try {
+                    for (int i = 0; i < value.length(); i = i + maxLineNum) {
+                        int lastIndex = (value.length() - i > maxLineNum ) ? (i + maxLineNum) : value.length();
+                        String tempStr = value.substring( i, lastIndex );
+                        newStr = newStr + "\n" + tempStr + spaceStr;
+                    }
+                    newStr = newStr + "\n" +  "        ";
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return value;
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                return value;
+                return newStr;
             }
-            return newStr;
-        }
+
 }
