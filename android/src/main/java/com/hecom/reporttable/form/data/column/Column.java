@@ -782,7 +782,7 @@ public class Column<T> implements Comparable<Column> {
                         String tempStr = value.substring( i, lastIndex );
                         newStr = newStr + "\n" + tempStr + spaceStr;
                     }
-                    newStr = newStr + "\n" +  "        ";
+                    newStr =  "        " + "\n" + newStr + "\n" +  "        ";
                 } catch (Exception e) {
                     e.printStackTrace();
                     return value;
