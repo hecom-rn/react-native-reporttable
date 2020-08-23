@@ -496,15 +496,17 @@ public class TableProvider<T> implements TableClickObserver {
                             }
                         }else{
                             if(frozenCount > 0){
-                                if(cellInfo.col <= frozenCount){
+                                if(cellInfo.col < frozenCount){
                                     if(isDrawLock){
                                         myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
                                     }else{
                                         myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
                                     }
+                                    rect.right = rect.right - 30;
+                                    myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                                }else{
+                                    cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
                                 }
-                                rect.right = rect.right - 30;
-                                myTextImageDrawFormat.draw(c, rect, cellInfo, config);
                             }else{
                                 cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
                             }
