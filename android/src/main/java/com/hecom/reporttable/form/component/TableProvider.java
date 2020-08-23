@@ -367,7 +367,7 @@ public class TableProvider<T> implements TableClickObserver {
                 for (int j = 0; j < size; j++) {
                     //遍历行
                     boolean isDrawLock = (j == 0 && column.isFixed());
-                    String value = column.format(j);
+                     String value = column.format(j, frozenCount, frozenPoint);
                     int skip =tableInfo.getSeizeCellSize(column,j);
                     int totalLineHeight =0;
                     for(int k = realPosition;k<realPosition+skip;k++){

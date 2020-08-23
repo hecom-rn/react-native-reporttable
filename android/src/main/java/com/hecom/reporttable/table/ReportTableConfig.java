@@ -180,6 +180,10 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 tableData.getArrayColumns().get(i).setFixed(true);
             }
 
+             for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
+                 tableData.getArrayColumns().get(i).setColumn(i);
+             }
+
             LineStyle lineStyle = new LineStyle();
             lineStyle.setColor(Color.parseColor(configBean.getLineColor()));
             table.getConfig().setContentGridStyle(lineStyle);
