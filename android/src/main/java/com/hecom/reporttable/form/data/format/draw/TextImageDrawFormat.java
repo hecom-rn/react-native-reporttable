@@ -86,7 +86,13 @@ public abstract class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
                 super.draw(c,this.rect,cellInfo,config);
                 break;
             case RIGHT:
-                this.rect.set(rect.left,rect.top,rect.right-(imgWidth+drawPadding),rect.bottom);
+                String value = cellInfo.value ;
+                String[] arr = value.split("\n");
+                int marginTop = 0;
+                if(arr.length > 2){
+                    marginTop = 20;
+                }
+                this.rect.set(rect.left,rect.top + marginTop,rect.right-(imgWidth+drawPadding),rect.bottom);
                 textDrawFormat.drawImageText(c,this.rect,cellInfo,config);
                 //int imgLeft = (rect.right+rect.left)/2+ textDrawFormat.measureWidth(cellInfo.column,cellInfo.row,config)/2 + drawPadding;
                 int imgLeft = rect.right - 2;
@@ -110,4 +116,23 @@ public abstract class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
 
         }
     }
+
+      /**
+         * 计算中英文字符串的字节长度 <br/>
+         * 一个中文占3个字节
+         *
+         * @param str
+         * @return int 字符串的字节长度
+         */
+        public static int getLength(String str) {
+            if (str == null || str.length() == 0) {
+                return 0;
+            }
+            try {
+                return str.getBytes("UTF-8").length;
+            } catch (Exception e) {
+                System.out.println("计算中英文字符串的字节长度失败");
+            }
+            return 0;
+        }
 }
