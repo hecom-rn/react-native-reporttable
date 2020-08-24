@@ -181,7 +181,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             }
 
              for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
-                 tableData.getArrayColumns().get(i).setColumn(i);
+                 tableData.getArrayColumns().get(i).setColumn(i, tableData.getArrayColumns().size());
              }
 
             LineStyle lineStyle = new LineStyle();

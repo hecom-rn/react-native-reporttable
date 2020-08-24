@@ -64,9 +64,10 @@ public class Column<T> implements Comparable<Column> {
     private int maxLineNum = 9;
     private int column = 0;
     private int maxWidth = 400;
-
-     public void setColumn(int column) {
+    private int totalColumn = 0;
+     public void setColumn(int column, int totalColumn) {
          this.column = column;
+         this.totalColumn = totalColumn;
      }
 
     /**列构造方法
@@ -491,6 +492,10 @@ public class Column<T> implements Comparable<Column> {
      * 设置列的计算宽度
      */
     public int setComputeWidthMax(int computeWidth) {
+        if(totalColumn < 3){
+            this.computeWidth = computeWidth;
+            return computeWidth;
+        }
         if(computeWidth > maxWidth){
             computeWidth = maxWidth;
         }
@@ -833,7 +838,6 @@ public class Column<T> implements Comparable<Column> {
                      System.out.println("计算中英文字符串的字节长度失败");
                      return 0;
                  }
-                 return 0;
              }
 
 }
