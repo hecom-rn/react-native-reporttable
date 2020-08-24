@@ -86,13 +86,7 @@ public abstract class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
                 super.draw(c,this.rect,cellInfo,config);
                 break;
             case RIGHT:
-                String value = cellInfo.value ;
-                String[] arr = value.split("\n");
-                int marginTop = 0;
-                if(arr.length > 2){
-                    marginTop = 20;
-                }
-                this.rect.set(rect.left,rect.top + marginTop,rect.right-(imgWidth+drawPadding),rect.bottom);
+                this.rect.set(rect.left,rect.top ,rect.right-(imgWidth+drawPadding),rect.bottom);
                 textDrawFormat.drawImageText(c,this.rect,cellInfo,config);
                 //int imgLeft = (rect.right+rect.left)/2+ textDrawFormat.measureWidth(cellInfo.column,cellInfo.row,config)/2 + drawPadding;
                 int imgLeft = rect.right - 2;

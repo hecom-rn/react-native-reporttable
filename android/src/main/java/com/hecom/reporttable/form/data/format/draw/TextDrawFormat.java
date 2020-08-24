@@ -44,7 +44,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureHeight(Column<T> column,int position, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        return DrawUtils.getMultiTextHeight(paint,getSplitString(column.format(position)));
+       // return DrawUtils.getMultiTextHeight(paint,getSplitString(column.format(position)));
+       return DrawUtils.getMultiTextHeight(paint,getSplitString(column.formatHeight(position)));
     }
 
     @Override

@@ -783,8 +783,9 @@ public class Column<T> implements Comparable<Column> {
         }
 
          public String addWrapSymbol(String value, int row, int frozenCount,int frozenPoint){
-                //是否小于长度8 是否是冻结的行和列 其它
                 if ( getLength(value) <= maxLineNum * 2) return value;
+                value = value.replaceAll(" ", "");
+                value = value.replaceAll("\n", "");
                 boolean isDrawTextImage = false;
                 if(row == 0){
                     if(frozenPoint > 0 && column == frozenPoint  - 1){
@@ -801,10 +802,9 @@ public class Column<T> implements Comparable<Column> {
                     for (int i = 0; i < value.length(); i = i + maxLineNum) {
                         int lastIndex = (value.length() - i > maxLineNum ) ? (i + maxLineNum) : value.length();
                         String tempStr = value.substring( i, lastIndex );
-                        // String midStr = (i == 0) ? "" : "\n";
-                        newStr = newStr +  "\n" + tempStr + spaceStr;
+                        newStr = newStr + "\n" + tempStr + spaceStr;
                     }
-                  // newStr = "        " +  "\n " +   newStr ;
+                    newStr = newStr + "\n" +  spaceStr ;
                 } catch (Exception e) {
                     e.printStackTrace();
                     return value;
