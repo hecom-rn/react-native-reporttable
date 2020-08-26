@@ -61,7 +61,7 @@ public class Column<T> implements Comparable<Column> {
     private int minWidth;
     private int minHeight;
     private int width;
-    private int maxLineNum = 9;
+    private int maxLineNum = 8;
     private int column = 0;
     private int maxWidth = 400;
     private int totalColumn = 0;
