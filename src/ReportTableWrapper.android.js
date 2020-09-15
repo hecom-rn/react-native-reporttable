@@ -1,168 +1,89 @@
 import React from 'react';
 import { Animated, Dimensions, PanResponder, ScrollView, View } from 'react-native';
 import ReportTableView from './ReportTableView';
-import StickyHeader from './androidComp/StickyHeader';
 
-const screenWidth = Dimensions.get('window').width;
 export default class ReportTableWrapper extends React.Component {
 
     constructor(props) {
         super(props);
         this.state = {
-            scrollY: new Animated.Value(0),
-            headHeight: -1,
-            isShowShadow: true,
-            cannotSeeHeader: false,
-            isListener: true
+            headerHeight: 0,
         };
-        try {
-            if (this.props && this.props.headerView && this.props.headerView.props) {
-                this.headerHeight = this.props.headerView.props.style.height;
-            } else {
-                this.headerHeight = 0;
-            }
-        } catch (e) {
-            this.headerHeight = 0;
-        }
 
-        this._panResponder = PanResponder.create({
-            onStartShouldSetPanResponder: (evt, gestureState) => true,
-            onMoveShouldSetPanResponder: (evt, gestureState) => true,
-            onPanResponderGrant: (evt, gestureState) => {
-            },
-            onPanResponderMove: (evt, gs) => {
-                // console.log(`gestureState.dx : ${gs.dx}   gestureState.dy : ${gs.dy}`);
-                const currentDX = Math.abs(gs.dx);
-                const currentDY = Math.abs(gs.dy);
-                const {isShowShadow, cannotSeeHeader, isListener} = this.state;
-                if (!isListener) {
-                    return;
-                }
-                if (!cannotSeeHeader) {
-                    if (currentDY >= 0 && currentDX > 0) { //左右滑动
-                        if (isShowShadow) {
-                            this.setState({isShowShadow: false})
-                        }
-                    } else { //竖直滑动
-                        if (!isShowShadow) {
-                            this.setState({isShowShadow: true})
-                        }
-                    }
+        this.showHeader = true;
 
+        this.panResponder = PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: ()=> true,
+            onPanResponderGrant: ()=>{},
+            onPanResponderMove: (evt,gs)=>{
+                if(gs.dy < 0 && this.showHeader){
+                    this.scrollView &&
+                    this.scrollView.scrollTo({ x: 0, y: -gs.dy , animated: true }, 1);
                 }
             },
-            onPanResponderRelease: (evt, gestureState) => {
-            },
-            onPanResponderTerminate: (evt, gestureState) => {
-            },
-        });
+            onPanResponderRelease: (evt,gs)=>{}
+        })
     }
 
 
     componentDidMount() {
-        // this.listenerClickData = DeviceEventEmitter.addListener('com.hecom.reporttable.clickData', (data) => {
-        //     if(data){
-        //         const {keyIndex, rowIndex, columnIndex, textColor} = data;
-        //         if('#222222' == textColor){
-        //             return;
-        //         }
-        //         this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex});
-        //     }
-        // });
-        // this.listenerScrollToBottom = DeviceEventEmitter.addListener('com.hecom.reporttable.scrollToBottom', () => {
-        //     const {onScrollEnd} = this.props;
-        //     onScrollEnd && onScrollEnd();
-        // });
-        if (this.headerHeight == 0) {
-            this.setState({
-                isShowShadow: false,
-                cannotSeeHeader: true,
-                isListener: false
-            })
-        }
-    }
 
-    componentWillUnmount() {
-        // this.listenerClickData && this.listenerClickData.remove();
-        // this.listenerScrollToBottom && this.listenerScrollToBottom.remove();
     }
-
-    _onVerticalScroll = (event) => {
-        const {isListener} = this.state;
-        if (!isListener) {
-            return;
-        }
-        if (event.nativeEvent.contentOffset.y < (this.headerHeight)) {
-            if (!this.state.isShowShadow) {
-                this.setState({isShowShadow: true, cannotSeeHeader: false})
-            }
-        } else {
-            if (this.state.isShowShadow) {
-                this.setState({isShowShadow: false, cannotSeeHeader: true})
-            }
-        }
-    };
 
 
     render() {
-        const {isShowShadow} = this.state;
+        let { headerHeight } = this.state;
         const {headerView, size} = this.props;
         const data = this._toAndroidData();
-        let shadowWidth = screenWidth;
-        let shadowHeight = 0;
-        let shadowMarginT = this.headerHeight || 0;
-        if (size && size.height) {
-            shadowHeight = size.height;
-        }
+        headerHeight = headerHeight > 20 ? headerHeight - 20 : headerHeight;
         return (
-            <Animated.ScrollView
-                style={{flex: 1}}
-                onScroll={Animated.event([{nativeEvent: {contentOffset: {y: this.state.scrollY}}}], {
-                    useNativeDriver: true,
-                    listener: this._onVerticalScroll
-                })}
+            <ScrollView
+                ref={(ref) => (this.scrollView = ref)}
+                style = {{flex: 1}}
                 scrollEventThrottle={1}
-                {...this._panResponder.panHandlers}
+                stickyHeaderIndices={[1]}
+                onScroll = {(event)=>{{
+                    if(event.nativeEvent.contentOffset.y >= headerHeight){
+                        this.showHeader = false;
+                    }else{
+                        this.showHeader = true;
+                    }
+                }}}
             >
-                <View onLayout={(e) => {
-                    let {height} = e.nativeEvent.layout;
-                    this.setState({headHeight: height}); // 给头部高度赋值
-                }}>
-                    <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                        {headerView && headerView()}
-                    </ScrollView>
-                </View>
-                <StickyHeader
-                    stickyHeaderY={this.state.headHeight} // 把头部高度传入
-                    stickyScrollY={this.state.scrollY}  // 把滑动距离传入
-                >
-                    <ReportTableView
-                        onScrollEnd={this.props.onScrollEnd}
-                        onClickEvent={({nativeEvent: data}) => {
-                            if (data) {
-                                const {keyIndex, rowIndex, columnIndex, textColor} = data;
-                                this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex});
-                            }
-                        }}
-                        data={data}
-                        style={[size]}
-                    />
-                </StickyHeader>
-                {isShowShadow ?
-                    <View style={{
-                        width: shadowWidth, height: shadowHeight, marginTop: shadowMarginT,
-                        backgroundColor: '#0000', zIndex: 9999, position: 'absolute'
+                <ScrollView
+                    horizontal={true}
+                    showsHorizontalScrollIndicator={false}
+                    onLayout={(event) => {
+                        const {
+                            nativeEvent: {
+                                layout: { height },
+                            },
+                        } = event;
+                        this.setState({headerHeight: height})
                     }}
-                    />
-                    : null
-                }
-                <View style={{display: 'flex', height: shadowMarginT}} />
-            </Animated.ScrollView>
+                >
+                    {headerView && headerView()}
+                </ScrollView>
+
+                <ReportTableView
+                    onScrollEnd={this.props.onScrollEnd}
+                    onClickEvent={({nativeEvent: data}) => {
+                        if (data) {
+                            const {keyIndex, rowIndex, columnIndex, textColor} = data;
+                            this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex});
+                        }
+                    }}
+                    data={data}
+                    style={{width: size.width, height: size.height + headerHeight }}
+                    {...this.panResponder.panHandlers}
+                />
+            </ScrollView>
         )
     }
 
     _toAndroidData = () => {
-        const {data, size, minWidth, minHeight, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint} = this.props;
+        const {data, minWidth, minHeight, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint} = this.props;
         const dataSource = {
             data: data,
             minWidth: minWidth,
@@ -171,10 +92,11 @@ export default class ReportTableWrapper extends React.Component {
             frozenRows: frozenRows,
             frozenColumns: frozenColumns,
             frozenPoint: frozenPoint,
-            frozenCount: frozenCount
+            frozenCount: frozenCount,
         };
         const dataStr = JSON.stringify(dataSource);
         return dataStr;
     }
 
 }
+
