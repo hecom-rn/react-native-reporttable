@@ -8,7 +8,12 @@
 #import <Foundation/Foundation.h>
 #import <React/RCTComponent.h>
 
-@interface ItemModel : NSObject
+@interface IconStyle: NSObject
+@property (nonatomic, strong) NSString *path;
+@property (nonatomic, assign) CGSize size;
+@end
+
+@interface ItemModel: NSObject
 @property (nonatomic, strong) NSString *title;
 @property (nonatomic, assign) NSInteger keyIndex;
 @property (nonatomic, strong) UIColor *backgroundColor;
@@ -17,10 +22,10 @@
 @property (nonatomic, assign) CGFloat fontSize;
 @property (nonatomic, assign) BOOL isLeft;
 @property (nonatomic, assign) NSInteger textPaddingHorizontal;
-@property (nonatomic ,assign) NSInteger horCount;
-@property (nonatomic ,assign) NSInteger verCount;
+@property (nonatomic, assign) NSInteger horCount;
+@property (nonatomic, assign) NSInteger verCount;
+@property (nonatomic, strong) IconStyle *iconStyle;
 @end
-
 
 @interface ForzenRange: NSObject
 @property (nonatomic, assign) NSInteger startX;

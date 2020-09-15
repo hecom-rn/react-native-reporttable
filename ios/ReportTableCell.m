@@ -8,6 +8,7 @@
 #import "ReportTableCell.h"
 #import "ReportTableView.h"
 #import <Masonry/Masonry.h>
+#import "ReportTableModel.h"
 
 @implementation ReportTableCell
 
@@ -23,12 +24,17 @@
 - (void)setTextPaddingHorizontal:(NSInteger)textPaddingHorizontal {
     CGFloat marginHor = textPaddingHorizontal;
     [self.label mas_makeConstraints:^(MASConstraintMaker *make) {
-         make.right.equalTo(self.contentView.mas_right).offset(_lockImageView != nil ? - marginHor * 2 - 10 : - marginHor);
+         make.right.equalTo(self.contentView.mas_right).offset([self isSetupImageView] ? - marginHor * 2 - 10 : - marginHor);
          make.left.equalTo(self.contentView.mas_left).offset(textPaddingHorizontal);
          make.centerY.equalTo(self.contentView.mas_centerY);
      }];
      [self.label layoutIfNeeded];
 }
+
+- (BOOL)isSetupImageView {
+    return _lockImageView != nil || _customImageView != nil;
+}
+
 
 - (void)setIsLocked:(BOOL)isLocked {
     if (isLocked == true) {
@@ -43,11 +49,17 @@
 }
 
 - (void)updateContentView:(NSInteger)textPaddingHorizontal {
-    if (_lockImageView) {
-        [_lockImageView removeFromSuperview];
-        _lockImageView = nil;
+    if ([self isSetupImageView]) {
+        if (_lockImageView != nil) {
+            [_lockImageView removeFromSuperview];
+            _lockImageView = nil;
+        }
+        if (_customImageView != nil) {
+            [_customImageView removeFromSuperview];
+            _customImageView = nil;
+        }
         [self.label mas_updateConstraints:^(MASConstraintMaker *make) {
-             make.right.equalTo(self.contentView.mas_right).offset(_lockImageView != nil ? - textPaddingHorizontal * 2 - 10 : - textPaddingHorizontal);
+             make.right.equalTo(self.contentView.mas_right).offset(- textPaddingHorizontal);
         }];
         [self.label layoutIfNeeded];
     }
@@ -68,7 +80,25 @@
     return _lockImageView;
 }
 
+- (UIImageView *)customImageView {
+    if (!_customImageView) {
+        _customImageView = [[UIImageView alloc] init];
+        [self.contentView addSubview: _customImageView];
+        [_customImageView mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.right.equalTo(self.contentView.mas_right).offset(-10);
+            make.centerY.equalTo(self.contentView.mas_centerY);
+            make.size.mas_equalTo(self.icon.size);
+        }];
+        [_customImageView layoutIfNeeded];
+    }
+    return _customImageView;
+}
 
+- (void)setIcon:(IconStyle *)icon {
+    _icon = icon;
+    NSString *path = [[NSBundle mainBundle] pathForResource:[NSString stringWithFormat:@"assets/%@", icon.path] ofType:@"png"];
+    self.customImageView.image = [UIImage imageWithContentsOfFile:path];
+}
 
 - (instancetype)initWithFrame:(CGRect)frame
 {

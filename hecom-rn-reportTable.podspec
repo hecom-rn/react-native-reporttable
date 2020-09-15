@@ -11,7 +11,8 @@ Pod::Spec.new do |s|
   s.license      = package['license']
   s.platform     = :ios, "9.0"
   s.source       = { :git => "https://github.com/hecom-rn/ReportTable.git" }
-  s.source_files = 'ios/**/*.{h,m}'
+  s.source_files = 'ios/*.{h,m}'
+  s.resources    = 'ios/ReportTable.bundle'
   s.dependency 'React'
   s.dependency 'ZMJGanttChart'
   s.dependency 'Masonry'

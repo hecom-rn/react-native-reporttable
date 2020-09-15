@@ -8,6 +8,9 @@
 #import "ReportTableModel.h"
 
 
+@implementation IconStyle
+@end
+
 @implementation ReportTableModel
 - (NSMutableArray<NSArray<ItemModel *> *> *)dataSource{
     if (!_dataSource) {

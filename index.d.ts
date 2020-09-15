@@ -43,6 +43,13 @@ declare module "@hecom/react-native-report-table"{
         fontSize?: number;
         textColor?: string;
         isLeft?: boolean;
+        icon?: IconStyle;
+    }
+
+    export interface IconStyle {
+        path: string; // bundle的 绝对路径
+        width: number,
+        height: number,
     }
 
     export default class ReportTable extends React.Component<ReportTableProps>{

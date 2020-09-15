@@ -15,7 +15,7 @@
 
 @property (nonatomic, strong) ReportTableView * reportTableView;
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
-@property (nonatomic, strong) ReportTableModel *reportTabelModel;
+@property (nonatomic, strong) ReportTableModel *reportTableModel;
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 @property (nonatomic, assign) NSInteger propertyCount;
 @property (nonatomic, weak)   RCTBridge *bridge;
@@ -60,7 +60,7 @@
     self = [super init];
     if (self) {
         self.bridge = bridge;
-        self.reportTabelModel = [[ReportTableModel alloc] init];
+        self.reportTableModel = [[ReportTableModel alloc] init];
         self.propertyCount = 0;
     }
     return self;
@@ -144,62 +144,54 @@
 
 - (void)setData:(NSArray *)data {
     NSMutableArray *dataSource = [NSMutableArray arrayWithArray:data];
-    if (self.reportTabelModel.data.count > 0) {
-        self.reportTabelModel.data = dataSource; // update
+    if (self.reportTableModel.data.count > 0) {
+        self.reportTableModel.data = dataSource; // update
         [self integratedDataSource];
     } else {
-        self.reportTabelModel.data = dataSource;
+        self.reportTableModel.data = dataSource;
         self.propertyCount += 1;
         [self reloadCheck];
     }
 }
 
 - (void)setMinWidth:(float)minWidth {
-    self.reportTabelModel.minWidth = minWidth;
+    self.reportTableModel.minWidth = minWidth;
     self.propertyCount += 1;
     [self reloadCheck];
 }
 
 - (void)setMaxWidth:(float)maxWidth {
-    self.reportTabelModel.maxWidth = maxWidth;
+    self.reportTableModel.maxWidth = maxWidth;
     self.propertyCount += 1;
     [self reloadCheck];
 }
 
 - (void)setMinHeight:(float)minHeight {
-    self.reportTabelModel.minHeight = minHeight;
+    self.reportTableModel.minHeight = minHeight;
     self.propertyCount += 1;
     [self reloadCheck];
 }
 
 - (void)setFrozenColumns:(NSInteger)frozenColumns {
-    self.reportTabelModel.frozenColumns = frozenColumns;
-    if (self.reportTabelModel.dataSource.count > 0) {
-        [self integratedDataSource];
-    } else {
-        self.propertyCount += 1;
-        [self reloadCheck];
-    }
+    self.reportTableModel.frozenColumns = frozenColumns;
+    self.propertyCount += 1;
+    [self reloadCheck];
 }
 
 - (void)setFrozenRows:(NSInteger)frozenRows {
-    self.reportTabelModel.frozenRows = frozenRows;
-    if (self.reportTabelModel.dataSource.count > 0) {
-        [self integratedDataSource];
-    } else {
-        self.propertyCount += 1;
-        [self reloadCheck];
-    }
+    self.reportTableModel.frozenRows = frozenRows;
+    self.propertyCount += 1;
+    [self reloadCheck];
 }
 
 - (void)setOnClickEvent:(RCTDirectEventBlock)onClickEvent {
-    self.reportTabelModel.onClickEvent = onClickEvent;
+    self.reportTableModel.onClickEvent = onClickEvent;
     self.propertyCount += 1;
     [self reloadCheck];
 }
 
 - (void)setSize:(CGSize)size {
-    self.reportTabelModel.tableRect = CGRectMake(0, 0, size.width, size.height);
+    self.reportTableModel.tableRect = CGRectMake(0, 0, size.width, size.height);
     self.propertyCount += 1;
     [self reloadCheck];
 }
@@ -214,25 +206,25 @@
 }
 
 - (void)setOnScrollEnd:(RCTDirectEventBlock)onScrollEnd {
-    self.reportTabelModel.onScrollEnd = onScrollEnd;
+    self.reportTableModel.onScrollEnd = onScrollEnd;
     self.propertyCount += 1;
     [self reloadCheck];
 }
 
 - (void)setLineColor:(UIColor *)lineColor {
-    self.reportTabelModel.lineColor = lineColor;
+    self.reportTableModel.lineColor = lineColor;
     self.propertyCount += 1;
     [self reloadCheck];
 }
 
 - (void)setFrozenCount:(NSInteger)frozenCount {
-    self.reportTabelModel.frozenCount = frozenCount;
+    self.reportTableModel.frozenCount = frozenCount;
     self.propertyCount += 1;
     [self reloadCheck];
 }
 
 - (void)setFrozenPoint:(NSInteger)frozenPoint {
-    self.reportTabelModel.frozenPoint = frozenPoint;
+    self.reportTableModel.frozenPoint = frozenPoint;
     self.propertyCount += 1;
     [self reloadCheck];
 }
@@ -245,12 +237,12 @@
 }
 
 - (void)integratedDataSource {
-    NSMutableArray *dataSource = [NSMutableArray arrayWithArray: self.reportTabelModel.data];
+    NSMutableArray *dataSource = [NSMutableArray arrayWithArray: self.reportTableModel.data];
     NSMutableArray *cloumsHight = [NSMutableArray array];
     NSMutableArray *rowsWidth = [NSMutableArray array];
-    CGFloat minWidth = self.reportTabelModel.minWidth; //margin
-    CGFloat maxWidth = self.reportTabelModel.maxWidth; //margin
-    CGFloat minHeight = self.reportTabelModel.minHeight;
+    CGFloat minWidth = self.reportTableModel.minWidth; //margin
+    CGFloat maxWidth = self.reportTableModel.maxWidth; //margin
+    CGFloat minHeight = self.reportTableModel.minHeight;
     [self.dataSource removeAllObjects]; // clear
     
     for (int i = 0; i < dataSource.count; i++) {
@@ -271,13 +263,30 @@
            model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]];
            model.isLeft = [RCTConvert BOOL:[dir objectForKey:@"isLeft"]];
            model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
+           NSDictionary *iconDic = [RCTConvert NSDictionary:[dir objectForKey:@"icon"]];
+           if (iconDic != nil) {
+               IconStyle *icon = [[IconStyle alloc] init];
+               icon.size = CGSizeMake([[iconDic objectForKey:@"width"] floatValue], [[iconDic objectForKey:@"height"] floatValue]);
+               icon.path = [iconDic objectForKey:@"path"];
+               model.iconStyle = icon;
+           }
+           BOOL isLock = false;
+           if (i == 0) {
+               if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
+                   isLock = true;
+               } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
+                   isLock = true;
+               }
+           }
+           CGFloat imageIconWidth = (isLock ? 13 : iconDic != nil ? model.iconStyle.size.width : 0);
+           CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth; //margin
            CGFloat textW = [self getTextWidth: model.title withTextSize: model.fontSize];
-           if (textW > rowWith - 2 * model.textPaddingHorizontal) { //margin
-               if (textW < maxWidth - 2 * model.textPaddingHorizontal) {
+           if (textW > rowWith - exceptText) {
+               if (textW < maxWidth - exceptText) {
                    rowWith = textW;
                } else {
                    rowWith = maxWidth;
-                   NSInteger height = (ceilf(textW / (maxWidth - 2 * model.textPaddingHorizontal)) - 1) * (model.fontSize + 2) + minHeight;
+                   NSInteger height = (ceilf(textW / (maxWidth - exceptText)) - 1) * (model.fontSize + 2) + minHeight;
                    columnHeigt = MAX(columnHeigt, height);
                }
             } else {
@@ -296,10 +305,10 @@
         rowsWidth[i] = [NSNumber numberWithFloat: [rowsWidth[i] floatValue] - 1 - 1.0/rowsWidth.count];
     }
     NSMutableArray<ForzenRange *> *frozenArray = [self generateMergeRange:self.dataSource];
-    self.reportTabelModel.frozenArray = frozenArray;
-    self.reportTabelModel.dataSource = self.dataSource;
-    self.reportTabelModel.rowsWidth = rowsWidth;
-    self.reportTabelModel.cloumsHight = cloumsHight;
+    self.reportTableModel.frozenArray = frozenArray;
+    self.reportTableModel.dataSource = self.dataSource;
+    self.reportTableModel.rowsWidth = rowsWidth;
+    self.reportTableModel.cloumsHight = cloumsHight;
     
     CGFloat tableHeigt = 1;
     for (int i = 0; i < cloumsHight.count; i++) {
@@ -308,14 +317,14 @@
     
     CGSize headerSize = self.headerView.frame.size;
     tableHeigt += headerSize.height;
-    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTabelModel.tableRect.size.width, headerSize.height);
+    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableModel.tableRect.size.width, headerSize.height);
     self.reportTableView.headerScrollView = self.headerScrollView;
 
-    CGRect tableRect = self.reportTabelModel.tableRect;
+    CGRect tableRect = self.reportTableModel.tableRect;
     tableRect.size.height = MIN(tableRect.size.height, tableHeigt);
     self.reportTableView.frame = tableRect;
     
-    self.reportTableView.reportTableModel = self.reportTabelModel;
+    self.reportTableView.reportTableModel = self.reportTableModel;
 }
 
 @end
