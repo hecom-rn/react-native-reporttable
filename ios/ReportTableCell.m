@@ -35,17 +35,20 @@
     return _lockImageView != nil || _customImageView != nil;
 }
 
+- (NSBundle *)bundleForStrings
+{
+    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+    NSURL *url = [bundle URLForResource:@"ReportTable" withExtension:@"bundle"];
+    NSBundle *imageBundle = [NSBundle bundleWithURL:url];
+    return bundle;
+}
 
 - (void)setIsLocked:(BOOL)isLocked {
     if (isLocked == true) {
-        self.lockImageView.image = [UIImage imageNamed: @"reportTableLock"];
+        self.lockImageView.image = [UIImage imageWithContentsOfFile: [[self bundleForStrings] pathForResource:@"reportTableLock@2x" ofType:@"png"]];
+    } else {
+        self.lockImageView.image = [UIImage imageWithContentsOfFile: [[self bundleForStrings] pathForResource:@"reportTableUnLock@2x" ofType:@"png"]];
     }
-}
-
-- (void)setIsUnLocked:(BOOL)isUnLocked {
-     if (isUnLocked == true) {
-         self.lockImageView.image = [UIImage imageNamed: @"reportTableUnLock"];
-     }
 }
 
 - (void)updateContentView:(NSInteger)textPaddingHorizontal {
