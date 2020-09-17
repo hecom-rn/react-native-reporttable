@@ -146,9 +146,11 @@
 
     ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
- 
+    [cell updateContentView: model.textPaddingHorizontal];
+    if (model.iconStyle != nil) {
+        cell.icon = model.iconStyle;
+    }
     if (row == 0) {
-        [cell updateContentView: model.textPaddingHorizontal];
         if (self.reportTableModel.frozenPoint > 0) {
             if (column + 1 == self.reportTableModel.frozenPoint) {
                 cell.isLocked = column + 1 == self.reportTableModel.frozenColumns;
@@ -157,11 +159,7 @@
             if (column < self.reportTableModel.frozenCount) {
                 cell.isLocked = column < self.reportTableModel.frozenColumns;
             }
-        } else if (model.iconStyle != nil) {
-            cell.icon = model.iconStyle;
         }
-    } else {
-        [cell updateContentView: model.textPaddingHorizontal];
     }
     cell.contentView.backgroundColor = model.backgroundColor;
     cell.textPaddingHorizontal = model.textPaddingHorizontal;

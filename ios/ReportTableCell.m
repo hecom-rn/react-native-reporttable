@@ -44,6 +44,10 @@
 }
 
 - (void)setIsLocked:(BOOL)isLocked {
+    if (_customImageView != nil) {
+        [_customImageView removeFromSuperview];
+        _customImageView = nil;
+    }
     if (isLocked == true) {
         self.lockImageView.image = [UIImage imageWithContentsOfFile: [[self bundleForStrings] pathForResource:@"reportTableLock" ofType:@"png"]];
     } else {
