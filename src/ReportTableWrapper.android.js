@@ -26,17 +26,10 @@ export default class ReportTableWrapper extends React.Component {
         })
     }
 
-
-    componentDidMount() {
-
-    }
-
-
     render() {
         let { headerHeight } = this.state;
         const {headerView, size} = this.props;
         const data = this._toAndroidData();
-        headerHeight = headerHeight > 20 ? headerHeight - 20 : headerHeight;
         return (
             <ScrollView
                 ref={(ref) => (this.scrollView = ref)}
@@ -75,7 +68,7 @@ export default class ReportTableWrapper extends React.Component {
                         }
                     }}
                     data={data}
-                    style={{width: size.width, height: size.height + headerHeight }}
+                    style={{width: size.width, height: size.height + headerHeight}}
                     {...this.panResponder.panHandlers}
                 />
             </ScrollView>
@@ -83,7 +76,8 @@ export default class ReportTableWrapper extends React.Component {
     }
 
     _toAndroidData = () => {
-        const {data, minWidth, minHeight, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint} = this.props;
+        let {headerHeight} = this.state;
+        const {data, minWidth, minHeight, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size} = this.props;
         const dataSource = {
             data: data,
             minWidth: minWidth,
@@ -93,6 +87,8 @@ export default class ReportTableWrapper extends React.Component {
             frozenColumns: frozenColumns,
             frozenPoint: frozenPoint,
             frozenCount: frozenCount,
+            limitTableHeight: size.height,
+            headerHeight: headerHeight
         };
         const dataStr = JSON.stringify(dataSource);
         return dataStr;

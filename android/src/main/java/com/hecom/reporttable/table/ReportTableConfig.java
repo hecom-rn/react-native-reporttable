@@ -191,6 +191,8 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             table.getConfig().setFixedLines(configBean.getFrozenRows(), this);
             table.getConfig().setTextLeftOffset(configBean.getTextPaddingHorizontal());
             table.getConfig().setTextRightOffset(configBean.getTextPaddingHorizontal());
+            table.getMeasurer().setAddTableHeight(configBean.getHeaderHeight());
+            table.getMeasurer().setLimitTableHeight(configBean.getLimitTableHeight());
             table.setTableData(tableData);
         } catch (Exception e) {
             e.printStackTrace();

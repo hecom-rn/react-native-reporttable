@@ -54,6 +54,8 @@ public class RNReportTableManager extends SimpleViewManager<View> {
         String lineColor = "#000000";
         int frozenCount = 0;
         int frozenPoint = 0;
+        int headerHeight = 0;
+        int limitTableHeight = 0;
         try {
             JSONObject object = new JSONObject(dataSource);
 
@@ -84,7 +86,20 @@ public class RNReportTableManager extends SimpleViewManager<View> {
             if (object.has("frozenColumns")) {
                 frozenColumns = (int) object.get("frozenColumns");
             }
+
+             if (object.has("headerHeight")) {
+                  headerHeight = transformDataType(object.get("headerHeight"));
+             }
+
+             if (object.has("limitTableHeight")) {
+                 limitTableHeight = transformDataType(object.get("limitTableHeight"));
+             }
+
             TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
+            headerHeight = dip2px(mReactContext, headerHeight);
+            configBean.setHeaderHeight(headerHeight);
+            int tableHeight = dip2px(mReactContext, limitTableHeight);
+            configBean.setLimitTableHeight(tableHeight);
             if (frozenColumns != -1) {
                 configBean.setFrozenColumns(frozenColumns);
             }
@@ -210,5 +225,12 @@ public class RNReportTableManager extends SimpleViewManager<View> {
                System.out.println("异常：-----"+e.toString());
                return json;
            }
+       }
+
+
+       public static int dip2px(ThemedReactContext context, float dpValue) {
+           final float scale = context.getResources().getDisplayMetrics().density;
+           int pxResult = (int) (dpValue * scale + 0.5f);
+           return (int) (dpValue * scale + 0.5f);
        }
 }

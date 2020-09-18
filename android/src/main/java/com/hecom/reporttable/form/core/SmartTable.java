@@ -58,6 +58,9 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private AtomicBoolean isNotifying = new AtomicBoolean(false); //是否正在更新数据
     private boolean isYSequenceRight;
 
+   public TableMeasurer<T> getMeasurer() {
+        return measurer;
+    }
 
     public SmartTable(Context context) {
         super(context);

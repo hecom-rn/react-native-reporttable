@@ -24,11 +24,26 @@ public class TableMeasurer<T> {
 
     private  boolean isReMeasure; //是否重新计算
 
+     public void setAddTableHeight(int addTableHeight) {
+         this.addTableHeight = addTableHeight;
+     }
+
+    private int addTableHeight = 0;
+
+    public void setLimitTableHeight(int limitTableHeight) {
+        this.limitTableHeight = limitTableHeight;
+    }
+
+    private int limitTableHeight = 0;
+
     public TableInfo measure(TableData<T> tableData, TableConfig config){
         isReMeasure = true;
         TableInfo tableInfo = tableData.getTableInfo();
         int width = getTableWidth(tableData,config);
         int height = getTableHeight(tableData,config);
+        if(height > limitTableHeight){
+            height = height + addTableHeight;
+        }
         tableInfo.setTableRect(new Rect(0,0,width,height));
         measureColumnSize(tableData);
         return tableInfo;

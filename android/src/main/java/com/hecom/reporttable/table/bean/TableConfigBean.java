@@ -76,4 +76,27 @@ public class TableConfigBean {
     public void setLineColor(String lineColor) {
         this.lineColor = lineColor;
     }
+
+
+
+    public int getHeaderHeight() {
+        return headerHeight;
+    }
+
+    public void setHeaderHeight(int headerHeight) {
+        this.headerHeight = headerHeight;
+    }
+
+    private int headerHeight;
+
+
+    public int getLimitTableHeight() {
+        return limitTableHeight;
+    }
+
+    public void setLimitTableHeight(int limitTableHeight) {
+        this.limitTableHeight = limitTableHeight;
+    }
+
+    private int limitTableHeight;
 }
