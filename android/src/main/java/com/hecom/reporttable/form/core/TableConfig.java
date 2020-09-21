@@ -677,4 +677,23 @@ public class TableConfig {
      */
 
     private int textRightOffset = 0;
+
+     public int getMinCellWidth() {
+            return minCellWidth;
+        }
+
+        public void setMinCellWidth(int minCellWidth) {
+            this.minCellWidth = minCellWidth;
+        }
+
+        public int getMaxCellWidth() {
+            return maxCellWidth;
+        }
+
+        public void setMaxCellWidth(int maxCellWidth) {
+            this.maxCellWidth = maxCellWidth;
+        }
+
+        private int minCellWidth;
+        private int maxCellWidth;
 }

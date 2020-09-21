@@ -481,9 +481,6 @@ public class Column<T> implements Comparable<Column> {
      * 设置列的计算宽度
      */
     public void setComputeWidth(int computeWidth) {
-        if(computeWidth > maxWidth){
-           computeWidth = maxWidth;
-        }
         this.computeWidth = computeWidth;
     }
 
@@ -778,66 +775,17 @@ public class Column<T> implements Comparable<Column> {
             } else {
                 value = t == null ? INVAL_VALUE : t.toString();
             }
-            value = addWrapSymbol(value, row, frozenCount, frozenPoint);
             return value;
         }
 
-         public String addWrapSymbol(String value, int row, int frozenCount,int frozenPoint){
-                if ( getLength(value) <= maxLineNum * 2) return value;
-                value = value.replaceAll(" ", "");
-                value = value.replaceAll("\n", "");
-                boolean isDrawTextImage = false;
-                if(row == 0){
-                    if(frozenPoint > 0 && column == frozenPoint  - 1){
-                        isDrawTextImage = true;
-                    }else {
-                        if(frozenCount > 0 && column < frozenCount){
-                            isDrawTextImage = true;
-                        }
-                    }
+
+
+         public String formatHeight(int position){
+                if(position >=0 && position< datas.size()){
+                    return format(datas.get(position),1,0,0);
                 }
-                String spaceStr = isDrawTextImage ?  "      " : "";
-                String newStr =  "";
-                try {
-                    for (int i = 0; i < value.length(); i = i + maxLineNum) {
-                        int lastIndex = (value.length() - i > maxLineNum ) ? (i + maxLineNum) : value.length();
-                        String tempStr = value.substring( i, lastIndex );
-                        newStr = newStr + "\n" + tempStr + spaceStr;
-                    }
-                    newStr = newStr + "\n" +  spaceStr ;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return value;
-                }
-                return newStr;
-            }
+                return INVAL_VALUE;
+          }
 
-
-             public String formatHeight(int position){
-                    if(position >=0 && position< datas.size()){
-                        return format(datas.get(position),1,0,0);
-                    }
-                    return INVAL_VALUE;
-                }
-
-
-            /**
-              * 计算中英文字符串的字节长度 <br/>
-              * 一个中文占3个字节
-              *
-              * @param str
-              * @return int 字符串的字节长度
-              */
-             public  int getLength(String str) {
-                 if (str == null || str.length() == 0) {
-                     return 0;
-                 }
-                 try {
-                     return str.getBytes("UTF-8").length;
-                 } catch (Exception e) {
-                     System.out.println("计算中英文字符串的字节长度失败");
-                     return 0;
-                 }
-             }
 
 }

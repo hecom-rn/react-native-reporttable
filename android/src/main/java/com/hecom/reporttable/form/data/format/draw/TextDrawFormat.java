@@ -33,10 +33,10 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
     @Override
     public int measureWidth(Column<T>column, int position, TableConfig config) {
-
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        return DrawUtils.getMultiTextWidth(paint,getSplitString(column.format(position)));
+        String value = getWrapText( column.format(position), paint, config);
+        return DrawUtils.getMultiTextWidth(paint, getSplitString(value));
     }
 
 
@@ -45,7 +45,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
        // return DrawUtils.getMultiTextHeight(paint,getSplitString(column.format(position)));
-       return DrawUtils.getMultiTextHeight(paint,getSplitString(column.formatHeight(position)));
+       String value = getWrapText( column.format(position), paint, config);
+       return DrawUtils.getMultiTextHeight(paint, getSplitString(value));
     }
 
     @Override
@@ -56,7 +57,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         if(cellInfo.column.getTextAlign() !=null) {
             paint.setTextAlign(cellInfo.column.getTextAlign());
         }
-        drawText(c, cellInfo.value, rect, paint);
+        drawText(c, cellInfo.value, rect, paint, config);
     }
 
 
@@ -79,11 +80,12 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         }else{
             paint.setTextAlign(Paint.Align.RIGHT);
         }
-        drawText(c, cellInfo.value, rect, paint);
+        drawText(c, cellInfo.value, rect, paint, config);
     }
 
 
-    protected void drawText(Canvas c, String value, Rect rect, Paint paint) {
+    protected void drawText(Canvas c, String value, Rect rect, Paint paint,TableConfig config) {
+        value = getWrapText( value, paint, config);
         DrawUtils.drawMultiText(c,paint,rect,getSplitString(value));
     }
 
@@ -111,4 +113,33 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         }
         return values;
     }
+
+
+    public String getWrapText( String value, Paint paint, TableConfig config){
+            float strLen = paint.measureText(value);
+            int minWidth = config.getMinCellWidth();
+            int maxWidth = config.getMaxCellWidth();
+            float realWidth = 0;
+            if(strLen < minWidth){
+                realWidth = minWidth;
+            }else if(strLen >= minWidth && strLen <= maxWidth){
+                realWidth = strLen;
+            }else if(strLen > maxWidth){
+                realWidth = maxWidth;
+            }
+            String newStr = "";
+            float totalLen = 0;
+            for (int i = 0; i < value.length(); i++) {
+                char tempChar =  value.charAt(i);
+                String tempStr =  String.valueOf(tempChar);
+                float tempStrLen = paint.measureText(tempStr);
+                totalLen = totalLen + tempStrLen;
+                if(totalLen > realWidth){
+                    newStr = newStr + "\n";
+                    totalLen = tempStrLen;
+                }
+                newStr = newStr + tempStr;
+            }
+            return "".equals(newStr) ? value : newStr;
+        }
 }
