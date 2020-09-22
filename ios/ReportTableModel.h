@@ -9,7 +9,7 @@
 #import <React/RCTComponent.h>
 
 @interface IconStyle: NSObject
-@property (nonatomic, strong) NSString *path;
+@property (nonatomic, strong) id path;
 @property (nonatomic, assign) CGSize size;
 @end
 

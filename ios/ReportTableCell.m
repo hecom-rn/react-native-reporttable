@@ -9,6 +9,7 @@
 #import "ReportTableView.h"
 #import <Masonry/Masonry.h>
 #import "ReportTableModel.h"
+#import <React/RCTConvert.h>
 
 @implementation ReportTableCell
 
@@ -103,8 +104,9 @@
 
 - (void)setIcon:(IconStyle *)icon {
     _icon = icon;
-    NSString *path = [[NSBundle mainBundle] pathForResource:[NSString stringWithFormat:@"assets/%@", icon.path] ofType:@"png"];
-    self.customImageView.image = [UIImage imageWithContentsOfFile:path];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.customImageView.image = [RCTConvert UIImage:icon.path];
+    });
 }
 
 - (instancetype)initWithFrame:(CGRect)frame

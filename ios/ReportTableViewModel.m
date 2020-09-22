@@ -279,11 +279,11 @@
                }
            }
            CGFloat imageIconWidth = (isLock ? 13 + 10 : iconDic != nil ? model.iconStyle.size.width + 10 : 0);
-           CGFloat exceptText = 2 * model.textPaddingHorizontal + 5 + imageIconWidth; //margin
+           CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth; //margin
            CGFloat textW = [self getTextWidth: model.title withTextSize: model.fontSize];
            if (textW > minWidth - exceptText) {
                if (textW < maxWidth - exceptText) {
-                   rowWith = textW + exceptText;
+                   rowWith = textW + exceptText + 5;
                } else {
                    rowWith = maxWidth;
                    NSInteger height = (ceilf(textW / (maxWidth - exceptText)) - 1) * (model.fontSize + 2) + minHeight;
