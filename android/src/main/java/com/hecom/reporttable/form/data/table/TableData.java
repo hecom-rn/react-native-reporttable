@@ -419,8 +419,8 @@ public class TableData<T> {
                             if(onResponseItemClickListener != null){
                                 isResponseOnClick = onResponseItemClickListener.responseOnClick(column, value, t, index, position);
                             }
-                            if(!isResponseOnClick) return;
                             TableData.this.onItemClickListener.onClick(column, value, t, index, position);
+                            if(!isResponseOnClick) return;
                             if(position == 0) {
                                 if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
                                     //前面列全部锁定

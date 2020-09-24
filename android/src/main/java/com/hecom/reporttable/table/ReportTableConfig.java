@@ -61,6 +61,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
         this.frozenPoint = frozenPoint;
     }
 
+    private boolean clickLockBt = false;
 
     public SmartTable<String> createReportTable(Context context) {
         this.context = context;
@@ -85,6 +86,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             }
             String[][] dataArr = reportTableData.mergeTable(json);
             final JsonTableBean[][] tabArr = reportTableData.getTabArr();
+             table.setTabArr(tabArr);
              TextDrawFormat mTextDrawFormat =  new TextDrawFormat<JsonTableBean>(){
                                 @Override
                                 public void setTextPaint(TableConfig config, CellInfo<JsonTableBean> cellInfo, Paint paint) {
@@ -128,7 +130,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
 
                 @Override
                 public void onClick(Column<String> column, String value, String s, int col, int row) {
-                    if(row == 0){
+                    if(clickLockBt){
                          new Handler().postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
@@ -172,6 +174,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                             }else{
                                 responseOnClick = true;
                             }
+                            clickLockBt = responseOnClick;
                             return responseOnClick;
                         }
                     });
@@ -193,8 +196,8 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             table.getConfig().setTextRightOffset(configBean.getTextPaddingHorizontal());
             table.getMeasurer().setAddTableHeight(configBean.getHeaderHeight());
             table.getMeasurer().setLimitTableHeight(configBean.getLimitTableHeight());
-            table.getConfig().setMinCellWidth(configBean.getMinWidth());
-            table.getConfig().setMaxCellWidth(configBean.getMaxWidth());
+            table.getConfig().setMinCellWidth(DensityUtils.dp2px(this.context, configBean.getMinWidth()));
+            table.getConfig().setMaxCellWidth(DensityUtils.dp2px(this.context, configBean.getMaxWidth()));
             table.setTableData(tableData);
         } catch (Exception e) {
             e.printStackTrace();

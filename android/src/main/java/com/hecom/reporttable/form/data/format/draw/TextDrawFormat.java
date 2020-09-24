@@ -15,6 +15,7 @@ import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;
 import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.form.utils.DensityUtils;
 
 /**
  * Created by huang on 2017/10/30.
@@ -35,8 +36,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureWidth(Column<T>column, int position, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        String value = getWrapText( column.format(position), paint, config);
-        return DrawUtils.getMultiTextWidth(paint, getSplitString(value));
+        String value = getWrapText( column.format(position), paint, config, 0);
+        return DrawUtils.getMultiTextWidth(paint, getSplitString(value)) + 40;
     }
 
 
@@ -45,8 +46,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
        // return DrawUtils.getMultiTextHeight(paint,getSplitString(column.format(position)));
-       String value = getWrapText( column.format(position), paint, config);
-       return DrawUtils.getMultiTextHeight(paint, getSplitString(value));
+       String value = getWrapText( column.format(position), paint, config, 0);
+       return DrawUtils.getMultiTextHeight(paint, getSplitString(value)) + 40;
     }
 
     @Override
@@ -57,7 +58,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         if(cellInfo.column.getTextAlign() !=null) {
             paint.setTextAlign(cellInfo.column.getTextAlign());
         }
-        drawText(c, cellInfo.value, rect, paint, config);
+        drawText(c, cellInfo.value, rect, paint, config, 0);
     }
 
 
@@ -80,12 +81,12 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         }else{
             paint.setTextAlign(Paint.Align.RIGHT);
         }
-        drawText(c, cellInfo.value, rect, paint, config);
+        drawText(c, cellInfo.value, rect, paint, config, 40);
     }
 
 
-    protected void drawText(Canvas c, String value, Rect rect, Paint paint,TableConfig config) {
-        value = getWrapText( value, paint, config);
+    protected void drawText(Canvas c, String value, Rect rect, Paint paint,TableConfig config, int marginRight) {
+        value = getWrapText( value, paint, config, marginRight);
         DrawUtils.drawMultiText(c,paint,rect,getSplitString(value));
     }
 
@@ -115,7 +116,9 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     }
 
 
-    public String getWrapText( String value, Paint paint, TableConfig config){
+    public String getWrapText( String value, Paint paint, TableConfig config, int marginRight){
+            int paddingLeftSize = config.getTextLeftOffset();
+            int paddingRightSize = config.getTextRightOffset();
             float strLen = paint.measureText(value);
             int minWidth = config.getMinCellWidth();
             int maxWidth = config.getMaxCellWidth();
@@ -127,14 +130,19 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             }else if(strLen > maxWidth){
                 realWidth = maxWidth;
             }
+            if(marginRight > 0){
+                realWidth = realWidth - marginRight;
+            }
+
+           // realWidth = realWidth - paddingLeftSize - paddingRightSize;
             String newStr = "";
             float totalLen = 0;
             for (int i = 0; i < value.length(); i++) {
                 char tempChar =  value.charAt(i);
                 String tempStr =  String.valueOf(tempChar);
                 float tempStrLen = paint.measureText(tempStr);
-                totalLen = totalLen + tempStrLen;
-                if(totalLen > realWidth){
+                totalLen = totalLen + tempStrLen ;
+                if(totalLen + 10 > realWidth){
                     newStr = newStr + "\n";
                     totalLen = tempStrLen;
                 }

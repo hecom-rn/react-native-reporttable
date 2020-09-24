@@ -30,7 +30,7 @@ import com.hecom.reporttable.form.utils.DensityUtils;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import com.hecom.reporttable.table.bean.JsonTableBean;
 
 /**
  * Created by huang on 2017/10/30.
@@ -57,6 +57,12 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private boolean isExactly = true; //是否是测量精准模式
     private AtomicBoolean isNotifying = new AtomicBoolean(false); //是否正在更新数据
     private boolean isYSequenceRight;
+
+
+    public void setTabArr(JsonTableBean[][] tabArr) {
+        provider.setTabArr(tabArr);
+    }
+
 
    public TableMeasurer<T> getMeasurer() {
         return measurer;

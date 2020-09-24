@@ -26,6 +26,8 @@ import java.util.List;
 import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.data.format.draw.TextImageDrawFormat;
 import com.hecom.reporttable.form.utils.DensityUtils;
+import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.JsonTableBean.Icon;
 
 /**
  * Created by huang on 2017/11/1.
@@ -73,6 +75,16 @@ public class TableProvider<T> implements TableClickObserver {
     }
 
     //private static final String TAG = "TableProvider";
+
+    public JsonTableBean[][] getTabArr() {
+        return tabArr;
+     }
+
+    public void setTabArr(JsonTableBean[][] tabArr) {
+        this.tabArr = tabArr;
+    }
+
+   private JsonTableBean[][] tabArr;
 
     public TableProvider(Context context) {
         this.context = context;
@@ -479,8 +491,10 @@ public class TableProvider<T> implements TableClickObserver {
                 config.getContentGridStyle().fillPaint(config.getPaint());
                 config.getTableGridFormat().drawContentGrid(c,cellInfo.col,cellInfo.row,rect,cellInfo,config.getPaint());
             }
+
             rect.left += config.getTextLeftOffset();
             rect.right = rect.right - config.getTextRightOffset();
+
             if(cellInfo.row == 0){
                         if(frozenPoint > 0){
                             if(cellInfo.col == frozenPoint - 1){
@@ -489,10 +503,9 @@ public class TableProvider<T> implements TableClickObserver {
                                 }else{
                                     myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
                                 }
-                                rect.right = rect.right - 30;
                                 myTextImageDrawFormat.draw(c, rect, cellInfo, config);
                             }else{
-                                cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+                                  selectDrawFormat(c, rect, cellInfo, config);
                             }
                         }else{
                             if(frozenCount > 0){
@@ -502,19 +515,39 @@ public class TableProvider<T> implements TableClickObserver {
                                     }else{
                                         myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
                                     }
-                                    rect.right = rect.right - 30;
                                     myTextImageDrawFormat.draw(c, rect, cellInfo, config);
                                 }else{
-                                    cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+                                   selectDrawFormat(c, rect, cellInfo, config);
                                 }
                             }else{
-                                cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+                                selectDrawFormat(c, rect, cellInfo, config);
                             }
                         }
-                    }else{
-                        cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
-                    }
+            }else{
+              selectDrawFormat(c, rect, cellInfo, config);
+            }
       }
+
+
+
+
+    private void selectDrawFormat(Canvas c,Rect rect,CellInfo<T> cellInfo,TableConfig config){
+        Icon icon = getTabArr()[cellInfo.row][cellInfo.col].getIcon();
+        if(icon != null){
+            String name = icon.getName();
+           if("up".equals(name)){
+                myTextImageDrawFormat.setResourceId(R.mipmap.up);
+           }else if("down".equals(name)){
+                myTextImageDrawFormat.setResourceId(R.mipmap.down);
+           }
+           myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+        }else{
+           cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+        }
+    }
+
+
+
 
 
     /**
@@ -529,8 +562,6 @@ public class TableProvider<T> implements TableClickObserver {
             column.getOnColumnItemClickListener().onClick(column, value, data, position);
         }
     }
-
-
 
 
 

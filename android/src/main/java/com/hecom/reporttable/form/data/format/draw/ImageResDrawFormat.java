@@ -49,5 +49,4 @@ public abstract class ImageResDrawFormat<T> extends BitmapDrawFormat<T> {
 
     protected abstract int getResourceID(T t, String value, int position);
 
-
 }

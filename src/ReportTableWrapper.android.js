@@ -17,6 +17,7 @@ export default class ReportTableWrapper extends React.Component {
             onMoveShouldSetPanResponder: ()=> true,
             onPanResponderGrant: ()=>{},
             onPanResponderMove: (evt,gs)=>{
+                if (this.state.headerHeight == 0) return;
                 if(gs.dy < 0 && this.showHeader){
                     this.scrollView &&
                     this.scrollView.scrollTo({ x: 0, y: -gs.dy , animated: true }, 1);
@@ -44,6 +45,7 @@ export default class ReportTableWrapper extends React.Component {
                     }
                 }}}
             >
+                {headerView &&
                 <ScrollView
                     horizontal={true}
                     showsHorizontalScrollIndicator={false}
@@ -58,6 +60,7 @@ export default class ReportTableWrapper extends React.Component {
                 >
                     {headerView && headerView()}
                 </ScrollView>
+                }
 
                 <ReportTableView
                     onScrollEnd={this.props.onScrollEnd}
@@ -68,12 +71,13 @@ export default class ReportTableWrapper extends React.Component {
                         }
                     }}
                     data={data}
-                    style={{width: size.width, height: size.height + headerHeight}}
+                    style={{width: size.width, height: size.height - headerHeight}}
                     {...this.panResponder.panHandlers}
                 />
             </ScrollView>
         )
     }
+
 
     _toAndroidData = () => {
         let {headerHeight} = this.state;
