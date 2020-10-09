@@ -71,7 +71,7 @@ export default class ReportTableWrapper extends React.Component {
                         }
                     }}
                     data={data}
-                    style={{width: size.width, height: size.height - headerHeight}}
+                    style={{width: size.width, height: size.height}}
                     {...this.panResponder.panHandlers}
                 />
             </ScrollView>

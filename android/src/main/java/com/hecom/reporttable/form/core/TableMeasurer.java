@@ -42,7 +42,7 @@ public class TableMeasurer<T> {
         int width = getTableWidth(tableData,config);
         int height = getTableHeight(tableData,config);
         if(height > limitTableHeight){
-             height = height + addTableHeight;
+//              height = height + addTableHeight;
         }
         tableInfo.setTableRect(new Rect(0,0,width,height));
         measureColumnSize(tableData);
