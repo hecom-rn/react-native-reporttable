@@ -152,8 +152,8 @@
     }
     if (row == 0) {
         if (self.reportTableModel.frozenPoint > 0) {
-            if (column + 1 == self.reportTableModel.frozenPoint) {
-                cell.isLocked = column + 1 == self.reportTableModel.frozenColumns;
+            if (column == self.reportTableModel.frozenPoint - model.horCount) {
+                cell.isLocked = column == self.reportTableModel.frozenColumns - model.horCount;
             }
         } else if (self.reportTableModel.frozenCount > 0) {
             if (column < self.reportTableModel.frozenCount) {
