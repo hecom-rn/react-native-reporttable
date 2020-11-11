@@ -1,25 +1,25 @@
-declare module "@hecom/react-native-report-table"{
+declare module "@hecom/react-native-report-table" {
     import * as React from 'react';
-    import * as ReactNative from "react-native";
+    import PropTypes from 'prop-types';
 
     export interface ReportTableProps {
         size: PropTypes.objectOf({
             width: PropTypes.number.isRequired,
             height: PropTypes.number.isRequired,
-        }).isRequired;
+        });
 
         data: PropTypes.arrayOf(
             PropTypes.arrayOf(
                 PropTypes.objectOf(DataSource)
             ).isRequired;
-        ).isRequired;
+        );
 
         minWidth?: number;
         minHeight?: number;
         maxWidth?: number;
         frozenColumns?: number;
         frozenRows?: number;
-        onClickEvent?: () => ItemCilck;
+        onClickEvent?: (item: ItemCilck) => void;
         onScrollEnd?: () => void;
         lineColor?: string;
         marginVertical?: number; // item

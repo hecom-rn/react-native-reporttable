@@ -33,7 +33,7 @@
 }
 
 - (BOOL)isSetupImageView {
-    return _lockImageView != nil || _customImageView != nil;
+    return _lockImageView != nil || _icon != nil;
 }
 
 - (NSBundle *)bundleForStrings
@@ -48,6 +48,7 @@
     if (_customImageView != nil) {
         [_customImageView removeFromSuperview];
         _customImageView = nil;
+        _icon = nil;
     }
     if (isLocked == true) {
         self.lockImageView.image = [UIImage imageWithContentsOfFile: [[self bundleForStrings] pathForResource:@"reportTableLock" ofType:@"png"]];
@@ -65,6 +66,7 @@
         if (_customImageView != nil) {
             [_customImageView removeFromSuperview];
             _customImageView = nil;
+            _icon = nil;
         }
         [self.label mas_updateConstraints:^(MASConstraintMaker *make) {
              make.right.equalTo(self.contentView.mas_right).offset(- textPaddingHorizontal);

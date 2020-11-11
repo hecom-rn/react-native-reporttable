@@ -139,7 +139,7 @@
 
 - (CGFloat)getTextWidth:(NSString *)text withTextSize:(CGFloat)fontSize {
     CGFloat textW = [text boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, 50) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:fontSize]} context:nil].size.width;
-    return textW;
+    return textW + 3;
 }
 
 - (void)setData:(NSArray *)data {
