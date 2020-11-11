@@ -166,15 +166,16 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                             if(row == 0){
                                 if(frozenPoint > 0 && col == frozenPoint  - 1){
                                     responseOnClick = true;
+                                    clickLockBt = true;
                                 }else {
                                     if(frozenCount > 0 && col < frozenCount){
                                         responseOnClick = true;
+                                        clickLockBt = true;
                                     }
                                 }
                             }else{
                                 responseOnClick = true;
                             }
-                            clickLockBt = responseOnClick;
                             return responseOnClick;
                         }
                     });
