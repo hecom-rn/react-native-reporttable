@@ -319,7 +319,7 @@ public class TableData<T> {
         }
     }
 
-   /* *//**
+    /* *//**
      * 获取所有合并规则，包括自定义和自动合并规则
      * 请不要使用该方法来添加合并单元格
      * 而是通过设置setUserCellRange来添加
@@ -414,7 +414,7 @@ public class TableData<T> {
                     @Override
                     public void onClick(Column column, String value, Object t, int position) {
                         if (onItemClickListener != null) {
-                           int index = childColumns.indexOf(column);
+                            int index = childColumns.indexOf(column);
                             boolean isResponseOnClick = true;
                             if(onResponseItemClickListener != null){
                                 isResponseOnClick = onResponseItemClickListener.responseOnClick(column, value, t, index, position);
@@ -422,6 +422,29 @@ public class TableData<T> {
                             TableData.this.onItemClickListener.onClick(column, value, t, index, position);
                             if(!isResponseOnClick) return;
                             if(position == 0) {
+                                int firstColumnMaxMerge = getFirstColumnMaxMerge();
+                                if(firstColumnMaxMerge > -1){
+                                    if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
+                                        //前面列全部锁定
+                                        for (int i = 0; i <= firstColumnMaxMerge; i++) {
+                                            columns.get(i).setFixed(true);
+                                        }
+                                        curFixedColumnIndex = index;
+                                    } else if(index < curFixedColumnIndex) {
+                                        //后面列取消锁定
+                                        for (int i = index + 1; i <= firstColumnMaxMerge; i++) {
+                                            columns.get(i).setFixed(false);
+                                        }
+                                        curFixedColumnIndex = index;
+                                    } else {
+                                        //全部列取消锁定
+                                        for (int i = 0; i <= firstColumnMaxMerge; i++) {
+                                            columns.get(i).setFixed(false);
+                                        }
+                                        curFixedColumnIndex = -1;
+                                    }
+                                    return;
+                                }
                                 if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
                                     //前面列全部锁定
                                     for (int i = 0; i <= index; i++) {
@@ -449,9 +472,9 @@ public class TableData<T> {
         }
     }
 
-      public void setOnResponseItemClickListener(final OnResponseItemClickListener onResponseItemClickListener) {
-            this.onResponseItemClickListener = onResponseItemClickListener;
-        }
+    public void setOnResponseItemClickListener(final OnResponseItemClickListener onResponseItemClickListener) {
+        this.onResponseItemClickListener = onResponseItemClickListener;
+    }
 
     /**
      * 设置表格行点击事件
@@ -508,10 +531,26 @@ public class TableData<T> {
         void onClick(Column column, List<T> t, int col, int row);
     }
 
-      /**
-         * 是否响应表格单元格Cell点击事件接口
-         */
-        public interface  OnResponseItemClickListener<T>{
-            boolean responseOnClick(Column<T> column,String value, T t, int col,int row);
+    /**
+     * 是否响应表格单元格Cell点击事件接口
+     */
+    public interface  OnResponseItemClickListener<T>{
+        boolean responseOnClick(Column<T> column,String value, T t, int col,int row);
+    }
+
+
+    private int getFirstColumnMaxMerge(){
+        int maxColumn = -1;
+        List<CellRange> list =  getUserCellRange();
+        for (int i = 0; i < list.size(); i++) {
+            CellRange cellRange = list.get(i);
+            if(cellRange.getFirstCol() == 0 && cellRange.getLastCol() > 0){
+                if(maxColumn < cellRange.getLastCol()){
+                    maxColumn = cellRange.getLastCol();
+                }
+            }
         }
+        return maxColumn;
+    }
+
 }

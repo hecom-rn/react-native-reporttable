@@ -10,6 +10,7 @@ import android.util.Log;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
+import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.column.ColumnInfo;
@@ -64,8 +65,8 @@ public class TableProvider<T> implements TableClickObserver {
     private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
     private MyTextImageDrawFormat myTextImageDrawFormat;
 
-     private int frozenCount = 0;
-     private int frozenPoint = 0;
+    private int frozenCount = 0;
+    private int frozenPoint = 0;
     public void setFrozenCount(int frozenCount) {
         this.frozenCount = frozenCount;
     }
@@ -78,14 +79,16 @@ public class TableProvider<T> implements TableClickObserver {
 
     public JsonTableBean[][] getTabArr() {
         return tabArr;
-     }
+    }
 
     public void setTabArr(JsonTableBean[][] tabArr) {
         this.tabArr = tabArr;
     }
 
-   private JsonTableBean[][] tabArr;
+    private JsonTableBean[][] tabArr;
 
+    private int firstRowMaxMerge = -1;
+    private int firstColMaxMerge = -1;
     public TableProvider(Context context) {
         this.context = context;
         clickPoint = new PointF(-1, -1);
@@ -112,6 +115,8 @@ public class TableProvider<T> implements TableClickObserver {
         canvas.clipRect(this.showRect);
         drawColumnTitle(canvas, config);
         drawCount(canvas);
+        firstRowMaxMerge = getFirstRowMaxMerge();
+        firstColMaxMerge = getFirstColumnMaxMerge();
         drawContent(canvas);
         operation.draw(canvas,showRect,config);
         if(drawOver !=null)
@@ -241,8 +246,8 @@ public class TableProvider<T> implements TableClickObserver {
                 }
                 //根部需要固定，同时固定所有子类
             }else if(isPerColumnFixed && info.top != 0){
-                    left = (int) (clipRect.left - info.width * zoom);
-                    left += (info.left -parentColumnInfo.left);
+                left = (int) (clipRect.left - info.width * zoom);
+                left += (info.left -parentColumnInfo.left);
             }else if(isPerColumnFixed){
                 canvas.save();
                 canvas.clipRect(clipRect.left, showRect.top, showRect.right,
@@ -379,7 +384,7 @@ public class TableProvider<T> implements TableClickObserver {
                 for (int j = 0; j < size; j++) {
                     //遍历行
                     boolean isDrawLock = (j == 0 && column.isFixed());
-                     String value = column.format(j, frozenCount, frozenPoint);
+                    String value = column.format(j, frozenCount, frozenPoint);
                     int skip =tableInfo.getSeizeCellSize(column,j);
                     int totalLineHeight =0;
                     for(int k = realPosition;k<realPosition+skip;k++){
@@ -484,65 +489,92 @@ public class TableProvider<T> implements TableClickObserver {
      * @param isDrawLock 是否绘制锁标志
      */
     protected void drawContentCell(Canvas c, CellInfo<T> cellInfo, Rect rect,TableConfig config, boolean isDrawLock) {
-            if(config.getContentCellBackgroundFormat()!= null){
-                config.getContentCellBackgroundFormat().drawBackground(c,rect,cellInfo,config.getPaint());
-            }
-            if(config.getTableGridFormat() !=null){
-                config.getContentGridStyle().fillPaint(config.getPaint());
-                config.getTableGridFormat().drawContentGrid(c,cellInfo.col,cellInfo.row,rect,cellInfo,config.getPaint());
-            }
+        if(config.getContentCellBackgroundFormat()!= null){
+            config.getContentCellBackgroundFormat().drawBackground(c,rect,cellInfo,config.getPaint());
+        }
+        if(config.getTableGridFormat() !=null){
+            config.getContentGridStyle().fillPaint(config.getPaint());
+            config.getTableGridFormat().drawContentGrid(c,cellInfo.col,cellInfo.row,rect,cellInfo,config.getPaint());
+        }
 
-            rect.left += config.getTextLeftOffset();
-            rect.right = rect.right - config.getTextRightOffset();
+        rect.left += config.getTextLeftOffset();
+        rect.right = rect.right - config.getTextRightOffset();
 
-            if(cellInfo.row == 0){
-                        if(frozenPoint > 0){
-                            if(cellInfo.col == frozenPoint - 1){
-                                if(isDrawLock){
-                                    myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
-                                }else{
-                                    myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
-                                }
-                                myTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                            }else{
-                                  selectDrawFormat(c, rect, cellInfo, config);
-                            }
-                        }else{
-                            if(frozenCount > 0){
-                                if(cellInfo.col < frozenCount){
-                                    if(isDrawLock){
-                                        myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
-                                    }else{
-                                        myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
-                                    }
-                                    myTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                                }else{
-                                   selectDrawFormat(c, rect, cellInfo, config);
-                                }
-                            }else{
-                                selectDrawFormat(c, rect, cellInfo, config);
-                            }
-                        }
+        if(cellInfo.row == 0 ){
+            if(frozenPoint > 0){
+                if(cellInfo.col == frozenPoint - 1 || (firstColMaxMerge == frozenPoint - 1 && cellInfo.col <= firstColMaxMerge)){
+                    if(isDrawLock){
+                        myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
+                    }else{
+                        myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
+                    }
+                    myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                }else{
+                    selectDrawFormat(c, rect, cellInfo, config);
+                }
             }else{
-              selectDrawFormat(c, rect, cellInfo, config);
+                if(frozenCount > 0){
+                    if(cellInfo.col < frozenCount){
+                        if(isDrawLock){
+                            myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
+                        }else{
+                            myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
+                        }
+                        myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                    }else{
+                        selectDrawFormat(c, rect, cellInfo, config);
+                    }
+                }else{
+                    selectDrawFormat(c, rect, cellInfo, config);
+                }
             }
-      }
+        }else{
+            selectDrawFormat(c, rect, cellInfo, config);
+        }
+    }
+
+    private int getFirstRowMaxMerge(){
+        int maxRow = -1;
+        List<CellRange> list =  tableData.getUserCellRange();
+        for (int i = 0; i < list.size(); i++) {
+            CellRange cellRange = list.get(i);
+            if(cellRange.getFirstRow() == 0 && cellRange.getLastRow() > 0){
+                if(maxRow < cellRange.getLastRow()){
+                    maxRow = cellRange.getLastRow();
+                }
+            }
+        }
+        return maxRow;
+    }
 
 
+    private int getFirstColumnMaxMerge(){
+        int maxColumn = -1;
+        List<CellRange> list =  tableData.getUserCellRange();
+        for (int i = 0; i < list.size(); i++) {
+            CellRange cellRange = list.get(i);
+            if(cellRange.getFirstCol() == 0 && cellRange.getLastCol() > 0){
+                if(maxColumn < cellRange.getLastCol()){
+                    maxColumn = cellRange.getLastCol();
+                }
+            }
+        }
+        return maxColumn;
+    }
 
 
     private void selectDrawFormat(Canvas c,Rect rect,CellInfo<T> cellInfo,TableConfig config){
         Icon icon = getTabArr()[cellInfo.row][cellInfo.col].getIcon();
         if(icon != null){
             String name = icon.getName();
-           if("up".equals(name)){
+            if("up".equals(name)){
                 myTextImageDrawFormat.setResourceId(R.mipmap.up);
-           }else if("down".equals(name)){
+            }else if("down".equals(name)){
                 myTextImageDrawFormat.setResourceId(R.mipmap.down);
-           }
-           myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            }
+            myTextImageDrawFormat.draw(c, rect, cellInfo, config);
         }else{
-           cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
+            cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
         }
     }
 
@@ -705,29 +737,29 @@ public class TableProvider<T> implements TableClickObserver {
     }
 
     private final class MyTextImageDrawFormat extends TextImageDrawFormat<T> {
-           public int getResourceId() {
-               return resourceId;
-           }
+        public int getResourceId() {
+            return resourceId;
+        }
 
-           public void setResourceId(int resourceId) {
-               this.resourceId = resourceId;
-           }
+        public void setResourceId(int resourceId) {
+            this.resourceId = resourceId;
+        }
 
-           private int resourceId;
+        private int resourceId;
 
-           public MyTextImageDrawFormat(int imageWidth, int imageHeight, int direction, int drawPadding) {
-               super(imageWidth, imageHeight, direction, drawPadding);
-           }
+        public MyTextImageDrawFormat(int imageWidth, int imageHeight, int direction, int drawPadding) {
+            super(imageWidth, imageHeight, direction, drawPadding);
+        }
 
-           @Override
-           protected Context getContext() {
-               return context;
-           }
+        @Override
+        protected Context getContext() {
+            return context;
+        }
 
-           @Override
-           protected int getResourceID(T object, String value, int position) {
-               return getResourceId();
-           }
-       }
+        @Override
+        protected int getResourceID(T object, String value, int position) {
+            return getResourceId();
+        }
+    }
 
 }
