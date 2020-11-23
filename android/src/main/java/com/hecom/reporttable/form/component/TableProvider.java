@@ -89,6 +89,7 @@ public class TableProvider<T> implements TableClickObserver {
 
     private int firstRowMaxMerge = -1;
     private int firstColMaxMerge = -1;
+    private boolean singleClickItem = false;
     public TableProvider(Context context) {
         this.context = context;
         clickPoint = new PointF(-1, -1);
@@ -409,7 +410,7 @@ public class TableProvider<T> implements TableClickObserver {
                         if (correctCellRect.top < showRect.bottom) {
                             if (correctCellRect.right > showRect.left && correctCellRect.bottom > showRect.top) {
                                 Object data = column.getDatas().get(j);
-                                if (DrawUtils.isClick(correctCellRect, clickPoint)) {
+                                if (singleClickItem && DrawUtils.isClick(correctCellRect, clickPoint)) {
                                     operation.setSelectionRect(i, j, correctCellRect);
                                     tipPoint.x = (left + right) / 2;
                                     tipPoint.y = (top + bottom) / 2;
@@ -418,6 +419,7 @@ public class TableProvider<T> implements TableClickObserver {
                                     clickColumn(column, j, value, data);
                                     isClickPoint = true;
                                     clickPoint.set(-Integer.MAX_VALUE, -Integer.MAX_VALUE);
+                                    singleClickItem = false;
                                 }
                                 operation.checkSelectedPoint(i, j, correctCellRect);
                                 cellInfo.set(column,data,value,i,j);
@@ -636,6 +638,7 @@ public class TableProvider<T> implements TableClickObserver {
     public void onClick(float x, float y) {
         clickPoint.x = x;
         clickPoint.y = y;
+        singleClickItem = true;
     }
 
     public OnColumnClickListener getOnColumnClickListener() {
