@@ -87,7 +87,6 @@ public class TableProvider<T> implements TableClickObserver {
 
     private JsonTableBean[][] tabArr;
 
-    private int firstRowMaxMerge = -1;
     private int firstColMaxMerge = -1;
     private boolean singleClickItem = false;
     public TableProvider(Context context) {
@@ -116,7 +115,6 @@ public class TableProvider<T> implements TableClickObserver {
         canvas.clipRect(this.showRect);
         drawColumnTitle(canvas, config);
         drawCount(canvas);
-        firstRowMaxMerge = getFirstRowMaxMerge();
         firstColMaxMerge = getFirstColumnMaxMerge();
         drawContent(canvas);
         operation.draw(canvas,showRect,config);
@@ -504,7 +502,11 @@ public class TableProvider<T> implements TableClickObserver {
 
         if(cellInfo.row == 0 ){
             if(frozenPoint > 0){
-                if(cellInfo.col == frozenPoint - 1 || (firstColMaxMerge == frozenPoint - 1 && cellInfo.col <= firstColMaxMerge)){
+                int col = cellInfo.col;
+                if(col == 0 && firstColMaxMerge > 0){
+                    col = firstColMaxMerge;
+                }
+                if(col == frozenPoint - 1 ){
                     if(isDrawLock){
                         myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
                     }else{
@@ -535,27 +537,12 @@ public class TableProvider<T> implements TableClickObserver {
         }
     }
 
-    private int getFirstRowMaxMerge(){
-        int maxRow = -1;
-        List<CellRange> list =  tableData.getUserCellRange();
-        for (int i = 0; i < list.size(); i++) {
-            CellRange cellRange = list.get(i);
-            if(cellRange.getFirstRow() == 0 && cellRange.getLastRow() > 0){
-                if(maxRow < cellRange.getLastRow()){
-                    maxRow = cellRange.getLastRow();
-                }
-            }
-        }
-        return maxRow;
-    }
-
-
     private int getFirstColumnMaxMerge(){
         int maxColumn = -1;
         List<CellRange> list =  tableData.getUserCellRange();
         for (int i = 0; i < list.size(); i++) {
             CellRange cellRange = list.get(i);
-            if(cellRange.getFirstCol() == 0 && cellRange.getLastCol() > 0){
+            if(cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0){
                 if(maxColumn < cellRange.getLastCol()){
                     maxColumn = cellRange.getLastCol();
                 }

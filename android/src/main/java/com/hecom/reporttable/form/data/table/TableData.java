@@ -423,7 +423,7 @@ public class TableData<T> {
                             if(!isResponseOnClick) return;
                             if(position == 0) {
                                 int firstColumnMaxMerge = getFirstColumnMaxMerge();
-                                if(firstColumnMaxMerge > -1){
+                                if(firstColumnMaxMerge > 0){
                                     if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
                                         //前面列全部锁定
                                         for (int i = 0; i <= firstColumnMaxMerge; i++) {
@@ -539,12 +539,12 @@ public class TableData<T> {
     }
 
 
-    private int getFirstColumnMaxMerge(){
+    public int getFirstColumnMaxMerge(){
         int maxColumn = -1;
         List<CellRange> list =  getUserCellRange();
         for (int i = 0; i < list.size(); i++) {
             CellRange cellRange = list.get(i);
-            if(cellRange.getFirstCol() == 0 && cellRange.getLastCol() > 0){
+            if(cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0){
                 if(maxColumn < cellRange.getLastCol()){
                     maxColumn = cellRange.getLastCol();
                 }

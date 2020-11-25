@@ -162,24 +162,34 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             tableData.setOnResponseItemClickListener(new TableData.OnResponseItemClickListener() {
                         @Override
                         public boolean responseOnClick(Column column, String value, Object o, int col, int row) {
-                            boolean responseOnClick = false;
                             if(row == 0){
-                                if(frozenPoint > 0 && col == frozenPoint  - 1){
-                                    responseOnClick = true;
-                                    clickLockBt = true;
-                                }else {
-                                    if(frozenCount > 0 && col < frozenCount){
-                                        responseOnClick = true;
+                                int firstColumnMaxMerge = tableData.getFirstColumnMaxMerge();
+                                if(frozenPoint > 0 ){
+                                    if(col == 0 && firstColumnMaxMerge > 0){
+                                        col = firstColumnMaxMerge;
+                                    }
+                                    if(col == frozenPoint  - 1){
                                         clickLockBt = true;
+                                    }else if(col < frozenPoint  - 1){
+                                        clickLockBt = false;
+                                    }else{
+                                        clickLockBt = false;
+                                    }
+                                }else {
+                                    if(frozenCount > 0){
+                                        if(col < frozenCount){
+                                            clickLockBt = true;
+                                        }else{
+                                            clickLockBt = false;
+                                        }
                                     }else{
                                         clickLockBt = false;
                                     }
                                 }
                             }else{
-                                responseOnClick = true;
                                 clickLockBt = false;
                             }
-                            return responseOnClick;
+                            return clickLockBt;
                         }
                     });
 
