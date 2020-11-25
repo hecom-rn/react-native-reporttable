@@ -18,7 +18,7 @@
 @property (nonatomic, strong) ReportTableModel *reportTableModel;
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 @property (nonatomic, assign) NSInteger propertyCount;
-@property (nonatomic, weak)   RCTBridge *bridge;
+@property (nonatomic, weak) RCTBridge *bridge;
 @property (nonatomic, strong) ReportTableHeaderView *headerView;
 
 @end
@@ -139,7 +139,7 @@
 
 - (CGFloat)getTextWidth:(NSString *)text withTextSize:(CGFloat)fontSize {
     CGFloat textW = [text boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, 50) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:fontSize]} context:nil].size.width;
-    return textW + 3;
+    return textW + 8;
 }
 
 - (void)setData:(NSArray *)data {
@@ -283,7 +283,7 @@
            CGFloat textW = [self getTextWidth: model.title withTextSize: model.fontSize];
            if (textW > minWidth - exceptText) {
                if (textW < maxWidth - exceptText) {
-                   rowWith = textW + exceptText + 5;
+                   rowWith = textW + exceptText;
                } else {
                    rowWith = maxWidth;
                    NSInteger height = (ceilf(textW / (maxWidth - exceptText)) - 1) * (model.fontSize + 2) + minHeight;

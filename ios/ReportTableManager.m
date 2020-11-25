@@ -7,7 +7,6 @@
 
 #import "ReportTableManager.h"
 #import <Foundation/Foundation.h>
-#import "ReportTableView.h"
 #import "ReportTableViewModel.h"
 #import <React/RCTComponent.h>
 

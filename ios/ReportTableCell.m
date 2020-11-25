@@ -6,7 +6,6 @@
 //
 
 #import "ReportTableCell.h"
-#import "ReportTableView.h"
 #import <Masonry/Masonry.h>
 #import "ReportTableModel.h"
 #import <React/RCTConvert.h>

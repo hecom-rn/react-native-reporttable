@@ -73,12 +73,12 @@
             ssv.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
             ssv.frame = self.bounds;
             ssv.bounces = false;
+            __weak typeof(self)weak_self = self;
             ssv.onScrollEnd = ^(BOOL isOnEnd) {
-                if (self.reportTableModel.onScrollEnd != nil) {
-                    self.reportTableModel.onScrollEnd(@{@"isEnd": @YES});
+                if (weak_self.reportTableModel.onScrollEnd != nil) {
+                    weak_self.reportTableModel.onScrollEnd(@{@"isEnd": @YES});
                 }
             };
-            __weak typeof(self)weak_self = self;
             ssv.overlayView.touchPoint = ^(CGPoint point) {
                 BOOL isOnHeader = (point.y - ssv.overlayView.contentOffset.y) < (weak_self.headerScrollView.frame.size.height -  weak_self.headerScrollView.contentOffset.y) && ssv.contentOffset.y <= 0;
                 if (isOnHeader == YES && weak_self.isOnHeader == false) {
