@@ -218,7 +218,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
      *
      * @param tableData
      */
-    public void setTableData(TableData<T> tableData) {
+    public synchronized void setTableData(TableData<T> tableData) {
         if (tableData != null) {
             this.tableData = tableData;
             notifyDataChanged();
