@@ -9,7 +9,8 @@ buildscript {
         supportLibVersion = "28.0.0"
     }
     repositories {
-        google()
+         maven {url 'https://dl.google.com/dl/android/maven2/'}
+         maven {url 'https://www.jitpack.io'}
         jcenter()
     }
     dependencies {
