@@ -1,18 +1,12 @@
 declare module "@hecom/react-native-report-table" {
     import * as React from 'react';
-    import PropTypes from 'prop-types';
 
     export interface ReportTableProps {
-        size: PropTypes.objectOf({
-            width: PropTypes.number.isRequired,
-            height: PropTypes.number.isRequired,
-        });
-
-        data: PropTypes.arrayOf(
-            PropTypes.arrayOf(
-                PropTypes.objectOf(DataSource)
-            ).isRequired;
-        );
+        size: {
+            width: number;
+            height: number;
+        }
+        data: DataSource[][];
 
         minWidth?: number;
         minHeight?: number;
@@ -37,6 +31,7 @@ declare module "@hecom/react-native-report-table" {
     }
 
     export interface DataSource {
+        [key: string]: any;
         title: string;
         keyIndex: number;
         backgroundColor?: string;
