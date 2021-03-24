@@ -1,6 +1,5 @@
 package com.hecom.reporttable.form.core;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -9,7 +8,6 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
-
 
 import com.hecom.reporttable.form.component.IComponent;
 import com.hecom.reporttable.form.component.ITableTitle;
@@ -27,10 +25,13 @@ import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
+import com.hecom.reporttable.table.bean.JsonTableBean;
 
 import java.util.List;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import com.hecom.reporttable.table.bean.JsonTableBean;
 
 /**
  * Created by huang on 2017/10/30.
@@ -58,13 +59,16 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private AtomicBoolean isNotifying = new AtomicBoolean(false); //是否正在更新数据
     private boolean isYSequenceRight;
 
+    private ThreadPoolExecutor mExecutor = new ThreadPoolExecutor(0, 1, 3, TimeUnit.MINUTES,
+            new LinkedBlockingDeque<Runnable>());
+
 
     public void setTabArr(JsonTableBean[][] tabArr) {
         provider.setTabArr(tabArr);
     }
 
 
-   public TableMeasurer<T> getMeasurer() {
+    public TableMeasurer<T> getMeasurer() {
         return measurer;
     }
 
@@ -160,9 +164,9 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
                         provider.onDraw(canvas, scaleRect, showRect, tableData, config);
                         canvas.restore();
                     } else {
-                       try {
-                              provider.onDraw(canvas, scaleRect, showRect, tableData, config);
-                           } catch (Exception e) {
+                        try {
+                            provider.onDraw(canvas, scaleRect, showRect, tableData, config);
+                        } catch (Exception e) {
 
                         }
                     }
@@ -179,10 +183,11 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private void drawGridBackground(Canvas canvas, Rect showRect, Rect scaleRect) {
         config.getContentGridStyle().fillPaint(paint);
         if (config.getTableGridFormat() != null) {
-            config.getTableGridFormat().drawTableBorderGrid(canvas, Math.max(showRect.left, scaleRect.left),
-                    Math.max(showRect.top, scaleRect.top),
-                    Math.min(showRect.right, scaleRect.right),
-                    Math.min(scaleRect.bottom, showRect.bottom), paint);
+            config.getTableGridFormat()
+                    .drawTableBorderGrid(canvas, Math.max(showRect.left, scaleRect.left),
+                            Math.max(showRect.top, scaleRect.top),
+                            Math.min(showRect.right, scaleRect.right),
+                            Math.min(scaleRect.bottom, showRect.bottom), paint);
         }
     }
 
@@ -239,7 +244,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
             config.setPaint(paint);
             //开启线程
             isNotifying.set(true);
-            new Thread(new Runnable() {
+            mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
                     //long start = System.currentTimeMillis();
@@ -254,8 +259,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
                     //Log.e("smartTable","notifyDataChanged timeMillis="+(end-start));
                 }
 
-            }).start();
-
+            });
         }
     }
 
@@ -269,7 +273,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     public void addData(final List<T> t, final boolean isFoot) {
         if (t != null && t.size() > 0) {
             isNotifying.set(true);
-            new Thread(new Runnable() {
+            mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
                     parser.addData(tableData, t, isFoot);
@@ -279,7 +283,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
                     isNotifying.set(false);
 
                 }
-            }).start();
+            });
         }
     }
 
@@ -602,11 +606,15 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         if (tableData != null && getContext() != null) {
-          //  if (((Activity) getContext()).isFinishing()) {
-          //      release();
-          //  }
-
-           release();
+            //  if (((Activity) getContext()).isFinishing()) {
+            //      release();
+            //  }
+            mExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    release();
+                }
+            });
         }
     }
 

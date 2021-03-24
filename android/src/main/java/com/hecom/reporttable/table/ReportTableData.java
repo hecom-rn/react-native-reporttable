@@ -25,7 +25,7 @@ public class ReportTableData {
     private int strUnit = 10;
     public Map<Integer,Integer> columnMapWidth = new HashMap<>();
     public ArrayList<CellRange> getMergeList() {
-        return mergeList;
+        return new ArrayList<>(mergeList);
     }
 
     public JsonTableBean[][] getTabArr() {
@@ -36,6 +36,7 @@ public class ReportTableData {
         if(json == null){
             return null;
         }
+
         mergeList.clear();
         mergeKeyMap.clear();
         try {
