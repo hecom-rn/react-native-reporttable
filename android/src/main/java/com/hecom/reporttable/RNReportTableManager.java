@@ -13,9 +13,11 @@ import com.hecom.reporttable.table.bean.TableConfigBean;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
+
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
+
 import javax.annotation.Nullable;
 
 public class RNReportTableManager extends SimpleViewManager<View> {
@@ -117,8 +119,8 @@ public class RNReportTableManager extends SimpleViewManager<View> {
 
             configBean.setTextPaddingHorizontal(textPaddingHorizontal);
             configBean.setLineColor(lineColor);
-            reportTableConfig.getTable().getProvider().setFrozenCount(frozenCount);
-            reportTableConfig.getTable().getProvider().setFrozenPoint(frozenPoint);
+            ((SmartTable) view).getProvider().setFrozenCount(frozenCount);
+            ((SmartTable) view).getProvider().setFrozenPoint(frozenPoint);
             reportTableConfig.setReportTableData(view, jsonData, configBean);
             reportTableConfig.setFrozenCount(frozenCount);
             reportTableConfig.setFrozenPoint(frozenPoint);
