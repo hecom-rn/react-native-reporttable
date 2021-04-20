@@ -116,7 +116,8 @@ public class TableProvider<T> implements TableClickObserver {
         drawColumnTitle(canvas, config);
         drawCount(canvas);
         firstColMaxMerge = getFirstColumnMaxMerge();
-        drawContent(canvas);
+        drawContent(canvas, false);
+        drawContent(canvas, true);
         operation.draw(canvas,showRect,config);
         if(drawOver !=null)
             drawOver.draw(canvas,scaleRect,showRect,config);
@@ -331,7 +332,7 @@ public class TableProvider<T> implements TableClickObserver {
      * 绘制内容
      * @param canvas 画布
      */
-    private void drawContent(Canvas canvas) {
+    private void drawContent(Canvas canvas, boolean onlyDrawFrozenRows) {
         float top;
         float left = scaleRect.left;
         List<Column> columns = tableData.getChildColumns();
@@ -427,6 +428,9 @@ public class TableProvider<T> implements TableClickObserver {
                                 } else if(isFirstDraw || j < config.getFixedLines()) {
                                     drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
                                 } else if(!isFirstDraw && j >= config.getFixedLines()) {
+                                    if (onlyDrawFrozenRows && j > config.getFixedLines()) {
+                                        break;
+                                    }
                                     if(correctCellRect.top >= fixedBottoms.get(config.getFixedLines() - 1)) {
                                         //绘制完整单元格
                                         drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
