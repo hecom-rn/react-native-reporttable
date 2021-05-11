@@ -1,9 +1,8 @@
 import React from 'react';
-import { Animated, Dimensions, PanResponder, ScrollView, View } from 'react-native';
+import { PanResponder, ScrollView } from 'react-native';
 import ReportTableView from './ReportTableView';
 
 export default class ReportTableWrapper extends React.Component {
-
     constructor(props) {
         super(props);
         this.state = {
@@ -14,36 +13,40 @@ export default class ReportTableWrapper extends React.Component {
 
         this.panResponder = PanResponder.create({
             onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: ()=> true,
-            onPanResponderGrant: ()=>{},
-            onPanResponderMove: (evt,gs)=>{
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => {
+            },
+            onPanResponderMove: (evt, gs) => {
                 if (this.state.headerHeight == 0) return;
-                if(gs.dy < 0 && this.showHeader){
+                if (gs.dy < 0 && this.showHeader) {
                     this.scrollView &&
-                    this.scrollView.scrollTo({ x: 0, y: -gs.dy , animated: true }, 1);
+                    this.scrollView.scrollTo({x: 0, y: -gs.dy, animated: true}, 1);
                 }
             },
-            onPanResponderRelease: (evt,gs)=>{}
+            onPanResponderRelease: (evt, gs) => {
+            }
         })
     }
 
     render() {
-        let { headerHeight } = this.state;
+        let {headerHeight} = this.state;
         const {headerView, size} = this.props;
         const data = this._toAndroidData();
         return (
             <ScrollView
                 ref={(ref) => (this.scrollView = ref)}
-                style = {{flex: 1}}
+                style={{flex: 1}}
                 scrollEventThrottle={1}
                 stickyHeaderIndices={[1]}
-                onScroll = {(event)=>{{
-                    if(event.nativeEvent.contentOffset.y >= headerHeight){
-                        this.showHeader = false;
-                    }else{
-                        this.showHeader = true;
+                onScroll={(event) => {
+                    {
+                        if (event.nativeEvent.contentOffset.y >= headerHeight) {
+                            this.showHeader = false;
+                        } else {
+                            this.showHeader = true;
+                        }
                     }
-                }}}
+                }}
             >
                 {headerView &&
                 <ScrollView
@@ -52,7 +55,7 @@ export default class ReportTableWrapper extends React.Component {
                     onLayout={(event) => {
                         const {
                             nativeEvent: {
-                                layout: { height },
+                                layout: {height},
                             },
                         } = event;
                         this.setState({headerHeight: height})
@@ -81,12 +84,17 @@ export default class ReportTableWrapper extends React.Component {
 
     _toAndroidData = () => {
         let {headerHeight} = this.state;
-        const {data, minWidth, minHeight, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size} = this.props;
+        const {
+            data, minWidth, minHeight, textPaddingHorizontal,
+            lineColor, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size
+        } = this.props;
         const dataSource = {
             data: data,
             minWidth: minWidth,
             minHeight: minHeight,
             maxWidth: maxWidth,
+            textPaddingHorizontal: textPaddingHorizontal,
+            lineColor: lineColor,
             frozenRows: frozenRows,
             frozenColumns: frozenColumns,
             frozenPoint: frozenPoint,
