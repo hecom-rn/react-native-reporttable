@@ -428,7 +428,7 @@ public class TableProvider<T> implements TableClickObserver {
                                 } else if(isFirstDraw || j < config.getFixedLines()) {
                                     drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
                                 } else if(!isFirstDraw && j >= config.getFixedLines()) {
-                                    if (onlyDrawFrozenRows && j > config.getFixedLines()) {
+                                    if (onlyDrawFrozenRows && j >= config.getFixedLines()) {
                                         break;
                                     }
                                     if(correctCellRect.top >= fixedBottoms.get(config.getFixedLines() - 1)) {
