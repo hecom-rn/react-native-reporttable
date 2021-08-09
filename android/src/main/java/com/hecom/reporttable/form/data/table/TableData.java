@@ -41,6 +41,15 @@ public class TableData<T> {
     private OnItemClickListener onItemClickListener;
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
+
+    public int getCurFixedColumnIndex() {
+        return curFixedColumnIndex;
+    }
+
+    public void setCurFixedColumnIndex(int curFixedColumnIndex) {
+        this.curFixedColumnIndex = curFixedColumnIndex;
+    }
+
     private int curFixedColumnIndex = -1;  //当前锁定的列号
     private OnResponseItemClickListener onResponseItemClickListener;
 

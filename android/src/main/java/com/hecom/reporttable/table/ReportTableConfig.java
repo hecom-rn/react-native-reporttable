@@ -28,6 +28,7 @@ import com.hecom.reporttable.form.data.table.TableData;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import android.os.Handler;
 
 public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
@@ -53,6 +54,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
 
     private int frozenCount = 0;
     private int frozenPoint = 0;
+
     public void setFrozenCount(int frozenCount) {
         this.frozenCount = frozenCount;
     }
@@ -76,6 +78,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             return;
         }
         final SmartTable<String> table = ((SmartTable<String>) view);
+        final ArrayTableData<String> rawTableData = (ArrayTableData<String>) table.getTableData();
         this.configBean = configBean;
         int minWidth = configBean.getMinWidth();
         int minHeight = configBean.getMinHeight();
@@ -86,20 +89,21 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             }
             String[][] dataArr = reportTableData.mergeTable(json);
             final JsonTableBean[][] tabArr = reportTableData.getTabArr();
-             table.setTabArr(tabArr);
-             TextDrawFormat mTextDrawFormat =  new TextDrawFormat<JsonTableBean>(){
-                                @Override
-                                public void setTextPaint(TableConfig config, CellInfo<JsonTableBean> cellInfo, Paint paint) {
-                                    super.setTextPaint(config, cellInfo, paint);
-                                    JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
-                                    if(tableBean.isLeft()){
-                                        paint.setTextAlign(Paint.Align.LEFT);
-                                    }else{
-                                        paint.setTextAlign(Paint.Align.RIGHT);
-                                    }
-                                }
-                            };
+            table.setTabArr(tabArr);
+            TextDrawFormat mTextDrawFormat = new TextDrawFormat<JsonTableBean>() {
+                @Override
+                public void setTextPaint(TableConfig config, CellInfo<JsonTableBean> cellInfo, Paint paint) {
+                    super.setTextPaint(config, cellInfo, paint);
+                    JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
+                    if (tableBean.isLeft()) {
+                        paint.setTextAlign(Paint.Align.LEFT);
+                    } else {
+                        paint.setTextAlign(Paint.Align.RIGHT);
+                    }
+                }
+            };
             final ArrayTableData<String> tableData = ArrayTableData.create("", null, dataArr, mTextDrawFormat);
+
             tableData.setMinWidth(DensityUtils.dp2px(this.context, minWidth));
             tableData.setMinHeight(DensityUtils.dp2px(this.context, minHeight));
             tableData.setUserCellRange(reportTableData.getMergeList());
@@ -130,14 +134,14 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
 
                 @Override
                 public void onClick(Column<String> column, String value, String s, int col, int row) {
-                    if(clickLockBt){
-                         new Handler().postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                      table.setTableData(tableData);
-                                }
-                         }, 10);
-                         return;
+                    if (clickLockBt) {
+                        new Handler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                table.setTableData(tableData);
+                            }
+                        }, 10);
+                        return;
                     }
                     try {
                         JsonTableBean tableBean = tabArr[row][col];
@@ -160,46 +164,59 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             });
 
             tableData.setOnResponseItemClickListener(new TableData.OnResponseItemClickListener() {
-                        @Override
-                        public boolean responseOnClick(Column column, String value, Object o, int col, int row) {
-                            if(row == 0){
-                                int firstColumnMaxMerge = tableData.getFirstColumnMaxMerge();
-                                if(frozenPoint > 0 ){
-                                    if(col == 0 && firstColumnMaxMerge > 0){
-                                        col = firstColumnMaxMerge;
-                                    }
-                                    if(col == frozenPoint  - 1){
-                                        clickLockBt = true;
-                                    }else if(col < frozenPoint  - 1){
-                                        clickLockBt = false;
-                                    }else{
-                                        clickLockBt = false;
-                                    }
-                                }else {
-                                    if(frozenCount > 0){
-                                        if(col < frozenCount){
-                                            clickLockBt = true;
-                                        }else{
-                                            clickLockBt = false;
-                                        }
-                                    }else{
-                                        clickLockBt = false;
-                                    }
-                                }
-                            }else{
+                @Override
+                public boolean responseOnClick(Column column, String value, Object o, int col, int row) {
+                    if (row == 0) {
+                        int firstColumnMaxMerge = tableData.getFirstColumnMaxMerge();
+                        if (frozenPoint > 0) {
+                            if (col == 0 && firstColumnMaxMerge > 0) {
+                                col = firstColumnMaxMerge;
+                            }
+                            if (col == frozenPoint - 1) {
+                                clickLockBt = true;
+                            } else if (col < frozenPoint - 1) {
+                                clickLockBt = false;
+                            } else {
                                 clickLockBt = false;
                             }
-                            return clickLockBt;
+                        } else {
+                            if (frozenCount > 0) {
+                                if (col < frozenCount) {
+                                    clickLockBt = true;
+                                } else {
+                                    clickLockBt = false;
+                                }
+                            } else {
+                                clickLockBt = false;
+                            }
                         }
-                    });
+                    } else {
+                        clickLockBt = false;
+                    }
+                    return clickLockBt;
+                }
+            });
 
             for (int i = 0; i < configBean.getFrozenColumns(); i++) {
                 tableData.getArrayColumns().get(i).setFixed(true);
             }
 
-             for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
-                 tableData.getArrayColumns().get(i).setColumn(i, tableData.getArrayColumns().size());
-             }
+            if (rawTableData != null) {
+                tableData.setCurFixedColumnIndex(rawTableData.getCurFixedColumnIndex());
+                for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
+                    if (rawTableData.getArrayColumns() != null &&
+                            rawTableData.getArrayColumns().size() > i) {
+                        Column column = rawTableData.getArrayColumns().get(i);
+                        if (column.isFixed() && tableData.getArrayColumns().size() > i) {
+                            tableData.getArrayColumns().get(i).setFixed(true);
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
+                tableData.getArrayColumns().get(i).setColumn(i, tableData.getArrayColumns().size());
+            }
 
             LineStyle lineStyle = new LineStyle();
             lineStyle.setColor(Color.parseColor(configBean.getLineColor()));
@@ -213,6 +230,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             table.getConfig().setMinCellWidth(DensityUtils.dp2px(this.context, configBean.getMinWidth()));
             table.getConfig().setMaxCellWidth(DensityUtils.dp2px(this.context, configBean.getMaxWidth()));
             table.setTableData(tableData);
+//            table.notifyDataChanged();
         } catch (Exception e) {
             e.printStackTrace();
         }
