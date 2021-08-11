@@ -7,16 +7,14 @@ import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
 import com.hecom.reporttable.form.core.SmartTable;
+import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.ReportTableConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONArray;
 
 import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
 
 import javax.annotation.Nullable;
 
@@ -117,7 +115,7 @@ public class RNReportTableManager extends SimpleViewManager<View> {
              }
 
 
-            configBean.setTextPaddingHorizontal(textPaddingHorizontal);
+            configBean.setTextPaddingHorizontal(DensityUtils.dp2px(mReactContext, textPaddingHorizontal));
             configBean.setLineColor(lineColor);
             ((SmartTable) view).getProvider().setFrozenCount(frozenCount);
             ((SmartTable) view).getProvider().setFrozenPoint(frozenPoint);
