@@ -11,6 +11,8 @@ export default class ReportTableWrapper extends React.Component {
 
         this.showHeader = true;
 
+        this.scrollY = 0;
+
         this.panResponder = PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: () => true,
@@ -20,7 +22,7 @@ export default class ReportTableWrapper extends React.Component {
                 if (this.state.headerHeight == 0) return;
                 if (gs.dy < 0 && this.showHeader) {
                     this.scrollView &&
-                    this.scrollView.scrollTo({x: 0, y: -gs.dy, animated: true}, 1);
+                    this.scrollView.scrollTo({x: 0, y: -gs.dy+this.scrollY, animated: true}, 1);
                 }
             },
             onPanResponderRelease: (evt, gs) => {
@@ -40,6 +42,7 @@ export default class ReportTableWrapper extends React.Component {
                 stickyHeaderIndices={[1]}
                 onScroll={(event) => {
                     {
+                        this.scrollY = event.nativeEvent.contentOffset.y;
                         if (event.nativeEvent.contentOffset.y >= headerHeight) {
                             this.showHeader = false;
                         } else {
