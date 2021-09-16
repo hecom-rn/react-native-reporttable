@@ -137,9 +137,9 @@
     return result;
 }
 
-- (CGFloat)getTextWidth:(NSString *)text withTextSize:(CGFloat)fontSize {
-    CGFloat textW = [text boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, 50) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:fontSize]} context:nil].size.width;
-    return textW + 8;
+- (CGRect)getTextWidth:(NSString *)text withTextSize:(CGFloat)fontSize withMaxWith: (CGFloat)maxWidth{
+    CGRect rect = [text boundingRectWithSize:CGSizeMake(maxWidth, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:fontSize]} context:nil];
+    return rect;
 }
 
 - (void)setData:(NSArray *)data {
@@ -280,14 +280,28 @@
            }
            CGFloat imageIconWidth = (isLock ? 13 + 10 : iconDic != nil ? model.iconStyle.size.width + 10 : 0);
            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth; //margin
-           CGFloat textW = [self getTextWidth: model.title withTextSize: model.fontSize];
-           if (textW > minWidth - exceptText) {
-               if (textW < maxWidth - exceptText) {
-                   rowWith = textW + exceptText;
+           CGRect textRect = [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: maxWidth - exceptText];
+           if (textRect.size.width > minWidth - exceptText) {
+               if (textRect.size.height < model.fontSize + 3) {
+                   rowWith = textRect.size.width + exceptText;
                } else {
                    rowWith = maxWidth;
-                   NSInteger height = (ceilf(textW / (maxWidth - exceptText)) - 1) * (model.fontSize + 2) + minHeight;
-                   columnHeigt = MAX(columnHeigt, height);
+                   CGFloat textHeight = textRect.size.height + (minHeight - model.fontSize - 3); // marginVer*2
+                   int samekey = 1;
+                   for (int k = i + 1; k < dataSource.count; k++) {
+                       NSInteger nextKeyIndex = [RCTConvert NSInteger:[dataSource[k][j] objectForKey:@"keyIndex"]];
+                       if (nextKeyIndex == model.keyIndex) {
+                           samekey += 1;
+                       } else {
+                           break;
+                       }
+                   }
+                   textHeight /= samekey;
+                   for (int k = i + 1; k < samekey + i; k++) {
+                       [dataSource[k][j] setObject: [NSNumber numberWithFloat: MAX(textHeight, minHeight)] forKey: @"apportionHeight"];
+                   }
+                   NSNumber *apportionHeight = [dir objectForKey:@"apportionHeight"];
+                   columnHeigt = MAX(columnHeigt, apportionHeight == nil ? textHeight : [apportionHeight floatValue]);
                }
             } else {
                rowWith = minWidth;
