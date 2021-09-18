@@ -281,9 +281,9 @@
            CGFloat imageIconWidth = (isLock ? 13 + 10 : iconDic != nil ? model.iconStyle.size.width + 10 : 0);
            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth; //margin
            CGRect textRect = [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: maxWidth - exceptText];
-           if (textRect.size.width > minWidth - exceptText) {
+           if (textRect.size.width + 5 + exceptText > minWidth) {
                if (textRect.size.height < model.fontSize + 3) {
-                   rowWith = textRect.size.width + exceptText;
+                   rowWith = textRect.size.width + exceptText + 5;
                } else {
                    rowWith = maxWidth;
                    CGFloat textHeight = textRect.size.height + (minHeight - model.fontSize - 3); // marginVer*2
