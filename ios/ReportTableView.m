@@ -26,10 +26,7 @@
 
 
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
-    if (!_headerScrollView) {
-        self.spreadsheetView.tableHeaderView = headerScrollView;
-        
-    }
+    self.spreadsheetView.tableHeaderView = headerScrollView;
     _headerScrollView = headerScrollView;
     self.headerScrollView.isUserScouce = false;
     self.spreadsheetView.tableView.scrollEnabled = true;
