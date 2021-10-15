@@ -134,7 +134,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                 realWidth = realWidth - marginRight;
             }
 
-           // realWidth = realWidth - paddingLeftSize - paddingRightSize;
+            realWidth = realWidth - paddingLeftSize - paddingRightSize;
             String newStr = "";
             float totalLen = 0;
             for (int i = 0; i < value.length(); i++) {
