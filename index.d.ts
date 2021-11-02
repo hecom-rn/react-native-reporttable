@@ -20,6 +20,8 @@ declare module "@hecom/react-native-report-table" {
 
         frozenPoint?: number; // 首行 指定列支持冻结  第一优先
         frozenCount?: number; // 首行前几列 可支持点击冻结  第二优先
+        
+        headerView?: () => React.ReactElement;
     }
 
     export interface ItemCilck {
