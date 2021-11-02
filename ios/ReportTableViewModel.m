@@ -159,9 +159,14 @@
 }
 
 - (void)setMinWidth:(float)minWidth {
-    self.reportTableModel.minWidth = minWidth;
-    self.propertyCount += 1;
-    [self reloadCheck];
+    if (self.reportTableModel.minWidth != 0 && self.reportTableModel.minWidth != minWidth) {
+        self.reportTableModel.minWidth = minWidth; // update
+        [self integratedDataSource];
+    } else {
+        self.reportTableModel.minWidth = minWidth;
+        self.propertyCount += 1;
+        [self reloadCheck];
+    }
 }
 
 - (void)setMaxWidth:(float)maxWidth {

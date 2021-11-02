@@ -29,7 +29,7 @@
 
 - (float)minWidth {
     if (!_minWidth) {
-        return 60;
+        return 0;
     }
     return _minWidth;
 }
