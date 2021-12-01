@@ -27,13 +27,18 @@ export default class ReportTableWrapper extends React.Component {
             },
             onPanResponderRelease: (evt, gs) => {
             }
-        })
+        });
+        this.data = this._toAndroidData(this.state.headerHeight);
+    }
+
+    UNSAFE_componentWillReceiveProps(nextProps) {
+        this.data = this._toAndroidData(this.state.headerHeight);
     }
 
     render() {
         let {headerHeight} = this.state;
         const {headerView, size} = this.props;
-        const data = this._toAndroidData();
+        // const data = this._toAndroidData();
         return (
             <ScrollView
                 ref={(ref) => (this.scrollView = ref)}
@@ -61,6 +66,7 @@ export default class ReportTableWrapper extends React.Component {
                                 layout: {height},
                             },
                         } = event;
+                        this.data = this._toAndroidData(height);
                         this.setState({headerHeight: height})
                     }}
                 >
@@ -76,7 +82,7 @@ export default class ReportTableWrapper extends React.Component {
                             this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex});
                         }
                     }}
-                    data={data}
+                    data={this.data}
                     style={{width: size.width, height: size.height}}
                     {...this.panResponder.panHandlers}
                 />
@@ -85,8 +91,8 @@ export default class ReportTableWrapper extends React.Component {
     }
 
 
-    _toAndroidData = () => {
-        let {headerHeight} = this.state;
+    _toAndroidData = (headerHeight) => {
+        // let {headerHeight} = this.state;
         const {
             data, minWidth, minHeight, textPaddingHorizontal,
             lineColor, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size
