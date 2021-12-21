@@ -242,8 +242,8 @@
         self.reportTableView.frame = tableRect;
     }
 
-    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, 0);
-    self.headerScrollView.frame = CGRectMake(0, 0, self.headerScrollView.frame.size.width, headerViewSize.height);
+    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width + 1, 0);
+    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
     self.reportTableView.headerScrollView = self.headerScrollView;
     
     [self reloadCheck];
