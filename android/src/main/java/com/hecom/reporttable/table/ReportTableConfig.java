@@ -5,31 +5,29 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.Handler;
 import android.view.View;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
+import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
 import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.data.table.ArrayTableData;
+import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.TableConfigBean;
-import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
-import com.hecom.reporttable.form.data.table.TableData;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import android.os.Handler;
 
 public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
     private SmartTable<String> table;

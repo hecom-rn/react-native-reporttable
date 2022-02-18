@@ -75,7 +75,9 @@ export default class ReportTableWrapper extends React.Component {
                 }
 
                 <ReportTableView
+                    ref={ref => this.table = ref}
                     onScrollEnd={this.props.onScrollEnd}
+                    onScroll={this.props.onScroll}
                     onClickEvent={({nativeEvent: data}) => {
                         if (data) {
                             const {keyIndex, rowIndex, columnIndex, textColor} = data;
@@ -90,6 +92,10 @@ export default class ReportTableWrapper extends React.Component {
         )
     }
 
+    scrollTo = () => {
+        this.table.scrollTo();
+    }
+
 
     _toAndroidData = (headerHeight) => {
         // let {headerHeight} = this.state;
@@ -97,7 +103,7 @@ export default class ReportTableWrapper extends React.Component {
             data, minWidth, minHeight, textPaddingHorizontal,
             lineColor, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size
         } = this.props;
-        const dataSource = {
+        return {
             data: data,
             minWidth: minWidth,
             minHeight: minHeight,
@@ -111,9 +117,6 @@ export default class ReportTableWrapper extends React.Component {
             limitTableHeight: size.height,
             headerHeight: headerHeight
         };
-        const dataStr = JSON.stringify(dataSource);
-        return dataStr;
     }
-
 }
 

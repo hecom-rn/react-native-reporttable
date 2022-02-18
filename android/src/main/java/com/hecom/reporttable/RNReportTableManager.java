@@ -1,12 +1,17 @@
 package com.hecom.reporttable;
 
-import android.view.View;
-
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
+import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.core.SmartTable;
+import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.ReportTableConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
@@ -16,15 +21,14 @@ import org.json.JSONObject;
 
 import java.util.Map;
 
-import javax.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
-public class RNReportTableManager extends SimpleViewManager<View> {
+
+public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> {
+    private static final int COMMAND_SCROLL = 1;
     private ThemedReactContext mReactContext;
-    public static ReportTableConfig reportTableConfig = new ReportTableConfig();
-
-    private int minWidth = 30;
-    private int maxWidth = 50;
-    private int minHeight = 30;
+    public ReportTableConfig reportTableConfig = new ReportTableConfig();
 
     @Override
     public String getName() {
@@ -32,14 +36,29 @@ public class RNReportTableManager extends SimpleViewManager<View> {
     }
 
     @Override
-    protected View createViewInstance(ThemedReactContext reactContext) {
+    protected SmartTable<String> createViewInstance(final ThemedReactContext reactContext) {
         mReactContext = reactContext;
-        SmartTable<String> table = reportTableConfig.createReportTable(reactContext);
+        final SmartTable<String> table = reportTableConfig.createReportTable(reactContext);
+
+        final OnTableChangeListener listener = table.getMatrixHelper().getOnTableChangeListener();
+
+        table.getMatrixHelper().setOnTableChangeListener(new OnTableChangeListener() {
+            @Override
+            public void onTableChanged(float scale, float translateX, float translateY) {
+                listener.onTableChanged(scale, translateX, translateY);
+                WritableMap map = Arguments.createMap();
+                map.putDouble("translateX", translateX);
+                map.putDouble("translateY", translateY);
+                map.putDouble("scale", scale);
+                ((ReactContext) reactContext).getJSModule(RCTEventEmitter.class)
+                        .receiveEvent(table.getId(), "onScroll", map);
+            }
+        });
         return table;
     }
 
     @ReactProp(name = "data")
-    public void setData(View view, String dataSource) {
+    public void setData(SmartTable<String> view, ReadableMap dataSource) {
         if (reportTableConfig == null) {
             return;
         }
@@ -57,42 +76,41 @@ public class RNReportTableManager extends SimpleViewManager<View> {
         int headerHeight = 0;
         int limitTableHeight = 0;
         try {
-            JSONObject object = new JSONObject(dataSource);
 
-             if(object.has("frozenCount")){
-                 frozenCount = (int) object.get("frozenCount");
-             }
-
-             if(object.has("frozenPoint")){
-                 frozenPoint = (int) object.get("frozenPoint");
-             }
-
-            if (object.has("data")) {
-               jsonData = object.get("data").toString();
-            }
-            if (object.has("minHeight")) {
-                minHeight = transformDataType(object.get("minHeight"));
-            }
-            if (object.has("minWidth")) {
-                minWidth = transformDataType(object.get("minWidth"));
-            }
-            if (object.has("maxWidth")) {
-                maxWidth = transformDataType(object.get("maxWidth"));
-            }
-            if (object.has("frozenRows")) {
-                frozenRows = (int) object.get("frozenRows");
-            }
-            if (object.has("frozenColumns")) {
-                frozenColumns = (int) object.get("frozenColumns");
+            if (dataSource.hasKey("frozenCount")) {
+                frozenCount = dataSource.getInt("frozenCount");
             }
 
-             if (object.has("headerHeight")) {
-                  headerHeight = transformDataType(object.get("headerHeight"));
-             }
+            if (dataSource.hasKey("frozenPoint")) {
+                frozenPoint = dataSource.getInt("frozenPoint");
+            }
 
-             if (object.has("limitTableHeight")) {
-                 limitTableHeight = transformDataType(object.get("limitTableHeight"));
-             }
+            if (dataSource.hasKey("data")) {
+                jsonData = dataSource.getArray("data").toString();
+            }
+            if (dataSource.hasKey("minHeight")) {
+                minHeight = transformDataType(dataSource.getDouble("minHeight"));
+            }
+            if (dataSource.hasKey("minWidth")) {
+                minWidth = transformDataType(dataSource.getDouble("minWidth"));
+            }
+            if (dataSource.hasKey("maxWidth")) {
+                maxWidth = transformDataType(dataSource.getDouble("maxWidth"));
+            }
+            if (dataSource.hasKey("frozenRows")) {
+                frozenRows = dataSource.getInt("frozenRows");
+            }
+            if (dataSource.hasKey("frozenColumns")) {
+                frozenColumns = dataSource.getInt("frozenColumns");
+            }
+
+            if (dataSource.hasKey("headerHeight")) {
+                headerHeight = transformDataType(dataSource.getDouble("headerHeight"));
+            }
+
+            if (dataSource.hasKey("limitTableHeight")) {
+                limitTableHeight = transformDataType(dataSource.getDouble("limitTableHeight"));
+            }
 
             TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
             headerHeight = dip2px(mReactContext, headerHeight);
@@ -106,13 +124,13 @@ public class RNReportTableManager extends SimpleViewManager<View> {
                 configBean.setFrozenRows(frozenRows);
             }
 
-            if(object.has("textPaddingHorizontal")){
-                textPaddingHorizontal =  (int)object.get("textPaddingHorizontal");
+            if (dataSource.hasKey("textPaddingHorizontal")) {
+                textPaddingHorizontal = dataSource.getInt("textPaddingHorizontal");
             }
 
-             if(object.has("lineColor")){
-                lineColor =  (String)object.get("lineColor");
-             }
+            if (dataSource.hasKey("lineColor")) {
+                lineColor = dataSource.getString("lineColor");
+            }
 
 
             configBean.setTextPaddingHorizontal(DensityUtils.dp2px(mReactContext, textPaddingHorizontal));
@@ -122,8 +140,27 @@ public class RNReportTableManager extends SimpleViewManager<View> {
             reportTableConfig.setReportTableData(view, jsonData, configBean);
             reportTableConfig.setFrozenCount(frozenCount);
             reportTableConfig.setFrozenPoint(frozenPoint);
-        } catch (JSONException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+
+    @Nullable
+    @Override
+    public Map<String, Integer> getCommandsMap() {
+        return MapBuilder.<String, Integer>builder().put("scrollTo", COMMAND_SCROLL).build();
+    }
+
+    @Override
+    public void receiveCommand(@NonNull SmartTable<String> root, int commandId,
+                               @Nullable ReadableArray args) {
+        super.receiveCommand(root, commandId, args);
+        switch (commandId) {
+            case COMMAND_SCROLL:
+                root.getMatrixHelper().flingTop(300);
+                root.getMatrixHelper().flingLeft(300);
+                break;
         }
     }
 
@@ -133,6 +170,7 @@ public class RNReportTableManager extends SimpleViewManager<View> {
         return MapBuilder.<String, Object>builder()
                 .put("onClickEvent", MapBuilder.of("registrationName", "onClickEvent"))
                 .put("onScrollEnd", MapBuilder.of("registrationName", "onScrollEnd"))
+                .put("onScroll", MapBuilder.of("registrationName", "onScroll"))
                 .build();
     }
 
@@ -148,45 +186,9 @@ public class RNReportTableManager extends SimpleViewManager<View> {
         return result;
     }
 
-
-    private void setConfig(String dataSource) {
-        String jsonData = "";
-        int minHeight = 40;
-        int minWidth = 50;
-        int maxWidth = 120;
-
-        try {
-            JSONObject object = new JSONObject(dataSource);
-            if (object.has("data")) {
-                Object dataObj = object.get("data");
-                jsonData = dataObj.toString();
-            }
-            if (object.has("minHeight")) {
-                minHeight = (int) object.get("minHeight");
-            }
-            if (object.has("minWidth")) {
-                minWidth = (int) object.get("minWidth");
-            }
-            if (object.has("maxWidth")) {
-                maxWidth = (int) object.get("maxWidth");
-            }
-//            if(object.has("frozenRows")){
-//                frozenRows = (int) object.get("frozenRows");
-//            }
-//            if(object.has("frozenColumns")){
-//                frozenColumns = (int) object.get("frozenColumns");
-//            }
-            TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+    public static int dip2px(ThemedReactContext context, float dpValue) {
+        final float scale = context.getResources().getDisplayMetrics().density;
+        int pxResult = (int) (dpValue * scale + 0.5f);
+        return (int) (dpValue * scale + 0.5f);
     }
-
-
-
-       public static int dip2px(ThemedReactContext context, float dpValue) {
-           final float scale = context.getResources().getDisplayMetrics().density;
-           int pxResult = (int) (dpValue * scale + 0.5f);
-           return (int) (dpValue * scale + 0.5f);
-       }
 }

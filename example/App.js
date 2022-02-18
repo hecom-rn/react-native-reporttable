@@ -1,7 +1,6 @@
-import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-
 import ReportTable from '@hecom/reportTable'
+import React from 'react';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 class App extends React.Component {
     constructor(props) {
@@ -15,7 +14,7 @@ class App extends React.Component {
                 arr.push({
                     keyIndex: j + i * rowCount,
                     title: j + i * rowCount + "",
-                    backgroundColor: i % 2 === 0 ? '#eeeeee': '#ffffff',
+                    backgroundColor: i % 2 === 0 ? '#eeeeee' : '#ffffff',
                     fontSize: 10,
                     textColor: '#222222',
                 });
@@ -29,27 +28,42 @@ class App extends React.Component {
     render() {
         return (
             <View style={styles.view}>
+
                 <ReportTable
+                    ref={(ref) => this.table = ref}
                     style={{marginTop: 100}}
                     data={this.dataSource}
                     minWidth={50}
                     maxWidth={120}
                     minHeight={40}
-                    frozenColumns={1}
-                    frozenRows={1}
+                    frozenColumns={2}
+                    frozenRows={2}
                     headerView={() => (
-                        <Text style={{width: 750, height: 100, backgroundColor: 'red'}} >
+                        <Text style={{width: 750, height: 100, backgroundColor: 'red'}}>
                             {'行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了行业产品研发中心30人全了'}
                         </Text>
                     )}
                     onScrollEnd={() => {
                         console.log('到底了');
                     }}
-                    size={{width: 300, height: 500}}
-                    onClickEvent={({nativeEvent})=> {
+                    onScroll={({nativeEvent: data}) => {
+                        console.log('onScroll', data)
+                    }}
+                    size={Dimensions.get('window')}
+                    onClickEvent={(nativeEvent) => {
                         console.log(nativeEvent);
                     }}
                 />
+                <TouchableOpacity style={styles.Btn} onPress={() => {
+                    console.log('点击回到顶部')
+                    this.table.scrollTo();
+                }}>
+                    <View style={styles.topBtn}>
+                        <Text style={styles.topBtnText}>
+                            顶
+                        </Text>
+                    </View>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -58,6 +72,25 @@ class App extends React.Component {
 const styles = StyleSheet.create({
     view: {
         flex: 1
+    },
+    Btn: {
+        position: 'absolute',
+        bottom: 30, width: 48,
+        height: 48,
+        right: 15,
+    },
+    topBtn: {
+
+        width: 48,
+        height: 48,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 99,
+    },
+    topBtnText: {
+        color: 'white',
+        fontSize: 22
     }
 });
 

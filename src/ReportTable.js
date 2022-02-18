@@ -28,10 +28,15 @@ export default class ReportTable extends React.Component{
         super(props);
     }
 
+    scrollTo = ()=>{
+        this.table.scrollTo();
+    }
+
     render() {
         return (
             <View style={{flex: 1}}>
-                <ReportTableWrapper 
+                <ReportTableWrapper
+                    ref={(ref)=> this.table = ref}
                     {...this.props}
                 />
             </View>
