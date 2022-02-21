@@ -14,7 +14,8 @@ declare module "@hecom/react-native-report-table" {
         frozenColumns?: number;
         frozenRows?: number;
         onClickEvent?: (item: ItemCilck) => void;
-        onScrollEnd?: () => void;
+        onScrollEnd?: (isEnd: boolean) => void;
+        onScroll?: (pro: ScrollPro) => void;
         lineColor?: string;
         marginVertical?: number; // item
 
@@ -22,6 +23,12 @@ declare module "@hecom/react-native-report-table" {
         frozenCount?: number; // 首行前几列 可支持点击冻结  第二优先
         
         headerView?: () => React.ReactElement;
+    }
+
+    export interface ScrollPro {
+        translateY: number;
+        translateX: number;
+        scale: number;
     }
 
     export interface ItemCilck {

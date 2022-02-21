@@ -15,6 +15,9 @@
 @property (nonatomic, strong) ReportTableModel *reportTableModel;
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 
+// 表格滑动到顶部
+- (void)scrollToTop;
+
 @end
 
 

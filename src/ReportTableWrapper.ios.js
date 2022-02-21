@@ -37,9 +37,14 @@ export default class ReportTableWrapper extends React.Component{
         }
     }
 
+    scrollTo = () => {
+        this.table.scrollTo();
+    }
+
     render() {
         return (
-            <ReportTableView 
+            <ReportTableView
+                ref={ref => this.table = ref}
                 headerViewSize={this.headerViewSize}
                 {...this.props}
                 data={this.data}

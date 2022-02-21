@@ -1,7 +1,7 @@
 import React from 'react';
-import {findNodeHandle, requireNativeComponent, UIManager} from 'react-native';
-
+import { findNodeHandle, requireNativeComponent, UIManager } from 'react-native';
 export default class ReportTableView extends React.Component {
+
     scrollTo = () => {
         UIManager.dispatchViewManagerCommand(
             findNodeHandle(this),

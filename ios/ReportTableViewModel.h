@@ -13,6 +13,9 @@
 
 - (id)initWithBridge:(RCTBridge *)bridge;
 
+// 表格滑动到顶部
+- (void)scrollToTop;
+
 @end
 
 

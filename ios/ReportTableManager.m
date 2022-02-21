@@ -10,7 +10,9 @@
 #import "ReportTableViewModel.h"
 #import <React/RCTComponent.h>
 
-@interface ReportTableManager()
+@interface ReportTableManager() {
+    ReportTableViewModel *_manager;
+}
 
 @end
 
@@ -20,6 +22,7 @@ RCT_EXPORT_VIEW_PROPERTY(size, CGSize)
 RCT_EXPORT_VIEW_PROPERTY(headerViewSize, CGSize)
 RCT_EXPORT_VIEW_PROPERTY(onClickEvent, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onScrollEnd, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onScroll, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(data, NSArray)
 RCT_EXPORT_VIEW_PROPERTY(minWidth, float)
 RCT_EXPORT_VIEW_PROPERTY(maxWidth, float)
@@ -33,9 +36,14 @@ RCT_EXPORT_VIEW_PROPERTY(frozenPoint, int)
 
 RCT_EXPORT_MODULE(ReportTableManager)
 
+RCT_EXPORT_METHOD(scrollTo:(nonnull NSNumber*) reactTag) {
+    [_manager scrollToTop];
+}
+
 - (UIView *)view
 {
-    return [[ReportTableViewModel alloc] initWithBridge: self.bridge];
+    _manager = [[ReportTableViewModel alloc] initWithBridge: self.bridge];
+    return _manager;
 }
 
 

@@ -48,6 +48,7 @@
 @property (nonatomic, assign) float minHeight;
 @property (nonatomic, copy) RCTDirectEventBlock onClickEvent;
 @property (nonatomic, copy) RCTDirectEventBlock onScrollEnd;
+@property (nonatomic, copy) RCTDirectEventBlock onScroll;
 @property (nonatomic, strong) UIColor *lineColor;
 @property (nonatomic, assign) CGRect tableRect;
 @property (nonatomic, assign) NSInteger frozenCount;

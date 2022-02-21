@@ -11,6 +11,7 @@
 #import <React/RCTConvert.h>
 #import "ReportTableHeaderView.h"
 
+@class SpreadsheetView;
 @interface ReportTableViewModel();
 
 @property (nonatomic, strong) ReportTableView * reportTableView;
@@ -255,6 +256,12 @@
     [self reloadCheck];
 }
 
+- (void)setOnScroll:(RCTDirectEventBlock)onScroll{
+    self.reportTableModel.onScroll = onScroll;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)setLineColor:(UIColor *)lineColor {
     self.reportTableModel.lineColor = lineColor;
     self.propertyCount += 1;
@@ -274,10 +281,14 @@
 }
 
 - (void)reloadCheck {
-    if (self.propertyCount >= 13) {
+    if (self.propertyCount >= 14) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
+}
+
+- (void)scrollToTop {
+    [self.reportTableView scrollToTop];
 }
 
 - (void)integratedDataSource {

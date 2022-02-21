@@ -19,9 +19,14 @@ export default class ReportTable extends React.Component{
         },
         onClickEvent: () => {},
         onScrollEnd: () => {},
+        onScroll: () => {},
         frozenCount: 0,
         frozenPoint: 0,
     };
+
+    scrollTo = ()=>{
+        this.table.scrollTo();
+    }
 
     // 处理通用逻辑
     constructor(props) {

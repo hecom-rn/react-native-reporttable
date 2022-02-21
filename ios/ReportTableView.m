@@ -61,6 +61,12 @@
     [self.spreadsheetView reloadData];
 }
 
+- (void)scrollToTop {
+    if (_spreadsheetView) {
+        [self.spreadsheetView setContentOffset:CGPointMake(self.spreadsheetView.contentOffset.x, 0) animated: true];
+    }
+}
+
 - (SpreadsheetView *)spreadsheetView {
     if (!_spreadsheetView) {
         _spreadsheetView = ({
@@ -74,6 +80,11 @@
             ssv.onScrollEnd = ^(BOOL isOnEnd) {
                 if (weak_self.reportTableModel.onScrollEnd != nil) {
                     weak_self.reportTableModel.onScrollEnd(@{@"isEnd": @YES});
+                }
+            };
+            ssv.onScroll = ^(NSDictionary *offset) {
+                if (weak_self.reportTableModel.onScroll != nil) {
+                    weak_self.reportTableModel.onScroll(offset);
                 }
             };
             ssv.overlayView.touchPoint = ^(CGPoint point) {
