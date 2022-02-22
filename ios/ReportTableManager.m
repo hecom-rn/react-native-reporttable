@@ -9,10 +9,9 @@
 #import <Foundation/Foundation.h>
 #import "ReportTableViewModel.h"
 #import <React/RCTComponent.h>
+#import <React/RCTUIManager.h>
 
-@interface ReportTableManager() {
-    ReportTableViewModel *_manager;
-}
+@interface ReportTableManager()
 
 @end
 
@@ -37,13 +36,19 @@ RCT_EXPORT_VIEW_PROPERTY(frozenPoint, int)
 RCT_EXPORT_MODULE(ReportTableManager)
 
 RCT_EXPORT_METHOD(scrollTo:(nonnull NSNumber*) reactTag) {
-    [_manager scrollToTop];
+    [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
+        ReportTableViewModel *view = viewRegistry[reactTag];
+        if (!view || ![view isKindOfClass:[ReportTableViewModel class]]) {
+            RCTLogError(@"Cannot find NativeView with tag #%@", reactTag);
+            return;
+        }
+        [view scrollToTop];
+    }];
 }
 
 - (UIView *)view
 {
-    _manager = [[ReportTableViewModel alloc] initWithBridge: self.bridge];
-    return _manager;
+    return [[ReportTableViewModel alloc] initWithBridge: self.bridge];
 }
 
 
