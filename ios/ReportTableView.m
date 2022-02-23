@@ -63,7 +63,7 @@
 
 - (void)scrollToTop {
     if (_spreadsheetView) {
-        [self.spreadsheetView setContentOffset:CGPointMake(self.spreadsheetView.contentOffset.x, 0) animated: true];
+        [self.spreadsheetView setContentOffset:CGPointMake(0, 0) animated: true];
     }
 }
 
