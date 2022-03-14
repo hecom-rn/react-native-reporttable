@@ -209,6 +209,12 @@
         }
         CGRect tableRect = CGRectMake(0, 0, size.width, MIN(size.height, self.dataHeight + headersize.height));
         self.reportTableView.frame = tableRect;
+        
+        if (_headerView != nil ) {
+            CGSize headerViewSize = self.headerView.frame.size;
+            self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
+        }
+   
     } else {
         self.propertyCount += 1;
         [self reloadCheck];
