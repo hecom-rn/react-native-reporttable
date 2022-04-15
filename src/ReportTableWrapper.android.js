@@ -56,7 +56,6 @@ export default class ReportTableWrapper extends React.Component {
                     }
                 }}
             >
-                {headerView &&
                 <ScrollView
                     horizontal={true}
                     showsHorizontalScrollIndicator={false}
@@ -72,7 +71,6 @@ export default class ReportTableWrapper extends React.Component {
                 >
                     {headerView && headerView()}
                 </ScrollView>
-                }
 
                 <ReportTableView
                     ref={ref => this.table = ref}
