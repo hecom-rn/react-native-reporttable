@@ -13,7 +13,7 @@ declare module "@hecom/react-native-report-table" {
         maxWidth?: number;
         frozenColumns?: number;
         frozenRows?: number;
-        onClickEvent?: (item: ItemCilck) => void;
+        onClickEvent?: (item: ItemClick) => void;
         onScrollEnd?: (isEnd: boolean) => void;
         onScroll?: (pro: ScrollPro) => void;
         lineColor?: string;
@@ -31,7 +31,7 @@ declare module "@hecom/react-native-report-table" {
         scale: number;
     }
 
-    export interface ItemCilck {
+    export interface ItemClick {
         keyIndex: number;
         rowIndex: number;
         columnIndex: number;
@@ -47,6 +47,7 @@ declare module "@hecom/react-native-report-table" {
         fontSize?: number;
         textColor?: string;
         isLeft?: boolean;
+        isCenter?: boolean;
         icon?: IconStyle;
     }
 

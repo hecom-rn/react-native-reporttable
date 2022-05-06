@@ -323,6 +323,7 @@
            model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
            model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]];
            model.isLeft = [RCTConvert BOOL:[dir objectForKey:@"isLeft"]];
+           model.isCenter = [RCTConvert BOOL:[dir objectForKey:@"isCenter"]];
            model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
            NSDictionary *iconDic = [RCTConvert NSDictionary:[dir objectForKey:@"icon"]];
            if (iconDic != nil) {

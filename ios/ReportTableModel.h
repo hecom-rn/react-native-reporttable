@@ -21,6 +21,7 @@
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) CGFloat fontSize;
 @property (nonatomic, assign) BOOL isLeft;
+@property (nonatomic, assign) BOOL isCenter;
 @property (nonatomic, assign) NSInteger textPaddingHorizontal;
 @property (nonatomic, assign) NSInteger horCount;
 @property (nonatomic, assign) NSInteger verCount;
