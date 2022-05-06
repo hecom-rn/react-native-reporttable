@@ -34,6 +34,8 @@ export default class ReportTableWrapper extends React.Component{
         if (props.headerView && props.headerView()) {
             const {width, height} = props.headerView().props.style;
             this.headerViewSize = {height, width};
+        } else {
+            this.headerViewSize = {width: 0, height:0};
         }
     }
 
