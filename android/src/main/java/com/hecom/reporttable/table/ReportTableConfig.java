@@ -250,25 +250,25 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             if (reportTableData == null) {
                 reportTableData = new ReportTableData();
             }
-            final String[][] dataArr = this.dataArr;
-            final String jsonData = this.jsonData;
+
             final ReportTableConfig config = this;
             Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
 
                     Log.e("ReportTableConfig", "setReportTableData mergeTable start = " + System.currentTimeMillis());
-                    if (json == null || !json.equals(jsonData)) {
-                        String[][] dataArr = reportTableData.mergeTable(json);
+                    String[][] innerDataArr = config.dataArr;
+                    if (!json.equals(config.jsonData) || innerDataArr == null) {
+                        innerDataArr= reportTableData.mergeTable(json);
                         config.jsonData = json;
-                        config.dataArr = dataArr;
+                        config.dataArr = innerDataArr;
                     }
                     Log.e("ReportTableConfig", "setReportTableData mergeTable end = " + System.currentTimeMillis());
                     ((SmartTable<?>) view).getIsNotifying().set(false);
 //                    view.post(new Runnable() {
 //                        @Override
 //                        public void run() {
-                    setReportTableDataInMainThread(view, dataArr, configBean);
+                    setReportTableDataInMainThread(view, innerDataArr, configBean);
 //                        }
 //                    });
                 }
