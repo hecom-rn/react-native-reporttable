@@ -137,7 +137,9 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
             configBean.setLineColor(lineColor);
             ((SmartTable) view).getProvider().setFrozenCount(frozenCount);
             ((SmartTable) view).getProvider().setFrozenPoint(frozenPoint);
+
             reportTableConfig.setReportTableData(view, jsonData, configBean);
+
             reportTableConfig.setFrozenCount(frozenCount);
             reportTableConfig.setFrozenPoint(frozenPoint);
         } catch (Exception e) {

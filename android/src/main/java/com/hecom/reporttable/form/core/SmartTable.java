@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
@@ -25,6 +26,7 @@ import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
+import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 
 import java.util.List;
@@ -54,6 +56,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private TableMeasurer<T> measurer;
     private AnnotationParser<T> annotationParser;
     protected Paint paint;
+    protected TextPaint textPaint;
     private MatrixHelper matrixHelper;
     private boolean isExactly = true; //是否是测量精准模式
     private AtomicBoolean isNotifying = new AtomicBoolean(false); //是否正在更新数据
@@ -70,6 +73,12 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
 
     public TableMeasurer<T> getMeasurer() {
         return measurer;
+    }
+
+    public AtomicBoolean getIsNotifying() {return isNotifying;}
+
+    public ThreadPoolExecutor getmExecutor() {
+        return mExecutor;
     }
 
     public SmartTable(Context context) {
@@ -95,6 +104,9 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         config = new TableConfig();
         config.dp10 = DensityUtils.dp2px(getContext(), 10);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(new FontStyle().getTextSize());
         showRect = new Rect();
         tableRect = new Rect();
         xAxis = new XSequence<>();
@@ -172,7 +184,16 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
                     }
                 }
             }
+        } else {
+            showRect.set(getPaddingLeft(), getPaddingTop(),
+                    getWidth() - getPaddingRight(),
+                    getHeight() - getPaddingBottom());
+            drawLoadingText(canvas, showRect);
         }
+    }
+
+    private void drawLoadingText(Canvas canvas, Rect rect) {
+        DrawUtils.drawSingleText(canvas, textPaint, rect, "正在更新数据，请稍后。");
     }
 
     /**
