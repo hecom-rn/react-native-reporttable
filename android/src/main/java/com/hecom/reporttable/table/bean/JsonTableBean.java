@@ -74,7 +74,6 @@ public class JsonTableBean {
 
     private boolean isLeft;
 
-
     public boolean isLeft() {
         return isLeft;
     }
@@ -83,100 +82,110 @@ public class JsonTableBean {
         isLeft = left;
     }
 
-     public Icon getIcon() {
-            return icon;
-        }
+    public boolean isCenter() {
+        return isCenter;
+    }
 
-        public void setIcon(Icon icon) {
-            this.icon = icon;
-        }
+    public void setCenter(boolean center) {
+        isCenter = center;
+    }
+
+    private boolean isCenter;
+
+    public Icon getIcon() {
+        return icon;
+    }
+
+    public void setIcon(Icon icon) {
+        this.icon = icon;
+    }
 
     private Icon icon;
 
     public class Icon{
-            private Path path;
-            private String width;
-            private String height;
-            private String name;
-            public Path getPath() {
-                return path;
-            }
-
-            public void setPath(Path path) {
-                this.path = path;
-            }
-
-            public String getWidth() {
-                return width;
-            }
-
-            public void setWidth(String width) {
-                this.width = width;
-            }
-
-            public String getHeight() {
-                return height;
-            }
-
-            public void setHeight(String height) {
-                this.height = height;
-            }
-
-            public String getName() {
-                return name;
-            }
-
-            public void setName(String name) {
-                this.name = name;
-            }
+        private Path path;
+        private String width;
+        private String height;
+        private String name;
+        public Path getPath() {
+            return path;
         }
 
-        public class Path {
-            private String height;
-            private String scale;
-            private String uri;
-            private String width;
-
-            public String getHeight() {
-                return height;
-            }
-
-            public void setHeight(String height) {
-                this.height = height;
-            }
-
-            public String getScale() {
-                return scale;
-            }
-
-            public void setScale(String scale) {
-                this.scale = scale;
-            }
-
-            public String getUri() {
-                return uri;
-            }
-
-            public void setUri(String uri) {
-                this.uri = uri;
-            }
-
-            public String getWidth() {
-                return width;
-            }
-
-            public void setWidth(String width) {
-                this.width = width;
-            }
-
-            public boolean is__packager_asset() {
-                return __packager_asset;
-            }
-
-            public void set__packager_asset(boolean __packager_asset) {
-                this.__packager_asset = __packager_asset;
-            }
-
-            private boolean __packager_asset;
+        public void setPath(Path path) {
+            this.path = path;
         }
+
+        public String getWidth() {
+            return width;
+        }
+
+        public void setWidth(String width) {
+            this.width = width;
+        }
+
+        public String getHeight() {
+            return height;
+        }
+
+        public void setHeight(String height) {
+            this.height = height;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
+    public class Path {
+        private String height;
+        private String scale;
+        private String uri;
+        private String width;
+
+        public String getHeight() {
+            return height;
+        }
+
+        public void setHeight(String height) {
+            this.height = height;
+        }
+
+        public String getScale() {
+            return scale;
+        }
+
+        public void setScale(String scale) {
+            this.scale = scale;
+        }
+
+        public String getUri() {
+            return uri;
+        }
+
+        public void setUri(String uri) {
+            this.uri = uri;
+        }
+
+        public String getWidth() {
+            return width;
+        }
+
+        public void setWidth(String width) {
+            this.width = width;
+        }
+
+        public boolean is__packager_asset() {
+            return __packager_asset;
+        }
+
+        public void set__packager_asset(boolean __packager_asset) {
+            this.__packager_asset = __packager_asset;
+        }
+
+        private boolean __packager_asset;
+    }
 }
