@@ -23,7 +23,11 @@ import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.TableClickObserver;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.data.format.draw.TextImageDrawFormat;
 import com.hecom.reporttable.form.utils.DensityUtils;
@@ -61,8 +65,10 @@ public class TableProvider<T> implements TableClickObserver {
     private boolean isFirstDraw = true;  //是否首次绘制
     private boolean isShowUnFixedArea;  //非固定区域是否已全部可见
     private boolean isScrollToBottom;  //是否滚动至底部
-    private List<Integer> fixedTops = new ArrayList<>();  //固定行的top列表
-    private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
+//    private List<Integer> fixedTops = new ArrayList<>();  //固定行的top列表
+//    private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
+    private List<ArrayList<Integer>> fixedTopLists = new ArrayList<>();  //固定行的topSet
+    private List<ArrayList<Integer>> fixedBottomLists = new ArrayList<>();  //固定行的bottomSet
     private MyTextImageDrawFormat myTextImageDrawFormat;
 
     private int frozenCount = 0;
@@ -336,6 +342,11 @@ public class TableProvider<T> implements TableClickObserver {
         float top;
         float left = scaleRect.left;
         List<Column> columns = tableData.getChildColumns();
+
+        Rect showRect = new Rect(this.showRect.left, this.showRect.top, this.showRect.right, this.showRect.bottom);
+       if (isFirstDraw) {
+           showRect.right = Integer.MAX_VALUE; // 第一次渲染全部，因为需要计算 fixTopLists 和 fixBottomLists
+       }
         clipRect.set(showRect);
         TableInfo info = tableData.getTableInfo();
         int columnSize = columns.size();
@@ -396,14 +407,39 @@ public class TableProvider<T> implements TableClickObserver {
                     correctCellRect = gridDrawer.correctCellRect(j, i, tempRect, config.getZoom()); //矫正格子的大小
                     if (correctCellRect != null) {
                         if(j < config.getFixedLines()) {
-                            if(isFirstDraw) {
-                                //保存固定行的top、bottom
-                                fixedTops.add(correctCellRect.top);
-                                fixedBottoms.add(correctCellRect.bottom);
+//                            if(isFirstDraw) {
+//                                //保存固定行的top、bottom
+//                                fixedTops.add(correctCellRect.top);
+//                                fixedBottoms.add(correctCellRect.bottom);
+//                            } else {
+//                                //使用固定行的top、bottom
+//                                correctCellRect.top = fixedTops.get(j);
+//                                correctCellRect.bottom = fixedBottoms.get(j);
+//                            }
+                            while (fixedTopLists.size() <= i) {
+                                fixedTopLists.add(new ArrayList<Integer>());
+                            }
+                            while (fixedBottomLists.size() <= i) {
+                                fixedBottomLists.add(new ArrayList<Integer>());
+                            }
+                            while (fixedTopLists.get(i).size() <= j) {
+                                fixedTopLists.get(i).add(null);
+                            }
+                            while (fixedBottomLists.get(i).size() <= j) {
+                                fixedBottomLists.get(i).add(null);
+                            }
+                            Integer t = fixedTopLists.get(i).get(j);
+                            if (t == null) {
+                                fixedTopLists.get(i).set(j, correctCellRect.top);
                             } else {
-                                //使用固定行的top、bottom
-                                correctCellRect.top = fixedTops.get(j);
-                                correctCellRect.bottom = fixedBottoms.get(j);
+                                correctCellRect.top = t;
+                            }
+
+                            Integer b = fixedBottomLists.get(i).get(j);
+                            if (b == null) {
+                                fixedBottomLists.get(i).set(j, correctCellRect.bottom);
+                            } else {
+                                correctCellRect.bottom = b;
                             }
                         }
                         if (correctCellRect.top < showRect.bottom) {
@@ -431,7 +467,8 @@ public class TableProvider<T> implements TableClickObserver {
                                     if (onlyDrawFrozenRows && j >= config.getFixedLines()) {
                                         break;
                                     }
-                                    if(correctCellRect.top >= fixedBottoms.get(config.getFixedLines() - 1)) {
+                                    Integer tmpBottom = fixedBottomLists.get(i).get(fixedBottomLists.get(i).size() - 1);
+                                    if(correctCellRect.top >= tmpBottom) {
                                         //绘制完整单元格
                                         drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
                                         if (j == config.getFixedLines() && config.getScrollChangeListener() != null && !isShowUnFixedArea) {
@@ -444,11 +481,11 @@ public class TableProvider<T> implements TableClickObserver {
                                             //非固定区域不可见
                                             isShowUnFixedArea = false;
                                         }
-                                        if(correctCellRect.bottom > fixedBottoms.get(config.getFixedLines() - 1) + dip2px(context, 5)) {
+                                        if(correctCellRect.bottom > tmpBottom + dip2px(context, 5)) {
                                             //float partlyCellZoom = (correctCellRect.bottom - fixedBottoms.get(config.getFixedLines() - 1)) / (float) correctCellRect.height();
                                             //绘制部分单元格
                                             //config.setPartlyCellZoom(partlyCellZoom);
-                                            Rect partCellRect = new Rect(correctCellRect.left, fixedBottoms.get(config.getFixedLines() - 1), correctCellRect.right, correctCellRect.bottom);
+                                            Rect partCellRect = new Rect(correctCellRect.left, tmpBottom, correctCellRect.right, correctCellRect.bottom);
                                             drawContentCell(canvas, cellInfo, partCellRect, config, isDrawLock);
                                         }
                                     }
