@@ -122,6 +122,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             float strLen = paint.measureText(value);
             int minWidth = config.getMinCellWidth();
             int maxWidth = config.getMaxCellWidth();
+            strLen = strLen + paddingLeftSize + paddingRightSize + 24;
             float realWidth = 0;
             if(strLen < minWidth){
                 realWidth = minWidth;
@@ -142,7 +143,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                 String tempStr =  String.valueOf(tempChar);
                 float tempStrLen = paint.measureText(tempStr);
                 totalLen = totalLen + tempStrLen ;
-                if(totalLen + 10 > realWidth){
+                if(totalLen + 10  > realWidth){
                     newStr = newStr + "\n";
                     totalLen = tempStrLen;
                 }
