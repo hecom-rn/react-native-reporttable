@@ -345,7 +345,7 @@ public class TableProvider<T> implements TableClickObserver {
 
         Rect showRect = new Rect(this.showRect.left, this.showRect.top, this.showRect.right, this.showRect.bottom);
        if (isFirstDraw) {
-           showRect.right = Integer.MAX_VALUE; // 第一次渲染全部，因为需要计算 fixTopLists 和 fixBottomLists
+           showRect.right = Integer.MAX_VALUE/2; // 第一次渲染全部，因为需要计算 fixTopLists 和 fixBottomLists
        }
         clipRect.set(showRect);
         TableInfo info = tableData.getTableInfo();
@@ -467,7 +467,17 @@ public class TableProvider<T> implements TableClickObserver {
                                     if (onlyDrawFrozenRows && j >= config.getFixedLines()) {
                                         break;
                                     }
-                                    Integer tmpBottom = fixedBottomLists.get(i).get(fixedBottomLists.get(i).size() - 1);
+                                    Integer tmpBottom = 0;
+                                    int tmp = i;
+                                    while (tmp >= 0) {
+                                        int inSize = fixedBottomLists.get(tmp).size();
+                                        if (inSize > 0) {
+                                            tmpBottom = fixedBottomLists.get(tmp).get(inSize - 1);
+                                            break;
+                                        }
+                                        tmp--;
+                                    }
+
                                     if(correctCellRect.top >= tmpBottom) {
                                         //绘制完整单元格
                                         drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
