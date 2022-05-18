@@ -93,11 +93,11 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 public void setTextPaint(TableConfig config, CellInfo<JsonTableBean> cellInfo, Paint paint) {
                     super.setTextPaint(config, cellInfo, paint);
                     JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
-                    if (tableBean.isLeft()) {
-                        paint.setTextAlign(Paint.Align.LEFT);
-                    } else if (tableBean.isCenter()) {
+                    if (tableBean.isCenter()) {
                         paint.setTextAlign(Paint.Align.CENTER);
-                    } else {
+                    } else if (tableBean.isLeft()) {
+                        paint.setTextAlign(Paint.Align.LEFT);
+                    } else  {
                         paint.setTextAlign(Paint.Align.RIGHT);
                     }
                 }
