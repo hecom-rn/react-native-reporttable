@@ -28,11 +28,11 @@ export default class ReportTableWrapper extends React.Component {
             onPanResponderRelease: (evt, gs) => {
             }
         });
-        this.data = this._toAndroidData(this.state.headerHeight);
+        this.data = this._toAndroidData(this.props, this.state.headerHeight);
     }
 
     UNSAFE_componentWillReceiveProps(nextProps) {
-        this.data = this._toAndroidData(this.state.headerHeight);
+        this.data = this._toAndroidData(nextProps, this.state.headerHeight);
     }
 
     render() {
@@ -65,7 +65,7 @@ export default class ReportTableWrapper extends React.Component {
                                 layout: {height},
                             },
                         } = event;
-                        this.data = this._toAndroidData(height);
+                        this.data = this._toAndroidData(this.props, height);
                         this.setState({headerHeight: height})
                     }}
                 >
@@ -95,12 +95,12 @@ export default class ReportTableWrapper extends React.Component {
     }
 
 
-    _toAndroidData = (headerHeight) => {
+    _toAndroidData = (props, headerHeight) => {
         // let {headerHeight} = this.state;
         const {
             data, minWidth, minHeight, textPaddingHorizontal,
             lineColor, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size
-        } = this.props;
+        } = props;
         return {
             data: data,
             minWidth: minWidth,
