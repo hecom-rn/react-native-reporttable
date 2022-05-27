@@ -71,6 +71,8 @@
     if (!_spreadsheetView) {
         _spreadsheetView = ({
             SpreadsheetView *ssv = [SpreadsheetView new];
+            ssv.showsVerticalScrollIndicator = false;
+            ssv.showsHorizontalScrollIndicator = false;
             ssv.dataSource = self;
             ssv.delegate   = self;
             ssv.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
