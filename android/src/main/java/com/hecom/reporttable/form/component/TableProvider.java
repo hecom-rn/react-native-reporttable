@@ -69,7 +69,8 @@ public class TableProvider<T> implements TableClickObserver {
 //    private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
     private List<ArrayList<Integer>> fixedTopLists = new ArrayList<>();  //固定行的topSet
     private List<ArrayList<Integer>> fixedBottomLists = new ArrayList<>();  //固定行的bottomSet
-    private MyTextImageDrawFormat myTextImageDrawFormat;
+    private MyTextImageDrawFormat rightTextImageDrawFormat;
+    private MyTextImageDrawFormat leftTextImageDrawFormat;
 
     private int frozenCount = 0;
     private int frozenPoint = 0;
@@ -103,7 +104,8 @@ public class TableProvider<T> implements TableClickObserver {
         operation = new SelectionOperation();
         gridDrawer  = new GridDrawer<>();
         int size = DensityUtils.dp2px(context,15);
-        myTextImageDrawFormat = new MyTextImageDrawFormat(size, size, TextImageDrawFormat.RIGHT, 10);
+        rightTextImageDrawFormat = new MyTextImageDrawFormat(size, size, TextImageDrawFormat.RIGHT, 10);
+        leftTextImageDrawFormat = new MyTextImageDrawFormat(size, size, TextImageDrawFormat.LEFT, 4);
     }
 
     /**
@@ -559,11 +561,11 @@ public class TableProvider<T> implements TableClickObserver {
                 }
                 if(col == frozenPoint - 1 ){
                     if(isDrawLock){
-                        myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
+                        rightTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
                     }else{
-                        myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
+                        rightTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
                     }
-                    myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
                 }else{
                     selectDrawFormat(c, rect, cellInfo, config);
                 }
@@ -571,11 +573,11 @@ public class TableProvider<T> implements TableClickObserver {
                 if(frozenCount > 0){
                     if(cellInfo.col < frozenCount){
                         if(isDrawLock){
-                            myTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
+                            rightTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
                         }else{
-                            myTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
+                            rightTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
                         }
-                        myTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                        rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
                     }else{
                         selectDrawFormat(c, rect, cellInfo, config);
                     }
@@ -608,11 +610,26 @@ public class TableProvider<T> implements TableClickObserver {
         if(icon != null){
             String name = icon.getName();
             if("up".equals(name)){
-                myTextImageDrawFormat.setResourceId(R.mipmap.up);
-            }else if("down".equals(name)){
-                myTextImageDrawFormat.setResourceId(R.mipmap.down);
+                rightTextImageDrawFormat.setResourceId(R.mipmap.up);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if("down".equals(name)){
+                rightTextImageDrawFormat.setResourceId(R.mipmap.down);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("dot_new".equals(name)) {
+                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_new);
+                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("dot_edit".equals(name)) {
+                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_edit);
+                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("dot_delete".equals(name)) {
+                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_delete);
+                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("trash".equals(name)) {
+                rightTextImageDrawFormat.setResourceId(R.mipmap.trash);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            }else{
+                cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
             }
-            myTextImageDrawFormat.draw(c, rect, cellInfo, config);
         }else{
             cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
         }
