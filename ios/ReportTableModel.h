@@ -11,6 +11,8 @@
 @interface IconStyle: NSObject
 @property (nonatomic, strong) id path;
 @property (nonatomic, assign) CGSize size;
+@property (nonatomic, assign) NSInteger imageAlignment; // 1左  2中  3右(默认)
+@property (nonatomic, assign) CGFloat paddingHorizontal;
 @end
 
 @interface ItemModel: NSObject

@@ -55,6 +55,8 @@ declare module "@hecom/react-native-report-table" {
         path: string; // bundle的 绝对路径
         width: number,
         height: number,
+        imageAlignment: number; // 1左  2中  3右(默认)
+        paddingHorizontal: number; // default 10
     }
 
     export default class ReportTable extends React.Component<ReportTableProps>{

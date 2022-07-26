@@ -9,6 +9,19 @@
 
 
 @implementation IconStyle
+- (NSInteger)imageAlignment {
+    if (!_imageAlignment) {
+        return 3;
+    }
+    return _imageAlignment;
+}
+
+- (CGFloat)paddingHorizontal {
+    if (!_paddingHorizontal) {
+        return 10;
+    }
+    return _paddingHorizontal;
+}
 @end
 
 @implementation ReportTableModel

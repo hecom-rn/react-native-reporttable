@@ -330,6 +330,8 @@
                IconStyle *icon = [[IconStyle alloc] init];
                icon.size = CGSizeMake([[iconDic objectForKey:@"width"] floatValue], [[iconDic objectForKey:@"height"] floatValue]);
                icon.path = [iconDic objectForKey:@"path"];
+               icon.imageAlignment = [[iconDic objectForKey:@"style"] integerValue];
+               icon.paddingHorizontal = [[iconDic objectForKey:@"paddingHorizontal"] floatValue];
                model.iconStyle = icon;
            }
            BOOL isLock = false;
@@ -340,7 +342,7 @@
                    isLock = true;
                }
            }
-           CGFloat imageIconWidth = (isLock ? 13 + 10 : iconDic != nil ? model.iconStyle.size.width + 10 : 0);
+           CGFloat imageIconWidth = (isLock ? 13 + 10 : iconDic != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth; //margin
            CGRect textRect = [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: maxWidth - exceptText];
            // 不是一行
