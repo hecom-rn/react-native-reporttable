@@ -622,7 +622,10 @@ public class TableProvider<T> implements TableClickObserver {
                 leftTextImageDrawFormat.setResourceId(R.mipmap.dot_edit);
                 leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
             } else if ("dot_delete".equals(name)) {
-                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_delete);
+                rightTextImageDrawFormat.setResourceId(R.mipmap.dot_delete);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("portal_icon".equals(name)) {
+                leftTextImageDrawFormat.setResourceId(R.mipmap.portal_icon);
                 leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
             } else if ("trash".equals(name)) {
                 rightTextImageDrawFormat.setResourceId(R.mipmap.trash);
