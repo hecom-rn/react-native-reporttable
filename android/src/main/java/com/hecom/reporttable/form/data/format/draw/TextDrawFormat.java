@@ -3,6 +3,7 @@ package com.hecom.reporttable.form.data.format.draw;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.text.TextUtils;
 
 
 import com.hecom.reporttable.form.core.TableConfig;
@@ -15,7 +16,7 @@ import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;
 import com.hecom.reporttable.table.bean.JsonTableBean;
-import com.hecom.reporttable.form.utils.DensityUtils;
+import com.yy.mobile.emoji.EmojiReader;
 
 /**
  * Created by huang on 2017/10/30.
@@ -46,7 +47,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
        // return DrawUtils.getMultiTextHeight(paint,getSplitString(column.format(position)));
-       String value = getWrapText( column.format(position), paint, config, 0);
+        String value = getWrapText( column.format(position), paint, config, 0);
        return DrawUtils.getMultiTextHeight(paint, getSplitString(value)) + 40;
     }
 
@@ -86,7 +87,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
 
     protected void drawText(Canvas c, String value, Rect rect, Paint paint,TableConfig config, int marginRight) {
-        value = getWrapText( value, paint, config, marginRight);
+        value = getWrapText( value, paint, config, marginRight, rect);
         DrawUtils.drawMultiText(c,paint,rect,getSplitString(value));
     }
 
@@ -117,7 +118,11 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
 
     public String getWrapText( String value, Paint paint, TableConfig config, int marginRight){
-            int paddingLeftSize = config.getTextLeftOffset();
+        int paddingLeftSize = config.getTextLeftOffset();
+        int paddingRightSize = config.getTextRightOffset();
+        int maxWidth = config.getMaxCellWidth();
+        return getWrapText(value, paint, marginRight, paddingLeftSize, paddingRightSize, maxWidth);
+            /* int paddingLeftSize = config.getTextLeftOffset();
             int paddingRightSize = config.getTextRightOffset();
             float strLen = paint.measureText(value);
             int minWidth = config.getMinCellWidth();
@@ -149,6 +154,47 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                 }
                 newStr = newStr + tempStr;
             }
-            return "".equals(newStr) ? value : newStr;
+            return "".equals(newStr) ? value : newStr; */
+    }
+
+    public String getWrapText( String value, Paint paint, TableConfig config, int marginRight, Rect rect){
+        int maxWidth = rect.right-rect.left;
+        return getWrapText(value, paint, 0, 0, 0, maxWidth);
+    }
+
+    private String getWrapText(String value, Paint paint, int marginRight, int paddingLeftSize, int paddingRightSize, int maxWidth) {
+        if(TextUtils.isEmpty(value))return value;
+        if (maxWidth <= 0) {
+            return value;
+        } else {
+            float strLen = paint.measureText(value);
+            int leeway = paddingLeftSize + paddingRightSize + 24 + (marginRight > 0 ? marginRight : 0);
+            float expect = strLen + leeway;
+            float realWidth = expect > maxWidth
+                    ? maxWidth - leeway
+                    : expect - leeway;
+            String newStr = "";
+            StringBuilder stringBuilder= new StringBuilder();
+            EmojiReader instance = EmojiReader.INSTANCE;
+            int length = instance.getTextLength(value);
+            int lineStartIndex =0;
+            String temp="";
+            String curLineStr="";
+            for (int i = 1; i <= length; i++) {
+                temp = instance.subSequence(value, lineStartIndex, i).toString();
+                float tempStrLen = paint.measureText(temp);
+                if(tempStrLen<=realWidth){
+                    curLineStr = temp;
+                    continue;
+                }else {
+                    stringBuilder.append(curLineStr);
+                    stringBuilder.append("\n");
+                    lineStartIndex= i-1;
+                    curLineStr = instance.subSequence(value, lineStartIndex, i).toString();
+                }
+            }
+            stringBuilder.append(curLineStr);
+            return stringBuilder.toString();
         }
+    }
 }
