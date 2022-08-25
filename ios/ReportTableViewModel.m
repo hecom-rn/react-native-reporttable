@@ -330,7 +330,7 @@
                IconStyle *icon = [[IconStyle alloc] init];
                icon.size = CGSizeMake([[iconDic objectForKey:@"width"] floatValue], [[iconDic objectForKey:@"height"] floatValue]);
                icon.path = [iconDic objectForKey:@"path"];
-               icon.imageAlignment = [[iconDic objectForKey:@"style"] integerValue];
+               icon.imageAlignment = [[iconDic objectForKey:@"imageAlignment"] integerValue];
                icon.paddingHorizontal = [[iconDic objectForKey:@"paddingHorizontal"] floatValue];
                model.iconStyle = icon;
            }
