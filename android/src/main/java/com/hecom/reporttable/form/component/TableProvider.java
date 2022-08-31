@@ -630,7 +630,10 @@ public class TableProvider<T> implements TableClickObserver {
             } else if ("trash".equals(name)) {
                 rightTextImageDrawFormat.setResourceId(R.mipmap.trash);
                 rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            }else{
+            } else if ("revert".equals(name)) {
+                rightTextImageDrawFormat.setResourceId(R.mipmap.revert);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else{
                 cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
             }
         }else{
