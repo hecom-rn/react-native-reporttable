@@ -38,7 +38,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         String value = getWrapText( column.format(position), paint, config, 0);
-        return DrawUtils.getMultiTextWidth(paint, getSplitString(value)) + 40;
+        return DrawUtils.getMultiTextWidth(paint, getSplitString(value));
     }
 
 
@@ -46,9 +46,9 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureHeight(Column<T> column,int position, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-       // return DrawUtils.getMultiTextHeight(paint,getSplitString(column.format(position)));
+        // return DrawUtils.getMultiTextHeight(paint,getSplitString(column.format(position)));
         String value = getWrapText( column.format(position), paint, config, 0);
-       return DrawUtils.getMultiTextHeight(paint, getSplitString(value)) + 40;
+        return DrawUtils.getMultiTextHeight(paint, getSplitString(value)) + 40;
     }
 
     @Override
@@ -168,7 +168,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             return value;
         } else {
             float strLen = paint.measureText(value);
-            int leeway = paddingLeftSize + paddingRightSize + 24 + (marginRight > 0 ? marginRight : 0);
+            int leeway = paddingLeftSize + paddingRightSize + (marginRight > 0 ? marginRight : 0);
             float expect = strLen + leeway;
             float realWidth = expect > maxWidth
                     ? maxWidth - leeway

@@ -65,10 +65,12 @@ public class Column<T> implements Comparable<Column> {
     private int column = 0;
     private int maxWidth = 400;
     private int totalColumn = 0;
-     public void setColumn(int column, int totalColumn) {
-         this.column = column;
-         this.totalColumn = totalColumn;
-     }
+    private int margin4Icon = 0;
+
+    public void setColumn(int column, int totalColumn) {
+        this.column = column;
+        this.totalColumn = totalColumn;
+    }
 
     /**列构造方法
      * 用于构造组合列
@@ -365,10 +367,10 @@ public class Column<T> implements Comparable<Column> {
 
 
     public String format(int position){
-       if(position >=0 && position< datas.size()){
-          return format(datas.get(position));
-       }
-       return INVAL_VALUE;
+        if(position >=0 && position< datas.size()){
+            return format(datas.get(position));
+        }
+        return INVAL_VALUE;
     }
 
 
@@ -485,7 +487,7 @@ public class Column<T> implements Comparable<Column> {
     }
 
 
-   /**
+    /**
      * 设置列的计算宽度
      */
     public int setComputeWidthMax(int computeWidth) {
@@ -761,31 +763,38 @@ public class Column<T> implements Comparable<Column> {
     }
 
 
-     public String format(int position, int frozenCount,int frozenPoint){
-            if(position >=0 && position< datas.size()){
-                return format(datas.get(position), position, frozenCount, frozenPoint);
-            }
-            return INVAL_VALUE;
+    public String format(int position, int frozenCount,int frozenPoint){
+        if(position >=0 && position< datas.size()){
+            return format(datas.get(position), position, frozenCount, frozenPoint);
         }
+        return INVAL_VALUE;
+    }
 
-        public String format(T t, int row,int frozenCount,int frozenPoint){
-            String value;
-            if (format != null) {
-                value = format.format(t);
-            } else {
-                value = t == null ? INVAL_VALUE : t.toString();
-            }
-            return value;
+    public String format(T t, int row,int frozenCount,int frozenPoint){
+        String value;
+        if (format != null) {
+            value = format.format(t);
+        } else {
+            value = t == null ? INVAL_VALUE : t.toString();
         }
+        return value;
+    }
 
 
 
-         public String formatHeight(int position){
-                if(position >=0 && position< datas.size()){
-                    return format(datas.get(position),1,0,0);
-                }
-                return INVAL_VALUE;
-          }
+    public String formatHeight(int position){
+        if(position >=0 && position< datas.size()){
+            return format(datas.get(position),1,0,0);
+        }
+        return INVAL_VALUE;
+    }
 
 
+    public void setMargin4Icon(int margin4Icon) {
+        this.margin4Icon = margin4Icon;
+    }
+
+    public int getMargin4Icon() {
+        return margin4Icon;
+    }
 }
