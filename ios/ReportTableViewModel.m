@@ -348,7 +348,7 @@
            // 不是一行
            if (textRect.size.width + 5 + exceptText > minWidth || textRect.size.height > model.fontSize + 5) {
                if (textRect.size.height < model.fontSize + 4) {
-                   rowWith = textRect.size.width + exceptText + 6;
+                   rowWith = textRect.size.width + exceptText + 8;
                } else {
                    rowWith = maxWidth;
                    CGFloat textHeight = textRect.size.height + (minHeight - model.fontSize - 3); // marginVer*2
