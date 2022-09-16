@@ -624,6 +624,9 @@ public class TableProvider<T> implements TableClickObserver {
             } else if ("dot_delete".equals(name)) {
                 leftTextImageDrawFormat.setResourceId(R.mipmap.dot_delete);
                 leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("dot_white".equals(name)) {
+                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_white);
+                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
             } else if ("portal_icon".equals(name)) {
                 leftTextImageDrawFormat.setResourceId(R.mipmap.portal_icon);
                 leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
