@@ -13,9 +13,11 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
+import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
+import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
 import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
@@ -29,6 +31,7 @@ import com.hecom.reporttable.table.bean.TableConfigBean;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
@@ -45,6 +48,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
 
     private String jsonData;
     private String[][] dataArr;
+    int MARGIN_VALUE = 40;
 
     public Map<Integer, Integer> getColumnMapWidth() {
         return columnMapWidth;
@@ -72,6 +76,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
         table = new SmartTable<String>(context);
         table.getConfig().setHorizontalPadding(0).setVerticalPadding(0)
                 .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false);
+        MARGIN_VALUE = DensityUtils.dp2px(context, 20);
         return table;
     }
 
@@ -214,8 +219,61 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 }
             }
 
+            int firstColMaxMerge = getFirstColumnMaxMerge(tableData);
+            int rightMargin4Icon= 0;
+            int leftMargin4Icon= 0;
             for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
-                tableData.getArrayColumns().get(i).setColumn(i, tableData.getArrayColumns().size());
+                //插入逻辑
+                rightMargin4Icon= 0;
+                leftMargin4Icon= 0;
+                Column<String> column = tableData.getArrayColumns().get(i);
+                if(frozenPoint > 0){
+                    int col = i;
+                    if(col == 0 && firstColMaxMerge > 0){
+                        col = firstColMaxMerge;
+                    }
+                    if(col == frozenPoint - 1 ){
+                        rightMargin4Icon= MARGIN_VALUE;
+                    }
+                }else{
+                    if(frozenCount > 0){
+                        if(i < frozenCount){
+                            rightMargin4Icon= MARGIN_VALUE;
+                        }
+                    }
+                }
+                List<String> columnDatas = column.getDatas();
+                for (int j = 0; j <columnDatas.size(); j++) {
+                    JsonTableBean.Icon icon = tabArr[j][i].getIcon();
+                    if(icon != null){
+                        String name = icon.getName();
+                        if("up".equals(name)){
+                            rightMargin4Icon = MARGIN_VALUE;
+                        } else if("down".equals(name)){
+                            rightMargin4Icon = MARGIN_VALUE;
+                        } else if ("dot_new".equals(name)) {
+                            leftMargin4Icon = MARGIN_VALUE;
+                        } else if ("dot_edit".equals(name)) {
+                            leftMargin4Icon = MARGIN_VALUE;
+                        } else if ("dot_delete".equals(name)) {
+                            leftMargin4Icon = MARGIN_VALUE;
+                        } else if ("dot_white".equals(name)) {
+                            leftMargin4Icon = MARGIN_VALUE;
+                        } else if ("portal_icon".equals(name)) {
+                            rightMargin4Icon = MARGIN_VALUE;
+                        } else if ("trash".equals(name)) {
+                            // 删除特殊处理不附加额外图标位置 列宽由最小列宽属性来决定
+                            rightMargin4Icon=0;
+                            leftMargin4Icon=0;
+                        } else if ("revert".equals(name)) {
+                            rightMargin4Icon = MARGIN_VALUE;
+                        }
+                    }
+                    if (rightMargin4Icon!=0 && leftMargin4Icon!=0)break;
+                }
+
+                column.setMargin4Icon(rightMargin4Icon+leftMargin4Icon);
+                column.setColumn(i, tableData.getArrayColumns().size());
             }
 
             LineStyle lineStyle = new LineStyle();
@@ -234,6 +292,20 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private int getFirstColumnMaxMerge(TableData tableData){
+        int maxColumn = -1;
+        List<CellRange> list =  tableData.getUserCellRange();
+        for (int i = 0; i < list.size(); i++) {
+            CellRange cellRange = list.get(i);
+            if(cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0){
+                if(maxColumn < cellRange.getLastCol()){
+                    maxColumn = cellRange.getLastCol();
+                }
+            }
+        }
+        return maxColumn;
     }
 
     public void setReportTableData(final View view, final String json, final TableConfigBean configBean) {

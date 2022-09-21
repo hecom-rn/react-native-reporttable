@@ -23,13 +23,14 @@
 
 - (void)setTextPaddingHorizontal:(NSInteger)textPaddingHorizontal {
     CGFloat marginHor = textPaddingHorizontal;
-    [self.label mas_makeConstraints:^(MASConstraintMaker *make) {
+    [self.label mas_remakeConstraints:^(MASConstraintMaker *make) {
         float paddingHorizontal = _icon ? self.icon.paddingHorizontal : 10;
+        float inconWidth = _icon ? self.icon.size.width : 13;
         if (self.icon.imageAlignment == 1) {
             make.right.equalTo(self.contentView.mas_right).offset(-textPaddingHorizontal);
-            make.left.equalTo(self.contentView.mas_left).offset([self isSetupImageView] ? self.icon.size.width + paddingHorizontal * 2 : marginHor);
+            make.left.equalTo(self.contentView.mas_left).offset([self isSetupImageView] ? inconWidth + paddingHorizontal * 2 : marginHor);
         } else {
-            make.right.equalTo(self.contentView.mas_right).offset([self isSetupImageView] ? -marginHor * 2 - paddingHorizontal : -marginHor);
+            make.right.equalTo(self.contentView.mas_right).offset([self isSetupImageView] ? -(inconWidth + paddingHorizontal * 2) : -marginHor);
             make.left.equalTo(self.contentView.mas_left).offset(textPaddingHorizontal);
         }
          make.centerY.equalTo(self.contentView.mas_centerY);
