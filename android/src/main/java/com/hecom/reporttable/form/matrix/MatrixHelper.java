@@ -449,12 +449,12 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
              * 表格的标题不会跟随放大和缩小，也需要减掉多计算部分
              * 根据表格标题方向来判断减掉高还是宽
              */
-            if (tableInfo.getTitleDirection() == IComponent.TOP
-                    || tableInfo.getTitleDirection() == IComponent.BOTTOM) {
-                newHeight -= (int) (tableInfo.getTableTitleSize() * (zoom - 1));
-            } else {
-                newWidth -= (int) (tableInfo.getTableTitleSize() * (zoom - 1));
-            }
+//            if (tableInfo.getTitleDirection() == IComponent.TOP
+//                    || tableInfo.getTitleDirection() == IComponent.BOTTOM) {
+//                newHeight -= (int) (tableInfo.getTableTitleSize() * (zoom - 1));
+//            } else {
+//                newWidth -= (int) (tableInfo.getTableTitleSize() * (zoom - 1));
+//            }
             int minTranslateX = -offsetX;
             int maxTranslateX = newWidth - showWidth - offsetX;
             int minTranslateY = -offsetY;

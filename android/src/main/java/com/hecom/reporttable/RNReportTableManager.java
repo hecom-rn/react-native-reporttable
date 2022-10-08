@@ -40,7 +40,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
         mReactContext = reactContext;
         final SmartTable<String> table = reportTableConfig.createReportTable(reactContext);
 
-        table.setZoom(true,2,0.3f);
+        table.setZoom(true,2,0.5f);
 
         final OnTableChangeListener listener = table.getMatrixHelper().getOnTableChangeListener();
 
