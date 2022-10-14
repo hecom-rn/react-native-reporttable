@@ -162,7 +162,9 @@
 - (void)setMinWidth:(float)minWidth {
     if (self.reportTableModel.minWidth != 0 && self.reportTableModel.minWidth != minWidth) {
         self.reportTableModel.minWidth = minWidth; // update
-        [self integratedDataSource];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self integratedDataSource];
+        });
     } else {
         self.reportTableModel.minWidth = minWidth;
         self.propertyCount += 1;
