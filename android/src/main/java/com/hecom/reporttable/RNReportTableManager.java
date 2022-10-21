@@ -1,5 +1,8 @@
 package com.hecom.reporttable;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
@@ -16,13 +19,7 @@ import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.ReportTableConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.Map;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 
 public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> {
