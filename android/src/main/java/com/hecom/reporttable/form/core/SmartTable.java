@@ -27,6 +27,7 @@ import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
+import com.hecom.reporttable.table.ReportTableConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 
 import java.util.List;
@@ -61,6 +62,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private boolean isExactly = true; //是否是测量精准模式
     private AtomicBoolean isNotifying = new AtomicBoolean(false); //是否正在更新数据
     private boolean isYSequenceRight;
+    private ReportTableConfig mReportTableConfig;
 
     private ThreadPoolExecutor mExecutor = new ThreadPoolExecutor(0, 1, 3, TimeUnit.MINUTES,
             new LinkedBlockingDeque<Runnable>());
@@ -75,7 +77,9 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         return measurer;
     }
 
-    public AtomicBoolean getIsNotifying() {return isNotifying;}
+    public AtomicBoolean getIsNotifying() {
+        return isNotifying;
+    }
 
     public ThreadPoolExecutor getmExecutor() {
         return mExecutor;
@@ -84,6 +88,9 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     public SmartTable(Context context) {
         super(context);
         init(context);
+        this.config.setHorizontalPadding(0).setVerticalPadding(0)
+                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false);
+        this.mReportTableConfig = new ReportTableConfig(context);
     }
 
     public SmartTable(Context context, AttributeSet attrs) {
@@ -663,6 +670,14 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
 
     public void setYSequenceRight(boolean YSequenceRight) {
         isYSequenceRight = YSequenceRight;
+    }
+
+    public ReportTableConfig getReportTableConfig() {
+        return mReportTableConfig;
+    }
+
+    public void setReportTableConfig(ReportTableConfig mReportTableConfig) {
+        this.mReportTableConfig = mReportTableConfig;
     }
 }
 

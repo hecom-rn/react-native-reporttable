@@ -13,7 +13,6 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
-import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
@@ -29,7 +28,6 @@ import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,13 +69,9 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
 
     private boolean clickLockBt = false;
 
-    public SmartTable<String> createReportTable(Context context) {
+    public ReportTableConfig(Context context){
         this.context = context;
-        table = new SmartTable<String>(context);
-        table.getConfig().setHorizontalPadding(0).setVerticalPadding(0)
-                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false);
         MARGIN_VALUE = DensityUtils.dp2px(context, 20);
-        return table;
     }
 
     public void setReportTableDataInMainThread(final SmartTable table, String[][] dataArr, TableConfigBean configBean) {

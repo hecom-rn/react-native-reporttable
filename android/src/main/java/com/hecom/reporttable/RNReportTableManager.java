@@ -25,7 +25,6 @@ import java.util.Map;
 public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> {
     private static final int COMMAND_SCROLL = 1;
     private ThemedReactContext mReactContext;
-    public ReportTableConfig reportTableConfig = new ReportTableConfig();
 
     @Override
     public String getName() {
@@ -35,7 +34,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
     @Override
     protected SmartTable<String> createViewInstance(final ThemedReactContext reactContext) {
         mReactContext = reactContext;
-        final SmartTable<String> table = reportTableConfig.createReportTable(reactContext);
+        final SmartTable<String> table = new SmartTable(reactContext);
 
         table.setZoom(true,2,0.5f);
 
@@ -58,6 +57,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
 
     @ReactProp(name = "data")
     public void setData(SmartTable<String> view, ReadableMap dataSource) {
+        ReportTableConfig reportTableConfig = view.getReportTableConfig();
         if (reportTableConfig == null) {
             return;
         }
