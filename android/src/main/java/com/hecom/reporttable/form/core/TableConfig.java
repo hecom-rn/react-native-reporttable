@@ -282,7 +282,7 @@ public class TableConfig {
     }
 
     public int getVerticalPadding() {
-        return verticalPadding;
+        return (int) (verticalPadding*getZoom());
     }
 
     public TableConfig setVerticalPadding(int verticalPadding) {
@@ -582,7 +582,7 @@ public class TableConfig {
     }
 
     public int getColumnTitleVerticalPadding() {
-        return columnTitleVerticalPadding;
+        return (int) (columnTitleVerticalPadding*getZoom());
     }
 
     public TableConfig setColumnTitleVerticalPadding(int columnTitleVerticalPadding) {
@@ -637,7 +637,7 @@ public class TableConfig {
     }
 
     public int getSequenceVerticalPadding() {
-        return sequenceVerticalPadding;
+        return (int) (sequenceVerticalPadding*getZoom());
     }
 
     public TableConfig setSequenceVerticalPadding(int sequenceVerticalPadding) {
@@ -646,7 +646,7 @@ public class TableConfig {
     }
 
     public int getSequenceHorizontalPadding() {
-        return sequenceHorizontalPadding;
+        return (int) (sequenceHorizontalPadding*getZoom());
     }
 
     public TableConfig setSequenceHorizontalPadding(int sequenceHorizontalPadding) {
@@ -655,7 +655,7 @@ public class TableConfig {
     }
 
     public int getTextLeftOffset() {
-        return textLeftOffset;
+        return (int) (textLeftOffset*zoom);
     }
 
     public TableConfig setTextLeftOffset(int textLeftOffset) {
@@ -664,7 +664,7 @@ public class TableConfig {
     }
 
    public int getTextRightOffset() {
-        return textRightOffset;
+        return (int) (textRightOffset*zoom);
     }
 
     public TableConfig setTextRightOffset(int textRightOffset) {

@@ -16,6 +16,7 @@ import android.view.ViewConfiguration;
 import android.view.ViewParent;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Scroller;
+import android.widget.Toast;
 
 
 import com.hecom.reporttable.form.component.IComponent;
@@ -33,6 +34,7 @@ import java.util.List;
 
 public class MatrixHelper extends Observable<TableClickObserver> implements ITouch, ScaleGestureDetector.OnScaleGestureListener {
 
+    private final Context mContext;
     private  float maxZoom = 5;
     private  float minZoom = 1;
     private float zoom = minZoom; //缩放比例  不得小于1
@@ -62,6 +64,7 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
      * @param context 用于获取GestureDetector，scroller ViewConfiguration
      */
     public MatrixHelper(Context context) {
+        this.mContext=context;
         mScaleGestureDetector = new ScaleGestureDetector(context, this);
         mGestureDetector = new GestureDetector(context, new OnTableGestureListener());
         final ViewConfiguration configuration = ViewConfiguration.get(context);
@@ -304,6 +307,21 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
 
     private boolean isScaleMax;
     private boolean isScaleMin;
+    private long lastMaxTipsTime;
+    private long lastMinTipsTime;
+
+    private void showMaxTips(){
+        if(System.currentTimeMillis()-lastMaxTipsTime>1500){
+            Toast.makeText(mContext,"最大值",Toast.LENGTH_SHORT).show();
+            lastMaxTipsTime=System.currentTimeMillis();
+        }
+    }
+    private void showMinTips(){
+        if(System.currentTimeMillis()-lastMinTipsTime>1500){
+            Toast.makeText(mContext,"最小值",Toast.LENGTH_SHORT).show();
+            lastMinTipsTime=System.currentTimeMillis();
+        }
+    }
 
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
@@ -311,18 +329,23 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         boolean isScaleEnd = false;
         float scale = detector.getScaleFactor();
         if(scale >1 && isScaleMax){
+            showMaxTips();
             isScaleMin = false;
             return true;
         }else if(scale <1 && isScaleMin){
+            showMinTips();
             isScaleMax = false;
             return true;
         }
         this.zoom = tempZoom * scale;
         if (zoom >= maxZoom) {
+           if(zoom > maxZoom) showMaxTips();
             isScaleMax = true;
             this.zoom = maxZoom;
             isScaleEnd = true;
-        } else if (this.zoom<= minZoom) {
+        } else if (zoom<= minZoom) {
+            Log.e("zoom","zoom"+zoom+"***** minZoom"+minZoom);
+            if(zoom < minZoom)showMinTips();
             isScaleMin = true;
             this.zoom = minZoom;
             isScaleEnd = true;
@@ -426,12 +449,12 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
              * 表格的标题不会跟随放大和缩小，也需要减掉多计算部分
              * 根据表格标题方向来判断减掉高还是宽
              */
-            if (tableInfo.getTitleDirection() == IComponent.TOP
-                    || tableInfo.getTitleDirection() == IComponent.BOTTOM) {
-                newHeight -= (int) (tableInfo.getTableTitleSize() * (zoom - 1));
-            } else {
-                newWidth -= (int) (tableInfo.getTableTitleSize() * (zoom - 1));
-            }
+//            if (tableInfo.getTitleDirection() == IComponent.TOP
+//                    || tableInfo.getTitleDirection() == IComponent.BOTTOM) {
+//                newHeight -= (int) (tableInfo.getTableTitleSize() * (zoom - 1));
+//            } else {
+//                newWidth -= (int) (tableInfo.getTableTitleSize() * (zoom - 1));
+//            }
             int minTranslateX = -offsetX;
             int maxTranslateX = newWidth - showWidth - offsetX;
             int minTranslateY = -offsetY;

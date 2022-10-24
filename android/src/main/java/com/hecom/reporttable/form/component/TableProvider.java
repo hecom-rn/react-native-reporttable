@@ -434,14 +434,14 @@ public class TableProvider<T> implements TableClickObserver {
                             if (t == null) {
                                 fixedTopLists.get(i).set(j, correctCellRect.top);
                             } else {
-                                correctCellRect.top = t;
+                                correctCellRect.top = (int) (t*config.getZoom());
                             }
 
                             Integer b = fixedBottomLists.get(i).get(j);
                             if (b == null) {
                                 fixedBottomLists.get(i).set(j, correctCellRect.bottom);
                             } else {
-                                correctCellRect.bottom = b;
+                                correctCellRect.bottom = (int) (b*config.getZoom());
                             }
                         }
                         if (correctCellRect.top < showRect.bottom) {
@@ -469,12 +469,12 @@ public class TableProvider<T> implements TableClickObserver {
                                     if (onlyDrawFrozenRows && j >= config.getFixedLines()) {
                                         break;
                                     }
-                                    Integer tmpBottom = 0;
+                                    int tmpBottom = 0;
                                     int tmp = i;
                                     while (tmp >= 0) {
                                         int inSize = fixedBottomLists.get(tmp).size();
                                         if (inSize > 0) {
-                                            tmpBottom = fixedBottomLists.get(tmp).get(inSize - 1);
+                                            tmpBottom = (int) (fixedBottomLists.get(tmp).get(inSize - 1)*config.getZoom());
                                             break;
                                         }
                                         tmp--;
