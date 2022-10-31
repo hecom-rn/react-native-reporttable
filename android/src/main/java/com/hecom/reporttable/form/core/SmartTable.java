@@ -27,7 +27,7 @@ import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
-import com.hecom.reporttable.table.ReportTableConfig;
+import com.hecom.reporttable.table.ReportTableStore;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 
 import java.util.List;
@@ -62,7 +62,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private boolean isExactly = true; //是否是测量精准模式
     private AtomicBoolean isNotifying = new AtomicBoolean(false); //是否正在更新数据
     private boolean isYSequenceRight;
-    private ReportTableConfig mReportTableConfig;
+    private ReportTableStore mReportTableStore;
 
     private ThreadPoolExecutor mExecutor = new ThreadPoolExecutor(0, 1, 3, TimeUnit.MINUTES,
             new LinkedBlockingDeque<Runnable>());
@@ -90,7 +90,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         init(context);
         this.config.setHorizontalPadding(0).setVerticalPadding(0)
                 .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false);
-        this.mReportTableConfig = new ReportTableConfig(context);
+        this.mReportTableStore = new ReportTableStore(context,this);
     }
 
     public SmartTable(Context context, AttributeSet attrs) {
@@ -672,12 +672,12 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         isYSequenceRight = YSequenceRight;
     }
 
-    public ReportTableConfig getReportTableConfig() {
-        return mReportTableConfig;
+    public ReportTableStore getReportTableConfig() {
+        return mReportTableStore;
     }
 
-    public void setReportTableConfig(ReportTableConfig mReportTableConfig) {
-        this.mReportTableConfig = mReportTableConfig;
+    public void setReportTableConfig(ReportTableStore mReportTableStore) {
+        this.mReportTableStore = mReportTableStore;
     }
 }
 

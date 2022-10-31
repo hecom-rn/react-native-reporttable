@@ -16,7 +16,7 @@ import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.utils.DensityUtils;
-import com.hecom.reporttable.table.ReportTableConfig;
+import com.hecom.reporttable.table.ReportTableStore;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 
 import java.util.Map;
@@ -57,8 +57,8 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
 
     @ReactProp(name = "data")
     public void setData(SmartTable<String> view, ReadableMap dataSource) {
-        ReportTableConfig reportTableConfig = view.getReportTableConfig();
-        if (reportTableConfig == null) {
+        ReportTableStore reportTableStore = view.getReportTableConfig();
+        if (reportTableStore == null) {
             return;
         }
 
@@ -130,17 +130,14 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
             if (dataSource.hasKey("lineColor")) {
                 lineColor = dataSource.getString("lineColor");
             }
-
+            configBean.setFrozenCount(frozenCount);
+            configBean.setFrozenPoint(frozenPoint);
 
             configBean.setTextPaddingHorizontal(DensityUtils.dp2px(mReactContext, textPaddingHorizontal));
             configBean.setLineColor(lineColor);
-            ((SmartTable) view).getProvider().setFrozenCount(frozenCount);
-            ((SmartTable) view).getProvider().setFrozenPoint(frozenPoint);
 
-            reportTableConfig.setReportTableData(view, jsonData, configBean);
+            reportTableStore.setReportTableData(view, jsonData, configBean);
 
-            reportTableConfig.setFrozenCount(frozenCount);
-            reportTableConfig.setFrozenPoint(frozenPoint);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -225,6 +225,26 @@ public class TableConfig {
      */
     private OnScrollChangeListener scrollChangeListener;
 
+    private int frozenCount = 0;
+
+    private int frozenPoint = 0;
+
+    public int getFrozenCount() {
+        return frozenCount;
+    }
+
+    public void setFrozenCount(int frozenCount) {
+        this.frozenCount = frozenCount;
+    }
+
+    public int getFrozenPoint() {
+        return frozenPoint;
+    }
+
+    public void setFrozenPoint(int frozenPoint) {
+        this.frozenPoint = frozenPoint;
+    }
+
     public interface OnScrollChangeListener {
 
         void showUnFixedArea();
