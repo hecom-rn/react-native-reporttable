@@ -175,7 +175,7 @@
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
     cell.label.text = model.title;
     cell.label.textColor = model.textColor;
-    cell.label.textAlignment =  model.isCenter ? NSTextAlignmentCenter : model.isLeft ?  NSTextAlignmentLeft : NSTextAlignmentRight;
+    cell.label.textAlignment = model.textAlignment;
     cell.label.font = [UIFont boldSystemFontOfSize:model.fontSize];
     return cell;
 }
