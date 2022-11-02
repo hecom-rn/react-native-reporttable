@@ -1,5 +1,6 @@
 declare module "@hecom/react-native-report-table" {
     import * as React from 'react';
+    import { ProcessedColorValue } from 'react-native';
 
     export interface ReportTableProps {
         size: {
@@ -17,12 +18,21 @@ declare module "@hecom/react-native-report-table" {
         onScrollEnd?: (isEnd: boolean) => void;
         onScroll?: (pro: ScrollPro) => void;
         lineColor?: string;
-        marginVertical?: number; // item
 
-        frozenPoint?: number; // 首行 指定列支持冻结  第一优先
-        frozenCount?: number; // 首行前几列 可支持点击冻结  第二优先
+        frozenPoint?: number; // 首行 指定列支持冻结  第一优先  使用后带🔒的icon   优先级比 frozenColumns 高
+        frozenCount?: number; // 首行前几列 可支持点击冻结  第二优先 🔒自动锁住
         
         headerView?: () => React.ReactElement;
+
+        itemConfig?: ItemConfig; // 优先级比 DataSource中的属性低
+    }
+
+    export interface ItemConfig {
+        backgroundColor?: string | ProcessedColorValue; // ios ProcessedColorValue   android string
+        fontSize?: number;  // default 14
+        textColor?: string | ProcessedColorValue; // ios ProcessedColorValue   android string
+        textAlignment?: 0 | 1 | 2; // default 0
+        textPaddingHorizontal?: number; // default 12 
     }
 
     export interface ScrollPro {
@@ -41,13 +51,17 @@ declare module "@hecom/react-native-report-table" {
 
     export interface DataSource {
         [key: string]: any;
+
         title: string;
         keyIndex: number;
+
         backgroundColor?: string;
-        fontSize?: number;
+
+        fontSize?: number;  // default 14
         textColor?: string;
-        isLeft?: boolean;
-        isCenter?: boolean;
+        textPaddingHorizontal?: number; // default 12 
+        textAlignment?: 0 | 1 | 2; // default 0
+
         icon?: IconStyle;
     }
 
