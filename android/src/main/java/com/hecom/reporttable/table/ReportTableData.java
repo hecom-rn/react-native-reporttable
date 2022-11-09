@@ -67,6 +67,11 @@ public class ReportTableData {
                         JsonTableBean columnBean = new Gson().fromJson(rowObj.toString(),JsonTableBean.class);
                         rowBean[column] =  columnBean;
                     }
+                    //优化
+                    if(mergeBean.isMergeColumn()){
+                        column=mergeBean.getEndColum();
+                    }
+
                     if(!mergeKeyMap.containsKey(uniqueKeyValue)){
                         CellRange cellRange = new CellRange(-1,-1,-1,-1);
                         boolean isMerge = (mergeBean.isMergeColumn() && mergeBean.getStartColum() != -1 && mergeBean.getEndColum() != -1)
@@ -120,16 +125,36 @@ public class ReportTableData {
     public void mergeRow(int uniqueKeyValue, int searchRowIndex, int searchColumnIndex, JSONArray array){
         if(array == null) return;
         int index = searchRowIndex + 1;
-        if(index >= array.length()) return;
+        int length = array.length();
+//        if(index >= array.length()) return;
         try {
-            JSONArray rowArr =  (JSONArray) array.get(index);
-            JSONObject object = (JSONObject) rowArr.get(searchColumnIndex);
-            int keyValue = getUniqueKeyValue(object);
-            if(uniqueKeyValue != keyValue) return;
-            mergeBean.setMergeRow(true);
-            mergeBean.setEndRow(index);
-            mergeBean.setKeyValue(uniqueKeyValue);
-            mergeRow(uniqueKeyValue, index, searchColumnIndex, array);
+//            JSONArray rowArr =  (JSONArray) array.get(index);
+//            JSONObject object = (JSONObject) rowArr.get(searchColumnIndex);
+//            int keyValue = getUniqueKeyValue(object);
+//            if(uniqueKeyValue != keyValue) return;
+            JSONArray rowArr;
+            JSONObject object;
+            int keyValue;
+            boolean needMerge = false;
+            for (int i = index; i < length ; i++) {
+                rowArr =  (JSONArray) array.get(i);
+                object = (JSONObject) rowArr.get(searchColumnIndex);
+                keyValue = getUniqueKeyValue(object);
+                if(uniqueKeyValue == keyValue){
+                    needMerge=true;
+                }else {
+                    if(needMerge){
+                        mergeBean.setMergeRow(true);
+                        mergeBean.setEndRow(i-1);
+                        mergeBean.setKeyValue(uniqueKeyValue);
+                    }
+                }
+            }
+
+//            mergeBean.setMergeRow(true);
+//            mergeBean.setEndRow(index);
+//            mergeBean.setKeyValue(uniqueKeyValue);
+//            mergeRow(uniqueKeyValue, index, searchColumnIndex, array);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("row-----合并异常了----------");
@@ -140,15 +165,32 @@ public class ReportTableData {
     public void mergeColumn(int uniqueKeyValue,int searchColumnIndex, JSONArray columnArr){
         if(columnArr == null) return;
         int index = searchColumnIndex + 1;
-        if(index >= columnArr.length()) return;
+        int length = columnArr.length();
+//        if(index >= length) return;
         try {
-            JSONObject object =  (JSONObject) columnArr.get(index);
-            int keyValue = getUniqueKeyValue(object);
-            if(uniqueKeyValue != keyValue) return;
-            mergeBean.setMergeColumn(true);
-            mergeBean.setEndColum(index);
-            mergeBean.setKeyValue(uniqueKeyValue);
-            mergeColumn(uniqueKeyValue, index, columnArr);
+//            JSONObject object =  (JSONObject) columnArr.get(index);
+//            int keyValue = getUniqueKeyValue(object);
+//            if(uniqueKeyValue != keyValue) return;
+            JSONObject object;
+            int keyValue;
+            boolean needMerge=false;
+            for (int i = index; i < length; i++) {
+                object =  (JSONObject) columnArr.get(index);
+                keyValue = getUniqueKeyValue(object);
+                if(uniqueKeyValue == keyValue){
+                    needMerge=true;
+                }else {
+                    if(needMerge){
+                        mergeBean.setMergeColumn(true);
+                        mergeBean.setEndColum(i-1);
+                        mergeBean.setKeyValue(uniqueKeyValue);
+                    }
+                    break;
+                }
+            }
+//            mergeBean.setEndColum(index);
+//            mergeBean.setKeyValue(uniqueKeyValue);
+//            mergeColumn(uniqueKeyValue, index, columnArr);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("column------合并异常了----------");
