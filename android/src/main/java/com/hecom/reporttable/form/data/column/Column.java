@@ -42,6 +42,7 @@ public class Column<T> implements Comparable<Column> {
     private IDrawFormat<T> drawFormat;
     private String fieldName;
     private List<T> datas;
+    private List<String> formatDatas;
     private boolean isFixed;
     private int computeWidth;
     private int level;
@@ -225,6 +226,13 @@ public class Column<T> implements Comparable<Column> {
      */
     public void setDatas(List<T> datas) {
         this.datas = datas;
+        if(null!=datas){
+            int size = datas.size();
+            this.formatDatas = new ArrayList<>(size);
+            for (int i = 0; i <size ; i++) {
+                this.formatDatas.add(null);
+            }
+        }
     }
 
 
@@ -364,13 +372,20 @@ public class Column<T> implements Comparable<Column> {
     }
 
 
-
+    public void setFormatData(int position, String value){
+        if(position >=0 && position< datas.size()){
+            formatDatas.set(position,value);
+        }
+    }
 
     public String format(int position){
-        if(position >=0 && position< datas.size()){
-            return format(datas.get(position));
-        }
-        return INVAL_VALUE;
+       if(position >=0 && position< datas.size()){
+           if(formatDatas.get(position)!=null){
+               return formatDatas.get(position);
+           }
+          return format(datas.get(position));
+       }
+       return INVAL_VALUE;
     }
 
 
@@ -763,12 +778,15 @@ public class Column<T> implements Comparable<Column> {
     }
 
 
-    public String format(int position, int frozenCount,int frozenPoint){
-        if(position >=0 && position< datas.size()){
-            return format(datas.get(position), position, frozenCount, frozenPoint);
+     public String format(int position, int frozenCount,int frozenPoint){
+            if(position >=0 && position< datas.size()){
+                if(formatDatas.get(position)!=null){
+                     return formatDatas.get(position);
+                }
+                return format(datas.get(position), position, frozenCount, frozenPoint);
+            }
+            return INVAL_VALUE;
         }
-        return INVAL_VALUE;
-    }
 
     public String format(T t, int row,int frozenCount,int frozenPoint){
         String value;

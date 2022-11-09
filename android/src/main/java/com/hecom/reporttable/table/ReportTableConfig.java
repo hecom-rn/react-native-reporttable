@@ -324,6 +324,10 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             }
 
             final ReportTableConfig config = this;
+            if (json.equals(config.jsonData)){
+                return;
+            }
+            config.jsonData = json;
             Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
@@ -332,7 +336,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                     String[][] innerDataArr = config.dataArr;
                     if (!json.equals(config.jsonData) || innerDataArr == null) {
                         innerDataArr= reportTableData.mergeTable(json);
-                        config.jsonData = json;
+//                        config.jsonData = json;
                         config.dataArr = innerDataArr;
                     }
                     Log.e("ReportTableConfig", "setReportTableData mergeTable end = " + System.currentTimeMillis());

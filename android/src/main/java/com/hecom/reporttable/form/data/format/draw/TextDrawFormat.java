@@ -38,6 +38,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         String value = getWrapText( column.format(position), paint, config, 0);
+        column.setFormatData(position,value);
         return DrawUtils.getMultiTextWidth(paint, getSplitString(value));
     }
 
@@ -87,7 +88,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
 
     protected void drawText(Canvas c, String value, Rect rect, Paint paint,TableConfig config, int marginRight) {
-        value = getWrapText( value, paint, config, marginRight, rect);
+//        value = getWrapText( value, paint, config, marginRight, rect);
         DrawUtils.drawMultiText(c,paint,rect,getSplitString(value));
     }
 
