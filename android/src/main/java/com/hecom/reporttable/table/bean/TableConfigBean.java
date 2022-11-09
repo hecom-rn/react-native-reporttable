@@ -3,6 +3,9 @@ package com.hecom.reporttable.table.bean;
 public class TableConfigBean {
     private int minWidth;
     private int frozenRows;
+    private int frozenCount = 0;
+    private int frozenPoint = 0;
+
 
     public int getFrozenRows() {
         return frozenRows;
@@ -99,4 +102,20 @@ public class TableConfigBean {
     }
 
     private int limitTableHeight;
+
+    public int getFrozenPoint() {
+        return frozenPoint;
+    }
+
+    public void setFrozenPoint(int frozenPoint) {
+        this.frozenPoint = frozenPoint;
+    }
+
+    public int getFrozenCount() {
+        return frozenCount;
+    }
+
+    public void setFrozenCount(int frozenCount) {
+        this.frozenCount = frozenCount;
+    }
 }
