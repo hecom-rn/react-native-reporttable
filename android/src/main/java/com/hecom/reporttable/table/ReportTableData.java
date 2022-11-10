@@ -148,6 +148,7 @@ public class ReportTableData {
                         mergeBean.setEndRow(i-1);
                         mergeBean.setKeyValue(uniqueKeyValue);
                     }
+                    break;
                 }
             }
 
