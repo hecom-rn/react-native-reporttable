@@ -216,8 +216,9 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                 }
                 List<String> columnDatas = column.getDatas();
                 for (int j = 0; j <columnDatas.size(); j++) {
-                    JsonTableBean.Icon icon = tabArr[j][i].getIcon();
-                    if(icon != null){
+                    JsonTableBean tableBean = tabArr[j][i];
+                    if(null != tableBean && null!= tableBean.getIcon()){
+                        JsonTableBean.Icon icon = tableBean.getIcon();
                         String name = icon.getName();
                         if("up".equals(name)){
                             rightMargin4Icon = MARGIN_VALUE;

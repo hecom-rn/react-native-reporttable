@@ -175,7 +175,7 @@ public class ReportTableData {
             int keyValue;
             boolean needMerge=false;
             for (int i = index; i < length; i++) {
-                object =  (JSONObject) columnArr.get(index);
+                object =  (JSONObject) columnArr.get(i);
                 keyValue = getUniqueKeyValue(object);
                 if(uniqueKeyValue == keyValue){
                     needMerge=true;

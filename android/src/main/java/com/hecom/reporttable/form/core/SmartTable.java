@@ -298,22 +298,23 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
      * @param t      新增数据
      * @param isFoot 是否在尾部添加
      */
-    public void addData(final List<T> t, final boolean isFoot) {
-        if (t != null && t.size() > 0) {
-            isNotifying.set(true);
-            mExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    parser.addData(tableData, t, isFoot);
-                    measurer.measure(tableData, config);
-                    requestReMeasure();
-                    isNotifying.set(false);
-                    postInvalidate();
-
-                }
-            });
-        }
-    }
+//这个方法没有引用
+//    public void addData(final List<T> t, final boolean isFoot) {
+//        if (t != null && t.size() > 0) {
+//            isNotifying.set(true);
+//            mExecutor.execute(new Runnable() {
+//                @Override
+//                public void run() {
+//                    parser.addData(tableData, t, isFoot);
+//                    measurer.measure(tableData, config);
+//                    requestReMeasure();
+//                    isNotifying.set(false);
+//                    postInvalidate();
+//
+//                }
+//            });
+//        }
+//    }
 
 
     /**
