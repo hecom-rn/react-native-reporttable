@@ -323,7 +323,10 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 reportTableData = new ReportTableData();
             }
 
-            final ReportTableConfig config = this;
+        final ReportTableConfig config = this;
+        if (json.equals(config.jsonData)){
+            return;
+        }
             Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
