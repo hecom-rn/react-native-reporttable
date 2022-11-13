@@ -269,13 +269,15 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
                 @Override
                 public void run() {
                     //long start = System.currentTimeMillis();
-                    parser.parse(tableData);
-                    TableInfo info = measurer.measure(tableData, config);
-                    xAxis.setHeight(info.getTopHeight());
-                    yAxis.setWidth(info.getyAxisWidth());
-                    requestReMeasure();
-                    isNotifying.set(false);
-                    postInvalidate();
+                    if (tableData != null) {
+                        parser.parse(tableData);
+                        TableInfo info = measurer.measure(tableData, config);
+                        xAxis.setHeight(info.getTopHeight());
+                        yAxis.setWidth(info.getyAxisWidth());
+                        requestReMeasure();
+                        isNotifying.set(false);
+                        postInvalidate();
+                    }
                     //long end = System.currentTimeMillis();
                     //Log.e("smartTable","notifyDataChanged timeMillis="+(end-start));
                 }
