@@ -276,13 +276,15 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
                 @Override
                 public void run() {
                     //long start = System.currentTimeMillis();
-                    parser.parse(tableData);
-                    TableInfo info = measurer.measure(tableData, config);
-                    xAxis.setHeight(info.getTopHeight());
-                    yAxis.setWidth(info.getyAxisWidth());
-                    requestReMeasure();
-                    isNotifying.set(false);
-                    postInvalidate();
+                    if (tableData != null) {
+                        parser.parse(tableData);
+                        TableInfo info = measurer.measure(tableData, config);
+                        xAxis.setHeight(info.getTopHeight());
+                        yAxis.setWidth(info.getyAxisWidth());
+                        requestReMeasure();
+                        isNotifying.set(false);
+                        postInvalidate();
+                    }
                     //long end = System.currentTimeMillis();
                     //Log.e("smartTable","notifyDataChanged timeMillis="+(end-start));
                 }
@@ -641,6 +643,13 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
+                    while (isNotifying.get()){
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
                     release();
                 }
             });
