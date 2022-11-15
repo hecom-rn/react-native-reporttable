@@ -136,8 +136,8 @@ public class ReportTableData {
             JSONObject object;
             int keyValue;
             boolean needMerge = false;
-            for (int i = index; i < length ; i++) {
-                rowArr =  (JSONArray) array.get(i);
+            for (; index < length ; index++) {
+                rowArr =  (JSONArray) array.get(index);
                 object = (JSONObject) rowArr.get(searchColumnIndex);
                 keyValue = getUniqueKeyValue(object);
                 if(uniqueKeyValue == keyValue){
@@ -145,11 +145,16 @@ public class ReportTableData {
                 }else {
                     if(needMerge){
                         mergeBean.setMergeRow(true);
-                        mergeBean.setEndRow(i-1);
+                        mergeBean.setEndRow(index-1);
                         mergeBean.setKeyValue(uniqueKeyValue);
                     }
                     break;
                 }
+            }
+            if(needMerge && index==length){
+                mergeBean.setMergeRow(true);
+                mergeBean.setEndRow(index-1);
+                mergeBean.setKeyValue(uniqueKeyValue);
             }
 
 //            mergeBean.setMergeRow(true);
@@ -175,19 +180,25 @@ public class ReportTableData {
             JSONObject object;
             int keyValue;
             boolean needMerge=false;
-            for (int i = index; i < length; i++) {
-                object =  (JSONObject) columnArr.get(i);
+            for ( ; index < length; index++) {
+                object =  (JSONObject) columnArr.get(index);
                 keyValue = getUniqueKeyValue(object);
                 if(uniqueKeyValue == keyValue){
                     needMerge=true;
                 }else {
                     if(needMerge){
                         mergeBean.setMergeColumn(true);
-                        mergeBean.setEndColum(i-1);
+                        mergeBean.setEndColum(index-1);
                         mergeBean.setKeyValue(uniqueKeyValue);
                     }
                     break;
                 }
+            }
+
+            if(needMerge && index==length ){ //最后一列的处理
+                mergeBean.setMergeColumn(true);
+                mergeBean.setEndColum(index-1);
+                mergeBean.setKeyValue(uniqueKeyValue);
             }
 //            mergeBean.setEndColum(index);
 //            mergeBean.setKeyValue(uniqueKeyValue);
