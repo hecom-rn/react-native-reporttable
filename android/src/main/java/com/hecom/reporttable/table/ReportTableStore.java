@@ -307,12 +307,16 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                 public void run() {
 
                     Log.e("ReportTableConfig", "setReportTableData mergeTable start = " + System.currentTimeMillis());
-                    String[][] innerDataArr = config.dataArr;
-                    if (!json.equals(config.jsonData) || innerDataArr == null) {
-                        innerDataArr= reportTableData.mergeTable(json);
+                    String[][] innerDataArr= reportTableData.mergeTable(json);
+                    config.dataArr = innerDataArr;
+//                    String[][] innerDataArr = config.dataArr;
+//                    if (!json.equals(config.jsonData) || innerDataArr == null) {
+//                        innerDataArr= reportTableData.mergeTable(json);
 //                        config.jsonData = json;
-                        config.dataArr = innerDataArr;
-                    }
+//                        config.dataArr = innerDataArr;
+//                    }
+
+
                     Log.e("ReportTableConfig", "setReportTableData mergeTable end = " + System.currentTimeMillis());
                     ((SmartTable<?>) view).getIsNotifying().set(false);
 //                    view.post(new Runnable() {
