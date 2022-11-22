@@ -1,5 +1,11 @@
 package com.hecom.reporttable.table;
 
+import com.google.gson.Gson;
+import com.hecom.reporttable.form.core.SmartTable;
+import com.hecom.reporttable.form.data.CellRange;
+import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.MergeBean;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -8,22 +14,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.hecom.reporttable.form.core.SmartTable;
-import com.hecom.reporttable.form.data.CellRange;
-import com.hecom.reporttable.table.bean.MergeBean;
-import com.hecom.reporttable.table.bean.JsonTableBean;
-import com.google.gson.Gson;
-
 public class ReportTableData {
     private ArrayList<CellRange> mergeList = new ArrayList<>();
-    private Map<Integer,Integer> mergeKeyMap = new HashMap<>();
+    private Map<Integer, Integer> mergeKeyMap = new HashMap<>();
     private SmartTable<String> table;
     private MergeBean mergeBean = new MergeBean();
     private String uniqueKey = "keyIndex";
     private String valueKey = "title";
     private JsonTableBean[][] tabArr;
     private int strUnit = 10;
-    public Map<Integer,Integer> columnMapWidth = new HashMap<>();
+    public Map<Integer, Integer> columnMapWidth = new HashMap<>();
+
     public ArrayList<CellRange> getMergeList() {
         return new ArrayList<>(mergeList);
     }
@@ -32,8 +33,8 @@ public class ReportTableData {
         return tabArr;
     }
 
-    public String[][] mergeTable(String json){
-        if(json == null){
+    public String[][] mergeTable(String json) {
+        if (json == null) {
             return null;
         }
 
@@ -41,8 +42,8 @@ public class ReportTableData {
         mergeKeyMap.clear();
         try {
             JSONArray jsonArray = new JSONArray(json);
-            String[][] strArr =  creatArr(jsonArray);
-            if(strArr == null){
+            String[][] strArr = creatArr(jsonArray);
+            if (strArr == null) {
                 return null;
             }
             tabArr = new JsonTableBean[jsonArray.length()][];
@@ -55,44 +56,45 @@ public class ReportTableData {
                     int uniqueKeyValue = getUniqueKeyValue(rowObj);
                     mergeBean.clear();
                     mergeBean.setStartColum(column);
-                    mergeColumn(uniqueKeyValue, column ,columnArr);
+                    mergeColumn(uniqueKeyValue, column, columnArr);
                     mergeBean.setStartRow(row);
                     mergeRow(uniqueKeyValue, row, column, jsonArray);
-                    if(!rowObj.has(valueKey) || rowObj.get(valueKey) == null ||  "".equals(rowObj.get(valueKey))){
+                    if (!rowObj.has(valueKey) || rowObj.get(valueKey) == null || "".equals(rowObj.get(valueKey))) {
                         strArr[column][row] = "-";
-                        JsonTableBean jsonTableBean = new JsonTableBean("-");
-                        rowBean[column] =  jsonTableBean;
-                    }else{
+                        JsonTableBean jsonTableBean = new Gson().fromJson(rowObj.toString(), JsonTableBean.class);
+                        jsonTableBean.setTitle("-");
+                        rowBean[column] = jsonTableBean;
+                    } else {
                         strArr[column][row] = (String) rowObj.get(valueKey).toString();
-                        JsonTableBean columnBean = new Gson().fromJson(rowObj.toString(),JsonTableBean.class);
-                        rowBean[column] =  columnBean;
+                        JsonTableBean columnBean = new Gson().fromJson(rowObj.toString(), JsonTableBean.class);
+                        rowBean[column] = columnBean;
                     }
                     //优化
-                    if(mergeBean.isMergeColumn()){
-                        column=mergeBean.getEndColum();
+                    if (mergeBean.isMergeColumn()) {
+                        column = mergeBean.getEndColum();
                     }
 
-                    if(!mergeKeyMap.containsKey(uniqueKeyValue)){
-                        CellRange cellRange = new CellRange(-1,-1,-1,-1);
+                    if (!mergeKeyMap.containsKey(uniqueKeyValue)) {
+                        CellRange cellRange = new CellRange(-1, -1, -1, -1);
                         boolean isMerge = (mergeBean.isMergeColumn() && mergeBean.getStartColum() != -1 && mergeBean.getEndColum() != -1)
                                 || (mergeBean.isMergeRow() && mergeBean.getStartRow() != -1 && mergeBean.getEndRow() != -1);
-                        if(isMerge){
-                            if(mergeBean.isMergeColumn()){
+                        if (isMerge) {
+                            if (mergeBean.isMergeColumn()) {
                                 cellRange.setFirstCol(mergeBean.getStartColum());
                                 cellRange.setLastCol(mergeBean.getEndColum());
-                            }else{
+                            } else {
                                 cellRange.setFirstCol(mergeBean.getStartColum());
                                 cellRange.setLastCol(mergeBean.getStartColum());
                             }
-                            if(mergeBean.isMergeRow()){
+                            if (mergeBean.isMergeRow()) {
                                 cellRange.setFirstRow(mergeBean.getStartRow());
                                 cellRange.setLastRow(mergeBean.getEndRow());
-                            }else{
+                            } else {
                                 cellRange.setFirstRow(mergeBean.getStartRow());
                                 cellRange.setLastRow(mergeBean.getStartRow());
                             }
                             mergeList.add(cellRange);
-                            mergeKeyMap.put(uniqueKeyValue,uniqueKeyValue);
+                            mergeKeyMap.put(uniqueKeyValue, uniqueKeyValue);
                         }
                     }
                 }
@@ -107,11 +109,11 @@ public class ReportTableData {
     }
 
 
-    public int getUniqueKeyValue(JSONObject obj){
+    public int getUniqueKeyValue(JSONObject obj) {
         int value = -1;
         try {
-            if(obj.has(uniqueKey)){
-                return  (int) obj.get(uniqueKey);
+            if (obj.has(uniqueKey)) {
+                return (int) obj.get(uniqueKey);
             }
             long nanoTime = System.nanoTime();
             value = new Long(nanoTime).intValue();
@@ -122,8 +124,8 @@ public class ReportTableData {
         return value;
     }
 
-    public void mergeRow(int uniqueKeyValue, int searchRowIndex, int searchColumnIndex, JSONArray array){
-        if(array == null) return;
+    public void mergeRow(int uniqueKeyValue, int searchRowIndex, int searchColumnIndex, JSONArray array) {
+        if (array == null) return;
         int index = searchRowIndex + 1;
         int length = array.length();
 //        if(index >= array.length()) return;
@@ -136,24 +138,24 @@ public class ReportTableData {
             JSONObject object;
             int keyValue;
             boolean needMerge = false;
-            for (; index < length ; index++) {
-                rowArr =  (JSONArray) array.get(index);
+            for (; index < length; index++) {
+                rowArr = (JSONArray) array.get(index);
                 object = (JSONObject) rowArr.get(searchColumnIndex);
                 keyValue = getUniqueKeyValue(object);
-                if(uniqueKeyValue == keyValue){
-                    needMerge=true;
-                }else {
-                    if(needMerge){
+                if (uniqueKeyValue == keyValue) {
+                    needMerge = true;
+                } else {
+                    if (needMerge) {
                         mergeBean.setMergeRow(true);
-                        mergeBean.setEndRow(index-1);
+                        mergeBean.setEndRow(index - 1);
                         mergeBean.setKeyValue(uniqueKeyValue);
                     }
                     break;
                 }
             }
-            if(needMerge && index==length){
+            if (needMerge && index == length) {
                 mergeBean.setMergeRow(true);
-                mergeBean.setEndRow(index-1);
+                mergeBean.setEndRow(index - 1);
                 mergeBean.setKeyValue(uniqueKeyValue);
             }
 
@@ -168,8 +170,8 @@ public class ReportTableData {
     }
 
     //合并列（从左往右找）
-    public void mergeColumn(int uniqueKeyValue,int searchColumnIndex, JSONArray columnArr){
-        if(columnArr == null) return;
+    public void mergeColumn(int uniqueKeyValue, int searchColumnIndex, JSONArray columnArr) {
+        if (columnArr == null) return;
         int index = searchColumnIndex + 1;
         int length = columnArr.length();
 //        if(index >= length) return;
@@ -179,25 +181,25 @@ public class ReportTableData {
 //            if(uniqueKeyValue != keyValue) return;
             JSONObject object;
             int keyValue;
-            boolean needMerge=false;
-            for ( ; index < length; index++) {
-                object =  (JSONObject) columnArr.get(index);
+            boolean needMerge = false;
+            for (; index < length; index++) {
+                object = (JSONObject) columnArr.get(index);
                 keyValue = getUniqueKeyValue(object);
-                if(uniqueKeyValue == keyValue){
-                    needMerge=true;
-                }else {
-                    if(needMerge){
+                if (uniqueKeyValue == keyValue) {
+                    needMerge = true;
+                } else {
+                    if (needMerge) {
                         mergeBean.setMergeColumn(true);
-                        mergeBean.setEndColum(index-1);
+                        mergeBean.setEndColum(index - 1);
                         mergeBean.setKeyValue(uniqueKeyValue);
                     }
                     break;
                 }
             }
 
-            if(needMerge && index==length ){ //最后一列的处理
+            if (needMerge && index == length) { //最后一列的处理
                 mergeBean.setMergeColumn(true);
-                mergeBean.setEndColum(index-1);
+                mergeBean.setEndColum(index - 1);
                 mergeBean.setKeyValue(uniqueKeyValue);
             }
 //            mergeBean.setEndColum(index);
@@ -209,12 +211,12 @@ public class ReportTableData {
         }
     }
 
-    public String[][] creatArr(JSONArray jsonArray){
+    public String[][] creatArr(JSONArray jsonArray) {
         String[][] arr = null;
-        if(jsonArray == null) return arr;
+        if (jsonArray == null) return arr;
         try {
-            JSONArray columnArr = (JSONArray)jsonArray.get(0);
-            if(columnArr == null) return arr;
+            JSONArray columnArr = (JSONArray) jsonArray.get(0);
+            if (columnArr == null) return arr;
             arr = new String[columnArr.length()][jsonArray.length()];
         } catch (Exception e) {
             e.printStackTrace();
