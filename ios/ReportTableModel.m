@@ -72,12 +72,6 @@
 
 
 @implementation ItemModel
-- (NSInteger)textPaddingHorizontal {
-    if (!_textPaddingHorizontal) {
-        return 6;
-    }
-    return _textPaddingHorizontal;
-}
 
 - (NSInteger)horCount {
     if (!_horCount) {
@@ -91,6 +85,41 @@
         return 1;
     }
     return _verCount;
+}
+
+- (UIColor *)backgroundColor {
+    if (!_backgroundColor) {
+        return _itemConfig.backgroundColor;
+    }
+    return _backgroundColor;
+}
+
+- (CGFloat)fontSize {
+    if (!_fontSize) {
+        return _itemConfig.fontSize;
+    }
+    return _fontSize;
+}
+
+- (UIColor *)textColor {
+    if (!_textColor) {
+        return _itemConfig.textColor;
+    }
+    return _textColor;
+}
+
+- (NSInteger)textPaddingHorizontal {
+    if (!_textPaddingHorizontal) {
+        return _itemConfig.textPaddingHorizontal;
+    }
+    return _textPaddingHorizontal;
+}
+
+- (NSTextAlignment)textAlignment {
+    if (!_textAlignment) {
+        return _itemConfig.textAlignment;
+    }
+    return _textAlignment;
 }
 
 @end
