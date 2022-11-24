@@ -1,5 +1,8 @@
 package com.hecom.reporttable;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
@@ -13,22 +16,15 @@ import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.utils.DensityUtils;
-import com.hecom.reporttable.table.ReportTableConfig;
+import com.hecom.reporttable.table.ReportTableStore;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.Map;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 
 public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> {
     private static final int COMMAND_SCROLL = 1;
     private ThemedReactContext mReactContext;
-    public ReportTableConfig reportTableConfig = new ReportTableConfig();
 
     @Override
     public String getName() {
@@ -38,7 +34,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
     @Override
     protected SmartTable<String> createViewInstance(final ThemedReactContext reactContext) {
         mReactContext = reactContext;
-        final SmartTable<String> table = reportTableConfig.createReportTable(reactContext);
+        final SmartTable<String> table = new SmartTable(reactContext);
 
         table.setZoom(true,2,0.5f);
 
@@ -61,7 +57,8 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
 
     @ReactProp(name = "data")
     public void setData(SmartTable<String> view, ReadableMap dataSource) {
-        if (reportTableConfig == null) {
+        ReportTableStore reportTableStore = view.getReportTableConfig();
+        if (reportTableStore == null) {
             return;
         }
 
@@ -133,17 +130,14 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
             if (dataSource.hasKey("lineColor")) {
                 lineColor = dataSource.getString("lineColor");
             }
-
+            configBean.setFrozenCount(frozenCount);
+            configBean.setFrozenPoint(frozenPoint);
 
             configBean.setTextPaddingHorizontal(DensityUtils.dp2px(mReactContext, textPaddingHorizontal));
             configBean.setLineColor(lineColor);
-            ((SmartTable) view).getProvider().setFrozenCount(frozenCount);
-            ((SmartTable) view).getProvider().setFrozenPoint(frozenPoint);
 
-            reportTableConfig.setReportTableData(view, jsonData, configBean);
+            reportTableStore.setReportTableData(view, jsonData, configBean);
 
-            reportTableConfig.setFrozenCount(frozenCount);
-            reportTableConfig.setFrozenPoint(frozenPoint);
         } catch (Exception e) {
             e.printStackTrace();
         }

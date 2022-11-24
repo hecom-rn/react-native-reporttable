@@ -13,7 +13,6 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
-import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
@@ -29,58 +28,31 @@ import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
+public class ReportTableStore implements TableConfig.OnScrollChangeListener {
     private SmartTable<String> table;
     private ReportTableData reportTableData = new ReportTableData();
     private Context context;
     private String defaultTextColor = "#000000";
     private String defaultBgColor = "#ffffff";
-    private int defaultWidth = 50;
-    private int defaultHeight = 30;
-    private int strUnit = 10;
-    private TableConfigBean configBean;
     private Map<Integer, Integer> columnMapWidth = new HashMap<>();
 
     private String jsonData;
     private String[][] dataArr;
     int MARGIN_VALUE = 40;
 
-    public Map<Integer, Integer> getColumnMapWidth() {
-        return columnMapWidth;
-    }
-
-    public SmartTable<String> getTable() {
-        return table;
-    }
-
-    private int frozenCount = 0;
-    private int frozenPoint = 0;
-
-    public void setFrozenCount(int frozenCount) {
-        this.frozenCount = frozenCount;
-    }
-
-    public void setFrozenPoint(int frozenPoint) {
-        this.frozenPoint = frozenPoint;
-    }
-
     private boolean clickLockBt = false;
 
-    public SmartTable<String> createReportTable(Context context) {
+    public ReportTableStore(Context context,SmartTable smartTable){
         this.context = context;
-        table = new SmartTable<String>(context);
-        table.getConfig().setHorizontalPadding(0).setVerticalPadding(0)
-                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false);
         MARGIN_VALUE = DensityUtils.dp2px(context, 20);
-        return table;
+        this.table=smartTable;
     }
 
-    public void setReportTableDataInMainThread(final SmartTable table, String[][] dataArr, TableConfigBean configBean) {
+    public void setReportTableDataInMainThread(final SmartTable table, String[][] dataArr,final TableConfigBean configBean) {
         final ArrayTableData<String> rawTableData = (ArrayTableData<String>) table.getTableData();
         int minWidth = configBean.getMinWidth();
         int minHeight = configBean.getMinHeight();
@@ -173,20 +145,20 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 public boolean responseOnClick(Column column, String value, Object o, int col, int row) {
                     if (row == 0) {
                         int firstColumnMaxMerge = tableData.getFirstColumnMaxMerge();
-                        if (frozenPoint > 0) {
+                        if (configBean.getFrozenPoint() > 0) {
                             if (col == 0 && firstColumnMaxMerge > 0) {
                                 col = firstColumnMaxMerge;
                             }
-                            if (col == frozenPoint - 1) {
+                            if (col == configBean.getFrozenPoint() - 1) {
                                 clickLockBt = true;
-                            } else if (col < frozenPoint - 1) {
+                            } else if (col < configBean.getFrozenPoint() - 1) {
                                 clickLockBt = false;
                             } else {
                                 clickLockBt = false;
                             }
                         } else {
-                            if (frozenCount > 0) {
-                                if (col < frozenCount) {
+                            if (configBean.getFrozenCount() > 0) {
+                                if (col < configBean.getFrozenCount()) {
                                     clickLockBt = true;
                                 } else {
                                     clickLockBt = false;
@@ -227,25 +199,26 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 rightMargin4Icon= 0;
                 leftMargin4Icon= 0;
                 Column<String> column = tableData.getArrayColumns().get(i);
-                if(frozenPoint > 0){
+                if(configBean.getFrozenPoint() > 0){
                     int col = i;
                     if(col == 0 && firstColMaxMerge > 0){
                         col = firstColMaxMerge;
                     }
-                    if(col == frozenPoint - 1 ){
+                    if(col == configBean.getFrozenPoint() - 1 ){
                         rightMargin4Icon= MARGIN_VALUE;
                     }
                 }else{
-                    if(frozenCount > 0){
-                        if(i < frozenCount){
+                    if(configBean.getFrozenCount() > 0){
+                        if(i < configBean.getFrozenCount()){
                             rightMargin4Icon= MARGIN_VALUE;
                         }
                     }
                 }
                 List<String> columnDatas = column.getDatas();
                 for (int j = 0; j <columnDatas.size(); j++) {
-                    JsonTableBean.Icon icon = tabArr[j][i].getIcon();
-                    if(icon != null){
+                    JsonTableBean tableBean = tabArr[j][i];
+                    if(null != tableBean && null!= tableBean.getIcon()){
+                        JsonTableBean.Icon icon = tableBean.getIcon();
                         String name = icon.getName();
                         if("up".equals(name)){
                             rightMargin4Icon = MARGIN_VALUE;
@@ -287,6 +260,8 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
             table.getMeasurer().setLimitTableHeight(configBean.getLimitTableHeight());
             table.getConfig().setMinCellWidth(DensityUtils.dp2px(this.context, configBean.getMinWidth()));
             table.getConfig().setMaxCellWidth(DensityUtils.dp2px(this.context, configBean.getMaxWidth()));
+            table.getConfig().setFrozenCount(configBean.getFrozenCount());
+            table.getConfig().setFrozenPoint(configBean.getFrozenPoint());
             table.setTableData(tableData);
 //            table.notifyDataChanged();
         } catch (Exception e) {
@@ -314,7 +289,6 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
         }
         final SmartTable<String> table = ((SmartTable<String>) view);
         final ArrayTableData<String> rawTableData = (ArrayTableData<String>) table.getTableData();
-        this.configBean = configBean;
         int minWidth = configBean.getMinWidth();
         int minHeight = configBean.getMinHeight();
 
@@ -323,7 +297,7 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 reportTableData = new ReportTableData();
             }
 
-            final ReportTableConfig config = this;
+            final ReportTableStore config = this;
             if (json.equals(config.jsonData)){
                 return;
             }
@@ -333,12 +307,16 @@ public class ReportTableConfig implements TableConfig.OnScrollChangeListener {
                 public void run() {
 
                     Log.e("ReportTableConfig", "setReportTableData mergeTable start = " + System.currentTimeMillis());
-                    String[][] innerDataArr = config.dataArr;
-                    if (!json.equals(config.jsonData) || innerDataArr == null) {
-                        innerDataArr= reportTableData.mergeTable(json);
+                    String[][] innerDataArr= reportTableData.mergeTable(json);
+                    config.dataArr = innerDataArr;
+//                    String[][] innerDataArr = config.dataArr;
+//                    if (!json.equals(config.jsonData) || innerDataArr == null) {
+//                        innerDataArr= reportTableData.mergeTable(json);
 //                        config.jsonData = json;
-                        config.dataArr = innerDataArr;
-                    }
+//                        config.dataArr = innerDataArr;
+//                    }
+
+
                     Log.e("ReportTableConfig", "setReportTableData mergeTable end = " + System.currentTimeMillis());
                     ((SmartTable<?>) view).getIsNotifying().set(false);
 //                    view.post(new Runnable() {

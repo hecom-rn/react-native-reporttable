@@ -72,15 +72,6 @@ public class TableProvider<T> implements TableClickObserver {
     private MyTextImageDrawFormat rightTextImageDrawFormat;
     private MyTextImageDrawFormat leftTextImageDrawFormat;
 
-    private int frozenCount = 0;
-    private int frozenPoint = 0;
-    public void setFrozenCount(int frozenCount) {
-        this.frozenCount = frozenCount;
-    }
-
-    public void setFrozenPoint(int frozenPoint) {
-        this.frozenPoint = frozenPoint;
-    }
 
     //private static final String TAG = "TableProvider";
 
@@ -397,7 +388,7 @@ public class TableProvider<T> implements TableClickObserver {
                 for (int j = 0; j < size; j++) {
                     //遍历行
                     boolean isDrawLock = (j == 0 && column.isFixed());
-                    String value = column.format(j, frozenCount, frozenPoint);
+                    String value = column.format(j, config.getFrozenCount(), config.getFrozenPoint());
                     int skip =tableInfo.getSeizeCellSize(column,j);
                     int totalLineHeight =0;
                     for(int k = realPosition;k<realPosition+skip;k++){
@@ -554,12 +545,12 @@ public class TableProvider<T> implements TableClickObserver {
         rect.right = rect.right - config.getTextRightOffset();
 
         if(cellInfo.row == 0 ){
-            if(frozenPoint > 0){
+            if(config.getFrozenPoint() > 0){
                 int col = cellInfo.col;
                 if(col == 0 && firstColMaxMerge > 0){
                     col = firstColMaxMerge;
                 }
-                if(col == frozenPoint - 1 ){
+                if(col == config.getFrozenPoint() - 1 ){
                     if(isDrawLock){
                         rightTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
                     }else{
@@ -570,8 +561,8 @@ public class TableProvider<T> implements TableClickObserver {
                     selectDrawFormat(c, rect, cellInfo, config);
                 }
             }else{
-                if(frozenCount > 0){
-                    if(cellInfo.col < frozenCount){
+                if(config.getFrozenCount() > 0){
+                    if(cellInfo.col < config.getFrozenCount()){
                         if(isDrawLock){
                             rightTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
                         }else{
