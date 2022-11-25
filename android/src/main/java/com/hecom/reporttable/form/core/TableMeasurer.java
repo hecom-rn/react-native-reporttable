@@ -18,13 +18,14 @@ import com.hecom.reporttable.table.bean.JsonTableBean;
 
 import java.util.List;
 
-/**表格测量器
+/**
+ * 表格测量器
  * Created by huang on 2017/11/2.
  */
 
 public class TableMeasurer<T> {
 
-    private  boolean isReMeasure; //是否重新计算
+    private boolean isReMeasure; //是否重新计算
 
     private JsonTableBean[][] tabArr;
 
@@ -44,15 +45,18 @@ public class TableMeasurer<T> {
         this.tabArr = tabArr;
     }
 
-    public TableInfo measure(TableData<T> tableData, TableConfig config){
+    public TableInfo measure(TableData<T> tableData, TableConfig config) {
         isReMeasure = true;
         TableInfo tableInfo = tableData.getTableInfo();
-        int width = getTableWidth(tableData,config);
-        int height = getTableHeight(tableData,config);
-        if(height > limitTableHeight){
+        int columnLen = tableData.getMaxValues4Column().length;
+        int rowLen = tableData.getMaxValues4Row().length;
+        boolean fastModel = columnLen * rowLen > 5000;
+        int width = getTableWidth(tableData, config, fastModel);
+        int height = getTableHeight(tableData, config, fastModel);
+//        if (height > limitTableHeight) {
 //              height = height + addTableHeight;
-        }
-        tableInfo.setTableRect(new Rect(0,0,width,height));
+//        }
+        tableInfo.setTableRect(new Rect(0, 0, width, height));
         measureColumnSize(tableData);
         return tableInfo;
     }
@@ -96,33 +100,15 @@ public class TableMeasurer<T> {
             showRect.right = tableRect.right;
         }
     }
-    /**
-     * 添加table高度
-     * @param tableData
-     * @return
-     */
-    public void addTableHeight(TableData<T> tableData,TableConfig config){
-        /*TableInfo tableInfo = tableData.getTableInfo();
-        Rect tableRect = tableInfo.getTableRect();
-        int[] lineArray = tableInfo.getLineHeightArray();
-        for(int i = startPosition;i<lineArray.length;i++){
-           tableRect.bottom+= lineArray[i];
-        }*/
-        TableInfo tableInfo = tableData.getTableInfo();
-        int width = getTableWidth(tableData,config);
-        int height = getTableHeight(tableData,config);
-        tableInfo.setTableRect(new Rect(0,0,width,height));
-    }
-
-
 
     /**
      * 计算table高度
      * @param tableData
      * @param config
+     * @param fastModel
      * @return
      */
-    private int getTableHeight(TableData<T> tableData,TableConfig config){
+    private int getTableHeight(TableData<T> tableData, TableConfig config, boolean fastModel) {
         Paint paint = config.getPaint();
         int topHeight = 0;
         if(config.isShowXSequence()) {
@@ -135,8 +121,21 @@ public class TableMeasurer<T> {
         tableInfo.setTitleHeight(titleHeight);
         tableInfo.setTopHeight(topHeight);
         int totalContentHeight = 0;
-        for(int height :tableInfo.getLineHeightArray()){
-            totalContentHeight+=height;
+        if(fastModel){
+            String[] maxValues4Row = tableData.getMaxValues4Row();
+            List<Column> childColumns = tableData.getChildColumns();
+            Column column = childColumns.get(0);
+            int[] lineHeightArray = tableData.getTableInfo().getLineHeightArray();//如果有的行是图片会造成误差 暂时按照全是文字
+            int rowLength = maxValues4Row.length;
+            for (int i = 0; i < rowLength; i++) {
+                int rowHeight = column.getDrawFormat().measureHeight(column, maxValues4Row[i], config) + 2 * config.getVerticalPadding();
+                lineHeightArray[i] = rowHeight;
+                totalContentHeight += rowHeight;
+            }
+        }else {
+            for(int height :tableInfo.getLineHeightArray()){
+                totalContentHeight+=height;
+            }
         }
         int totalTitleHeight = titleHeight*tableInfo.getMaxLevel();
         int totalHeight = topHeight +totalTitleHeight+totalContentHeight;
@@ -153,87 +152,157 @@ public class TableMeasurer<T> {
      * 计算table宽度
      * @param tableData
      * @param config
+     * @param fastModel
      * @return
      */
-    private int getTableWidth(TableData<T> tableData,TableConfig config){
-        int totalWidth= 0;
-        Paint paint = config.getPaint();
-        config.getYSequenceStyle().fillPaint(paint);
-        int totalSize = tableData.getLineSize();
-        if(config.isShowYSequence()) {
-            int yAxisWidth = (int) paint.measureText(tableData.getYSequenceFormat().format(totalSize)
-                    + 2 * config.getSequenceHorizontalPadding());
-            tableData.getTableInfo().setyAxisWidth(yAxisWidth);
-            totalWidth+=yAxisWidth;
-        }
+    private int getTableWidth(TableData<T> tableData, TableConfig config, boolean fastModel) {
+        if (fastModel) {
+            //大数据量方案
+            String[] maxValues4Column = tableData.getMaxValues4Column();
+            int totalWidth = 0;
+            Paint paint = config.getPaint();
+            config.getYSequenceStyle().fillPaint(paint);
+            int totalSize = tableData.getLineSize();
+            if (config.isShowYSequence()) {
+                int yAxisWidth = (int) paint.measureText(tableData.getYSequenceFormat().format(totalSize)
+                        + 2 * config.getSequenceHorizontalPadding());
+                tableData.getTableInfo().setyAxisWidth(yAxisWidth);
+                totalWidth += yAxisWidth;
+            }
 
-        int columnPos =0;
-        int contentWidth = 0;
-        int[] lineHeightArray = tableData.getTableInfo().getLineHeightArray();
-        TableInfo tableInfo = tableData.getTableInfo();
-        int currentPosition,size;
-        List<Column> childColumns = tableData.getChildColumns();
-        int horizontalPadding = config.getTextRightOffset()+ config.getTextLeftOffset();
-        for (int i = 0; i < childColumns.size(); i++) {
-            Column  column =childColumns.get(i);
-            float columnNameWidth =tableData.getTitleDrawFormat().measureWidth(column,config)
-                    +config.getColumnTitleHorizontalPadding()*2;
-            int columnWidth =0;
-            size = column.getDatas().size();
-            currentPosition=0;
-            boolean isArrayColumn = column instanceof ArrayColumn;
-            Cell[][] rangeCells = tableData.getTableInfo().getRangeCells();
-            for(int position = 0;position < size;position++) {
-                int width = column.getDrawFormat().measureWidth(column, position, config)+column.getMargin4Icon();
-                measureRowHeight(config, lineHeightArray, column, currentPosition, position);
-                int skipPosition = tableInfo.getSeizeCellSize(column, position);
-                currentPosition += skipPosition;
-                /**
-                 *Todo 为了解决合并单元宽度过大问题
-                 */
-                if (!isArrayColumn) {
-                    if(rangeCells !=null) {
-                        Cell cell = rangeCells[position][columnPos];
-                        if (cell != null) {
-                            if (cell.row != Cell.INVALID && cell.col != Cell.INVALID) {
-                                cell.width = width;
-                                width = width / cell.col;
-                            } else if (cell.realCell != null) {
-                                width = cell.realCell.width / cell.realCell.col;
+            int contentWidth = 0;
+            TableInfo tableInfo = tableData.getTableInfo();
+            int  size;
+            List<Column> childColumns = tableData.getChildColumns();
+            int horizontalPadding = config.getTextRightOffset() + config.getTextLeftOffset();
+            int columnLength = childColumns.size();
+            for (int columnPos = 0; columnPos < columnLength; columnPos++) {
+                Column column = childColumns.get(columnPos);
+                float columnNameWidth = tableData.getTitleDrawFormat().measureWidth(column, config)
+                        + config.getColumnTitleHorizontalPadding() * 2;
+                int columnWidth = column.getDrawFormat().measureWidth(column, maxValues4Column[columnPos], config) + column.getMargin4Icon();
+
+                size = column.getDatas().size();
+                boolean isArrayColumn = column instanceof ArrayColumn;
+                Cell[][] rangeCells = tableInfo.getRangeCells();
+                for (int position = 0; position < size; position++) {
+                    int width = columnWidth;
+                    if (!isArrayColumn) {
+                        if (rangeCells != null) {
+                            Cell cell = rangeCells[position][columnPos];
+                            if (cell != null) {
+                                if (cell.row != Cell.INVALID && cell.col != Cell.INVALID) {
+                                    cell.width = width;
+                                }
                             }
-
                         }
                     }
                 }
 
-                if (columnWidth < width) {
-                    columnWidth = width;
+                int width = (int) (Math.max(columnNameWidth, columnWidth + horizontalPadding));
+                if (tableData.isShowCount()) {
+                    int totalCountWidth = column.getCountFormat() != null ?
+                            (int) paint.measureText(column.getTotalNumString()) : 0;
+                    width = Math.max(totalCountWidth + horizontalPadding, width);
                 }
+                width = Math.max(column.getMinWidth(), width);
+                column.setComputeWidth(width);
+                contentWidth += width;
             }
-            int width = (int) (Math.max(columnNameWidth,columnWidth + horizontalPadding));
-            if(tableData.isShowCount()) {
-                int totalCountWidth = column.getCountFormat() != null ?
-                        (int) paint.measureText(column.getTotalNumString()) : 0;
-                width = Math.max(totalCountWidth+horizontalPadding, width);
+            int minWidth = config.getMinTableWidth();
+            //计算出来的宽度大于最小宽度
+            if (minWidth == -1 || minWidth - totalWidth < contentWidth) {
+                totalWidth += contentWidth;
+            } else {
+                minWidth -= totalWidth;
+                float widthScale = ((float) minWidth) / contentWidth;
+                for (Column column : tableData.getChildColumns()) {
+                    column.setComputeWidth((int) (widthScale * column.getComputeWidth()));
+                }
+                totalWidth += minWidth;
             }
-            width = Math.max(column.getMinWidth(),width);
-            column.setComputeWidth(width);
-            contentWidth+=width;
-            columnPos++;
+            return totalWidth;
+        } else {
+            //原方案
+            int totalWidth= 0;
+            Paint paint = config.getPaint();
+            config.getYSequenceStyle().fillPaint(paint);
+            int totalSize = tableData.getLineSize();
+            if(config.isShowYSequence()) {
+                int yAxisWidth = (int) paint.measureText(tableData.getYSequenceFormat().format(totalSize)
+                        + 2 * config.getSequenceHorizontalPadding());
+                tableData.getTableInfo().setyAxisWidth(yAxisWidth);
+                totalWidth+=yAxisWidth;
+            }
+
+            int columnPos =0;
+            int contentWidth = 0;
+            int[] lineHeightArray = tableData.getTableInfo().getLineHeightArray();
+            TableInfo tableInfo = tableData.getTableInfo();
+            int currentPosition,size;
+            List<Column> childColumns = tableData.getChildColumns();
+            int horizontalPadding = config.getTextRightOffset()+ config.getTextLeftOffset();
+            for (int i = 0; i < childColumns.size(); i++) {
+                Column  column =childColumns.get(i);
+                float columnNameWidth =tableData.getTitleDrawFormat().measureWidth(column,config)
+                        +config.getColumnTitleHorizontalPadding()*2;
+                int columnWidth =0;
+                size = column.getDatas().size();
+                currentPosition=0;
+                boolean isArrayColumn = column instanceof ArrayColumn;
+                Cell[][] rangeCells = tableData.getTableInfo().getRangeCells();
+                for(int position = 0;position < size;position++) {
+                    int width = column.getDrawFormat().measureWidth(column, position, config)+column.getMargin4Icon();
+                    measureRowHeight(config, lineHeightArray, column, currentPosition, position);
+                    int skipPosition = tableInfo.getSeizeCellSize(column, position);
+                    currentPosition += skipPosition;
+                    /**
+                     *Todo 为了解决合并单元宽度过大问题
+                     */
+                    if (!isArrayColumn) {
+                        if(rangeCells !=null) {
+                            Cell cell = rangeCells[position][columnPos];
+                            if (cell != null) {
+                                if (cell.row != Cell.INVALID && cell.col != Cell.INVALID) {
+                                    cell.width = width;
+                                    width = width / cell.col;
+                                } else if (cell.realCell != null) {
+                                    width = cell.realCell.width / cell.realCell.col;
+                                }
+
+                            }
+                        }
+                    }
+
+                    if (columnWidth < width) {
+                        columnWidth = width;
+                    }
+                }
+                int width = (int) (Math.max(columnNameWidth,columnWidth + horizontalPadding));
+                if(tableData.isShowCount()) {
+                    int totalCountWidth = column.getCountFormat() != null ?
+                            (int) paint.measureText(column.getTotalNumString()) : 0;
+                    width = Math.max(totalCountWidth+horizontalPadding, width);
+                }
+                width = Math.max(column.getMinWidth(),width);
+                column.setComputeWidth(width);
+                contentWidth+=width;
+                columnPos++;
+            }
+            int minWidth = config.getMinTableWidth();
+            //计算出来的宽度大于最小宽度
+            if(minWidth ==-1 || minWidth- totalWidth < contentWidth){
+                totalWidth += contentWidth;
+            }else{
+                minWidth -=totalWidth;
+                float widthScale = ((float) minWidth)/contentWidth;
+                for(Column column:tableData.getChildColumns()){
+                    column.setComputeWidth((int)(widthScale*column.getComputeWidth()));
+                }
+                totalWidth+=minWidth;
+            }
+            return totalWidth;
         }
-        int minWidth = config.getMinTableWidth();
-        //计算出来的宽度大于最小宽度
-        if(minWidth ==-1 || minWidth- totalWidth < contentWidth){
-            totalWidth += contentWidth;
-        }else{
-            minWidth -=totalWidth;
-            float widthScale = ((float) minWidth)/contentWidth;
-            for(Column column:tableData.getChildColumns()){
-                column.setComputeWidth((int)(widthScale*column.getComputeWidth()));
-            }
-            totalWidth+=minWidth;
-        }
-        return totalWidth;
     }
 
 
@@ -286,6 +355,7 @@ public class TableMeasurer<T> {
      * @param tableData
      */
     private void measureColumnSize(TableData<T> tableData){
+        long start = System.currentTimeMillis();
         List<Column> columnList = tableData.getColumns();
         int left = 0;
         int maxLevel =tableData.getTableInfo().getMaxLevel();
@@ -334,8 +404,6 @@ public class TableMeasurer<T> {
         }
         return columnInfo;
     }
-
-
 
 
 }

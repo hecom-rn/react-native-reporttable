@@ -12,7 +12,6 @@ buildscript {
         maven {url 'https://dl.google.com/dl/android/maven2/'}
         maven {url 'https://www.jitpack.io'}
         maven { url 'https://jitpack.io' }
-        jcenter()
     }
 
     dependencies{
@@ -61,6 +60,9 @@ dependencies {
     api "androidx.annotation:annotation:1.2.0"
     implementation 'com.google.code.gson:gson:2.8.0'
     implementation 'com.github.YvesCheung.EmojiReader:lib-jvm:2.0.5'
+    implementation('com.fasterxml.jackson.core:jackson-core:2.11.1')
+    implementation('com.fasterxml.jackson.core:jackson-annotations:2.11.1')
+    implementation('com.fasterxml.jackson.core:jackson-databind:2.11.1')
     //    compile "com.android.support:cardview-v7:${safeExtGet('supportLibVersion','26.1.0')}"
 //     compile 'com.github.huangyanbin:SmartTable:2.2.0'
 //    implementation project(':mylibrary')

@@ -74,7 +74,12 @@ public class ArrayTableData<T> extends TableData<T> {
             column.setDatas(Arrays.asList(dataArray));
             columns.add(column);
         }
-        ArrayList<T> arrayList = new ArrayList<>(Arrays.asList(data[0]));
+        ArrayList<T> arrayList;
+        if(data.length>0){
+           arrayList = new ArrayList(Arrays.asList(data[0]));
+        }else {
+           arrayList = new ArrayList<>();
+        }
         ArrayTableData<T> tableData =  new ArrayTableData<>(tableName,arrayList,columns);
         tableData.setData(data);
         return tableData;

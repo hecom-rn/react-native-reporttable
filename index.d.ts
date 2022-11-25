@@ -21,7 +21,7 @@ declare module "@hecom/react-native-report-table" {
 
         frozenPoint?: number; // 首行 指定列支持冻结  第一优先  使用后带🔒的icon   优先级比 frozenColumns 高
         frozenCount?: number; // 首行前几列 可支持点击冻结  第二优先 🔒自动锁住
-        
+
         headerView?: () => React.ReactElement;
 
         itemConfig?: ItemConfig; // 优先级比 DataSource中的属性低
@@ -32,7 +32,7 @@ declare module "@hecom/react-native-report-table" {
         fontSize?: number;  // default 14
         textColor?: string | ProcessedColorValue; // ios ProcessedColorValue   android string
         textAlignment?: 0 | 1 | 2; // default 0
-        textPaddingHorizontal?: number; // default 12 
+        textPaddingHorizontal?: number; // default 12
     }
 
     export interface ScrollPro {
@@ -45,8 +45,8 @@ declare module "@hecom/react-native-report-table" {
         keyIndex: number;
         rowIndex: number;
         columnIndex: number;
-        verticalCount: number; 
-        horizontalCount: number; 
+        verticalCount: number;
+        horizontalCount: number;
     }
 
     export interface DataSource {
@@ -59,7 +59,7 @@ declare module "@hecom/react-native-report-table" {
 
         fontSize?: number;  // default 14
         textColor?: string;
-        textPaddingHorizontal?: number; // default 12 
+        textPaddingHorizontal?: number; // default 12
         textAlignment?: 0 | 1 | 2; // default 0
 
         icon?: IconStyle;
@@ -75,5 +75,4 @@ declare module "@hecom/react-native-report-table" {
 
     export default class ReportTable extends React.Component<ReportTableProps>{
     }
-
 }

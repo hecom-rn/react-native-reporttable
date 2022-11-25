@@ -11,6 +11,7 @@ import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.data.format.grid.SimpleGridFormat;
 import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.style.LineStyle;
+import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 
 
 /**
@@ -228,6 +229,16 @@ public class TableConfig {
     private int frozenCount = 0;
 
     private int frozenPoint = 0;
+
+    private ItemCommonStyleConfig itemCommonStyleConfig = new ItemCommonStyleConfig();
+
+    public ItemCommonStyleConfig getItemCommonStyleConfig() {
+        return itemCommonStyleConfig;
+    }
+
+    public void setItemCommonStyleConfig(ItemCommonStyleConfig itemCommonStyleConfig) {
+        this.itemCommonStyleConfig = itemCommonStyleConfig;
+    }
 
     public int getFrozenCount() {
         return frozenCount;

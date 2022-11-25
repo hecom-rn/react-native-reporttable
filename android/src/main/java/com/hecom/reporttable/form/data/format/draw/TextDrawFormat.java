@@ -15,6 +15,8 @@ import com.hecom.reporttable.form.utils.DrawUtils;
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.yy.mobile.emoji.EmojiReader;
 
@@ -32,6 +34,23 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     }
 
     private static final String TAG = "TextDrawFormat";
+
+    @Override
+    public int measureWidth(Column<T> column, String value, TableConfig config) {
+        Paint paint = config.getPaint();
+        config.getContentStyle().fillPaint(paint);
+        String text = getWrapText( value, paint, config, 0);
+//        column.setFormatData(position,value);
+        return DrawUtils.getMultiTextWidth(paint, getSplitString(text));
+    }
+
+    @Override
+    public int measureHeight(Column<T> column, String value, TableConfig config) {
+        Paint paint = config.getPaint();
+        config.getContentStyle().fillPaint(paint);
+        String text = getWrapText( value, paint, config, 0);
+        return DrawUtils.getMultiTextHeight(paint, getSplitString(text)) + 40;
+    }
 
     @Override
     public int measureWidth(Column<T>column, int position, TableConfig config) {
@@ -74,12 +93,13 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         }
         boolean isLeft = true;
         if(tableBean != null){
-            isLeft = tableBean.isLeft();
+            Integer innerAlign = tableBean.getTextAlignment();
+            ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
+            isLeft = innerAlign !=null? innerAlign==0 : itemCommonStyleConfig.getTextAlignment()==0;
         }
         Paint paint = config.getPaint();
         setTextPaint(config,cellInfo, paint);
         if(isLeft){
-            paint.setTextAlign(Paint.Align.LEFT);
         }else{
             paint.setTextAlign(Paint.Align.RIGHT);
         }
@@ -88,7 +108,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
 
     protected void drawText(Canvas c, String value, Rect rect, Paint paint,TableConfig config, int marginRight) {
-//        value = getWrapText( value, paint, config, marginRight, rect);
+        value = getWrapText( value, paint, config, marginRight, rect);
         DrawUtils.drawMultiText(c,paint,rect,getSplitString(value));
     }
 

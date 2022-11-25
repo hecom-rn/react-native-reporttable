@@ -99,10 +99,11 @@ export default class ReportTableWrapper extends React.Component {
         // let {headerHeight} = this.state;
         const {
             data, minWidth, minHeight, textPaddingHorizontal,
-            lineColor, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size
+            lineColor, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size,
+            itemConfig
         } = props;
         return {
-            data: data,
+            data: data && JSON.stringify(data),
             minWidth: minWidth,
             minHeight: minHeight,
             maxWidth: maxWidth,
@@ -113,7 +114,8 @@ export default class ReportTableWrapper extends React.Component {
             frozenPoint: frozenPoint,
             frozenCount: frozenCount,
             limitTableHeight: size.height,
-            headerHeight: headerHeight
+            headerHeight: headerHeight,
+            itemConfig: JSON.stringify(itemConfig),
         };
     }
 }

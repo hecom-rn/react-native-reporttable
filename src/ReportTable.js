@@ -5,12 +5,12 @@ import ReportTableWrapper from './ReportTableWrapper';
 const itemConfig = {
     backgroundColor: Platform.select({
         ios: processColor('#fff'),
-        android: '#fff',
+        android: '#FFFFFF',
     }),
     fontSize: 14,
     textColor: Platform.select({
         ios: processColor('#222'),
-        android: '#222',
+        android: '#222222',
     }),
     textPaddingHorizontal: 12, // 上左下右
     textAlignment: 0,  // 0左 1中 2右  default 0
@@ -36,7 +36,7 @@ export default class ReportTable extends React.Component{
         frozenPoint: 0,
         itemConfig: itemConfig,
     };
-    
+
     scrollTo = () => {
         this.table.scrollTo();
     }
