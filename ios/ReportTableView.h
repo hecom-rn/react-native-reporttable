@@ -9,7 +9,7 @@
 
 @class ReportTableModel, ForzenRangel, ReportTableHeaderScrollView;
 @class SpreadsheetView;
-@interface ReportTableView : UIView
+@interface ReportTableView : UIScrollView
 
 @property (nonatomic, strong) SpreadsheetView *spreadsheetView;
 @property (nonatomic, strong) ReportTableModel *reportTableModel;
@@ -17,6 +17,8 @@
 
 // 表格滑动到顶部
 - (void)scrollToTop;
+
+- (void)scrollViewDidZoom:(UIScrollView *)scrollView;
 
 @end
 

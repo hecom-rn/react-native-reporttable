@@ -209,9 +209,9 @@
         if (_headerView) {
             headersize.height = _headerView.frame.size.height;
         }
-        CGRect tableRect = CGRectMake(0, 0, size.width, MIN(size.height, self.dataHeight + headersize.height));
+        CGRect tableRect = CGRectMake(0, 0, size.width, size.height);
         self.reportTableView.frame = tableRect;
-        
+        [self.reportTableView scrollViewDidZoom: self.reportTableView];
         if (_headerView != nil ) {
             CGSize headerViewSize = self.headerView.frame.size;
             self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
@@ -246,15 +246,15 @@
             self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
         }
         // 更新了heaher 要更新tableHight
-        CGRect tableRect = self.reportTableModel.tableRect;
-        tableRect.size.height = MIN(tableRect.size.height, self.dataHeight + headerViewSize.height);
-        self.reportTableView.frame = tableRect;
+//        CGRect tableRect = self.reportTableModel.tableRect;
+//        tableRect.size.height = MIN(tableRect.size.height, self.dataHeight + headerViewSize.height);
+//        self.reportTableView.frame = tableRect;
     }
 
     self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width + 1, 0);
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
     self.reportTableView.headerScrollView = self.headerScrollView;
-    
+    [self.reportTableView scrollViewDidZoom: self.reportTableView];
     [self reloadCheck];
 }
 
@@ -404,7 +404,7 @@
     }
     CGRect temp = self.reportTableModel.tableRect;
     CGRect tableRect = CGRectMake(temp.origin.x, temp.origin.y, temp.size.width, temp.size.height);
-    tableRect.size.height = MIN(tableRect.size.height, tableHeight);
+//    tableRect.size.height = MIN(tableRect.size.height, tableHeight);
     self.reportTableView.frame = tableRect;
     self.headerScrollView.frame = CGRectMake(0, 0, tableRect.size.width, self.headerScrollView.frame.size.height);
     
