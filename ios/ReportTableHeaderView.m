@@ -21,6 +21,8 @@
     self = [super init];
     if (self) {
         self.delegate = self;
+        self.bounces = false;
+        self.scrollsToTop = false;
         self.offset = 0;
     }
     return self;

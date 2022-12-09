@@ -54,7 +54,6 @@
         _headerScrollView = [[ReportTableHeaderScrollView alloc] init];
         _headerScrollView.showsHorizontalScrollIndicator = NO;
         _headerScrollView.showsVerticalScrollIndicator = NO;
-        _headerScrollView.bounces = true;
         [self.reportTableView addSubview: _headerScrollView];
     }
     return _headerScrollView;
@@ -251,7 +250,7 @@
 //        self.reportTableView.frame = tableRect;
     }
 
-    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width + 1, 0);
+    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, 0);
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
     self.reportTableView.headerScrollView = self.headerScrollView;
     [self.reportTableView scrollViewDidZoom: self.reportTableView];

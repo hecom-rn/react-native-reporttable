@@ -72,6 +72,7 @@
     self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: reportTableModel.lineColor];
     
     [self.spreadsheetView reloadData];
+    [self scrollViewDidZoom: self];
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
@@ -83,16 +84,12 @@
     CGFloat scale = MIN(1, zoomScale);
     CGSize size = self.reportTableModel.tableRect.size;
     CGSize headerSize = self.headerScrollView.frame.size;
-    if (zoomScale == 0.5 || zoomScale == 1 || zoomScale == 2) {
-        self.contentSize = CGSizeMake(0, 0);
-        return;
-    }
 
     CGRect rowRoiReact = self.spreadsheetView.rowHeaderView.frame;
     CGRect columnOriReact = self.spreadsheetView.columnHeaderView.frame;
     CGRect tableOriReact = self.spreadsheetView.tableView.frame;
     
-    CGFloat x = columnOriReact.size.width == 1 ? MAX(0, tableOriReact.origin.x / zoomScale) : columnOriReact.size.width;
+    CGFloat x = columnOriReact.size.width == 1 ? MAX(0, tableOriReact.origin.x / zoomScale) : columnOriReact.size.width - 1;
     CGFloat y = rowRoiReact.size.height == 1 ? tableOriReact.origin.y / zoomScale : rowRoiReact.size.height - 1;
     CGFloat width = MIN(self.tableMaxWidth, size.width / zoomScale);
     CGFloat height = size.height / zoomScale;
@@ -103,19 +100,49 @@
     
     self.spreadsheetView.frame = CGRectMake(0, 0, size.width, size.height);
     self.spreadsheetView.tableView.frame = CGRectMake(x, y, w, h);
-    self.spreadsheetView.columnHeaderView.frame = CGRectMake(columnOriReact.origin.x, columnOriReact.origin.y, columnOriReact.size.width, columnOriReact.size.height / zoomScale);
+    self.spreadsheetView.columnHeaderView.frame = CGRectMake(columnOriReact.origin.x, columnOriReact.origin.y, columnOriReact.size.width, h);
     
     self.spreadsheetView.rowHeaderView.frame = CGRectMake(rowRoiReact.origin.x, rowRoiReact.origin.y, width, rowRoiReact.size.height);
     
-
     self.spreadsheetView.rowHeaderView.contentOffset = CGPointMake(self.spreadsheetView.rowHeaderView.contentOffset.x, MIN(0, self.spreadsheetView.tableView.contentOffset.y));
     self.contentSize = CGSizeMake(0, 0);
 }
+
+- (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(CGFloat)scale {
+    // 修正headerView的层级
+    [self sendSubviewToBack: self.headerScrollView];
+    self.headerScrollView.isUserScouce = false;
+    self.isOnHeader = false;
+}
+
 
 - (void)scrollToTop {
     if (_spreadsheetView) {
         [self.spreadsheetView setContentOffset:CGPointMake(0, 0) animated: true];
     }
+}
+
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    if (self.isZooming) {
+        return [super hitTest:point withEvent:event];
+    }
+    BOOL isOnHeader = point.y < (self.headerScrollView.frame.size.height - self.headerScrollView.contentOffset.y) && self.spreadsheetView.contentOffset.y <= 0;
+    if (isOnHeader == YES && self.isOnHeader == false) {
+        self.headerScrollView.isUserScouce = true;
+        self.headerScrollView.offset = self.spreadsheetView.contentOffset.y * self.zoomScale;
+        [self.headerScrollView scrollViewDidScroll: self.headerScrollView];
+        self.spreadsheetView.tableView.scrollEnabled = false;
+        [self bringSubviewToFront: self.headerScrollView];
+        self.isOnHeader = isOnHeader;
+    } else if (isOnHeader == false && self.isOnHeader == true) {
+        self.headerScrollView.isUserScouce = false;
+        self.spreadsheetView.tableView.scrollEnabled = true;
+        [self sendSubviewToBack: self.headerScrollView];
+        self.isOnHeader = isOnHeader;
+    } else {
+        self.isOnHeader = !isOnHeader;
+    }
+    return [super hitTest:point withEvent:event];
 }
 
 - (SpreadsheetView *)spreadsheetView {
@@ -138,21 +165,6 @@
             ssv.onScroll = ^(NSDictionary *offset) {
                 if (weak_self.reportTableModel.onScroll != nil) {
                     weak_self.reportTableModel.onScroll(offset);
-                }
-            };
-            ssv.overlayView.touchPoint = ^(CGPoint point) {
-                BOOL isOnHeader = (point.y - ssv.overlayView.contentOffset.y) < (weak_self.headerScrollView.frame.size.height -  weak_self.headerScrollView.contentOffset.y) && ssv.contentOffset.y <= 0;
-                if (isOnHeader == YES && weak_self.isOnHeader == false) {
-                    weak_self.headerScrollView.offset = ssv.contentOffset.y * self.zoomScale;
-                    weak_self.headerScrollView.isUserScouce = true;
-                    ssv.tableView.scrollEnabled = false;
-                    [weak_self bringSubviewToFront:weak_self.headerScrollView];
-                    weak_self.isOnHeader = isOnHeader;
-                } else if (isOnHeader == false && weak_self.isOnHeader == true) {
-                    weak_self.headerScrollView.isUserScouce = false;
-                    weak_self.spreadsheetView.tableView.scrollEnabled = true;
-                    [weak_self sendSubviewToBack:weak_self.headerScrollView];
-                    weak_self.isOnHeader = isOnHeader;
                 }
             };
             [self addSubview:ssv];
@@ -207,6 +219,7 @@
 
     ItemModel *model = self.dataSource[row][column];
     ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
+    cell.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [cell updateContentView: model.textPaddingHorizontal];
     if (model.iconStyle != nil) {
         cell.icon = model.iconStyle;
