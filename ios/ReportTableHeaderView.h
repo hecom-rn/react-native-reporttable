@@ -20,6 +20,8 @@ typedef void (^EndDrag)(BOOL isEndeDrag);
 @property (nonatomic, assign) BOOL isUserScouce;
 @property (nonatomic, assign) CGFloat offset;
 
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView;
+
 @end
 
 
