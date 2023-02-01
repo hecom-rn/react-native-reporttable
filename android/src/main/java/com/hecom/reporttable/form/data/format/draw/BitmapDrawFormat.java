@@ -18,8 +18,8 @@ import com.hecom.reporttable.form.data.column.Column;
 
 public abstract class BitmapDrawFormat<T> implements IDrawFormat<T> {
 
-    private int imageWidth;
-    private int imageHeight;
+    protected int imageWidth;
+    protected int imageHeight;
     private Rect imgRect;
     private Rect drawRect;
 
@@ -35,6 +35,15 @@ public abstract class BitmapDrawFormat<T> implements IDrawFormat<T> {
     }
 
 
+    @Override
+    public int measureWidth(Column<T> column, String value, TableConfig config) {
+        return 0;
+    }
+
+    @Override
+    public int measureHeight(Column<T> column, String value, TableConfig config) {
+        return 0;
+    }
 
     @Override
     public int measureWidth(Column<T>column,int position, TableConfig config) {

@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Handler;
-import android.util.Log;
 import android.view.View;
 
 import com.facebook.react.bridge.Arguments;
@@ -25,7 +24,9 @@ import com.hecom.reporttable.form.data.table.ArrayTableData;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
+import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.MergeResult;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 
 import java.util.HashMap;
@@ -36,23 +37,20 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
     private SmartTable<String> table;
     private ReportTableData reportTableData = new ReportTableData();
     private Context context;
-    private String defaultTextColor = "#000000";
-    private String defaultBgColor = "#ffffff";
     private Map<Integer, Integer> columnMapWidth = new HashMap<>();
 
     private String jsonData;
-    private String[][] dataArr;
     int MARGIN_VALUE = 40;
 
     private boolean clickLockBt = false;
 
-    public ReportTableStore(Context context,SmartTable smartTable){
+    public ReportTableStore(Context context, SmartTable smartTable) {
         this.context = context;
         MARGIN_VALUE = DensityUtils.dp2px(context, 20);
-        this.table=smartTable;
+        this.table = smartTable;
     }
 
-    public void setReportTableDataInMainThread(final SmartTable table, String[][] dataArr,final TableConfigBean configBean) {
+    public void setReportTableDataInMainThread(final SmartTable table,MergeResult mergeResult, final TableConfigBean configBean) {
         final ArrayTableData<String> rawTableData = (ArrayTableData<String>) table.getTableData();
         int minWidth = configBean.getMinWidth();
         int minHeight = configBean.getMinHeight();
@@ -70,17 +68,28 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                 public void setTextPaint(TableConfig config, CellInfo<JsonTableBean> cellInfo, Paint paint) {
                     super.setTextPaint(config, cellInfo, paint);
                     JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
-                    if (tableBean.isCenter()) {
-                        paint.setTextAlign(Paint.Align.CENTER);
-                    } else if (tableBean.isLeft()) {
-                        paint.setTextAlign(Paint.Align.LEFT);
-                    } else  {
-                        paint.setTextAlign(Paint.Align.RIGHT);
+                    Integer textAlignment = tableBean.getTextAlignment();
+                    if(null==textAlignment){
+                        textAlignment=configBean.getItemCommonStyleConfig().getTextAlignment();
+                    }
+                    switch (textAlignment) {
+                        case 1:
+                            paint.setTextAlign(Paint.Align.CENTER);
+                            break;
+                        case 2:
+                            paint.setTextAlign(Paint.Align.RIGHT);
+                            break;
+                        default:
+                            paint.setTextAlign(Paint.Align.LEFT);
+                            break;
+
                     }
                 }
             };
-            final ArrayTableData<String> tableData = ArrayTableData.create("", null, dataArr, mTextDrawFormat);
+            final ArrayTableData<String> tableData = ArrayTableData.create("", null, mergeResult.data, mTextDrawFormat);
 
+            tableData.setMaxValues4Column(mergeResult.maxValues4Column);
+            tableData.setMaxValues4Row(mergeResult.maxValues4Row);
             tableData.setMinWidth(DensityUtils.dp2px(this.context, minWidth));
             tableData.setMinHeight(DensityUtils.dp2px(this.context, minHeight));
             tableData.setUserCellRange(reportTableData.getMergeList());
@@ -88,10 +97,10 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                 @Override
                 public void drawBackground(Canvas canvas, Rect rect, CellInfo cellInfo, Paint paint) {
                     JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
-                    String color = defaultBgColor;
-                    if (tableBean != null && !"".equals(tableBean.getBackgroundColor()) && tableBean
-                            .getBackgroundColor() != null) {
-                        color = tableBean.getBackgroundColor();
+                    String color = ItemCommonStyleConfig.DEFAULT_BACKGROUND_COLOR;
+                    if (tableBean != null) {
+                        String backgroundColor = tableBean.getBackgroundColor();
+                        color = backgroundColor;
                     }
                     DrawUtils.fillBackground(canvas, rect.left, rect.top, rect.right, rect.bottom, Color
                             .parseColor(color), paint);
@@ -100,10 +109,11 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                 @Override
                 public int getTextColor(CellInfo cellInfo) {
                     JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
-                    if (tableBean != null && !"".equals(tableBean.getTextColor()) && tableBean.getTextColor() != null) {
-                        return Color.parseColor(tableBean.getTextColor());
+                    if (tableBean != null) {
+                        String textColor = tableBean.getTextColor();
+                        return Color.parseColor(textColor);
                     }
-                    return Color.parseColor(defaultTextColor);
+                    return Color.parseColor(ItemCommonStyleConfig.DEFALUT_TEXT_COLOR);
                 }
             });
             final Context mContext = context;
@@ -128,7 +138,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                             map.putInt("keyIndex", keyIndex);
                             map.putInt("rowIndex", row);
                             map.putInt("columnIndex", col);
-                            map.putString("textColor", tableBean.getTextColor());
+//                            map.putString("textColor", tableBean.getTextColor());
                             ((ReactContext) mContext).getJSModule(RCTEventEmitter.class)
                                     .receiveEvent(table.getId(), "onClickEvent", map);
                         }
@@ -192,37 +202,37 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             }
 
             int firstColMaxMerge = getFirstColumnMaxMerge(tableData);
-            int rightMargin4Icon= 0;
-            int leftMargin4Icon= 0;
+            int rightMargin4Icon = 0;
+            int leftMargin4Icon = 0;
             for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
                 //插入逻辑
-                rightMargin4Icon= 0;
-                leftMargin4Icon= 0;
+                rightMargin4Icon = 0;
+                leftMargin4Icon = 0;
                 Column<String> column = tableData.getArrayColumns().get(i);
-                if(configBean.getFrozenPoint() > 0){
+                if (configBean.getFrozenPoint() > 0) {
                     int col = i;
-                    if(col == 0 && firstColMaxMerge > 0){
+                    if (col == 0 && firstColMaxMerge > 0) {
                         col = firstColMaxMerge;
                     }
-                    if(col == configBean.getFrozenPoint() - 1 ){
-                        rightMargin4Icon= MARGIN_VALUE;
+                    if (col == configBean.getFrozenPoint() - 1) {
+                        rightMargin4Icon = MARGIN_VALUE;
                     }
-                }else{
-                    if(configBean.getFrozenCount() > 0){
-                        if(i < configBean.getFrozenCount()){
-                            rightMargin4Icon= MARGIN_VALUE;
+                } else {
+                    if (configBean.getFrozenCount() > 0) {
+                        if (i < configBean.getFrozenCount()) {
+                            rightMargin4Icon = MARGIN_VALUE;
                         }
                     }
                 }
                 List<String> columnDatas = column.getDatas();
-                for (int j = 0; j <columnDatas.size(); j++) {
+                for (int j = 0; j < columnDatas.size(); j++) {
                     JsonTableBean tableBean = tabArr[j][i];
-                    if(null != tableBean && null!= tableBean.getIcon()){
+                    if (null != tableBean && null != tableBean.getIcon()) {
                         JsonTableBean.Icon icon = tableBean.getIcon();
                         String name = icon.getName();
-                        if("up".equals(name)){
+                        if ("up".equals(name)) {
                             rightMargin4Icon = MARGIN_VALUE;
-                        } else if("down".equals(name)){
+                        } else if ("down".equals(name)) {
                             rightMargin4Icon = MARGIN_VALUE;
                         } else if ("dot_new".equals(name)) {
                             leftMargin4Icon = MARGIN_VALUE;
@@ -236,16 +246,16 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                             rightMargin4Icon = MARGIN_VALUE;
                         } else if ("trash".equals(name)) {
                             // 删除特殊处理不附加额外图标位置 列宽由最小列宽属性来决定
-                            rightMargin4Icon=0;
-                            leftMargin4Icon=0;
+                            rightMargin4Icon = 0;
+                            leftMargin4Icon = 0;
                         } else if ("revert".equals(name)) {
                             rightMargin4Icon = MARGIN_VALUE;
                         }
                     }
-                    if (rightMargin4Icon!=0 && leftMargin4Icon!=0)break;
+                    if (rightMargin4Icon != 0 && leftMargin4Icon != 0) break;
                 }
 
-                column.setMargin4Icon(rightMargin4Icon+leftMargin4Icon);
+                column.setMargin4Icon(rightMargin4Icon + leftMargin4Icon);
                 column.setColumn(i, tableData.getArrayColumns().size());
             }
 
@@ -263,19 +273,18 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             table.getConfig().setFrozenCount(configBean.getFrozenCount());
             table.getConfig().setFrozenPoint(configBean.getFrozenPoint());
             table.setTableData(tableData);
-//            table.notifyDataChanged();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private int getFirstColumnMaxMerge(TableData tableData){
+    private int getFirstColumnMaxMerge(TableData tableData) {
         int maxColumn = -1;
-        List<CellRange> list =  tableData.getUserCellRange();
+        List<CellRange> list = tableData.getUserCellRange();
         for (int i = 0; i < list.size(); i++) {
             CellRange cellRange = list.get(i);
-            if(cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0){
-                if(maxColumn < cellRange.getLastCol()){
+            if (cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0) {
+                if (maxColumn < cellRange.getLastCol()) {
                     maxColumn = cellRange.getLastCol();
                 }
             }
@@ -287,10 +296,6 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
         if (json == null) {
             return;
         }
-        final SmartTable<String> table = ((SmartTable<String>) view);
-        final ArrayTableData<String> rawTableData = (ArrayTableData<String>) table.getTableData();
-        int minWidth = configBean.getMinWidth();
-        int minHeight = configBean.getMinHeight();
 
         try {
             if (reportTableData == null) {
@@ -298,7 +303,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             }
 
             final ReportTableStore config = this;
-            if (json.equals(config.jsonData)){
+            if (json.equals(config.jsonData)) {
                 return;
             }
             config.jsonData = json;
@@ -306,25 +311,12 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                 @Override
                 public void run() {
 
-                    Log.e("ReportTableConfig", "setReportTableData mergeTable start = " + System.currentTimeMillis());
-                    String[][] innerDataArr= reportTableData.mergeTable(json);
-                    config.dataArr = innerDataArr;
-//                    String[][] innerDataArr = config.dataArr;
-//                    if (!json.equals(config.jsonData) || innerDataArr == null) {
-//                        innerDataArr= reportTableData.mergeTable(json);
-//                        config.jsonData = json;
-//                        config.dataArr = innerDataArr;
-//                    }
-
-
-                    Log.e("ReportTableConfig", "setReportTableData mergeTable end = " + System.currentTimeMillis());
-                    ((SmartTable<?>) view).getIsNotifying().set(false);
-//                    view.post(new Runnable() {
-//                        @Override
-//                        public void run() {
-                    setReportTableDataInMainThread((SmartTable<?>) view, innerDataArr, configBean);
-//                        }
-//                    });
+                    MergeResult mergeResult = reportTableData.mergeTable(json,configBean);
+                    if(null==mergeResult){
+                        ((SmartTable<?>) view).getIsNotifying().set(false);
+                    }else {
+                        setReportTableDataInMainThread((SmartTable<?>) view, mergeResult, configBean);
+                    }
                 }
             };
             ((SmartTable<?>) view).getIsNotifying().set(true);

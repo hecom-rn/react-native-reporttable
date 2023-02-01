@@ -7,6 +7,7 @@ import android.graphics.Rect;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -275,7 +276,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    //long start = System.currentTimeMillis();
                     if (tableData != null) {
                         parser.parse(tableData);
                         TableInfo info = measurer.measure(tableData, config);
@@ -285,8 +285,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
                         isNotifying.set(false);
                         postInvalidate();
                     }
-                    //long end = System.currentTimeMillis();
-                    //Log.e("smartTable","notifyDataChanged timeMillis="+(end-start));
                 }
 
             });

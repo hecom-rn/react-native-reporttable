@@ -1,5 +1,8 @@
 package com.hecom.reporttable;
 
+import android.text.TextUtils;
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -13,10 +16,12 @@ import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
+import com.google.gson.Gson;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.ReportTableStore;
+import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 
 import java.util.Map;
@@ -74,7 +79,12 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
         int frozenPoint = 0;
         int headerHeight = 0;
         int limitTableHeight = 0;
+        String itemConfig = null;
         try {
+
+            if (dataSource.hasKey("itemConfig")) {
+                itemConfig = dataSource.getString("itemConfig");
+            }
 
             if (dataSource.hasKey("frozenCount")) {
                 frozenCount = dataSource.getInt("frozenCount");
@@ -85,8 +95,9 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
             }
 
             if (dataSource.hasKey("data")) {
-                jsonData = dataSource.getArray("data").toString();
+                jsonData = dataSource.getString("data");
             }
+
             if (dataSource.hasKey("minHeight")) {
                 minHeight = transformDataType(dataSource.getDouble("minHeight"));
             }
@@ -129,6 +140,11 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
 
             if (dataSource.hasKey("lineColor")) {
                 lineColor = dataSource.getString("lineColor");
+            }
+            if(!TextUtils.isEmpty(itemConfig)){
+                ItemCommonStyleConfig itemCommonStyleConfig = new Gson().fromJson(itemConfig, ItemCommonStyleConfig.class);
+                configBean.setItemCommonStyleConfig(itemCommonStyleConfig);
+                view.getConfig().setItemCommonStyleConfig(itemCommonStyleConfig);
             }
             configBean.setFrozenCount(frozenCount);
             configBean.setFrozenPoint(frozenPoint);

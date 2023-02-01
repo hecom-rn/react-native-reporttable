@@ -5,7 +5,15 @@ public class TableConfigBean {
     private int frozenRows;
     private int frozenCount = 0;
     private int frozenPoint = 0;
+    private ItemCommonStyleConfig itemCommonStyleConfig;
 
+    public ItemCommonStyleConfig getItemCommonStyleConfig() {
+        return itemCommonStyleConfig;
+    }
+
+    public void setItemCommonStyleConfig(ItemCommonStyleConfig itemCommonStyleConfig) {
+        this.itemCommonStyleConfig = itemCommonStyleConfig;
+    }
 
     public int getFrozenRows() {
         return frozenRows;
@@ -58,6 +66,7 @@ public class TableConfigBean {
         this.minWidth = minWidth;
         this.maxWidth = maxWidth;
         this.minHeight = minHeight;
+        this.itemCommonStyleConfig = new ItemCommonStyleConfig();
     }
 
     public int getTextPaddingHorizontal() {

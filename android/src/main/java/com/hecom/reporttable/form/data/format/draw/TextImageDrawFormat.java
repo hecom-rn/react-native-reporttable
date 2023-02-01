@@ -43,6 +43,17 @@ public abstract class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
     }
 
     @Override
+    public int measureWidth(Column<T> column, String value, TableConfig config) {
+        int textWidth = textDrawFormat.measureWidth(column,value, config);
+        if(direction == LEFT || direction == RIGHT) {
+            return getImageWidth() + textWidth+drawPadding;
+        }else {
+            return Math.max(this.imageWidth,textWidth);
+        }
+    }
+
+
+    @Override
     public int measureWidth(Column<T> column, int position, TableConfig config) {
         int textWidth = textDrawFormat.measureWidth(column,position, config);
         if(direction == LEFT || direction == RIGHT) {
@@ -50,6 +61,19 @@ public abstract class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
         }else {
             return Math.max(super.measureWidth(column,position,config),textWidth);
         }
+    }
+
+    @Override
+    public int measureHeight(Column<T> column, String value, TableConfig config) {
+        int imgHeight = this.imageHeight;
+        int textHeight = textDrawFormat.measureHeight(column,value,config);
+
+        if(direction == TOP || direction == BOTTOM) {
+            return getImageHeight() + textHeight+drawPadding;
+        }else {
+            return Math.max(imgHeight,textHeight);
+        }
+
     }
 
     @Override

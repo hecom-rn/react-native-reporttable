@@ -24,6 +24,8 @@ import java.util.List;
 
 public class TableData<T> {
 
+    private String[] maxValues4Column;
+    private String[] maxValues4Row;
     private String tableName;
     private List<Column> columns;
     private List<T> t;
@@ -41,6 +43,22 @@ public class TableData<T> {
     private OnItemClickListener onItemClickListener;
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
+
+    public String[] getMaxValues4Column() {
+        return maxValues4Column;
+    }
+
+    public void setMaxValues4Column(String[] maxValues4Column) {
+        this.maxValues4Column = maxValues4Column;
+    }
+
+    public String[] getMaxValues4Row() {
+        return maxValues4Row;
+    }
+
+    public void setMaxValues4Row(String[] maxValues4Row) {
+        this.maxValues4Row = maxValues4Row;
+    }
 
     public int getCurFixedColumnIndex() {
         return curFixedColumnIndex;

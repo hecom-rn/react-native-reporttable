@@ -22,12 +22,12 @@
 @property (nonatomic, strong) UIColor *textColor;
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) CGFloat fontSize;
-@property (nonatomic, assign) BOOL isLeft;
-@property (nonatomic, assign) BOOL isCenter;
+@property (nonatomic, assign) NSTextAlignment textAlignment;
 @property (nonatomic, assign) NSInteger textPaddingHorizontal;
 @property (nonatomic, assign) NSInteger horCount;
 @property (nonatomic, assign) NSInteger verCount;
 @property (nonatomic, strong) IconStyle *iconStyle;
+@property (nonatomic, strong) ItemModel *itemConfig;
 @end
 
 @interface ForzenRange: NSObject
@@ -56,4 +56,5 @@
 @property (nonatomic, assign) CGRect tableRect;
 @property (nonatomic, assign) NSInteger frozenCount;
 @property (nonatomic, assign) NSInteger frozenPoint;
+@property (nonatomic, strong) ItemModel *itemConfig;
 @end

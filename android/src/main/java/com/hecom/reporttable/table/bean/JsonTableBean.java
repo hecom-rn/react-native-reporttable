@@ -1,32 +1,32 @@
 package com.hecom.reporttable.table.bean;
 
 public class JsonTableBean {
-    private int keyIndex;
-    private String title;
-    private String backgroundColor;
-    private int fontSize = 0;
-    private JsonTableBean jsonTableBean;
+    /*非优化场景 通过getter setter访问*/
+    public int keyIndex;
+    public String title;
+    public String backgroundColor;
+    public Integer fontSize = 0;
+    public String textColor;
+    public Integer textAlignment;  // 0左 1中 2右  default 0
+    public Icon icon;
 
-    public JsonTableBean getJsonTableBean() {
-        return jsonTableBean;
+    public JsonTableBean() {
     }
-
-    public void setJsonTableBean(JsonTableBean jsonTableBean) {
-        this.jsonTableBean = jsonTableBean;
-    }
-
-    public JsonTableBean(){}
 
     public JsonTableBean(String title) {
         this.title = title;
     }
 
-    public JsonTableBean(int keyIndex, String title, String backgroundColor, int fontSize, String textColor) {
-        this.keyIndex = keyIndex;
-        this.title = title;
-        this.backgroundColor = backgroundColor;
+    public void setFontSize(Integer fontSize) {
         this.fontSize = fontSize;
-        this.textColor = textColor;
+    }
+
+    public Integer getFontSize() {
+        return fontSize;
+    }
+
+    public void setTextAlignment(Integer textAlignment) {
+        this.textAlignment = textAlignment;
     }
 
     public int getKeyIndex() {
@@ -54,14 +54,6 @@ public class JsonTableBean {
         this.backgroundColor = backgroundColor;
     }
 
-    public int getFontSize() {
-        return fontSize;
-    }
-
-    public void setFontSize(int fontSize) {
-        this.fontSize = fontSize;
-    }
-
     public String getTextColor() {
         return textColor;
     }
@@ -69,28 +61,6 @@ public class JsonTableBean {
     public void setTextColor(String textColor) {
         this.textColor = textColor;
     }
-
-    private String textColor;
-
-    private boolean isLeft;
-
-    public boolean isLeft() {
-        return isLeft;
-    }
-
-    public void setLeft(boolean left) {
-        isLeft = left;
-    }
-
-    public boolean isCenter() {
-        return isCenter;
-    }
-
-    public void setCenter(boolean center) {
-        isCenter = center;
-    }
-
-    private boolean isCenter;
 
     public Icon getIcon() {
         return icon;
@@ -100,13 +70,16 @@ public class JsonTableBean {
         this.icon = icon;
     }
 
-    private Icon icon;
+    public Integer getTextAlignment() {
+        return this.textAlignment;
+    }
 
-    public class Icon{
+    public static class Icon {
         private Path path;
         private String width;
         private String height;
         private String name;
+
         public Path getPath() {
             return path;
         }
@@ -140,11 +113,12 @@ public class JsonTableBean {
         }
     }
 
-    public class Path {
+    public static class Path {
         private String height;
         private String scale;
         private String uri;
         private String width;
+        private boolean __packager_asset;
 
         public String getHeight() {
             return height;
@@ -185,7 +159,5 @@ public class JsonTableBean {
         public void set__packager_asset(boolean __packager_asset) {
             this.__packager_asset = __packager_asset;
         }
-
-        private boolean __packager_asset;
     }
 }
