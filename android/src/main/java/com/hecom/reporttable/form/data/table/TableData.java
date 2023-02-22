@@ -446,7 +446,7 @@ public class TableData<T> {
                             if(onResponseItemClickListener != null){
                                 isResponseOnClick = onResponseItemClickListener.responseOnClick(column, value, t, index, position);
                             }
-                            TableData.this.onItemClickListener.onClick(column, value, t, index, position);
+                            TableData.this.onItemClickListener.onClick(column, value, t, index, position, TableData.this);
                             if(!isResponseOnClick) return;
                             if(position == 0) {
                                 int firstColumnMaxMerge = getFirstColumnMaxMerge();
@@ -512,7 +512,7 @@ public class TableData<T> {
         if(this.onRowClickListener !=null) {
             setOnItemClickListener(new OnItemClickListener() {
                 @Override
-                public void onClick(Column column, String value, Object o, int col, int row) {
+                public void onClick(Column column, String value, Object o, int col, int row, TableData tableData) {
                     TableData.this.onRowClickListener.onClick(column, t.get(row), col, row);
                 }
             });
@@ -529,7 +529,7 @@ public class TableData<T> {
         if(this.onRowClickListener !=null) {
             setOnItemClickListener(new OnItemClickListener() {
                 @Override
-                public void onClick(Column column, String value, Object o, int col, int row) {
+                public void onClick(Column column, String value, Object o, int col, int row, TableData tableData) {
                     TableData.this.onColumnClickListener.onClick(column, column.getDatas(), col, row);
                 }
             });
@@ -545,7 +545,7 @@ public class TableData<T> {
      * 表格单元格Cell点击事件接口
      */
     public interface  OnItemClickListener<T>{
-        void onClick(Column<T> column, String value, T t, int col, int row);
+        void onClick(Column<T> column, String value, T t, int col, int row, TableData tableData);
     }
     /**
      * 表格行点击事件接口

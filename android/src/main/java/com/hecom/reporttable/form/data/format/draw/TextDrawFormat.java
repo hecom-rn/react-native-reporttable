@@ -27,7 +27,7 @@ import com.yy.mobile.emoji.EmojiReader;
 public class TextDrawFormat<T> implements IDrawFormat<T> {
 
 
-    private Map<String,SoftReference<String[]>> valueMap; //避免产生大量对象
+    private Map<String, SoftReference<String[]>> valueMap; //避免产生大量对象
 
     public TextDrawFormat() {
         valueMap = new HashMap<>();
@@ -39,7 +39,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureWidth(Column<T> column, String value, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        String text = getWrapText( value, paint, config, 0);
+        String text = getWrapText(value, paint, config, 0);
 //        column.setFormatData(position,value);
         return DrawUtils.getMultiTextWidth(paint, getSplitString(text));
     }
@@ -48,42 +48,44 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureHeight(Column<T> column, String value, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        String text = getWrapText( value, paint, config, 0);
+        String text = getWrapText(value, paint, config, 0);
         return DrawUtils.getMultiTextHeight(paint, getSplitString(text)) + 40;
     }
 
     @Override
-    public int measureWidth(Column<T>column, int position, TableConfig config) {
+    public int measureWidth(Column<T> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        String value = getWrapText( column.format(position), paint, config, 0);
-        column.setFormatData(position,value);
+        String cacheWrapText = column.getCacheWrapText(position);
+        String value = null == cacheWrapText ? getWrapText(column.format(position), paint, config, 0) : cacheWrapText;
+        column.setFormatData(position, value);
         return DrawUtils.getMultiTextWidth(paint, getSplitString(value));
     }
 
 
     @Override
-    public int measureHeight(Column<T> column,int position, TableConfig config) {
+    public int measureHeight(Column<T> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         // return DrawUtils.getMultiTextHeight(paint,getSplitString(column.format(position)));
-        String value = getWrapText( column.format(position), paint, config, 0);
+        String cacheWrapText = column.getCacheWrapText(position);
+        String value = null == cacheWrapText ? getWrapText(column.format(position), paint, config, 0) : cacheWrapText;
         return DrawUtils.getMultiTextHeight(paint, getSplitString(value)) + 40;
     }
 
     @Override
-    public void draw(Canvas c,Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+    public void draw(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
 //        Log.e(TAG, "draw");
         Paint paint = config.getPaint();
-        setTextPaint(config,cellInfo, paint);
-        if(cellInfo.column.getTextAlign() !=null) {
+        setTextPaint(config, cellInfo, paint);
+        if (cellInfo.column.getTextAlign() != null) {
             paint.setTextAlign(cellInfo.column.getTextAlign());
         }
-        drawText(c, cellInfo.value, rect, paint, config, 0);
+        drawText(c, cellInfo, rect, paint, config, 0);
     }
 
 
-    public void drawImageText(Canvas c,Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+    public void drawImageText(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
         //Log.e(TAG, "draw");
         JsonTableBean tableBean = null;
         try {
@@ -92,44 +94,43 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             e.printStackTrace();
         }
         boolean isLeft = true;
-        if(tableBean != null){
+        if (tableBean != null) {
             Integer innerAlign = tableBean.getTextAlignment();
             ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
-            isLeft = innerAlign !=null? innerAlign==0 : itemCommonStyleConfig.getTextAlignment()==0;
+            isLeft = innerAlign != null ? innerAlign == 0 : itemCommonStyleConfig.getTextAlignment() == 0;
         }
         Paint paint = config.getPaint();
-        setTextPaint(config,cellInfo, paint);
-        if(isLeft){
-        }else{
+        setTextPaint(config, cellInfo, paint);
+        if (isLeft) {
+        } else {
             paint.setTextAlign(Paint.Align.RIGHT);
         }
-        drawText(c, cellInfo.value, rect, paint, config, 40);
+        drawText(c, cellInfo, rect, paint, config, 40);
     }
 
 
-    protected void drawText(Canvas c, String value, Rect rect, Paint paint,TableConfig config, int marginRight) {
-        value = getWrapText( value, paint, config, marginRight, rect);
-        DrawUtils.drawMultiText(c,paint,rect,getSplitString(value));
+    protected void drawText(Canvas c, CellInfo<T> cellInfo, Rect rect, Paint paint, TableConfig config, int marginRight) {
+        String value = cellInfo.wrapFlag?cellInfo.value:getWrapText(cellInfo.value, paint, config, marginRight, rect);
+        DrawUtils.drawMultiText(c, paint, rect, getSplitString(value));
     }
 
 
-
-    public void setTextPaint(TableConfig config,CellInfo<T> cellInfo, Paint paint) {
+    public void setTextPaint(TableConfig config, CellInfo<T> cellInfo, Paint paint) {
         config.getContentStyle().fillPaint(paint);
         ICellBackgroundFormat<CellInfo> backgroundFormat = config.getContentCellBackgroundFormat();
-        if(backgroundFormat!=null && backgroundFormat.getTextColor(cellInfo) != TableConfig.INVALID_COLOR){
+        if (backgroundFormat != null && backgroundFormat.getTextColor(cellInfo) != TableConfig.INVALID_COLOR) {
             paint.setColor(backgroundFormat.getTextColor(cellInfo));
         }
-        paint.setTextSize(paint.getTextSize()*config.getZoom()*config.getPartlyCellZoom());
+        paint.setTextSize(paint.getTextSize() * config.getZoom() * config.getPartlyCellZoom());
 
     }
 
-    protected String[] getSplitString(String val){
+    protected String[] getSplitString(String val) {
         String[] values = null;
-        if(valueMap.get(val)!=null){
-            values= valueMap.get(val).get();
+        if (valueMap.get(val) != null) {
+            values = valueMap.get(val).get();
         }
-        if(values == null){
+        if (values == null) {
             values = val.split("\n");
 
             valueMap.put(val, new SoftReference<>(values));
@@ -138,7 +139,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     }
 
 
-    public String getWrapText( String value, Paint paint, TableConfig config, int marginRight){
+    public String getWrapText(String value, Paint paint, TableConfig config, int marginRight) {
         int paddingLeftSize = config.getTextLeftOffset();
         int paddingRightSize = config.getTextRightOffset();
         int maxWidth = config.getMaxCellWidth();
@@ -178,13 +179,13 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             return "".equals(newStr) ? value : newStr; */
     }
 
-    public String getWrapText( String value, Paint paint, TableConfig config, int marginRight, Rect rect){
-        int maxWidth = rect.right-rect.left;
+    public String getWrapText(String value, Paint paint, TableConfig config, int marginRight, Rect rect) {
+        int maxWidth = rect.right - rect.left;
         return getWrapText(value, paint, 0, 0, 0, maxWidth);
     }
 
     private String getWrapText(String value, Paint paint, int marginRight, int paddingLeftSize, int paddingRightSize, int maxWidth) {
-        if(TextUtils.isEmpty(value))return value;
+        if (TextUtils.isEmpty(value)) return value;
         if (maxWidth <= 0) {
             return value;
         } else {
@@ -195,22 +196,22 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                     ? maxWidth - leeway
                     : expect - leeway;
             String newStr = "";
-            StringBuilder stringBuilder= new StringBuilder();
+            StringBuilder stringBuilder = new StringBuilder();
             EmojiReader instance = EmojiReader.INSTANCE;
             int length = instance.getTextLength(value);
-            int lineStartIndex =0;
-            String temp="";
-            String curLineStr="";
+            int lineStartIndex = 0;
+            String temp = "";
+            String curLineStr = "";
             for (int i = 1; i <= length; i++) {
                 temp = instance.subSequence(value, lineStartIndex, i).toString();
                 float tempStrLen = paint.measureText(temp);
-                if(tempStrLen<=realWidth){
+                if (tempStrLen <= realWidth) {
                     curLineStr = temp;
                     continue;
-                }else {
+                } else {
                     stringBuilder.append(curLineStr);
                     stringBuilder.append("\n");
-                    lineStartIndex= i-1;
+                    lineStartIndex = i - 1;
                     curLineStr = instance.subSequence(value, lineStartIndex, i).toString();
                 }
             }

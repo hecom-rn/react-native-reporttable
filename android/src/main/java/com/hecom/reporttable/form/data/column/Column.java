@@ -388,6 +388,14 @@ public class Column<T> implements Comparable<Column> {
        return INVAL_VALUE;
     }
 
+    public String getCacheWrapText(int position){
+        if(position >=0 && position< datas.size()){
+            if(formatDatas.get(position)!=null){
+                return formatDatas.get(position);
+            }
+        }
+        return null;
+    }
 
     public List<int[]> parseRanges(){
         if(isAutoMerge && maxMergeCount> 1 &&datas != null) {

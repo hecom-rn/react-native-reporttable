@@ -65,7 +65,7 @@ public class TableProvider<T> implements TableClickObserver {
     private boolean isFirstDraw = true;  //是否首次绘制
     private boolean isShowUnFixedArea;  //非固定区域是否已全部可见
     private boolean isScrollToBottom;  //是否滚动至底部
-//    private List<Integer> fixedTops = new ArrayList<>();  //固定行的top列表
+    //    private List<Integer> fixedTops = new ArrayList<>();  //固定行的top列表
 //    private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
     private List<ArrayList<Integer>> fixedTopLists = new ArrayList<>();  //固定行的topSet
     private List<ArrayList<Integer>> fixedBottomLists = new ArrayList<>();  //固定行的bottomSet
@@ -337,9 +337,9 @@ public class TableProvider<T> implements TableClickObserver {
         List<Column> columns = tableData.getChildColumns();
 
         Rect showRect = new Rect(this.showRect.left, this.showRect.top, this.showRect.right, this.showRect.bottom);
-       if (isFirstDraw) {
-           showRect.right = Integer.MAX_VALUE/2; // 第一次渲染全部，因为需要计算 fixTopLists 和 fixBottomLists
-       }
+        if (isFirstDraw) {
+            showRect.right = Integer.MAX_VALUE/2; // 第一次渲染全部，因为需要计算 fixTopLists 和 fixBottomLists
+        }
         clipRect.set(showRect);
         TableInfo info = tableData.getTableInfo();
         int columnSize = columns.size();
@@ -388,7 +388,8 @@ public class TableProvider<T> implements TableClickObserver {
                 for (int j = 0; j < size; j++) {
                     //遍历行
                     boolean isDrawLock = (j == 0 && column.isFixed());
-                    String value = column.format(j, config.getFrozenCount(), config.getFrozenPoint());
+                    String cacheWrapText = column.getCacheWrapText(j);
+                    String value = null==cacheWrapText?column.format(j, config.getFrozenCount(), config.getFrozenPoint()):cacheWrapText;
                     int skip =tableInfo.getSeizeCellSize(column,j);
                     int totalLineHeight =0;
                     for(int k = realPosition;k<realPosition+skip;k++){
@@ -450,7 +451,7 @@ public class TableProvider<T> implements TableClickObserver {
                                     singleClickItem = false;
                                 }
                                 operation.checkSelectedPoint(i, j, correctCellRect);
-                                cellInfo.set(column,data,value,i,j);
+                                cellInfo.set(column,data,value,i,j,cacheWrapText!=null);
                                 config.setPartlyCellZoom(1);
                                 if(config.getFixedLines() == 0) {
                                     drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);

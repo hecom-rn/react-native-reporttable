@@ -120,12 +120,12 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             tableData.setOnItemClickListener(new ArrayTableData.OnItemClickListener<String>() {
 
                 @Override
-                public void onClick(Column<String> column, String value, String s, int col, int row) {
+                public void onClick(Column<String> column, String value, String s, int col, int row, final TableData curTableData) {
                     if (clickLockBt) {
                         new Handler().postDelayed(new Runnable() {
                             @Override
                             public void run() {
-                                table.setTableData(tableData);
+                                table.setTableData(curTableData);
                             }
                         }, 10);
                         return;
