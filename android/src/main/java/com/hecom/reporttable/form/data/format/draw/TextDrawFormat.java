@@ -93,17 +93,21 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        boolean isLeft = true;
+        Paint paint = config.getPaint();
+        setTextPaint(config, cellInfo, paint);
         if (tableBean != null) {
             Integer innerAlign = tableBean.getTextAlignment();
             ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
-            isLeft = innerAlign != null ? innerAlign == 0 : itemCommonStyleConfig.getTextAlignment() == 0;
-        }
-        Paint paint = config.getPaint();
-        setTextPaint(config, cellInfo, paint);
-        if (isLeft) {
-        } else {
-            paint.setTextAlign(Paint.Align.RIGHT);
+            Paint.Align align = innerAlign != null
+                    ? (innerAlign == 1 ? Paint.Align.CENTER : innerAlign == 2 ? Paint.Align.RIGHT : Paint.Align.LEFT)
+                    : (itemCommonStyleConfig.getTextAlignment() == 1
+                    ? Paint.Align.CENTER
+                    : itemCommonStyleConfig.getTextAlignment() == 2
+                    ? Paint.Align.RIGHT
+                    : Paint.Align.LEFT);
+            paint.setTextAlign(align);
+        }else{
+            paint.setTextAlign(Paint.Align.LEFT);
         }
         drawText(c, cellInfo, rect, paint, config, 40);
     }
