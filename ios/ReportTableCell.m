@@ -127,10 +127,8 @@
 {
     self = [super initWithFrame:frame];
     if (self) {
-        self.label.frame = self.bounds;
         self.label.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
         [self.contentView addSubview:self.label];
-        self.label.translatesAutoresizingMaskIntoConstraints = false;
     }
     return self;
 }

@@ -18,9 +18,8 @@
 @property (nonatomic, strong) NSArray *cloumsHight;
 @property (nonatomic, strong) NSArray *rowsWidth;
 @property (nonatomic, assign) BOOL isOnHeader;
-@property (nonatomic, assign) CGFloat tableMaxHeight;
-@property (nonatomic, assign) CGFloat tableMaxWidth;
 
+@property (nonatomic, strong) UIView *containerView;
 
 @end
 
@@ -43,12 +42,18 @@
         self.clipsToBounds = true;
         self.delegate = self;
         self.bounces = false;
+        self.scrollEnabled = false;
         self.contentSize = CGSizeMake(0, 0);
         self.maximumZoomScale = 2;
         self.minimumZoomScale = 0.5;
         self.bouncesZoom = false;
         self.showsVerticalScrollIndicator = false;
         self.showsHorizontalScrollIndicator = false;
+        
+        self.containerView = [[UIView alloc] init];
+        self.containerView.frame = self.bounds;
+        self.containerView.layer.anchorPoint = CGPointMake(0, 0);
+        [self addSubview: self.containerView];
         
         [self.spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier: [ReportTableCell description]];
         [self.spreadsheetView flashScrollIndicators];
@@ -65,47 +70,34 @@
     
     CGFloat hairline = 1;
     
-    self.tableMaxWidth = [[reportTableModel.rowsWidth valueForKeyPath:@"@sum.floatValue"] floatValue] + (reportTableModel.rowsWidth.count + 1) * hairline;
-    self.tableMaxHeight = [[reportTableModel.cloumsHight valueForKeyPath:@"@sum.floatValue"] floatValue] + (reportTableModel.cloumsHight.count + 1) * hairline + self.headerScrollView.frame.size.height;
-    
     self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
-    self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: reportTableModel.lineColor];
+    self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: [UIColor redColor]];
     
     [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
-    return self.spreadsheetView;
+    return self.containerView;
 }
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView {
-    CGFloat zoomScale = scrollView.zoomScale;
-    CGFloat scale = MIN(1, zoomScale);
-    CGSize size = self.reportTableModel.tableRect.size;
-    CGSize headerSize = self.headerScrollView.frame.size;
-
-    CGRect rowRoiReact = self.spreadsheetView.rowHeaderView.frame;
-    CGRect columnOriReact = self.spreadsheetView.columnHeaderView.frame;
-    CGRect tableOriReact = self.spreadsheetView.tableView.frame;
+  
+    UIView *contentView = self.spreadsheetView;
     
-    CGFloat x = columnOriReact.size.width == 1 ? MAX(0, tableOriReact.origin.x / zoomScale) : columnOriReact.size.width - 1;
-    CGFloat y = rowRoiReact.size.height == 1 ? tableOriReact.origin.y / zoomScale : rowRoiReact.size.height - 1;
-    CGFloat width = MIN(self.tableMaxWidth, size.width / zoomScale);
-    CGFloat height = size.height / zoomScale;
-    CGFloat w = columnOriReact.size.width == 1 ? width : width - columnOriReact.size.width - 1;
-    CGFloat h = rowRoiReact.size.height == 1 ? height : height - rowRoiReact.size.height - 1;
- 
+    CGFloat zoomScale = scrollView.zoomScale;
+    contentView.transform = CGAffineTransformMakeScale(zoomScale, zoomScale);
+    
+    CGSize headerSize = self.headerScrollView.frame.size;
     self.spreadsheetView.tableView.contentInset = UIEdgeInsetsMake(headerSize.height / zoomScale, 0, 0, 0);
     
-    self.spreadsheetView.frame = CGRectMake(0, 0, size.width, size.height);
-    self.spreadsheetView.tableView.frame = CGRectMake(x, y, w, h);
-    self.spreadsheetView.columnHeaderView.frame = CGRectMake(columnOriReact.origin.x, columnOriReact.origin.y, columnOriReact.size.width, h);
-    
-    self.spreadsheetView.rowHeaderView.frame = CGRectMake(rowRoiReact.origin.x, rowRoiReact.origin.y, width, rowRoiReact.size.height);
-    
-    self.spreadsheetView.rowHeaderView.contentOffset = CGPointMake(self.spreadsheetView.rowHeaderView.contentOffset.x, MIN(0, self.spreadsheetView.tableView.contentOffset.y));
-    self.contentSize = CGSizeMake(0, 0);
+    // 调整contentView的位置和大小以保持子视图位置不变
+    CGRect newFrame = contentView.frame;
+    newFrame.origin.x = scrollView.contentInset.left;
+    newFrame.origin.y = scrollView.contentInset.top;
+    newFrame.size.width = self.reportTableModel.tableRect.size.width;
+    newFrame.size.height = self.reportTableModel.tableRect.size.height;
+    contentView.frame = newFrame;
 }
 
 - (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(CGFloat)scale {

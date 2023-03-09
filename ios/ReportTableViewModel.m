@@ -416,16 +416,8 @@
     }
     self.dataHeight = tableHeight;
     
-    if (_headerView) {
-        // 更新 tableHeight
-        CGSize headerSize = self.headerView.frame.size;
-        tableHeight += headerSize.height;
-    }
-    CGRect temp = self.reportTableModel.tableRect;
-    CGRect tableRect = CGRectMake(temp.origin.x, temp.origin.y, temp.size.width, temp.size.height);
-//    tableRect.size.height = MIN(tableRect.size.height, tableHeight);
-    self.reportTableView.frame = tableRect;
-    self.headerScrollView.frame = CGRectMake(0, 0, tableRect.size.width, self.headerScrollView.frame.size.height);
+    self.reportTableView.frame = self.reportTableModel.tableRect;
+    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableModel.tableRect.size.width, self.headerScrollView.frame.size.height);
     
     self.reportTableView.reportTableModel = self.reportTableModel;
 }
