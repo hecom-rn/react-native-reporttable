@@ -71,7 +71,7 @@
     CGFloat hairline = 1;
     
     self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
-    self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: [UIColor redColor]];
+    self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: reportTableModel.lineColor];
     
     [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
