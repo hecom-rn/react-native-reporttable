@@ -242,6 +242,8 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                             leftMargin4Icon = MARGIN_VALUE;
                         } else if ("dot_white".equals(name)) {
                             leftMargin4Icon = MARGIN_VALUE;
+                        } else if ("dot_readonly".equals(name)) {
+                            leftMargin4Icon = MARGIN_VALUE;
                         } else if ("portal_icon".equals(name)) {
                             rightMargin4Icon = MARGIN_VALUE;
                         } else if ("trash".equals(name)) {
