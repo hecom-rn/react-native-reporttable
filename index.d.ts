@@ -17,7 +17,7 @@ declare module "@hecom/react-native-report-table" {
         onClickEvent?: (item: ItemClick) => void;
         onScrollEnd?: (isEnd: boolean) => void;
         onScroll?: (pro: ScrollPro) => void;
-        lineColor?: string;
+        lineColor?: Color;
 
         frozenPoint?: number; // 首行 指定列支持冻结  第一优先  使用后带🔒的icon   优先级比 frozenColumns 高
         frozenCount?: number; // 首行前几列 可支持点击冻结  第二优先 🔒自动锁住
@@ -27,10 +27,12 @@ declare module "@hecom/react-native-report-table" {
         itemConfig?: ItemConfig; // 优先级比 DataSource中的属性低
     }
 
+    type Color =  string | ProcessedColorValue; // ios ProcessedColorValue,   android 16进制色值，需6位
+
     export interface ItemConfig {
-        backgroundColor?: string | ProcessedColorValue; // ios ProcessedColorValue   android string
+        backgroundColor?: Color;
         fontSize?: number;  // default 14
-        textColor?: string | ProcessedColorValue; // ios ProcessedColorValue   android string
+        textColor?: Color;
         textAlignment?: 0 | 1 | 2; // default 0
         textPaddingHorizontal?: number; // default 12
     }
@@ -55,10 +57,10 @@ declare module "@hecom/react-native-report-table" {
         title: string;
         keyIndex: number;
 
-        backgroundColor?: string;
+        backgroundColor?: Color;
 
         fontSize?: number;  // default 14
-        textColor?: string;
+        textColor?: Color;
         textPaddingHorizontal?: number; // default 12
         textAlignment?: 0 | 1 | 2; // default 0
 
