@@ -98,10 +98,12 @@ public class ReportTableData {
                         column = mergeBean.getEndColum();
                     } else {
                         preMaxCloumn = maxValues4Column[column];
-                        preMaxRow = maxValues4Row[row];
                         if (null == preMaxCloumn || preMaxCloumn.length() < rowObj.title.length()) {
                             maxValues4Column[column] = rowObj.title;
                         }
+                    }
+                    if (!mergeBean.isMergeRow()){
+                        preMaxRow = maxValues4Row[row];
                         if (null == preMaxRow || preMaxRow.length() < rowObj.title.length()) {
                             maxValues4Row[row] = rowObj.title;
                         }
