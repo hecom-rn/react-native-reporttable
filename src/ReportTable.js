@@ -14,6 +14,15 @@ const itemConfig = {
     }),
     textPaddingHorizontal: 12, // 上左下右
     textAlignment: 0,  // 0左 1中 2右  default 0
+    splitLineColor:  Platform.select({
+        ios: processColor('#e8e8e8'),
+        android: '#e8e8e8',
+    }),
+    classificationLineColor: Platform.select({
+        ios: processColor('#9cb3c8'),
+        android: '#9cb3c8',
+    }),
+    isOverstriking: false,
 };
 
 export default class ReportTable extends React.Component{
@@ -34,6 +43,7 @@ export default class ReportTable extends React.Component{
         onScroll: () => {},
         frozenCount: 0,
         frozenPoint: 0,
+        columnsWidthMap: {},
         itemConfig: itemConfig,
     };
 

@@ -25,16 +25,28 @@ declare module "@hecom/react-native-report-table" {
         headerView?: () => React.ReactElement;
 
         itemConfig?: ItemConfig; // 优先级比 DataSource中的属性低
+
+        columnsWidthMap?: ColumnsWidthMap; // index 为指定index的列宽， 未设置则还使用原minWidth， maxWidth
     }
 
     type Color =  string | ProcessedColorValue; // ios ProcessedColorValue,   android 16进制色值，需6位
 
     export interface ItemConfig {
-        backgroundColor?: Color;
-        fontSize?: number;  // default 14
-        textColor?: Color;
-        textAlignment?: 0 | 1 | 2; // default 0
-        textPaddingHorizontal?: number; // default 12
+        backgroundColor: Color;
+        fontSize: number;  // default 14
+        textColor: Color;
+        textAlignment: 0 | 1 | 2; // default 0
+        textPaddingHorizontal: number; // default 12
+        splitLineColor: Color; // default #e8e8e8
+        classificationLineColor: Color; // default #9cb3c8
+        isOverstriking: boolean; // 是否加粗。 default false
+    }
+
+    interface ColumnsWidthMap  {
+        [index: string]: {
+            maxWidth: number;
+            minWidth: number;
+        };
     }
 
     export interface ScrollPro {
@@ -64,6 +76,7 @@ declare module "@hecom/react-native-report-table" {
         textPaddingHorizontal?: number; // default 12
         textAlignment?: 0 | 1 | 2; // default 0
 
+        isOverstriking?: boolean; // 是否加粗。 default false
         icon?: IconStyle;
     }
 
