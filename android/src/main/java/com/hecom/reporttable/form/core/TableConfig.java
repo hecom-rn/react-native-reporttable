@@ -1,7 +1,9 @@
 package com.hecom.reporttable.form.core;
 
+import android.content.Context;
 import android.graphics.Paint;
 
+import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.bg.IBackgroundFormat;
@@ -11,7 +13,9 @@ import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.data.format.grid.SimpleGridFormat;
 import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.style.LineStyle;
+import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
+import com.hecom.reporttable.table.bean.JsonTableBean;
 
 
 /**
@@ -21,7 +25,7 @@ import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
  */
 
 
-public class TableConfig {
+public class TableConfig<T> {
     /**
      * 默认字体样式
      */
@@ -35,7 +39,13 @@ public class TableConfig {
      */
     public static final int INVALID_COLOR = 0;
 
+    private final Context context;
+
     public int dp10;
+
+    public int dp4;
+
+    public int dp8;
     /**
      * 内容字体样式
      */
@@ -44,6 +54,13 @@ public class TableConfig {
      * 左侧序号列字体样式
      */
     private FontStyle YSequenceStyle;
+    private TableData<T> tableData;
+    public int firstColMaxMerge = -1;
+
+    public Context getContext() {
+        return context;
+    }
+
     /**
      * 顶部序号列字体样式
      */
@@ -231,6 +248,11 @@ public class TableConfig {
     private int frozenPoint = 0;
 
     private ItemCommonStyleConfig itemCommonStyleConfig = new ItemCommonStyleConfig();
+    private JsonTableBean[][] tabArr;
+
+    public TableConfig(Context context) {
+        this.context = context;
+    }
 
     public ItemCommonStyleConfig getItemCommonStyleConfig() {
         return itemCommonStyleConfig;
@@ -254,6 +276,27 @@ public class TableConfig {
 
     public void setFrozenPoint(int frozenPoint) {
         this.frozenPoint = frozenPoint;
+    }
+
+    public void setTabArr(JsonTableBean[][] tabArr) {
+        this.tabArr = tabArr;
+    }
+
+    public JsonTableBean[][] getTabArr() {
+        return tabArr;
+    }
+
+    public  void setTableData(TableData<T> tableData) {
+        this.tableData = tableData;
+         this.firstColMaxMerge =   TableUtil.getFirstColumnMaxMerge(tableData);
+    }
+
+    public int getFirstColMaxMerge() {
+        return firstColMaxMerge;
+    }
+
+    public TableData<T> getTableData() {
+        return tableData;
     }
 
     public interface OnScrollChangeListener {
@@ -709,22 +752,22 @@ public class TableConfig {
 
     private int textRightOffset = 0;
 
-     public int getMinCellWidth() {
-            return minCellWidth;
-        }
-
-        public void setMinCellWidth(int minCellWidth) {
-            this.minCellWidth = minCellWidth;
-        }
-
-        public int getMaxCellWidth() {
-            return maxCellWidth;
-        }
-
-        public void setMaxCellWidth(int maxCellWidth) {
-            this.maxCellWidth = maxCellWidth;
-        }
-
-        private int minCellWidth;
-        private int maxCellWidth;
+//     public int getMinCellWidth() {
+//            return minCellWidth;
+//        }
+//
+//        public void setMinCellWidth(int minCellWidth) {
+//            this.minCellWidth = minCellWidth;
+//        }
+//
+//        public int getMaxCellWidth() {
+//            return maxCellWidth;
+//        }
+//
+//        public void setMaxCellWidth(int maxCellWidth) {
+//            this.maxCellWidth = maxCellWidth;
+//        }
+//
+//        private int minCellWidth;
+//        private int maxCellWidth;
 }

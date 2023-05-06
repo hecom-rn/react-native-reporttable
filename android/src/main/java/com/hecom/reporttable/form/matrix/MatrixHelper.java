@@ -58,6 +58,12 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
     private boolean isAutoFling = false;
     private OnInterceptListener onInterceptListener;
     int touchSlop; //最小滚动距离
+    private float mFocusX, mFocusY;
+    private int fixedReactLeft;
+    private int fixedReactRight;
+    private int minFixedTranslateX;
+    public int mFixedTranslateX;
+    boolean touchFromFixed;
 
     /**
      * 手势帮助类构造方法
@@ -189,6 +195,30 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         }
     }
 
+    public void setFixedReactLeft(int fixedReactLeft) {
+        this.fixedReactLeft = fixedReactLeft;
+    }
+
+    public int getFixedReactLeft() {
+        return fixedReactLeft;
+    }
+
+    public void setFixedReactRight(int fixedReactRight) {
+        this.fixedReactRight = fixedReactRight;
+    }
+
+    public int getFixedReactRight() {
+        return fixedReactRight;
+    }
+
+    public void setMinFixedTranslateX(int minFixedTranslateX) {
+        this.minFixedTranslateX = minFixedTranslateX;
+    }
+
+    public int getMinFixedTranslateX() {
+        return minFixedTranslateX;
+    }
+
     /**
      * 被观察者通知方法
      * @param observers
@@ -228,6 +258,12 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
 
                 translateX += distanceX;
                 translateY += distanceY;
+                if (touchFromFixed) {
+                    mFixedTranslateX += distanceX;
+                }
+                if(translateX<mFixedTranslateX){
+                    mFixedTranslateX=translateX;
+                }
                 notifyViewChanged();
             }
             return true;
@@ -251,9 +287,25 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         }
 
         @Override
-        public boolean onDown(MotionEvent e) {
+        public boolean onDown(MotionEvent ev) {
             isFling = false;
+            final int action = ev.getAction();
+            final boolean pointerUp =
+                    (action & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_POINTER_UP;
+            final int skipIndex = pointerUp ? ev.getActionIndex() : -1;
 
+            // Determine focal point
+            float sumX = 0, sumY = 0;
+            final int count = ev.getPointerCount();
+            for (int i = 0; i < count; i++) {
+                if (skipIndex == i) continue;
+                sumX += ev.getX(i);
+                sumY += ev.getY(i);
+            }
+            final int div = pointerUp ? count - 1 : count;
+            mFocusX = sumX / div;
+            mFocusY = sumY / div;
+            touchFromFixed = mFocusX > fixedReactLeft && mFocusX < fixedReactRight;
             return true;
         }
 
@@ -397,6 +449,12 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
                     Point point = (Point) animation.getAnimatedValue();
                     translateX = tempTranslateX - point.x;
                     translateY = tempTranslateY - point.y;
+                    if (touchFromFixed) {
+                        mFixedTranslateX -= point.x;
+                    }
+                    if(translateX<mFixedTranslateX){
+                        mFixedTranslateX=translateX;
+                    }
                     notifyViewChanged();
                 }else{
                     animation.cancel();
@@ -416,6 +474,10 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
 
         translateX = (int) (translateX * factor);
         translateY = (int) (translateY * factor);
+        mFixedTranslateX = (int) (mFixedTranslateX * factor);
+        if (translateX < mFixedTranslateX) {
+            mFixedTranslateX = translateX;
+        }
     }
 
 
@@ -464,9 +526,14 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
             if (maxTranslateX > minTranslateX) {
                 if (translateX < minTranslateX) {
                     translateX = minTranslateX;
-
+                    if (translateX < mFixedTranslateX) {
+                        mFixedTranslateX = translateX;
+                    }
                 } else if (translateX > maxTranslateX) {
                     translateX = maxTranslateX;
+                    if (translateX < mFixedTranslateX) {
+                        mFixedTranslateX = translateX;
+                    }
                 }
             } else {
                 isFullShowX = true;
@@ -489,6 +556,9 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
                 } else {
                     scaleRect.left = showRect.left;
                     translateX = minTranslateX;
+                    if (translateX < mFixedTranslateX) {
+                        mFixedTranslateX = translateX;
+                    }
                 }
             }
             if (isFullShowY) {
@@ -507,6 +577,9 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
             translateX= providerRect.left- zoomRect.left- offsetX;
             translateY  = providerRect.top-zoomRect.top - offsetY ;
             scaleRect.set(zoomRect);
+            if (translateX < mFixedTranslateX) {
+                mFixedTranslateX = translateX;
+            }
         }
         return scaleRect;
     }

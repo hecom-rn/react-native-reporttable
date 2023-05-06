@@ -10,6 +10,7 @@ import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.MergeBean;
 import com.hecom.reporttable.table.bean.MergeResult;
 import com.hecom.reporttable.table.bean.TableConfigBean;
+import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,12 +49,12 @@ public class ReportTableData {
         mergeKeyMap.clear();
         if (TextUtils.isEmpty(json)) {
             tabArr = new JsonTableBean[][]{};
-            return new MergeResult(new String[][]{}, new String[]{}, new String[]{});
+            return new MergeResult(new String[][]{}, new TypicalCell[][]{}, new String[]{});
         }
         try {
             tabArr = JacksonUtil.decode(json, JsonTableBean[][].class);
             String[][] strArr = creatArr(tabArr);
-            String[] maxValues4Column = new String[strArr.length];
+            TypicalCell[][] maxValues4Column = new TypicalCell[strArr.length][3];
             String[] maxValues4Row = new String[strArr[0].length];
             if (strArr == null) {
                 return null;
@@ -61,26 +62,26 @@ public class ReportTableData {
             int rowLength = tabArr.length;
             int colLength = tabArr[0].length;
 
-            String preMaxCloumn;
+            TypicalCell preMaxContentCloumn,preMaxIconCloumn;
             String preMaxRow;
             ItemCommonStyleConfig commonStyleConfig = configBean.getItemCommonStyleConfig();
-            for (int row = 0; row < rowLength; row++) {
+            for (int rowIndex = 0; rowIndex < rowLength; rowIndex++) {
                 //1、合并列（从左往右找）；2、合并行（从上往下找）
-                JsonTableBean[] columnArr = tabArr[row];
-                for (int column = 0; column < colLength; column++) {
-                    JsonTableBean rowObj = columnArr[column];
+                JsonTableBean[] columnArr = tabArr[rowIndex];
+                for (int columnIndex = 0; columnIndex < colLength; columnIndex++) {
+                    JsonTableBean rowObj = columnArr[columnIndex];
                     int uniqueKeyValue = rowObj.keyIndex;
                     mergeBean.clear();
-                    mergeBean.setStartColum(column);
-                    mergeColumn(uniqueKeyValue, column, columnArr);
-                    mergeBean.setStartRow(row);
-                    mergeRow(uniqueKeyValue, row, column, tabArr);
+                    mergeBean.setStartColum(columnIndex);
+                    mergeColumn(uniqueKeyValue, columnIndex, columnArr);
+                    mergeBean.setStartRow(rowIndex);
+                    mergeRow(uniqueKeyValue, rowIndex, columnIndex, tabArr);
 
                     if (TextUtils.isEmpty(rowObj.title)) {
-                        strArr[column][row] = "-";
+                        strArr[columnIndex][rowIndex] = "-";
                         rowObj.setTitle("-");
                     } else {
-                        strArr[column][row] = rowObj.title;
+                        strArr[columnIndex][rowIndex] = rowObj.title;
                     }
                     if (TextUtils.isEmpty(rowObj.backgroundColor)) {
                         rowObj.setBackgroundColor(commonStyleConfig.backgroundColor);
@@ -94,18 +95,37 @@ public class ReportTableData {
                     if (null == rowObj.fontSize) {
                         rowObj.setFontSize(commonStyleConfig.fontSize);
                     }
+                    if (null == rowObj.isOverstriking) {
+                        rowObj.setOverstriking(commonStyleConfig.isOverstriking);
+                    }
                     if (mergeBean.isMergeColumn()) {
-                        column = mergeBean.getEndColum();
+                        columnIndex = mergeBean.getEndColum();
                     } else {
-                        preMaxCloumn = maxValues4Column[column];
-                        if (null == preMaxCloumn || preMaxCloumn.length() < rowObj.title.length()) {
-                            maxValues4Column[column] = rowObj.title;
+                        if(maxValues4Column[columnIndex][0] ==null){
+                            maxValues4Column[columnIndex][0]= new TypicalCell(rowObj,columnIndex,rowIndex);
+                        }
+
+                        preMaxContentCloumn = maxValues4Column[columnIndex][1];
+                        if (null == preMaxContentCloumn){
+                            maxValues4Column[columnIndex][1] =new TypicalCell(rowObj,columnIndex,rowIndex);
+                        }else if(  preMaxContentCloumn.jsonTableBean.title.length() < rowObj.title.length()) {
+                            preMaxContentCloumn.rowIndex=rowIndex;
+                            preMaxContentCloumn.jsonTableBean=rowObj;
+                        }
+                        if(rowObj.icon!=null){
+                            preMaxIconCloumn = maxValues4Column[columnIndex][2];
+                            if (null == preMaxIconCloumn){
+                                maxValues4Column[columnIndex][2] =new TypicalCell(rowObj,columnIndex,rowIndex);
+                            }else if(  preMaxIconCloumn.jsonTableBean.title.length() < rowObj.title.length()) {
+                                preMaxIconCloumn.rowIndex=rowIndex;
+                                preMaxIconCloumn.jsonTableBean=rowObj;
+                            }
                         }
                     }
                     if (!mergeBean.isMergeRow()){
-                        preMaxRow = maxValues4Row[row];
+                        preMaxRow = maxValues4Row[rowIndex];
                         if (null == preMaxRow || preMaxRow.length() < rowObj.title.length()) {
-                            maxValues4Row[row] = rowObj.title;
+                            maxValues4Row[rowIndex] = rowObj.title;
                         }
                     }
 
@@ -138,7 +158,7 @@ public class ReportTableData {
             e.printStackTrace();
             System.out.println("table------合并异常了----------");
             tabArr = new JsonTableBean[][]{};
-            return new MergeResult(new String[][]{}, new String[]{}, new String[]{});
+            return new MergeResult(new String[][]{}, new TypicalCell[][]{}, new String[]{});
         }
     }
 

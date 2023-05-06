@@ -7,11 +7,13 @@ import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.IFormat;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
+import com.hecom.reporttable.table.bean.CellConfig;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by huang on 2018/1/14.
@@ -119,15 +121,23 @@ public class ArrayTableData<T> extends TableData<T> {
         }
     }
 
-    /**
-     * 设置最小宽度
-     * @param minWidth
-     */
-    public void setMinWidth(int minWidth){
-        for(Column<T> column:arrayColumns){
-            column.setMinWidth(minWidth);
+    public void setWidthLimit(int minWidth,int maxWidth, Map<Integer, CellConfig> columnConfigMap){
+        for (int i = 0; i < arrayColumns.size(); i++) {
+            Column<T> column = arrayColumns.get(i);
+            if(minWidth>0) column.setMinWidth(minWidth);
+            if(maxWidth>0) column.setMaxWidth(maxWidth);
+            CellConfig cellConfig = columnConfigMap != null ? columnConfigMap.get(i) : null;
+            if(null!=cellConfig){
+                if(cellConfig.minWidth>0){
+                    column.setMinWidth(cellConfig.minWidth);
+                }
+                if(cellConfig.maxWidth>0){
+                    column.setMaxWidth(cellConfig.maxWidth);
+                }
+            }
         }
     }
+
 
     /**
      * 设置最小高度

@@ -73,6 +73,10 @@ public class Column<T> implements Comparable<Column> {
         this.totalColumn = totalColumn;
     }
 
+    public int getColumn() {
+        return column;
+    }
+
     /**列构造方法
      * 用于构造组合列
      * @param columnName 列名
@@ -731,6 +735,14 @@ public class Column<T> implements Comparable<Column> {
 
     public void setMinWidth(int minWidth) {
         this.minWidth = minWidth;
+    }
+
+    public int getMaxWidth() {
+        return maxWidth;
+    }
+
+    public void setMaxWidth(int maxWidth) {
+        this.maxWidth = maxWidth;
     }
 
     public int getMinHeight() {

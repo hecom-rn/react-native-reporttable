@@ -13,6 +13,7 @@ import com.hecom.reporttable.form.data.format.sequence.NumberSequenceFormat;
 import com.hecom.reporttable.form.data.format.title.ITitleDrawFormat;
 import com.hecom.reporttable.form.data.format.title.TitleDrawFormat;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
+import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,7 +25,7 @@ import java.util.List;
 
 public class TableData<T> {
 
-    private String[] maxValues4Column;
+    private TypicalCell[][] maxValues4Column;
     private String[] maxValues4Row;
     private String tableName;
     private List<Column> columns;
@@ -44,11 +45,11 @@ public class TableData<T> {
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
 
-    public String[] getMaxValues4Column() {
+    public TypicalCell[][] getMaxValues4Column() {
         return maxValues4Column;
     }
 
-    public void setMaxValues4Column(String[] maxValues4Column) {
+    public void setMaxValues4Column(TypicalCell[][] maxValues4Column) {
         this.maxValues4Column = maxValues4Column;
     }
 

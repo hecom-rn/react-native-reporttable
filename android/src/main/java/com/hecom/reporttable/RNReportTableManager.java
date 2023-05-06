@@ -16,11 +16,14 @@ import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.gson.Gson;
+import com.hecom.JacksonUtil;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.ReportTableStore;
+import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 
@@ -140,6 +143,19 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
 
             if (dataSource.hasKey("lineColor")) {
                 lineColor = dataSource.getString("lineColor");
+            }
+            if (dataSource.hasKey("columnsWidthMap")) {
+                String columnsWidthMap = dataSource.getString("columnsWidthMap");
+                if (!TextUtils.isEmpty(columnsWidthMap)) {
+                    Map<Integer, CellConfig> columnConfigMap = JacksonUtil.decode(columnsWidthMap, new TypeReference<Map<Integer, CellConfig>>() {
+                    });
+                    for (Map.Entry<Integer, CellConfig> entry : columnConfigMap.entrySet()) {
+                        CellConfig value = entry.getValue();
+                        value.setMinWidth(DensityUtils.dp2px(mReactContext, value.getMinWidth()));
+                        value.setMaxWidth(DensityUtils.dp2px(mReactContext, value.getMaxWidth()));
+                    }
+                    configBean.setColumnConfigMap(columnConfigMap);
+                }
             }
             if(!TextUtils.isEmpty(itemConfig)){
                 ItemCommonStyleConfig itemCommonStyleConfig = new Gson().fromJson(itemConfig, ItemCommonStyleConfig.class);

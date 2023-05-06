@@ -1,6 +1,9 @@
 package com.hecom.reporttable.table;
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -12,6 +15,7 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
+import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
@@ -40,19 +44,24 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
     private Map<Integer, Integer> columnMapWidth = new HashMap<>();
 
     private String jsonData;
-    int MARGIN_VALUE = 40;
+    int TITLE_ICON_MARGIN_VALUE = 40;
+    int CONTENT_ICON_MARGIN_VALUE = 40;
+    int ICON_MARGIN = 4;
 
     private boolean clickLockBt = false;
 
     public ReportTableStore(Context context, SmartTable smartTable) {
         this.context = context;
-        MARGIN_VALUE = DensityUtils.dp2px(context, 20);
+        TITLE_ICON_MARGIN_VALUE = DensityUtils.dp2px(context, 32);
+        CONTENT_ICON_MARGIN_VALUE = DensityUtils.dp2px(context, 12);
+        ICON_MARGIN = DensityUtils.dp2px(context, 4);
         this.table = smartTable;
     }
 
     public void setReportTableDataInMainThread(final SmartTable table,MergeResult mergeResult, final TableConfigBean configBean) {
         final ArrayTableData<String> rawTableData = (ArrayTableData<String>) table.getTableData();
         int minWidth = configBean.getMinWidth();
+        int maxWidth = configBean.getMaxWidth();
         int minHeight = configBean.getMinHeight();
         try {
 //            if (reportTableData == null) {
@@ -90,7 +99,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
 
             tableData.setMaxValues4Column(mergeResult.maxValues4Column);
             tableData.setMaxValues4Row(mergeResult.maxValues4Row);
-            tableData.setMinWidth(DensityUtils.dp2px(this.context, minWidth));
+            tableData.setWidthLimit(DensityUtils.dp2px(this.context, minWidth),DensityUtils.dp2px(this.context,  maxWidth), configBean.getColumnConfigMap());
             tableData.setMinHeight(DensityUtils.dp2px(this.context, minHeight));
             tableData.setUserCellRange(reportTableData.getMergeList());
             table.getConfig().setContentCellBackgroundFormat(new ICellBackgroundFormat<CellInfo>() {
@@ -202,6 +211,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             }
 
             int firstColMaxMerge = getFirstColumnMaxMerge(tableData);
+            Resources resources = context.getResources();
             int rightMargin4Icon = 0;
             int leftMargin4Icon = 0;
             for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
@@ -215,12 +225,12 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                         col = firstColMaxMerge;
                     }
                     if (col == configBean.getFrozenPoint() - 1) {
-                        rightMargin4Icon = MARGIN_VALUE;
+                        rightMargin4Icon =  resources.getDrawable(R.mipmap.icon_lock).getIntrinsicWidth();
                     }
                 } else {
                     if (configBean.getFrozenCount() > 0) {
                         if (i < configBean.getFrozenCount()) {
-                            rightMargin4Icon = MARGIN_VALUE;
+                            rightMargin4Icon =  resources.getDrawable(R.mipmap.icon_unlock).getIntrinsicWidth();
                         }
                     }
                 }
@@ -230,28 +240,30 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                     if (null != tableBean && null != tableBean.getIcon()) {
                         JsonTableBean.Icon icon = tableBean.getIcon();
                         String name = icon.getName();
-                        if ("up".equals(name)) {
-                            rightMargin4Icon = MARGIN_VALUE;
+                        if ("normal".equals(name)) {
+                            rightMargin4Icon =  resources.getDrawable(R.mipmap.normal).getIntrinsicWidth();
+                        } else if ("up".equals(name)) {
+                            rightMargin4Icon =  resources.getDrawable(R.mipmap.up).getIntrinsicWidth();
                         } else if ("down".equals(name)) {
-                            rightMargin4Icon = MARGIN_VALUE;
+                            rightMargin4Icon = resources.getDrawable(R.mipmap.down).getIntrinsicWidth();
                         } else if ("dot_new".equals(name)) {
-                            leftMargin4Icon = MARGIN_VALUE;
+                            leftMargin4Icon = CONTENT_ICON_MARGIN_VALUE;
                         } else if ("dot_edit".equals(name)) {
-                            leftMargin4Icon = MARGIN_VALUE;
+                            leftMargin4Icon = CONTENT_ICON_MARGIN_VALUE;
                         } else if ("dot_delete".equals(name)) {
-                            leftMargin4Icon = MARGIN_VALUE;
+                            leftMargin4Icon = CONTENT_ICON_MARGIN_VALUE;
                         } else if ("dot_white".equals(name)) {
-                            leftMargin4Icon = MARGIN_VALUE;
+                            leftMargin4Icon = CONTENT_ICON_MARGIN_VALUE;
                         } else if ("dot_readonly".equals(name)) {
-                            leftMargin4Icon = MARGIN_VALUE;
+                            leftMargin4Icon = CONTENT_ICON_MARGIN_VALUE;
                         } else if ("portal_icon".equals(name)) {
-                            rightMargin4Icon = MARGIN_VALUE;
+                            leftMargin4Icon =  resources.getDrawable(R.mipmap.portal_icon).getIntrinsicWidth();
                         } else if ("trash".equals(name)) {
                             // 删除特殊处理不附加额外图标位置 列宽由最小列宽属性来决定
                             rightMargin4Icon = 0;
                             leftMargin4Icon = 0;
                         } else if ("revert".equals(name)) {
-                            rightMargin4Icon = MARGIN_VALUE;
+                            rightMargin4Icon =  resources.getDrawable(R.mipmap.revert).getIntrinsicWidth();
                         }
                     }
                     if (rightMargin4Icon != 0 && leftMargin4Icon != 0) break;
@@ -270,8 +282,6 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             table.getConfig().setTextRightOffset(configBean.getTextPaddingHorizontal());
             table.getMeasurer().setAddTableHeight(configBean.getHeaderHeight());
             table.getMeasurer().setLimitTableHeight(configBean.getLimitTableHeight());
-            table.getConfig().setMinCellWidth(DensityUtils.dp2px(this.context, configBean.getMinWidth()));
-            table.getConfig().setMaxCellWidth(DensityUtils.dp2px(this.context, configBean.getMaxWidth()));
             table.getConfig().setFrozenCount(configBean.getFrozenCount());
             table.getConfig().setFrozenPoint(configBean.getFrozenPoint());
             table.setTableData(tableData);

@@ -50,7 +50,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private TableProvider<T> provider;
     private Rect showRect;
     private Rect tableRect;
-    private TableConfig config;
+    private TableConfig<T> config;
     private TableParser<T> parser;
     private TableData<T> tableData;
     private int defaultHeight = 300;
@@ -71,6 +71,8 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
 
     public void setTabArr(JsonTableBean[][] tabArr) {
         provider.setTabArr(tabArr);
+        measurer.setTabArr(tabArr);
+        config.setTabArr(tabArr);
     }
 
 
@@ -89,8 +91,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     public SmartTable(Context context) {
         super(context);
         init(context);
-        this.config.setHorizontalPadding(0).setVerticalPadding(0)
-                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false);
         this.mReportTableStore = new ReportTableStore(context,this);
     }
 
@@ -108,9 +108,8 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
      * 初始化
      */
     private void init(Context context) {
-        FontStyle.setDefaultTextSpSize(getContext(), 13);
-        config = new TableConfig();
-        config.dp10 = DensityUtils.dp2px(getContext(), 10);
+        FontStyle.setDefaultTextSpSize(getContext(), 14);
+        initConfig(context);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);
@@ -123,12 +122,24 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         provider = new TableProvider<>(context);
         config.setPaint(paint);
         measurer = new TableMeasurer<>();
+        measurer.setContext(context);
         tableTitle = new TableTitle();
         tableTitle.setDirection(IComponent.TOP);
         matrixHelper = new MatrixHelper(getContext());
         matrixHelper.setOnTableChangeListener(this);
         matrixHelper.register(provider);
         matrixHelper.setOnInterceptListener(provider.getOperation());
+        provider.setMatrixHelper(matrixHelper);
+
+    }
+
+    private void initConfig(Context context) {
+        config = new TableConfig(context);
+        config.dp10 = DensityUtils.dp2px(getContext(), 10);
+        config.dp8 = DensityUtils.dp2px(getContext(), 8);
+        config.dp4 = DensityUtils.dp2px(getContext(), 4);
+        config.setHorizontalPadding(0).setVerticalPadding( this.config.dp4)
+                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false);
 
     }
 
@@ -255,6 +266,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     public synchronized void setTableData(TableData<T> tableData) {
         if (tableData != null) {
             this.tableData = tableData;
+            this.config.setTableData(tableData);
             notifyDataChanged();
         }
     }

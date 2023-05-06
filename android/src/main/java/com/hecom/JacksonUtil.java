@@ -3,6 +3,7 @@ package com.hecom;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -89,4 +90,7 @@ public class JacksonUtil {
         return mapper.readValue(json, valueType);
     }
 
+    public static <T> T decode(String json, TypeReference<T> valueTypeRef) throws IOException {
+        return mapper.readValue(json, valueTypeRef);
+    }
 }

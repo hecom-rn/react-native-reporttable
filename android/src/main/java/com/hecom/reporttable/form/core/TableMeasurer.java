@@ -1,10 +1,11 @@
 package com.hecom.reporttable.form.core;
 
+import android.content.Context;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.util.Log;
 
 
+import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.component.IComponent;
 import com.hecom.reporttable.form.component.ITableTitle;
 import com.hecom.reporttable.form.data.Cell;
@@ -15,6 +16,7 @@ import com.hecom.reporttable.form.data.column.ColumnInfo;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.List;
 
@@ -28,6 +30,7 @@ public class TableMeasurer<T> {
     private boolean isReMeasure; //是否重新计算
 
     private JsonTableBean[][] tabArr;
+    private Context context;
 
     public void setAddTableHeight(int addTableHeight) {
         this.addTableHeight = addTableHeight;
@@ -158,7 +161,7 @@ public class TableMeasurer<T> {
     private int getTableWidth(TableData<T> tableData, TableConfig config, boolean fastModel) {
         if (fastModel) {
             //大数据量方案
-            String[] maxValues4Column = tableData.getMaxValues4Column();
+            TypicalCell[][]  maxValues4Column = tableData.getMaxValues4Column();
             int totalWidth = 0;
             Paint paint = config.getPaint();
             config.getYSequenceStyle().fillPaint(paint);
@@ -176,11 +179,21 @@ public class TableMeasurer<T> {
             List<Column> childColumns = tableData.getChildColumns();
             int horizontalPadding = config.getTextRightOffset() + config.getTextLeftOffset();
             int columnLength = childColumns.size();
+            int columnWidth = 0,iconWidth,textWidth,iconPadding, tempWidth;
             for (int columnPos = 0; columnPos < columnLength; columnPos++) {
                 Column column = childColumns.get(columnPos);
-                float columnNameWidth = tableData.getTitleDrawFormat().measureWidth(column, config)
-                        + config.getColumnTitleHorizontalPadding() * 2;
-                int columnWidth = column.getDrawFormat().measureWidth(column, maxValues4Column[columnPos], config) + column.getMargin4Icon();
+//                float columnNameWidth = tableData.getTitleDrawFormat().measureWidth(column, config)
+//                        + config.getColumnTitleHorizontalPadding() * 2;
+                for (TypicalCell typicalCell : maxValues4Column[columnPos]) {
+                    if (typicalCell!=null){
+                         iconWidth = TableUtil.calculateIconWidth(config,typicalCell.columnIndex,typicalCell.rowIndex);
+                         textWidth = column.getDrawFormat().measureWidth(column, typicalCell, config);
+                         iconPadding = textWidth>0&&iconWidth>0? config.dp4:0;
+                         tempWidth = textWidth+iconWidth+iconPadding;
+                         columnWidth = tempWidth>columnLength?tempWidth:contentWidth;
+                    }
+
+                }
 
                 size = column.getDatas().size();
                 boolean isArrayColumn = column instanceof ArrayColumn;
@@ -192,14 +205,15 @@ public class TableMeasurer<T> {
                             Cell cell = rangeCells[position][columnPos];
                             if (cell != null) {
                                 if (cell.row != Cell.INVALID && cell.col != Cell.INVALID) {
-                                    cell.width = width;
+                                    cell.width = columnWidth;
                                 }
                             }
                         }
                     }
                 }
 
-                int width = (int) (Math.max(columnNameWidth, columnWidth + horizontalPadding));
+//                int width = (int) (Math.max(columnNameWidth, columnWidth + horizontalPadding));
+                int width = columnWidth + horizontalPadding;
                 if (tableData.isShowCount()) {
                     int totalCountWidth = column.getCountFormat() != null ?
                             (int) paint.measureText(column.getTotalNumString()) : 0;
@@ -242,26 +256,31 @@ public class TableMeasurer<T> {
             int currentPosition,size;
             List<Column> childColumns = tableData.getChildColumns();
             int horizontalPadding = config.getTextRightOffset()+ config.getTextLeftOffset();
-            for (int i = 0; i < childColumns.size(); i++) {
-                Column  column =childColumns.get(i);
-                float columnNameWidth =tableData.getTitleDrawFormat().measureWidth(column,config)
-                        +config.getColumnTitleHorizontalPadding()*2;
+            int iconWidth = 0;
+            for (int columnIndex = 0; columnIndex < childColumns.size(); columnIndex++) {
+                Column  column =childColumns.get(columnIndex);
+//                float columnNameWidth =tableData.getTitleDrawFormat().measureWidth(column,config)
+//                        +config.getColumnTitleHorizontalPadding()*2;
                 int columnWidth =0;
                 size = column.getDatas().size();
                 currentPosition=0;
                 boolean isArrayColumn = column instanceof ArrayColumn;
                 Cell[][] rangeCells = tableData.getTableInfo().getRangeCells();
-                for(int position = 0;position < size;position++) {
-                    int width = column.getDrawFormat().measureWidth(column, position, config)+column.getMargin4Icon();
-                    measureRowHeight(config, lineHeightArray, column, currentPosition, position);
-                    int skipPosition = tableInfo.getSeizeCellSize(column, position);
+                for(int rowIndex = 0;rowIndex < size;rowIndex++) {
+                    JsonTableBean.Icon icon = tabArr[rowIndex][columnIndex].getIcon();
+                    iconWidth = TableUtil.calculateIconWidth(config,columnIndex,rowIndex);
+                    int textWidth = column.getDrawFormat().measureWidth(column, rowIndex, config);
+                    int iconPadding = textWidth>0&&iconWidth>0? config.dp4:0;
+                    int width = textWidth+iconWidth+iconPadding;
+                    measureRowHeight(config, lineHeightArray, column, currentPosition, rowIndex);
+                    int skipPosition = tableInfo.getSeizeCellSize(column, rowIndex);
                     currentPosition += skipPosition;
                     /**
                      *Todo 为了解决合并单元宽度过大问题
                      */
                     if (!isArrayColumn) {
                         if(rangeCells !=null) {
-                            Cell cell = rangeCells[position][columnPos];
+                            Cell cell = rangeCells[rowIndex][columnPos];
                             if (cell != null) {
                                 if (cell.row != Cell.INVALID && cell.col != Cell.INVALID) {
                                     cell.width = width;
@@ -278,7 +297,8 @@ public class TableMeasurer<T> {
                         columnWidth = width;
                     }
                 }
-                int width = (int) (Math.max(columnNameWidth,columnWidth + horizontalPadding));
+//                int width = (int) (Math.max(columnNameWidth,columnWidth + horizontalPadding));
+                int width = columnWidth + horizontalPadding;
                 if(tableData.isShowCount()) {
                     int totalCountWidth = column.getCountFormat() != null ?
                             (int) paint.measureText(column.getTotalNumString()) : 0;
@@ -406,4 +426,7 @@ public class TableMeasurer<T> {
     }
 
 
+    public void setContext(Context context) {
+        this.context = context;
+    }
 }

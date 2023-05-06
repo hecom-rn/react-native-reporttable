@@ -12,6 +12,7 @@ public class ItemCommonStyleConfig {
    public int fontSize = 14;
    public int textPaddingHorizontal = 12;
    public int textAlignment =0 ;
+   public boolean isOverstriking = false;
 
    public String getBackgroundColor() {
       return backgroundColor;
@@ -51,5 +52,13 @@ public class ItemCommonStyleConfig {
 
    public void setTextAlignment(int textAlignment) {
       this.textAlignment = textAlignment;
+   }
+
+   public boolean isOverstriking() {
+      return isOverstriking;
+   }
+
+   public void setOverstriking(boolean overstriking) {
+      isOverstriking = overstriking;
    }
 }

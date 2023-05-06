@@ -21,6 +21,7 @@ import com.hecom.reporttable.form.data.format.tip.ITip;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.TableClickObserver;
+import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -69,8 +70,14 @@ public class TableProvider<T> implements TableClickObserver {
 //    private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
     private List<ArrayList<Integer>> fixedTopLists = new ArrayList<>();  //固定行的topSet
     private List<ArrayList<Integer>> fixedBottomLists = new ArrayList<>();  //固定行的bottomSet
-    private MyTextImageDrawFormat rightTextImageDrawFormat;
-    private MyTextImageDrawFormat leftTextImageDrawFormat;
+    private TextImageDrawFormat rightTextImageDrawFormat;
+    private TextImageDrawFormat leftTextImageDrawFormat;
+    private MatrixHelper mMatrixHelper;
+    private int mFixedReactLeft =0;
+    private int mFixedReactRight =0;
+    private int mMinFixedWidth =0;
+    private int mTotalFixedWidth =0;
+
 
 
     //private static final String TAG = "TableProvider";
@@ -85,7 +92,7 @@ public class TableProvider<T> implements TableClickObserver {
 
     private JsonTableBean[][] tabArr;
 
-    private int firstColMaxMerge = -1;
+//    private int firstColMaxMerge = -1;
     private boolean singleClickItem = false;
     public TableProvider(Context context) {
         this.context = context;
@@ -94,9 +101,11 @@ public class TableProvider<T> implements TableClickObserver {
         tempRect  = new Rect();
         operation = new SelectionOperation();
         gridDrawer  = new GridDrawer<>();
-        int size = DensityUtils.dp2px(context,15);
-        rightTextImageDrawFormat = new MyTextImageDrawFormat(size, size, TextImageDrawFormat.RIGHT, 10);
-        leftTextImageDrawFormat = new MyTextImageDrawFormat(size, size, TextImageDrawFormat.LEFT, 4);
+//        int size = DensityUtils.dp2px(context,15);
+        rightTextImageDrawFormat = new TextImageDrawFormat(1, 1, TextImageDrawFormat.RIGHT,  DensityUtils.dp2px(context,4));
+        leftTextImageDrawFormat = new TextImageDrawFormat(1, 1, TextImageDrawFormat.LEFT,  DensityUtils.dp2px(context,4));
+        leftTextImageDrawFormat.setContext(context);
+        rightTextImageDrawFormat.setContext(context);
     }
 
     /**
@@ -112,9 +121,9 @@ public class TableProvider<T> implements TableClickObserver {
         setData(scaleRect, showRect, tableData, config);
         canvas.save();
         canvas.clipRect(this.showRect);
-        drawColumnTitle(canvas, config);
+//        drawColumnTitle(canvas, config);
         drawCount(canvas);
-        firstColMaxMerge = getFirstColumnMaxMerge();
+//        firstColMaxMerge = getFirstColumnMaxMerge();
         drawContent(canvas, false);
         drawContent(canvas, true);
         operation.draw(canvas,showRect,config);
@@ -359,6 +368,30 @@ public class TableProvider<T> implements TableClickObserver {
         int clipCount = 0;
         Rect correctCellRect, finalRect = new Rect();
         TableInfo tableInfo = tableData.getTableInfo();
+        mTotalFixedWidth = 0;
+        for (int columnIndex = 0; columnIndex < columnSize; columnIndex++) {
+            Column column = columns.get(columnIndex);
+            if (column.isFixed()) {
+                mMinFixedWidth = (int) (column.getComputeWidth() * config.getZoom());
+                mTotalFixedWidth += mMinFixedWidth;
+            }else {
+                break;
+            }
+        }
+        boolean fixedReactLeftInit = false;
+        int mFixedTranslateX = mMatrixHelper.mFixedTranslateX;
+        if(mFixedTranslateX> mTotalFixedWidth- mMinFixedWidth){
+            mFixedTranslateX = mTotalFixedWidth- mMinFixedWidth;
+            mMatrixHelper.mFixedTranslateX = mFixedTranslateX;
+        }
+        if(mFixedTranslateX<0){
+            mFixedTranslateX = 0;
+            mMatrixHelper.mFixedTranslateX = mFixedTranslateX;
+        }
+        boolean isFixedTranslateX = mFixedTranslateX >0;
+        if(isFixedTranslateX){
+            clipRect.left -= mFixedTranslateX;
+        }
         for (int columnIndex = 0; columnIndex < columnSize; columnIndex++) {
             //遍历列
             top = scaleRect.top;
@@ -385,6 +418,13 @@ public class TableProvider<T> implements TableClickObserver {
             if (left < showRect.right) {
                 int size = column.getDatas().size();
                 int realPosition = 0;
+                if(column.isFixed()){
+                    if(!fixedReactLeftInit){
+                        this.mFixedReactLeft = (int) left;
+                        fixedReactLeftInit=true;
+                    }
+                    this.mFixedReactRight = (int) right;
+                }
                 for (int rowIndex = 0; rowIndex < size; rowIndex++) {
                     //遍历行
                     boolean isDrawLock = (rowIndex == 0 && column.isFixed());
@@ -529,6 +569,9 @@ public class TableProvider<T> implements TableClickObserver {
         if (isFirstDraw) {
             isFirstDraw = false;
         }
+        mMatrixHelper.setFixedReactLeft(this.mFixedReactLeft);
+        mMatrixHelper.setFixedReactRight(this.mFixedReactRight);
+        mMatrixHelper.setMinFixedTranslateX(this.mMinFixedWidth);
     }
 
     /**
@@ -554,8 +597,8 @@ public class TableProvider<T> implements TableClickObserver {
         if(cellInfo.row == 0 ){
             if(config.getFrozenPoint() > 0){
                 int col = cellInfo.col;
-                if(col == 0 && firstColMaxMerge > 0){
-                    col = firstColMaxMerge;
+                if(col == 0 && config.firstColMaxMerge > 0){
+                    col =  config.firstColMaxMerge;
                 }
                 if(col == config.getFrozenPoint() - 1 ){
                     if(isDrawLock){
@@ -607,7 +650,10 @@ public class TableProvider<T> implements TableClickObserver {
         Icon icon = getTabArr()[cellInfo.row][cellInfo.col].getIcon();
         if(icon != null){
             String name = icon.getName();
-            if("up".equals(name)){
+            if("normal".equals(name)){
+                rightTextImageDrawFormat.setResourceId(R.mipmap.normal);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if("up".equals(name)){
                 rightTextImageDrawFormat.setResourceId(R.mipmap.up);
                 rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
             } else if("down".equals(name)){
@@ -804,30 +850,7 @@ public class TableProvider<T> implements TableClickObserver {
         return (int) (dpValue * scale + 0.5f);
     }
 
-    private final class MyTextImageDrawFormat extends TextImageDrawFormat<T> {
-        public int getResourceId() {
-            return resourceId;
-        }
-
-        public void setResourceId(int resourceId) {
-            this.resourceId = resourceId;
-        }
-
-        private int resourceId;
-
-        public MyTextImageDrawFormat(int imageWidth, int imageHeight, int direction, int drawPadding) {
-            super(imageWidth, imageHeight, direction, drawPadding);
-        }
-
-        @Override
-        protected Context getContext() {
-            return context;
-        }
-
-        @Override
-        protected int getResourceID(T object, String value, int position) {
-            return getResourceId();
-        }
+    public void setMatrixHelper(MatrixHelper matrixHelper) {
+        this.mMatrixHelper= matrixHelper;
     }
-
 }

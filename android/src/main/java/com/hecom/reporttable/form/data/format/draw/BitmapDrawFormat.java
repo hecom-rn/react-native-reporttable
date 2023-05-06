@@ -9,6 +9,7 @@ import android.graphics.Rect;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.table.bean.TypicalCell;
 
 
 /**
@@ -36,7 +37,7 @@ public abstract class BitmapDrawFormat<T> implements IDrawFormat<T> {
 
 
     @Override
-    public int measureWidth(Column<T> column, String value, TableConfig config) {
+    public int measureWidth(Column<T> column, TypicalCell cell, TableConfig config) {
         return 0;
     }
 
@@ -66,7 +67,7 @@ public abstract class BitmapDrawFormat<T> implements IDrawFormat<T> {
     protected abstract Bitmap getBitmap(T t,String value, int position);
 
     @Override
-    public void draw(Canvas c, Rect rect, CellInfo<T> cellInfo , TableConfig config) {
+    public float draw(Canvas c, Rect rect, CellInfo<T> cellInfo , TableConfig config) {
         Paint paint = config.getPaint();
         Bitmap bitmap =(cellInfo == null
                 ? getBitmap(null, null, 0)
@@ -77,17 +78,17 @@ public abstract class BitmapDrawFormat<T> implements IDrawFormat<T> {
             int width = bitmap.getWidth();
             int height = bitmap.getHeight();
             imgRect.set(0,0,width,height);
-            float scaleX = (float)width/imageWidth;
-            float scaleY = (float)height/imageHeight;
-            if(scaleX >1 || scaleY >1){
-                if(scaleX > scaleY){
-                    width = (int) (width/scaleX);
-                    height = imageHeight;
-                }else{
-                    height = (int) (height/scaleY);
-                    width = imageWidth;
-                }
-            }
+//            float scaleX = (float)width/imageWidth;
+//            float scaleY = (float)height/imageHeight;
+//            if(scaleX >1 || scaleY >1){
+//                if(scaleX > scaleY){
+//                    width = (int) (width/scaleX);
+//                    height = imageHeight;
+//                }else{
+//                    height = (int) (height/scaleY);
+//                    width = imageWidth;
+//                }
+//            }
             width= (int) (width*config.getZoom());
             height = (int) (height*config.getZoom());
             int disX= (rect.right-rect.left-width)/2;
@@ -98,6 +99,7 @@ public abstract class BitmapDrawFormat<T> implements IDrawFormat<T> {
             drawRect.bottom = rect.bottom - disY;
             c.drawBitmap(bitmap, imgRect, drawRect, paint);
         }
+        return 0;
     }
 
 

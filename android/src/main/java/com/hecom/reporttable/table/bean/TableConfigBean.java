@@ -1,11 +1,14 @@
 package com.hecom.reporttable.table.bean;
 
+import java.util.Map;
+
 public class TableConfigBean {
     private int minWidth;
     private int frozenRows;
     private int frozenCount = 0;
     private int frozenPoint = 0;
     private ItemCommonStyleConfig itemCommonStyleConfig;
+    private Map<Integer, CellConfig> columnConfigMap;
 
     public ItemCommonStyleConfig getItemCommonStyleConfig() {
         return itemCommonStyleConfig;
@@ -126,5 +129,13 @@ public class TableConfigBean {
 
     public void setFrozenCount(int frozenCount) {
         this.frozenCount = frozenCount;
+    }
+
+    public void setColumnConfigMap(Map<Integer, CellConfig> columnConfigMap) {
+        this.columnConfigMap = columnConfigMap;
+    }
+
+    public Map<Integer, CellConfig> getColumnConfigMap() {
+        return columnConfigMap;
     }
 }

@@ -9,6 +9,7 @@ public class JsonTableBean {
     public String textColor;
     public Integer textAlignment;  // 0左 1中 2右  default 0
     public Icon icon;
+    public Boolean isOverstriking = null;
 
     public JsonTableBean() {
     }
@@ -74,11 +75,19 @@ public class JsonTableBean {
         return this.textAlignment;
     }
 
+    public Boolean getOverstriking() {
+        return isOverstriking;
+    }
+
+    public void setOverstriking(Boolean overstriking) {
+        isOverstriking = overstriking;
+    }
+
     public static class Icon {
         private Path path;
         private String width;
         private String height;
-        private String name;
+        public String name;
 
         public Path getPath() {
             return path;

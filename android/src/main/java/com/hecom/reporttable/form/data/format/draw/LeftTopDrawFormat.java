@@ -33,11 +33,12 @@ public abstract class LeftTopDrawFormat extends ImageResDrawFormat<String> {
 
 
     @Override
-    public void draw(Canvas c, Rect rect, CellInfo<String> cellInfo , TableConfig config) {
+    public float draw(Canvas c, Rect rect, CellInfo<String> cellInfo , TableConfig config) {
        //为了保持三角形不变形，不跟随缩放
        float zoom = config.getZoom();
         config.setZoom(zoom>1?1:zoom);
         super.draw(c,  rect, cellInfo, config);
         config.setZoom(zoom);
+        return 0;
     }
 }

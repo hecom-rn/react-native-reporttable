@@ -6,6 +6,7 @@ import android.graphics.Rect;
 import android.text.TextUtils;
 
 
+import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
@@ -18,6 +19,7 @@ import java.util.Map;
 
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.TypicalCell;
 import com.yy.mobile.emoji.EmojiReader;
 
 /**
@@ -36,10 +38,11 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     private static final String TAG = "TextDrawFormat";
 
     @Override
-    public int measureWidth(Column<T> column, String value, TableConfig config) {
+    public int measureWidth(Column<T> column, TypicalCell cell, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        String text = getWrapText(value, paint, config, 0);
+        int iconSpace = TableUtil.calculateIconWidth(config,cell.columnIndex,cell.rowIndex);
+        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, iconSpace);
 //        column.setFormatData(position,value);
         return DrawUtils.getMultiTextWidth(paint, getSplitString(text));
     }
@@ -48,7 +51,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureHeight(Column<T> column, String value, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        String text = getWrapText(value, paint, config, 0);
+//        int iconSpace = TableUtil.calculateIconWidth(config,column.getColumn(),position);
+        String text = getWrapText(column, value, paint, config, 0);
         return DrawUtils.getMultiTextHeight(paint, getSplitString(text)) + 40;
     }
 
@@ -56,8 +60,11 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureWidth(Column<T> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        String cacheWrapText = column.getCacheWrapText(position);
-        String value = null == cacheWrapText ? getWrapText(column.format(position), paint, config, 0) : cacheWrapText;
+        String value = column.getCacheWrapText(position);
+        if(null == value) {
+            int iconSpace = TableUtil.calculateIconWidth(config, column.getColumn(), position);
+            value = getWrapText(column, column.format(position), paint, config, iconSpace);
+        }
         column.setFormatData(position, value);
         return DrawUtils.getMultiTextWidth(paint, getSplitString(value));
     }
@@ -67,55 +74,58 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureHeight(Column<T> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        // return DrawUtils.getMultiTextHeight(paint,getSplitString(column.format(position)));
-        String cacheWrapText = column.getCacheWrapText(position);
-        String value = null == cacheWrapText ? getWrapText(column.format(position), paint, config, 0) : cacheWrapText;
-        return DrawUtils.getMultiTextHeight(paint, getSplitString(value)) + 40;
+        String value = column.getCacheWrapText(position);
+        if(null == value) {
+            int iconSpace = TableUtil.calculateIconWidth(config, column.getColumn(), position);
+            value = getWrapText(column, column.format(position), paint, config, iconSpace);
+        }
+        return DrawUtils.getMultiTextHeight(paint, getSplitString(value)) + config.dp8*2;
     }
 
     @Override
-    public void draw(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+    public float draw(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
 //        Log.e(TAG, "draw");
         Paint paint = config.getPaint();
         setTextPaint(config, cellInfo, paint);
         if (cellInfo.column.getTextAlign() != null) {
             paint.setTextAlign(cellInfo.column.getTextAlign());
         }
-        drawText(c, cellInfo, rect, paint, config, 0);
+        return drawText(c, cellInfo, rect, paint, config, 0);
     }
 
 
-    public void drawImageText(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
-        //Log.e(TAG, "draw");
-        JsonTableBean tableBean = null;
-        try {
-            tableBean = (JsonTableBean) cellInfo.data;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        Paint paint = config.getPaint();
-        setTextPaint(config, cellInfo, paint);
-        if (tableBean != null) {
-            Integer innerAlign = tableBean.getTextAlignment();
-            ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
-            Paint.Align align = innerAlign != null
-                    ? (innerAlign == 1 ? Paint.Align.CENTER : innerAlign == 2 ? Paint.Align.RIGHT : Paint.Align.LEFT)
-                    : (itemCommonStyleConfig.getTextAlignment() == 1
-                    ? Paint.Align.CENTER
-                    : itemCommonStyleConfig.getTextAlignment() == 2
-                    ? Paint.Align.RIGHT
-                    : Paint.Align.LEFT);
-            paint.setTextAlign(align);
-        }else{
-            paint.setTextAlign(Paint.Align.LEFT);
-        }
-        drawText(c, cellInfo, rect, paint, config, 40);
-    }
+//    public void drawImageText(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+//        //Log.e(TAG, "draw");
+//        JsonTableBean tableBean = null;
+//        try {
+//            tableBean = (JsonTableBean) cellInfo.data;
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        Paint paint = config.getPaint();
+//        setTextPaint(config, cellInfo, paint);
+//        if (tableBean != null) {
+//            Integer innerAlign = tableBean.getTextAlignment();
+//            ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
+//            Paint.Align align = innerAlign != null
+//                    ? (innerAlign == 1 ? Paint.Align.CENTER : innerAlign == 2 ? Paint.Align.RIGHT : Paint.Align.LEFT)
+//                    : (itemCommonStyleConfig.getTextAlignment() == 1
+//                    ? Paint.Align.CENTER
+//                    : itemCommonStyleConfig.getTextAlignment() == 2
+//                    ? Paint.Align.RIGHT
+//                    : Paint.Align.LEFT);
+//            paint.setTextAlign(align);
+//        }else{
+//            paint.setTextAlign(Paint.Align.LEFT);
+//        }
+//        drawText(c, cellInfo, rect, paint, config, 40);
+//    }
 
 
-    protected void drawText(Canvas c, CellInfo<T> cellInfo, Rect rect, Paint paint, TableConfig config, int marginRight) {
+    protected float drawText(Canvas c, CellInfo<T> cellInfo, Rect rect, Paint paint, TableConfig config, int marginRight) {
         String value = cellInfo.wrapFlag?cellInfo.value:getWrapText(cellInfo.value, paint, config, marginRight, rect);
         DrawUtils.drawMultiText(c, paint, rect, getSplitString(value));
+        return paint.measureText(value);
     }
 
 
@@ -126,6 +136,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             paint.setColor(backgroundFormat.getTextColor(cellInfo));
         }
         paint.setTextSize(paint.getTextSize() * config.getZoom() * config.getPartlyCellZoom());
+        paint.setFakeBoldText(config.getTabArr()[cellInfo.row][cellInfo.col].isOverstriking);
 
     }
 
@@ -143,10 +154,10 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     }
 
 
-    public String getWrapText(String value, Paint paint, TableConfig config, int marginRight) {
+    public String getWrapText(Column column, String value, Paint paint, TableConfig config, int marginRight) {
         int paddingLeftSize = config.getTextLeftOffset();
         int paddingRightSize = config.getTextRightOffset();
-        int maxWidth = config.getMaxCellWidth();
+        int maxWidth = column.getMaxWidth();
         return getWrapText(value, paint, marginRight, paddingLeftSize, paddingRightSize, maxWidth);
             /* int paddingLeftSize = config.getTextLeftOffset();
             int paddingRightSize = config.getTextRightOffset();
