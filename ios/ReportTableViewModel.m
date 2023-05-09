@@ -183,6 +183,12 @@
     [self reloadCheck];
 }
 
+- (void)setColumnsWidthMap:(NSDictionary *)columnsWidthMap {
+    self.reportTableModel.columnsWidthMap = columnsWidthMap;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)setFrozenRows:(NSInteger)frozenRows {
     self.reportTableModel.frozenRows = frozenRows;
     self.propertyCount += 1;
@@ -233,6 +239,11 @@
             [self.headerView removeFromSuperview];
             self.headerView = nil;
         } else {
+            if (_headerView != nil && self.headerView.frame.size.height != headerViewSize.height) {
+                // header 更新
+                [self.headerView removeFromSuperview];
+                _headerView = nil;
+            }
             if (_headerView == nil) {
                 [self.headerScrollView addSubview: self.headerView];
             }
@@ -289,6 +300,11 @@
     model.textColor = [RCTConvert UIColor:[itemConfig objectForKey:@"textColor"]];
     model.textAlignment = [RCTConvert NSInteger:[itemConfig objectForKey:@"textAlignment"]];
     model.textPaddingHorizontal = [RCTConvert NSInteger:[itemConfig objectForKey:@"textPaddingHorizontal"]];
+    
+    model.splitLineColor = [RCTConvert UIColor:[itemConfig objectForKey:@"splitLineColor"]];
+    model.classificationLineColor = [RCTConvert UIColor:[itemConfig objectForKey:@"classificationLineColor"]];
+    model.isOverstriking = [RCTConvert BOOL:[itemConfig objectForKey:@"isOverstriking"]];
+    
     self.reportTableModel.itemConfig = model;
     
     self.propertyCount += 1;
@@ -296,7 +312,7 @@
 }
 
 - (void)reloadCheck {
-    if (self.propertyCount >= 15) {
+    if (self.propertyCount >= 16) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
@@ -319,9 +335,12 @@
 
     for (int i = 0; i < dataSource.count; i++) {
        NSMutableArray *modelArr = [NSMutableArray arrayWithCapacity: rowCount];
-       CGFloat rowWith = minWidth;
        CGFloat columnHeigt = minHeight;
        for (int j = 0; j < dataSource[i].count; j ++) {
+           NSDictionary *columnsWidthMap = [self.reportTableModel.columnsWidthMap objectForKey:[NSString stringWithFormat:@"%d", j]];
+           CGFloat rowWith = columnsWidthMap ? [[columnsWidthMap objectForKey:@"minWidth"] floatValue] : minWidth;
+           CGFloat maxWidth = columnsWidthMap ? [[columnsWidthMap objectForKey:@"maxWidth"] floatValue] :   self.reportTableModel.maxWidth;
+           
            if (i == 0) {
                [rowsWidth addObject:[NSNumber numberWithFloat:minWidth]];
            }
@@ -346,13 +365,18 @@
            if ([keys containsObject: @"textPaddingHorizontal"]) {
                model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
            }
+           if ([keys containsObject: @"isOverstriking"]) {
+               model.isOverstriking = [RCTConvert BOOL:[dir objectForKey:@"isOverstriking"]];
+           }
            NSDictionary *iconDic = [dir objectForKey:@"icon"] ? [RCTConvert NSDictionary:[dir objectForKey:@"icon"]] : nil;
            if (iconDic != nil) {
                IconStyle *icon = [[IconStyle alloc] init];
                icon.size = CGSizeMake([[iconDic objectForKey:@"width"] floatValue], [[iconDic objectForKey:@"height"] floatValue]);
                icon.path = [iconDic objectForKey:@"path"];
                icon.imageAlignment = [[iconDic objectForKey:@"imageAlignment"] integerValue];
-               icon.paddingHorizontal = [[iconDic objectForKey:@"paddingHorizontal"] floatValue];
+               if ([iconDic objectForKey:@"paddingHorizontal"]) {
+                   icon.paddingHorizontal = [[iconDic objectForKey:@"paddingHorizontal"] floatValue];
+               }
                model.iconStyle = icon;
            }
            BOOL isLock = false;

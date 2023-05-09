@@ -18,7 +18,7 @@
 
 - (CGFloat)paddingHorizontal {
     if (!_paddingHorizontal) {
-        return 10;
+        return 4;
     }
     return _paddingHorizontal;
 }

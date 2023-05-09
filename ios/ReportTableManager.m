@@ -30,6 +30,7 @@ RCT_EXPORT_VIEW_PROPERTY(frozenColumns, int)
 RCT_EXPORT_VIEW_PROPERTY(frozenRows, int)
 RCT_EXPORT_VIEW_PROPERTY(lineColor, UIColor)
 RCT_EXPORT_VIEW_PROPERTY(itemConfig, NSDictionary)
+RCT_EXPORT_VIEW_PROPERTY(columnsWidthMap, NSDictionary)
 RCT_EXPORT_VIEW_PROPERTY(frozenCount, int)
 RCT_EXPORT_VIEW_PROPERTY(frozenPoint, int)
 

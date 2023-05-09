@@ -85,7 +85,7 @@ declare module "@hecom/react-native-report-table" {
         width: number,
         height: number,
         imageAlignment: number; // 1左  2中  3右(默认)
-        paddingHorizontal: number; // default 10
+        paddingHorizontal: number; // default 4
     }
 
     export default class ReportTable extends React.Component<ReportTableProps>{
