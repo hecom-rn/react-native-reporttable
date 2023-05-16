@@ -33,7 +33,7 @@ export default class ReportTable extends React.Component{
         maxWidth: 120,
         frozenColumns: 0,
         frozenRows: 0,
-        lineColor: '#E6E8EA',
+        lineColor: '#e8e8e8',
         size: {
             width: 0,
             height: 0,

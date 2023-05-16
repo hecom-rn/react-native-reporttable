@@ -24,13 +24,13 @@
 - (void)setTextPaddingHorizontal:(NSInteger)textPaddingHorizontal {
     CGFloat marginHor = textPaddingHorizontal;
     [self.label mas_remakeConstraints:^(MASConstraintMaker *make) {
-        float paddingHorizontal = _icon ? self.icon.paddingHorizontal : 10;
+        float paddingHorizontal = _icon ? self.icon.paddingHorizontal : 4;
         float inconWidth = _icon ? self.icon.size.width : 13;
         if (self.icon.imageAlignment == 1) {
             make.right.equalTo(self.contentView.mas_right).offset(-textPaddingHorizontal);
-            make.left.equalTo(self.contentView.mas_left).offset([self isSetupImageView] ? inconWidth + paddingHorizontal * 2 : marginHor);
+            make.left.equalTo(self.contentView.mas_left).offset([self isSetupImageView] ? inconWidth + paddingHorizontal + marginHor : marginHor);
         } else {
-            make.right.equalTo(self.contentView.mas_right).offset([self isSetupImageView] ? -(inconWidth + paddingHorizontal * 2) : -marginHor);
+            make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset([self isSetupImageView] ? -(inconWidth + paddingHorizontal + marginHor) : -marginHor);
             make.left.equalTo(self.contentView.mas_left).offset(textPaddingHorizontal);
         }
          make.centerY.equalTo(self.contentView.mas_centerY);
@@ -87,7 +87,7 @@
         _lockImageView = [[UIImageView alloc] init];
         [self.contentView addSubview: _lockImageView];
         [_lockImageView mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.right.equalTo(self.contentView.mas_right).offset(-10);
+            make.left.equalTo(self.label.mas_right).offset(4);
             make.centerY.equalTo(self.contentView.mas_centerY);
             make.height.mas_equalTo(14);
             make.width.mas_equalTo(13);
@@ -103,11 +103,11 @@
         [self.contentView addSubview: _customImageView];
         [_customImageView mas_makeConstraints:^(MASConstraintMaker *make) {
             if (self.icon.imageAlignment == 1) {
-                make.left.equalTo(self.contentView.mas_left).offset(self.icon.paddingHorizontal);
+                make.right.equalTo(self.label.mas_left).offset(-self.icon.paddingHorizontal);
             } else if (self.icon.imageAlignment == 2) {
                 make.centerX.equalTo(self.contentView.mas_centerX);
             } else {
-                make.right.equalTo(self.contentView.mas_right).offset(-self.icon.paddingHorizontal);
+                make.left.equalTo(self.label.mas_right).offset(self.icon.paddingHorizontal);
             }
             make.centerY.equalTo(self.contentView.mas_centerY);
             make.size.mas_equalTo(self.icon.size);

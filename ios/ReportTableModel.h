@@ -20,6 +20,9 @@
 @property (nonatomic, assign) NSInteger keyIndex;
 @property (nonatomic, strong) UIColor *backgroundColor;
 @property (nonatomic, strong) UIColor *textColor;
+@property (nonatomic, strong) UIColor *splitLineColor;
+@property (nonatomic, assign) BOOL isOverstriking;
+@property (nonatomic, strong) UIColor *classificationLineColor;
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) CGFloat fontSize;
 @property (nonatomic, assign) NSTextAlignment textAlignment;
@@ -57,4 +60,5 @@
 @property (nonatomic, assign) NSInteger frozenCount;
 @property (nonatomic, assign) NSInteger frozenPoint;
 @property (nonatomic, strong) ItemModel *itemConfig;
+@property (nonatomic, strong) NSDictionary *columnsWidthMap;
 @end
