@@ -1,10 +1,12 @@
 package com.hecom.reporttable;
 
 import android.content.Context;
+import android.graphics.Paint;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.table.TableData;
+import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 
 import java.util.List;
@@ -78,5 +80,18 @@ public class TableUtil {
             }
         }
         return 0;
+    }
+
+    public static Paint.Align getAlignConfig(TableConfig config, int row, int col) {
+        JsonTableBean tableBean = config.getTabArr()[row][col];
+        ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
+        Integer innerAlign = tableBean == null ? null : tableBean.getTextAlignment();
+        return innerAlign != null
+                ? (innerAlign == 1 ? Paint.Align.CENTER : innerAlign == 2 ? Paint.Align.RIGHT : Paint.Align.LEFT)
+                : (itemCommonStyleConfig.getTextAlignment() == 1
+                ? Paint.Align.CENTER
+                : itemCommonStyleConfig.getTextAlignment() == 2
+                ? Paint.Align.RIGHT
+                : Paint.Align.LEFT);
     }
 }

@@ -87,9 +87,9 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 //        Log.e(TAG, "draw");
         Paint paint = config.getPaint();
         setTextPaint(config, cellInfo, paint);
-        if (cellInfo.column.getTextAlign() != null) {
-            paint.setTextAlign(cellInfo.column.getTextAlign());
-        }
+//        if (cellInfo.column.getTextAlign() != null) {
+//            paint.setTextAlign(cellInfo.column.getTextAlign());
+//        }
         return drawText(c, cellInfo, rect, paint, config, 0);
     }
 
@@ -137,7 +137,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         }
         paint.setTextSize(paint.getTextSize() * config.getZoom() * config.getPartlyCellZoom());
         paint.setFakeBoldText(config.getTabArr()[cellInfo.row][cellInfo.col].isOverstriking);
-
+        paint.setTextAlign(TableUtil.getAlignConfig(config,cellInfo.row,cellInfo.col));
     }
 
     protected String[] getSplitString(String val) {

@@ -100,10 +100,11 @@ export default class ReportTableWrapper extends React.Component {
         const {
             data, minWidth, minHeight, textPaddingHorizontal,
             lineColor, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size,
-            itemConfig
+            itemConfig, columnsWidthMap
         } = props;
         return {
             data: data && JSON.stringify(data),
+            columnsWidthMap: columnsWidthMap && JSON.stringify(columnsWidthMap),
             minWidth: minWidth,
             minHeight: minHeight,
             maxWidth: maxWidth,

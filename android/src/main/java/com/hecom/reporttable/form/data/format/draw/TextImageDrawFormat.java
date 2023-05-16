@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
+import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
@@ -131,7 +132,8 @@ public  class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
         rect.top += config.getVerticalPadding();
         rect.bottom -= config.getVerticalPadding();
         float textWidth;
-        Paint.Align textAlign = cellInfo.column.getTextAlign();
+//        Paint.Align textAlign = cellInfo.column.getTextAlign();
+        Paint.Align textAlign = TableUtil.getAlignConfig(config, cellInfo.row, cellInfo.col);
         if (textAlign == null) textAlign = Paint.Align.CENTER;
         int imgRight = 0, imgLeft = 0;
         switch (direction) {//单元格icon的相对位置
