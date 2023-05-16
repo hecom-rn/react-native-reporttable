@@ -52,6 +52,7 @@
         
         self.containerView = [[UIView alloc] init];
         self.containerView.frame = self.bounds;
+        self.containerView.userInteractionEnabled = false;
         self.containerView.layer.anchorPoint = CGPointMake(0, 0);
         [self addSubview: self.containerView];
         
@@ -75,6 +76,7 @@
     
     [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
+    [self setMergedCellsLabelOffset];
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
@@ -105,6 +107,7 @@
     [self sendSubviewToBack: self.headerScrollView];
     self.headerScrollView.isUserScouce = false;
     self.isOnHeader = false;
+    [self setMergedCellsLabelOffset];
 }
 
 
@@ -154,10 +157,11 @@
                     weak_self.reportTableModel.onScrollEnd(@{@"isEnd": @YES});
                 }
             };
-            ssv.onScroll = ^(NSDictionary *offset) {
+            ssv.onScroll = ^(NSDictionary *object) {
                 if (weak_self.reportTableModel.onScroll != nil) {
-                    weak_self.reportTableModel.onScroll(offset);
+                    weak_self.reportTableModel.onScroll(object);
                 }
+                [weak_self setMergedCellsLabelOffset];
             };
             [self addSubview:ssv];
             ssv;
@@ -165,6 +169,48 @@
     }
     return _spreadsheetView;
 }
+    
+- (void)setMergedCellsLabelOffset {
+    if (self.frozenArray.count > 0) {
+        SpreadsheetView *ssv = self.spreadsheetView;
+        // 取合并的cell
+        [ssv.mergedCells enumerateObjectsUsingBlock:^(ZMJCellRange * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            ReportTableCell *cell = [ssv cellForItemAt: [NSIndexPath indexPathWithRow: obj.from.row column: obj.from.column]];
+            // cell 在显示池
+            if (cell) {
+                CGFloat tableHeight = ssv.tableView.frame.size.height;
+                CGRect rect = cell.frame;
+                // label react 超出table Height
+                if (rect.size.height > tableHeight) {
+                    CGFloat offset = ssv.tableView.contentOffset.y;
+                    CGFloat paddingV = 13; // 上下间距
+                    CGFloat labelH = cell.label.frame.size.height + paddingV * 2;
+                    // 在显示范围内
+                    if (rect.origin.y - tableHeight <= offset && rect.origin.y + rect.size.height - paddingV >= offset) {
+                        CGFloat halfH = rect.size.height / 2 - labelH / 2;
+                        CGFloat y = offset - rect.origin.y - halfH; // 要偏离的距离
+                        y = y >= 0 ? MIN(halfH, y) : MAX(-halfH, y); // 先偏移到两端
+                        
+                        BOOL isFull = offset >= rect.origin.y && offset <= rect.origin.y + rect.size.height - tableHeight;
+                        CGFloat endH = rect.origin.y + rect.size.height - offset > labelH ? (rect.origin.y + rect.size.height - labelH - offset) : 0; //  剩余可见高度
+                        BOOL isEnd = rect.size.height + rect.origin.y - offset > 0 && rect.size.height + rect.origin.y - offset < tableHeight;
+                        CGFloat startH = MAX(0, tableHeight - rect.origin.y + offset - labelH);
+                        CGFloat over = isFull ? (tableHeight - labelH) / 2 : isEnd ? endH / 2 : startH / 2; // 补的距离
+                        y = y + over;
+                        
+                        cell.label.transform = CGAffineTransformMakeTranslation(0, y);
+                    }
+                } else {
+                    // 缩放后影响了显示范围， 则恢复
+                    if (cell.label.transform.ty != 0) {
+                        cell.label.transform = CGAffineTransformMakeTranslation(0, 0);
+                    }
+                }
+            }
+        }];
+    }
+}
+
 
 //MARK: DataSource
 - (NSInteger)numberOfColumns:(SpreadsheetView *)spreadsheetView {
@@ -210,7 +256,7 @@
     NSInteger row = indexPath.row;
 
     ItemModel *model = self.dataSource[row][column];
-    ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath:indexPath];
+    ReportTableCell *cell = (ReportTableCell *)[spreadsheetView dequeueReusableCellWithReuseIdentifier:[ReportTableCell description] forIndexPath: indexPath];
     cell.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [cell updateContentView: model.textPaddingHorizontal];
     if (model.iconStyle != nil) {
@@ -266,6 +312,10 @@
     }
 }
 
+- (void)spreadsheetViewDidLayout:(SpreadsheetView *)spreadsheetView {
+    // 锁定，解除锁定时需要调用
+    [self setMergedCellsLabelOffset];
+}
 @end
 
 

@@ -35,6 +35,7 @@
         }
          make.centerY.equalTo(self.contentView.mas_centerY);
      }];
+     self.label.transform = CGAffineTransformMakeTranslation(0, 0);
      [self.label layoutIfNeeded];
 }
 
