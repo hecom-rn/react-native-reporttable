@@ -5,22 +5,18 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextUtils;
 
-
 import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
 import com.hecom.reporttable.form.utils.DrawUtils;
+import com.hecom.reporttable.table.bean.TypicalCell;
+import com.yy.mobile.emoji.EmojiReader;
 
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
-import com.hecom.reporttable.table.bean.JsonTableBean;
-import com.hecom.reporttable.table.bean.TypicalCell;
-import com.yy.mobile.emoji.EmojiReader;
 
 /**
  * Created by huang on 2017/10/30.
@@ -84,43 +80,10 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
     @Override
     public float draw(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
-//        Log.e(TAG, "draw");
         Paint paint = config.getPaint();
         setTextPaint(config, cellInfo, paint);
-//        if (cellInfo.column.getTextAlign() != null) {
-//            paint.setTextAlign(cellInfo.column.getTextAlign());
-//        }
         return drawText(c, cellInfo, rect, paint, config, 0);
     }
-
-
-//    public void drawImageText(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
-//        //Log.e(TAG, "draw");
-//        JsonTableBean tableBean = null;
-//        try {
-//            tableBean = (JsonTableBean) cellInfo.data;
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        Paint paint = config.getPaint();
-//        setTextPaint(config, cellInfo, paint);
-//        if (tableBean != null) {
-//            Integer innerAlign = tableBean.getTextAlignment();
-//            ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
-//            Paint.Align align = innerAlign != null
-//                    ? (innerAlign == 1 ? Paint.Align.CENTER : innerAlign == 2 ? Paint.Align.RIGHT : Paint.Align.LEFT)
-//                    : (itemCommonStyleConfig.getTextAlignment() == 1
-//                    ? Paint.Align.CENTER
-//                    : itemCommonStyleConfig.getTextAlignment() == 2
-//                    ? Paint.Align.RIGHT
-//                    : Paint.Align.LEFT);
-//            paint.setTextAlign(align);
-//        }else{
-//            paint.setTextAlign(Paint.Align.LEFT);
-//        }
-//        drawText(c, cellInfo, rect, paint, config, 40);
-//    }
-
 
     protected float drawText(Canvas c, CellInfo<T> cellInfo, Rect rect, Paint paint, TableConfig config, int marginRight) {
         String value = cellInfo.wrapFlag?cellInfo.value:getWrapText(cellInfo.value, paint, config, marginRight, rect);
@@ -159,39 +122,6 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         int paddingRightSize = config.getTextRightOffset();
         int maxWidth = column.getMaxWidth();
         return getWrapText(value, paint, marginRight, paddingLeftSize, paddingRightSize, maxWidth);
-            /* int paddingLeftSize = config.getTextLeftOffset();
-            int paddingRightSize = config.getTextRightOffset();
-            float strLen = paint.measureText(value);
-            int minWidth = config.getMinCellWidth();
-            int maxWidth = config.getMaxCellWidth();
-            strLen = strLen + paddingLeftSize + paddingRightSize + 24;
-            float realWidth = 0;
-            if(strLen < minWidth){
-                realWidth = minWidth;
-            }else if(strLen >= minWidth && strLen <= maxWidth){
-                realWidth = strLen;
-            }else if(strLen > maxWidth){
-                realWidth = maxWidth;
-            }
-            if(marginRight > 0){
-                realWidth = realWidth - marginRight;
-            }
-
-            realWidth = realWidth - paddingLeftSize - paddingRightSize;
-            String newStr = "";
-            float totalLen = 0;
-            for (int i = 0; i < value.length(); i++) {
-                char tempChar =  value.charAt(i);
-                String tempStr =  String.valueOf(tempChar);
-                float tempStrLen = paint.measureText(tempStr);
-                totalLen = totalLen + tempStrLen ;
-                if(totalLen + 10  > realWidth){
-                    newStr = newStr + "\n";
-                    totalLen = tempStrLen;
-                }
-                newStr = newStr + tempStr;
-            }
-            return "".equals(newStr) ? value : newStr; */
     }
 
     public String getWrapText(String value, Paint paint, TableConfig config, int marginRight, Rect rect) {
@@ -210,7 +140,6 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             float realWidth = expect > maxWidth
                     ? maxWidth - leeway
                     : expect - leeway;
-            String newStr = "";
             StringBuilder stringBuilder = new StringBuilder();
             EmojiReader instance = EmojiReader.INSTANCE;
             int length = instance.getTextLength(value);

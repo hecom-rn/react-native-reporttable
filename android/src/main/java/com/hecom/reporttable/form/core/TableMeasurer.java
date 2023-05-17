@@ -278,6 +278,7 @@ public class TableMeasurer<T> {
                     /**
                      *Todo 为了解决合并单元宽度过大问题
                      */
+                    // 合并单元格的分配会在合适场景下表现为列宽会超出列宽最大限制
                     if (!isArrayColumn) {
                         if(rangeCells !=null) {
                             Cell cell = rangeCells[rowIndex][columnPos];
