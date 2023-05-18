@@ -10,6 +10,24 @@ public class JsonTableBean {
     public Integer textAlignment;  // 0左 1中 2右  default 0
     public Icon icon;
     public Boolean isOverstriking = null;
+    public int textPaddingHorizontal;
+    public int classificationLinePosition;
+
+    public int getTextPaddingHorizontal() {
+        return textPaddingHorizontal;
+    }
+
+    public void setTextPaddingHorizontal(int textPaddingHorizontal) {
+        this.textPaddingHorizontal = textPaddingHorizontal;
+    }
+
+    public int getClassificationLinePosition() {
+        return classificationLinePosition;
+    }
+
+    public void setClassificationLinePosition(int classificationLinePosition) {
+        this.classificationLinePosition = classificationLinePosition;
+    }
 
     public JsonTableBean() {
     }

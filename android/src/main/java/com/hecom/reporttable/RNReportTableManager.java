@@ -1,10 +1,9 @@
 package com.hecom.reporttable;
 
-import android.text.TextUtils;
-import android.util.Log;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import android.text.TextUtils;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
@@ -17,22 +16,30 @@ import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.gson.Gson;
 import com.hecom.JacksonUtil;
 import com.hecom.reporttable.form.core.SmartTable;
+import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.utils.DensityUtils;
+import com.hecom.reporttable.table.HecomGridFormat;
 import com.hecom.reporttable.table.ReportTableStore;
 import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
+import com.hecom.reporttable.table.deserializer.ItemCommonStyleConfigDeserializer;
 
 import java.util.Map;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 
 public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> {
     private static final int COMMAND_SCROLL = 1;
     private ThemedReactContext mReactContext;
+    private Gson mGson = new GsonBuilder()
+            .registerTypeAdapter(ItemCommonStyleConfig.class, new ItemCommonStyleConfigDeserializer())
+            .create();
 
     @Override
     public String getName() {
@@ -43,6 +50,8 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
     protected SmartTable<String> createViewInstance(final ThemedReactContext reactContext) {
         mReactContext = reactContext;
         final SmartTable<String> table = new SmartTable(reactContext);
+        IGridFormat gridFormat = new HecomGridFormat(table);
+        table.getConfig().setTableGridFormat(gridFormat);
 
         table.setZoom(true,2,0.5f);
 
@@ -158,7 +167,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                 }
             }
             if(!TextUtils.isEmpty(itemConfig)){
-                ItemCommonStyleConfig itemCommonStyleConfig = new Gson().fromJson(itemConfig, ItemCommonStyleConfig.class);
+                ItemCommonStyleConfig itemCommonStyleConfig = mGson.fromJson(itemConfig, ItemCommonStyleConfig.class);
                 configBean.setItemCommonStyleConfig(itemCommonStyleConfig);
                 view.getConfig().setItemCommonStyleConfig(itemCommonStyleConfig);
             }

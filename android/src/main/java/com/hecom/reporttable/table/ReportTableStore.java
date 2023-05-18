@@ -2,8 +2,6 @@ package com.hecom.reporttable.table;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -39,6 +37,11 @@ import java.util.Map;
 
 public class ReportTableStore implements TableConfig.OnScrollChangeListener {
     private SmartTable<String> table;
+
+    public ReportTableData getReportTableData() {
+        return reportTableData;
+    }
+
     private ReportTableData reportTableData = new ReportTableData();
     private Context context;
     private Map<Integer, Integer> columnMapWidth = new HashMap<>();
