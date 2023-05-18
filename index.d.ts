@@ -43,7 +43,7 @@ declare module "@hecom/react-native-report-table" {
         isOverstriking: boolean; // 文本是否加粗。 default false
     }
 
-    export enum ClassificationLinePosition {
+    enum ClassificationLinePosition {
         none = 0,
         top = 1 << 0,
         right = 1 << 1,
