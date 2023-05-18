@@ -31,6 +31,7 @@ declare module "@hecom/react-native-report-table" {
 
     type Color =  string | ProcessedColorValue; // ios ProcessedColorValue,   android 16进制色值，需6位
 
+    // 默认值配置
     export interface ItemConfig {
         backgroundColor: Color;
         fontSize: number;  // default 14
@@ -39,7 +40,15 @@ declare module "@hecom/react-native-report-table" {
         textPaddingHorizontal: number; // default 12
         splitLineColor: Color; // default #e8e8e8
         classificationLineColor: Color; // default #9cb3c8
-        isOverstriking: boolean; // 是否加粗。 default false
+        isOverstriking: boolean; // 文本是否加粗。 default false
+    }
+
+    export enum ClassificationLinePosition {
+        none = 0,
+        top = 1 << 0,
+        right = 1 << 1,
+        bottom = 1 << 2,
+        left = 1 << 3,
     }
 
     interface ColumnsWidthMap  {
@@ -76,7 +85,9 @@ declare module "@hecom/react-native-report-table" {
         textPaddingHorizontal?: number; // default 12
         textAlignment?: 0 | 1 | 2; // default 0
 
-        isOverstriking?: boolean; // 是否加粗。 default false
+        classificationLinePosition?: ClassificationLinePosition; // 特殊分割线颜色的位置
+
+        isOverstriking?: boolean; // 文本是否加粗。 default false
         icon?: IconStyle;
     }
 

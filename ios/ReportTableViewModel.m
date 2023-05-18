@@ -362,6 +362,9 @@
            if ([keys containsObject: @"textAlignment"]) {
                model.textAlignment = [RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
            }
+           if ([keys containsObject: @"classificationLinePosition"]) {
+               model.classificationLinePosition = [RCTConvert NSInteger:[dir objectForKey:@"classificationLinePosition"]];
+           }
            if ([keys containsObject: @"textPaddingHorizontal"]) {
                model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
            }

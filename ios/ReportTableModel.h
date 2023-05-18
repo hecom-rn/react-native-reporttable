@@ -15,6 +15,16 @@
 @property (nonatomic, assign) CGFloat paddingHorizontal;
 @end
 
+
+typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
+    ClassificationLinePositionNone = 0,
+    ClassificationLinePositionTop = 1 << 0,
+    ClassificationLinePositionRight = 1 << 1,
+    ClassificationLinePositionBottom = 1 << 2,
+    ClassificationLinePositionLeft = 1 << 3
+};
+
+
 @interface ItemModel: NSObject
 @property (nonatomic, strong) NSString *title;
 @property (nonatomic, assign) NSInteger keyIndex;
@@ -28,6 +38,7 @@
 @property (nonatomic, assign) NSTextAlignment textAlignment;
 @property (nonatomic, assign) NSInteger textPaddingHorizontal;
 @property (nonatomic, assign) NSInteger horCount;
+@property (nonatomic, assign) ClassificationLinePosition classificationLinePosition;
 @property (nonatomic, assign) NSInteger verCount;
 @property (nonatomic, strong) IconStyle *iconStyle;
 @property (nonatomic, strong) ItemModel *itemConfig;
