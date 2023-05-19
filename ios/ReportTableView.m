@@ -273,6 +273,19 @@
             }
         }
     }
+    cell.gridlines = nil;
+    if (ClassificationLinePositionTop & model.classificationLinePosition) {
+        cell.gridlines.top = [GridStyle style:GridStyle_solid width:1 color: model.itemConfig.classificationLineColor];
+    }
+    if (ClassificationLinePositionLeft & model.classificationLinePosition) {
+        cell.gridlines.left = [GridStyle style:GridStyle_solid width:1 color: model.itemConfig.classificationLineColor];
+    }
+    if (ClassificationLinePositionRight & model.classificationLinePosition) {
+        cell.gridlines.right = [GridStyle style:GridStyle_solid width:1 color: model.itemConfig.classificationLineColor];
+    }
+    if (ClassificationLinePositionBottom & model.classificationLinePosition) {
+        cell.gridlines.bottom = [GridStyle style:GridStyle_solid width:1 color: model.itemConfig.classificationLineColor];
+    }
     cell.contentView.backgroundColor = model.backgroundColor;
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
     cell.label.text = model.title;
