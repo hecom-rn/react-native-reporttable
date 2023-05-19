@@ -38,29 +38,20 @@ public class HecomGridFormat extends BaseGridFormat {
         if (needDraw(col, row)) {
             int defColor = paint.getColor();
             int spColor = getColor();
-            float defWidth = paint.getStrokeWidth();
-            float spWidth = 4;
-
-            // TODO: 需要处理合并单元格的情况
 
             paint.setColor(mGridType[0] != NORMAL ? spColor : defColor);
-            paint.setStrokeWidth(mGridType[0] != NORMAL ? spWidth : defWidth);
             canvas.drawLine(rect.left, rect.top, rect.right, rect.top, paint);
 
             paint.setColor(mGridType[1] != NORMAL ? spColor : defColor);
-            paint.setStrokeWidth(mGridType[1] != NORMAL ? spWidth : defWidth);
             canvas.drawLine(rect.right, rect.top, rect.right, rect.bottom, paint);
 
             paint.setColor(mGridType[2] != NORMAL ? spColor : defColor);
-            paint.setStrokeWidth(mGridType[2] != NORMAL ? spWidth : defWidth);
             canvas.drawLine(rect.right, rect.bottom, rect.left, rect.bottom, paint);
 
             paint.setColor(mGridType[3] != NORMAL ? spColor : defColor);
-            paint.setStrokeWidth(mGridType[3] != NORMAL ? spWidth : defWidth);
             canvas.drawLine(rect.left, rect.bottom, rect.left, rect.top, paint);
 
             paint.setColor(defColor);
-            paint.setStrokeWidth(defWidth);
         } else {
             super.drawContentGrid(canvas, col, row, rect, cellInfo, paint);
         }
