@@ -37,6 +37,7 @@ import java.util.Map;
 
 public class ReportTableStore implements TableConfig.OnScrollChangeListener {
     private SmartTable<String> table;
+    private TableConfigBean configBean;
 
     public ReportTableData getReportTableData() {
         return reportTableData;
@@ -318,24 +319,37 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             }
 
             final ReportTableStore config = this;
-            if (json.equals(config.jsonData)) {
-                return;
-            }
-            config.jsonData = json;
-            Runnable runnable = new Runnable() {
-                @Override
-                public void run() {
+            //横竖屏切换
+            boolean configChanged = config.configBean==null
+                    || config.configBean.getMinWidth()!=configBean.getMinWidth()
+                    || config.configBean.getMaxWidth()!=configBean.getMaxWidth();
+            boolean contentChanged = !json.equals(config.jsonData);
+            if(contentChanged){
+                config.jsonData = json;
+                config.configBean = configBean;
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
 
-                    MergeResult mergeResult = reportTableData.mergeTable(json,configBean);
-                    if(null==mergeResult){
-                        ((SmartTable<?>) view).getIsNotifying().set(false);
-                    }else {
-                        setReportTableDataInMainThread((SmartTable<?>) view, mergeResult, configBean);
+                        MergeResult mergeResult = reportTableData.mergeTable(json,configBean);
+                        if(null==mergeResult){
+                            ((SmartTable<?>) view).getIsNotifying().set(false);
+                        }else {
+                            setReportTableDataInMainThread((SmartTable<?>) view, mergeResult, configBean);
+                        }
                     }
-                }
-            };
-            ((SmartTable<?>) view).getIsNotifying().set(true);
-            ((SmartTable<?>) view).getmExecutor().execute(runnable);
+                };
+                if(contentChanged )((SmartTable<?>) view).getIsNotifying().set(true);
+                ((SmartTable<?>) view).getmExecutor().execute(runnable);
+            }else if(configChanged){
+                config.configBean = configBean;
+                ArrayTableData<String> tableData = (ArrayTableData<String>) table.getTableData();
+                tableData.setWidthLimit(DensityUtils.dp2px(this.context, configBean.getMinWidth()),
+                        DensityUtils.dp2px(this.context,  configBean.getMaxWidth()),
+                        configBean.getColumnConfigMap());
+                ((SmartTable<String>)view).setTableData(tableData);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
