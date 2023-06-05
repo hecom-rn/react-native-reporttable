@@ -37,7 +37,7 @@ export default class ReportTableWrapper extends React.Component {
 
     render() {
         let {headerHeight} = this.state;
-        const {headerView, size} = this.props;
+        const {headerView, size, headerViewOrientation} = this.props;
         // const data = this._toAndroidData();
         return (
             <ScrollView
@@ -57,7 +57,7 @@ export default class ReportTableWrapper extends React.Component {
                 }}
             >
                 <ScrollView
-                    horizontal={true}
+                    horizontal={ headerViewOrientation != 'vertical' }
                     showsHorizontalScrollIndicator={false}
                     onLayout={(event) => {
                         const {
