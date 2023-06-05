@@ -310,32 +310,6 @@ public class TableProvider<T> implements TableClickObserver {
         }
     }
 
-    private void fillColumnTitle(Canvas canvas, ColumnInfo info, int left, int row) {
-
-        int top = (int)(info.top*config.getZoom())
-                + (config.isFixedTitle() ? showRect.top : scaleRect.top);
-        int right = (int) (left + info.width *config.getZoom());
-        int bottom = (int) (top + info.height*config.getZoom());
-        if (DrawUtils.isMixRect(showRect, left, top, right, bottom)) {
-            if (!isClickPoint && onColumnClickListener != null) {
-                if (DrawUtils.isClick(left, top, right, bottom, clickPoint)) {
-                    isClickPoint = true;
-                    clickColumnInfo = info;
-                    clickPoint.set(-1, -1);
-                }
-            }
-            Paint paint = config.getPaint();
-            tempRect.set(left,top,right,bottom);
-            if(config.getTableGridFormat() !=null) {
-                config.getColumnTitleGridStyle().fillPaint(paint);
-                int position = tableData.getChildColumns().indexOf(info.column);
-                config.getTableGridFormat().drawColumnTitleGrid(canvas,tempRect,info.column,position,paint);
-            }
-            tableData.getTitleDrawFormat().draw(canvas, info.column, tempRect, config, row);
-
-        }
-    }
-
     /**
      * 绘制内容
      * @param canvas 画布
@@ -497,7 +471,7 @@ public class TableProvider<T> implements TableClickObserver {
                                     drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
                                 } else if (isFirstDraw || rowIndex < config.getFixedLines()) {
                                     finalRect.set(correctCellRect);
-                                    finalRect.bottom = correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
+                                    finalRect.bottom = tempRect.bottom!=correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
                                     drawContentCell(canvas, cellInfo, finalRect, config, isDrawLock);
                                 } else if (!isFirstDraw && rowIndex >= config.getFixedLines()) {
                                     if (onlyDrawFrozenRows && rowIndex >= config.getFixedLines()) {
@@ -517,7 +491,7 @@ public class TableProvider<T> implements TableClickObserver {
                                     if (correctCellRect.top >= tmpBottom) {
                                         //绘制完整单元格
                                         finalRect.set(correctCellRect);
-                                        finalRect.bottom = correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
+                                        finalRect.bottom = tempRect.bottom!=correctCellRect.bottom &&  correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
                                         drawContentCell(canvas, cellInfo, finalRect, config, isDrawLock);
                                         if (rowIndex == config.getFixedLines() && config.getScrollChangeListener() != null && !isShowUnFixedArea) {
                                             //非固定区域可见
@@ -534,8 +508,8 @@ public class TableProvider<T> implements TableClickObserver {
                                             //绘制部分单元格
                                             //config.setPartlyCellZoom(partlyCellZoom);
                                             finalRect.set(correctCellRect);
-                                            finalRect.top = tmpBottom;
-                                            finalRect.bottom = correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
+                                            finalRect.top  = tempRect.bottom!=correctCellRect.bottom ? tmpBottom : finalRect.top ;
+                                            finalRect.bottom = tempRect.bottom!=correctCellRect.bottom &&  correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
                                             drawContentCell(canvas, cellInfo, finalRect, config, isDrawLock);
                                         }
                                     }
@@ -760,86 +734,11 @@ public class TableProvider<T> implements TableClickObserver {
         this.onColumnClickListener = onColumnClickListener;
     }
 
-    public ITip<Column, ?> getTip() {
-        return tip;
-    }
-
-    public void setTip(ITip<Column, ?> tip) {
-        this.tip = tip;
-    }
-
 
     public void setSelectFormat(ISelectFormat selectFormat) {
         this.operation.setSelectFormat(selectFormat);
     }
 
-    public GridDrawer<T> getGridDrawer() {
-        return gridDrawer;
-    }
-
-    public void setGridDrawer(GridDrawer<T> gridDrawer) {
-        this.gridDrawer = gridDrawer;
-    }
-
-
-    /**
-     * 计算任何point在View的位置
-     * @param row 列
-     * @param col 行
-     * @return
-     */
-    public int[] getPointLocation(double row,double col){
-        List<Column> childColumns = tableData.getChildColumns();
-        int[] lineHeights =  tableData.getTableInfo().getLineHeightArray();
-        int x=0,y =0;
-        int columnSize = childColumns.size();
-        for(int i = 0; i <= (columnSize > col+1 ? col+1 : columnSize-1);i++){
-            int w = childColumns.get(i).getComputeWidth();
-            if(i == (int)col+1){
-                x +=w *(col-(int)col);
-            }else {
-                x += w;
-            }
-        }
-        for(int i = 0; i <= (lineHeights.length > row+1 ? row+1 : lineHeights.length-1);i++){
-            int h = lineHeights[i];
-            if(i == (int)row+1){
-                y +=h *(row-(int)row);
-            }else {
-                y += h;
-            }
-        }
-        x *= config.getZoom();
-        y *= config.getZoom();
-        x += scaleRect.left;
-        y +=scaleRect.top;
-        return new int[]{x,y};
-
-    }
-    /**
-     * 计算任何point在View的大小
-     * @param row 列
-     * @param col 行
-     * @return
-     */
-    public int[] getPointSize(int row,int col){
-        List<Column> childColumns = tableData.getChildColumns();
-        int[] lineHeights =  tableData.getTableInfo().getLineHeightArray();
-        col= col < childColumns.size() ? col:childColumns.size()-1;//列
-        row = row< lineHeights.length ? row:lineHeights.length;//行
-        col = col< 0 ? 0 : col;
-        row = row< 0 ? 0 : row;
-        return new int[]{(int) (childColumns.get(col).getComputeWidth()*config.getZoom()),
-                (int) (lineHeights[row]*config.getZoom())};
-
-    }
-
-    /**
-     * 设置表面绘制
-     */
-    public void setDrawOver(IDrawOver drawOver) {
-        this.drawOver = drawOver;
-    }
 
     public SelectionOperation getOperation() {
         return operation;

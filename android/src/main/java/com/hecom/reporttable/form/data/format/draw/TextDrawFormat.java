@@ -12,9 +12,9 @@ import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.TypicalCell;
-import com.yy.mobile.emoji.EmojiReader;
 
 import java.lang.ref.SoftReference;
+import java.text.BreakIterator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -141,23 +141,29 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                     ? maxWidth - leeway
                     : expect - leeway;
             StringBuilder stringBuilder = new StringBuilder();
-            EmojiReader instance = EmojiReader.INSTANCE;
-            int length = instance.getTextLength(value);
-            int lineStartIndex = 0;
+
+            BreakIterator breakIterator = BreakIterator.getCharacterInstance();
+            breakIterator.setText(value);
+
             String temp = "";
             String curLineStr = "";
-            for (int i = 1; i <= length; i++) {
-                temp = instance.subSequence(value, lineStartIndex, i).toString();
+            int start = breakIterator.first();
+            int end = breakIterator.next();
+            while (end != BreakIterator.DONE) {
+                 temp = value.substring(start, end);
                 float tempStrLen = paint.measureText(temp);
                 if (tempStrLen <= realWidth) {
                     curLineStr = temp;
-                    continue;
+                    if(curLineStr.endsWith("\n")){
+                        stringBuilder.append(curLineStr);
+                        start = end;
+                    }
                 } else {
                     stringBuilder.append(curLineStr);
                     stringBuilder.append("\n");
-                    lineStartIndex = i - 1;
-                    curLineStr = instance.subSequence(value, lineStartIndex, i).toString();
+                    start = end-1;
                 }
+                end = breakIterator.next();
             }
             stringBuilder.append(curLineStr);
             return stringBuilder.toString();
