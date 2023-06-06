@@ -23,6 +23,7 @@
 
 - (void)setTextPaddingHorizontal:(NSInteger)textPaddingHorizontal {
     CGFloat marginHor = textPaddingHorizontal;
+    _textPaddingHorizontal = textPaddingHorizontal;
     [self.label mas_remakeConstraints:^(MASConstraintMaker *make) {
         float paddingHorizontal = _icon ? self.icon.paddingHorizontal : 4;
         float inconWidth = _icon ? self.icon.size.width : 13;
@@ -37,6 +38,24 @@
      }];
      self.label.transform = CGAffineTransformMakeTranslation(0, 0);
      [self.label layoutIfNeeded];
+}
+
+- (void)setTextAlignment:(NSTextAlignment)textAlignment {
+    if (textAlignment == NSTextAlignmentRight) {
+        CGFloat marginHor = _textPaddingHorizontal;
+        [self.label mas_updateConstraints:^(MASConstraintMaker *make) {
+            float paddingHorizontal = _icon ? self.icon.paddingHorizontal : 4;
+            float inconWidth = _icon ? self.icon.size.width : 13;
+            if (self.icon.imageAlignment == 1) {
+                make.right.equalTo(self.contentView.mas_right).offset(-marginHor);
+                make.left.mas_lessThanOrEqualTo(self.contentView.mas_left).offset([self isSetupImageView] ? inconWidth + paddingHorizontal + marginHor : marginHor);
+            } else {
+                make.right.equalTo(self.contentView.mas_right).offset([self isSetupImageView] ? -(inconWidth + paddingHorizontal + marginHor) : -marginHor);
+                make.left.mas_lessThanOrEqualTo(self.contentView.mas_left).offset(marginHor);
+            }
+        }];
+    }
+    self.label.textAlignment = textAlignment;
 }
 
 - (BOOL)isSetupImageView {
@@ -75,9 +94,9 @@
             _customImageView = nil;
             _icon = nil;
         }
-        [self.label mas_updateConstraints:^(MASConstraintMaker *make) {
-             make.right.equalTo(self.contentView.mas_right).offset(- textPaddingHorizontal);
-        }];
+//        [self.label mas_updateConstraints:^(MASConstraintMaker *make) {
+//             make.right.equalTo(self.contentView.mas_right).offset(- textPaddingHorizontal);
+//        }];
         [self.label layoutIfNeeded];
     }
 }

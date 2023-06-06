@@ -290,7 +290,7 @@
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
     cell.label.text = model.title;
     cell.label.textColor = model.textColor;
-    cell.label.textAlignment = model.textAlignment;
+    cell.textAlignment = model.textAlignment;
     cell.label.font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
     return cell;
 }
