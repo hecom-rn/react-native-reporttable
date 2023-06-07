@@ -14,6 +14,7 @@
 @property (nonatomic, strong) UILabel *label;
 
 @property (nonatomic, assign) NSInteger textPaddingHorizontal;
+@property (nonatomic, assign) NSTextAlignment textAlignment;
 
 @property (nonatomic, assign) BOOL isLocked;
 @property (nonatomic, assign) BOOL isUnLocked;

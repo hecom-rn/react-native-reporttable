@@ -115,13 +115,6 @@
     return _textPaddingHorizontal;
 }
 
-- (NSTextAlignment)textAlignment {
-    if (!_textAlignment) {
-        return _itemConfig.textAlignment;
-    }
-    return _textAlignment;
-}
-
 @end
 
 @implementation ForzenRange

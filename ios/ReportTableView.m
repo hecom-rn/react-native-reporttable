@@ -287,10 +287,10 @@
         cell.gridlines.bottom = [GridStyle style:GridStyle_solid width:1 color: model.itemConfig.classificationLineColor];
     }
     cell.contentView.backgroundColor = model.backgroundColor;
+    cell.textAlignment = model.textAlignment;
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
     cell.label.text = model.title;
     cell.label.textColor = model.textColor;
-    cell.textAlignment = model.textAlignment;
     cell.label.font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
     return cell;
 }

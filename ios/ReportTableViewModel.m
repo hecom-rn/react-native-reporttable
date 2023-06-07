@@ -359,6 +359,7 @@
            if ([keys containsObject: @"textColor"]) {
                model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]] ;
            }
+           model.textAlignment = model.itemConfig.textAlignment;
            if ([keys containsObject: @"textAlignment"]) {
                model.textAlignment = [RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
            }
