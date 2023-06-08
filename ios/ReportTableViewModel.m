@@ -100,7 +100,7 @@
     for (int k = rowIndex; k < rowCount; k++) {
         ItemModel *model = self.dataSource[columnIndex][k];
         if (model.used && model.used == YES) {
-            return 1;
+            return MAX(sameLenth, 1);
         }
         if (model.keyIndex == keyIndex) {
             sameLenth += 1;
@@ -108,7 +108,7 @@
                 model.used = true;
             }
         } else {
-            break;
+            return sameLenth;
         }
     }
     return sameLenth;
@@ -121,7 +121,7 @@
     for (int k = columnIndex; k < columnCount; k++) {
         ItemModel *model = self.dataSource[k][rowIndex];
         if (model.used && model.used == YES) {
-            return 1;
+            return MAX(sameLenth, 1);
         }
         if (model.keyIndex == keyIndex) {
             sameLenth += 1;
@@ -129,7 +129,7 @@
                 model.used = true;
             }
         } else {
-            break;
+            return sameLenth;
         }
     }
     return sameLenth;
