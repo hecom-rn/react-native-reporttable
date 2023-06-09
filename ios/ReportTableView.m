@@ -10,6 +10,7 @@
 #import "ReportTableCell.h"
 #import "ReportTableModel.h"
 #import "ReportTableHeaderView.h"
+#import "UIView+Toast.h"
 
 @interface ReportTableView () <SpreadsheetViewDelegate, SpreadsheetViewDataSource, UIScrollViewDelegate>
 
@@ -313,9 +314,19 @@
         NSInteger newFrozenColums = column + model.horCount;
         if (self.reportTableModel.frozenPoint > 0) {
             if (newFrozenColums == self.reportTableModel.frozenPoint) {
-                self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == self.reportTableModel.frozenPoint ? 0 : self.reportTableModel.frozenPoint;
-                [self.spreadsheetView reloadData];
-                [self scrollViewDidZoom: self];
+                BOOL willUnLock = self.reportTableModel.frozenColumns == self.reportTableModel.frozenPoint;
+                float frozenWidth = 0;
+                for (int i = 0; i < newFrozenColums; i++) {
+                    frozenWidth += [self.rowsWidth[i] floatValue];
+                }
+                if (!willUnLock && frozenWidth * self.zoomScale > self.reportTableModel.tableRect.size.width - 40) {
+                    [self hideAllToasts];
+                    [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
+                } else {
+                    self.reportTableModel.frozenColumns = willUnLock ? 0 : self.reportTableModel.frozenPoint;
+                    [self.spreadsheetView reloadData];
+                    [self scrollViewDidZoom: self];
+                }
             }
         } else if (self.reportTableModel.frozenCount >= newFrozenColums) {
             self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums ? 0 : newFrozenColums;
