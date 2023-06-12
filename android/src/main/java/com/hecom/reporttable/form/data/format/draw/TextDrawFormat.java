@@ -156,6 +156,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                     curLineStr = temp;
                     if(curLineStr.endsWith("\n")){
                         stringBuilder.append(curLineStr);
+                        curLineStr="";
                         start = end;
                     }
                 } else {
