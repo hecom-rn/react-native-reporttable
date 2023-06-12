@@ -36,7 +36,8 @@ public class GridDrawer<T>{
 
 
     //矫正格子大小
-    public Rect correctCellRect(int row, int col, Rect rect, float zoom) {
+    public Rect correctCellRect(int row, int col, Rect oriRect, float zoom) {
+        Rect rect = new Rect(oriRect);
         if(rangePoints != null && rangePoints.length >row){
             Cell point = rangePoints[row][col];
             if (point != null) {

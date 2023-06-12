@@ -163,6 +163,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                     stringBuilder.append(curLineStr);
                     stringBuilder.append("\n");
                     start = end-1;
+                    continue;
                 }
                 end = breakIterator.next();
             }
