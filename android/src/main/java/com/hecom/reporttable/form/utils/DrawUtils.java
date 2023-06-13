@@ -94,16 +94,19 @@ public class DrawUtils {
      */
     public static int getMultiTextWidth(Paint paint,String[] values){
 
-        int maxWidth  =0;
-        for(String val :values){
-            int width = (int) paint.measureText(val);
-            if(maxWidth < width){
-                maxWidth = width;
-            }
-        }
+        String longestString = findLongestString(values);
+        int maxWidth = (int) paint.measureText(longestString);
         return maxWidth;
     }
-
+    public static String findLongestString(String[] strings) {
+        String longest = strings[0]==null? "" : strings[0];
+        for (int i = 1; i < strings.length; i++) {
+            if (strings[i]!=null && strings[i].length() > longest.length()) {
+                longest = strings[i];
+            }
+        }
+        return longest;
+    }
     /**
      * 绘制.9图片
      * @param canvas 画布

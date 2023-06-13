@@ -87,8 +87,9 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
     protected float drawText(Canvas c, CellInfo<T> cellInfo, Rect rect, Paint paint, TableConfig config, int marginRight) {
         String value = cellInfo.wrapFlag?cellInfo.value:getWrapText(cellInfo.value, paint, config, marginRight, rect);
-        DrawUtils.drawMultiText(c, paint, rect, getSplitString(value));
-        return paint.measureText(value);
+        String[] values = getSplitString(value);
+        DrawUtils.drawMultiText(c, paint, rect, values);
+        return DrawUtils.getMultiTextWidth(paint, values);
     }
 
 
