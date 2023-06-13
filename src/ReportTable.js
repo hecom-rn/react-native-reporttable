@@ -15,8 +15,8 @@ const itemConfig = {
     textPaddingHorizontal: 12, // 上左下右
     textAlignment: 0,  // 0左 1中 2右  default 0
     splitLineColor:  Platform.select({
-        ios: processColor('#DADADA'),
-        android: '#BABABA',
+        ios: processColor('#e8e8e8'),
+        android: '#D1D1D1',
     }),
     classificationLineColor: Platform.select({
         ios: processColor('#9cb3c8'),
@@ -34,8 +34,8 @@ export default class ReportTable extends React.Component{
         frozenColumns: 0,
         frozenRows: 0,
         lineColor: Platform.select({
-            ios: '#DADADA',
-            android: '#BABABA',
+            ios: '#e8e8e8',
+            android: '#D1D1D1',
         }),
         size: {
             width: 0,
