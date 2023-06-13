@@ -34,7 +34,7 @@ export default class ReportTable extends React.Component{
         frozenColumns: 0,
         frozenRows: 0,
         lineColor: Platform.select({
-            ios: processColor('#DADADA'),
+            ios: '#DADADA',
             android: '#BABABA',
         }),
         size: {
