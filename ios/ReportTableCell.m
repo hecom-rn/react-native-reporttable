@@ -50,7 +50,11 @@
                 make.right.equalTo(self.contentView.mas_right).offset(-textPaddingHorizontal);
                 make.left.equalTo(self.contentView.mas_left).offset([self isSetupImageView] ? w : marginHor);
             } else {
-                make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset([self isSetupImageView] ? -w : -marginHor);
+                if ([self isSetupImageView] ) {
+                    make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-w);
+                } else {
+                    make.right.equalTo(self.contentView.mas_right).offset(-marginHor);
+                }
                 make.left.equalTo(self.contentView.mas_left).offset(textPaddingHorizontal);
             }
         }
@@ -99,7 +103,7 @@
 //        [self.label mas_updateConstraints:^(MASConstraintMaker *make) {
 //             make.right.equalTo(self.contentView.mas_right).offset(- textPaddingHorizontal);
 //        }];
-        [self.label layoutIfNeeded];
+//        [self.label layoutIfNeeded];
     }
 }
 
