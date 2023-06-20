@@ -327,8 +327,6 @@
     NSInteger rowCount = dataSource[0].count;
     NSMutableArray *cloumsHight = [NSMutableArray arrayWithCapacity: dataSource.count];
     NSMutableArray *rowsWidth = [NSMutableArray arrayWithCapacity: rowCount];
-    CGFloat minWidth = self.reportTableModel.minWidth; //margin
-    CGFloat maxWidth = self.reportTableModel.maxWidth; //margin
     CGFloat minHeight = self.reportTableModel.minHeight;
     [self.dataSource removeAllObjects]; // clear
     ItemModel *itemStyle = self.reportTableModel.itemConfig;
@@ -337,12 +335,12 @@
        NSMutableArray *modelArr = [NSMutableArray arrayWithCapacity: rowCount];
        CGFloat columnHeigt = minHeight;
        for (int j = 0; j < dataSource[i].count; j ++) {
-           NSDictionary *columnsWidthMap = [self.reportTableModel.columnsWidthMap objectForKey:[NSString stringWithFormat:@"%d", j]];
-           CGFloat rowWith = columnsWidthMap ? [[columnsWidthMap objectForKey:@"minWidth"] floatValue] : minWidth;
-           CGFloat maxWidth = columnsWidthMap ? [[columnsWidthMap objectForKey:@"maxWidth"] floatValue] :   self.reportTableModel.maxWidth;
-           
+           NSDictionary *columnWidthMap = [self.reportTableModel.columnsWidthMap objectForKey:[NSString stringWithFormat:@"%d", j]];
+           CGFloat minWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"minWidth"] floatValue] : self.reportTableModel.minWidth;
+           CGFloat maxWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"maxWidth"] floatValue] : self.reportTableModel.maxWidth;
+           CGFloat rowWith = minWidth;
            if (i == 0) {
-               [rowsWidth addObject:[NSNumber numberWithFloat:minWidth]];
+               [rowsWidth addObject:[NSNumber numberWithFloat:rowWith]];
            }
            NSDictionary *dir = dataSource[i][j];
            ItemModel *model = [[ItemModel alloc] init];
@@ -387,7 +385,7 @@
            if (i == 0) {
                if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
                    isLock = true;
-               } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
+               } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount && j < self.reportTableModel.frozenColumns) {
                    isLock = true;
                }
            }
