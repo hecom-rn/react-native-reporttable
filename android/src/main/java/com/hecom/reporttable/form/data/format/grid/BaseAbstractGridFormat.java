@@ -213,17 +213,24 @@ public abstract class BaseAbstractGridFormat implements IGridFormat {
     protected void drawGridPath(Canvas canvas, Rect rect, Paint paint,boolean isShowHorizontal,
                                 boolean isShowVertical) {
         path.rewind();
-        if(isShowHorizontal) {
-            path.moveTo(rect.left, rect.top);
-            path.lineTo(rect.right, rect.top);
-        }
-        if(isShowVertical) {
-            if(!isShowHorizontal){
-                path.moveTo(rect.right, rect.top);
-            }
-            path.lineTo(rect.right, rect.bottom);
-        }
-        if(isShowHorizontal || isShowVertical)
-            canvas.drawPath(path,paint);
+        path.moveTo(rect.left, rect.top);
+        path.lineTo(rect.right, rect.top);
+        path.lineTo(rect.right, rect.bottom);
+        path.lineTo(rect.left, rect.bottom);
+        path.lineTo(rect.left, rect.top);
+        canvas.drawPath(path, paint);
+//        path.rewind();
+//        if(isShowHorizontal) {
+//            path.moveTo(rect.left, rect.top);
+//            path.lineTo(rect.right, rect.top);
+//        }
+//        if(isShowVertical) {
+//            if(!isShowHorizontal){
+//                path.moveTo(rect.right, rect.top);
+//            }
+//            path.lineTo(rect.right, rect.bottom);
+//        }
+//        if(isShowHorizontal || isShowVertical)
+//            canvas.drawPath(path,paint);
     }
 }
