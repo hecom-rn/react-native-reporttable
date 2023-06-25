@@ -185,12 +185,12 @@ public class TableMeasurer<T> {
 //                float columnNameWidth = tableData.getTitleDrawFormat().measureWidth(column, config)
 //                        + config.getColumnTitleHorizontalPadding() * 2;
                 for (TypicalCell typicalCell : maxValues4Column[columnPos]) {
-                    if (typicalCell!=null){
-                         iconWidth = TableUtil.calculateIconWidth(config,typicalCell.columnIndex,typicalCell.rowIndex);
-                         textWidth = column.getDrawFormat().measureWidth(column, typicalCell, config);
-                         iconPadding = textWidth>0&&iconWidth>0? config.dp4:0;
-                         tempWidth = textWidth+iconWidth+iconPadding;
-                         columnWidth = tempWidth>columnLength?tempWidth:contentWidth;
+                    if (typicalCell != null) {
+                        iconWidth = TableUtil.calculateIconWidth(config, typicalCell.columnIndex, typicalCell.rowIndex);
+                        textWidth = column.getDrawFormat().measureWidth(column, typicalCell, config);
+                        iconPadding = textWidth > 0 && iconWidth > 0 ? config.dp4 : 0;
+                        tempWidth = textWidth + iconWidth + iconPadding;
+                        columnWidth = tempWidth > columnWidth ? tempWidth : columnWidth;
                     }
 
                 }
