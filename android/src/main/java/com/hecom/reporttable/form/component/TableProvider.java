@@ -657,6 +657,12 @@ public class TableProvider<T> implements TableClickObserver {
             } else if ("revert".equals(name)) {
                 rightTextImageDrawFormat.setResourceId(R.mipmap.revert);
                 rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("unSelectIcon".equals(name)) {
+                rightTextImageDrawFormat.setResourceId(R.mipmap.checkbox);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("selectedIcon".equals(name)) {
+                rightTextImageDrawFormat.setResourceId(R.mipmap.checkbox_hl);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
             } else{
                 cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
             }

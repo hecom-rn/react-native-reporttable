@@ -40,6 +40,10 @@ public class TableUtil {
                 return R.mipmap.trash;
             case "revert":
                 return R.mipmap.revert;
+            case "unSelectIcon":
+                return R.mipmap.checkbox;
+            case "selectedIcon":
+                return R.mipmap.checkbox_hl;
             default:
                 return 0;
 

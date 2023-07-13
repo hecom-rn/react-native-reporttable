@@ -268,6 +268,10 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                             leftMargin4Icon = 0;
                         } else if ("revert".equals(name)) {
                             rightMargin4Icon =  resources.getDrawable(R.mipmap.revert).getIntrinsicWidth();
+                        } else if ("unSelectIcon".equals(name)) {
+                            leftMargin4Icon = CONTENT_ICON_MARGIN_VALUE;
+                        } else if ("selectedIcon".equals(name)) {
+                            leftMargin4Icon = CONTENT_ICON_MARGIN_VALUE;
                         }
                     }
                     if (rightMargin4Icon != 0 && leftMargin4Icon != 0) break;
