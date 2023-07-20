@@ -10,6 +10,10 @@
 #import "ReportTableModel.h"
 #import <React/RCTConvert.h>
 
+@interface ReportTableCell()
+
+@end
+
 @implementation ReportTableCell
 
 - (UILabel *)label {
@@ -100,10 +104,6 @@
             _customImageView = nil;
             _icon = nil;
         }
-//        [self.label mas_updateConstraints:^(MASConstraintMaker *make) {
-//             make.right.equalTo(self.contentView.mas_right).offset(- textPaddingHorizontal);
-//        }];
-//        [self.label layoutIfNeeded];
     }
 }
 
@@ -155,7 +155,41 @@
     if (self) {
         self.label.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
         [self.contentView addSubview:self.label];
+      
     }
     return self;
 }
+
+- (void)setIsForbidden:(BOOL)isForbidden {
+    _isForbidden = isForbidden;
+    if (isForbidden) {
+        self.label.text = @"";
+        self.backgroundColor = self.contentView.backgroundColor;
+        self.contentView.backgroundColor = [UIColor clearColor];
+    }
+}
+
+
+- (void)drawRect:(CGRect)rect {
+    [super drawRect:rect];
+    if (!self.isForbidden) {
+        return;
+    }
+    
+    // 获取当前绘制上下文
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    
+    // 设置线条颜色和宽度
+    CGContextSetStrokeColorWithColor(context, self.lineColor.CGColor);
+    CGContextSetLineWidth(context, 1.0);
+    
+    // 绘制线条
+    CGContextMoveToPoint(context, 0, 0);
+    CGContextAddLineToPoint(context, rect.size.width, rect.size.height);
+    CGContextStrokePath(context);
+}
+
 @end
+
+
+

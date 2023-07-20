@@ -90,8 +90,8 @@ export default class ReportTableWrapper extends React.Component {
         )
     }
 
-    scrollTo = () => {
-        this.table.scrollTo();
+    scrollTo = (params) => {
+        this.table.scrollTo(params);
     }
 
 

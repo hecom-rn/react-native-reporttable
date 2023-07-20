@@ -28,8 +28,9 @@ export default class ReportTableWrapper extends React.Component{
         }
     }
 
-    scrollTo = () => {
-        this.table.scrollTo();
+    scrollTo = (params) => {
+        const { lineX = 0, lineY = 0, offsetX = 0, offsetY = 0, animated = true } = params || {};
+        this.table.scrollTo([lineX, lineY, offsetX, offsetY, animated]);
     }
 
     render() {

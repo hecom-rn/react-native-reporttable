@@ -36,14 +36,14 @@ RCT_EXPORT_VIEW_PROPERTY(frozenPoint, int)
 
 RCT_EXPORT_MODULE(ReportTableManager)
 
-RCT_EXPORT_METHOD(scrollTo:(nonnull NSNumber*) reactTag) {
+RCT_EXPORT_METHOD(scrollTo:(nonnull NSNumber*)reactTag lineX:(NSInteger)lineX lineY:(NSInteger)lineY offsetX :(float)offsetX offsetY :(float)offsetY animated:(BOOL)animated) {
     [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
         ReportTableViewModel *view = viewRegistry[reactTag];
         if (!view || ![view isKindOfClass:[ReportTableViewModel class]]) {
             RCTLogError(@"Cannot find NativeView with tag #%@", reactTag);
             return;
         }
-        [view scrollToTop];
+        [view scrollToLineX: lineX lineY: lineY offsetX: offsetX offsetY: offsetY animated: animated];
     }];
 }
 

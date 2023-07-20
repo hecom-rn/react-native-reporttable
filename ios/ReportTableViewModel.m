@@ -318,9 +318,10 @@
     }
 }
 
-- (void)scrollToTop {
-    [self.reportTableView scrollToTop];
+- (void)scrollToLineX:(NSInteger)lineX lineY:(NSInteger)lineY offsetX:(float)offsetX offsetY:(float)offsetY animated:(BOOL)animated {
+    [self.reportTableView scrollToLineX: lineX lineY: lineY offsetX: offsetX offsetY: offsetY animated: animated];
 }
+
 
 - (void)integratedDataSource {
     NSMutableArray<NSArray *> *dataSource = [NSMutableArray arrayWithArray: self.reportTableModel.data];
@@ -364,6 +365,13 @@
            if ([keys containsObject: @"classificationLinePosition"]) {
                model.classificationLinePosition = [RCTConvert NSInteger:[dir objectForKey:@"classificationLinePosition"]];
            }
+           if ([keys containsObject: @"isForbidden"]) {
+               model.isForbidden = [RCTConvert BOOL:[dir objectForKey:@"isForbidden"]];
+           }
+           model.classificationLineColor = model.itemConfig.classificationLineColor;
+           if ([keys containsObject: @"classificationLineColor"]) {
+               model.classificationLineColor = [RCTConvert UIColor:[dir objectForKey:@"classificationLineColor"]];
+           }
            if ([keys containsObject: @"textPaddingHorizontal"]) {
                model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
            }
@@ -381,15 +389,16 @@
                }
                model.iconStyle = icon;
            }
-           BOOL isLock = false;
+           BOOL showLock = false;
            if (i == 0) {
                if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
-                   isLock = true;
-               } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount && j < self.reportTableModel.frozenColumns) {
-                   isLock = true;
+                   showLock = true;
+               } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
+                   showLock = true;
                }
            }
-           CGFloat imageIconWidth = (isLock ? 13 + 10 : iconDic != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
+           
+           CGFloat imageIconWidth = (showLock ? 13 : iconDic != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth; //margin
            CGRect textRect = [model isEqual: @"--"] ? CGRectMake(0, 0, 30, model.fontSize) : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: maxWidth - exceptText];
            // 不是一行

@@ -26,7 +26,6 @@
 
 @implementation ReportTableView
 
-
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
     self.spreadsheetView.tableHeaderView = headerScrollView;
     _headerScrollView = headerScrollView;
@@ -50,8 +49,10 @@
         self.bouncesZoom = false;
         self.showsVerticalScrollIndicator = false;
         self.showsHorizontalScrollIndicator = false;
+        self.backgroundColor = [UIColor whiteColor];
         
         self.containerView = [[UIView alloc] init];
+        self.containerView.backgroundColor = [UIColor whiteColor];
         self.containerView.frame = self.bounds;
         self.containerView.userInteractionEnabled = false;
         self.containerView.layer.anchorPoint = CGPointMake(0, 0);
@@ -70,8 +71,8 @@
     self.cloumsHight = reportTableModel.cloumsHight;
     self.rowsWidth = reportTableModel.rowsWidth;
     
+  
     CGFloat hairline = 1;
-    
     self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
     self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: reportTableModel.lineColor];
     
@@ -111,10 +112,40 @@
     [self setMergedCellsLabelOffset];
 }
 
+- (NSInteger)sumOfFirstN:(NSArray *)array n:(NSInteger)n {
+    NSInteger sum = 0;
+    for (NSInteger i = 0; i < n && i < array.count; i++) {
+        sum += [array[i] integerValue];
+    }
+    return sum;
+}
 
-- (void)scrollToTop {
+
+- (void)scrollToLineX:(NSInteger)lineX lineY:(NSInteger)lineY offsetX:(float)offsetX offsetY:(float)offsetY animated:(BOOL)animated {
+    float x, y = 0;
+    CGFloat hairline = 1;
+    if (lineX >= 0) {
+        y = [self sumOfFirstN:self.reportTableModel.cloumsHight n:lineX] + lineX * hairline;
+    } else {
+        y = self.spreadsheetView.contentOffset.y;
+    }
+    if (lineY >= 0) {
+        x = [self sumOfFirstN:self.reportTableModel.rowsWidth n:lineY] + lineY * hairline;
+    } else {
+        x = self.spreadsheetView.contentOffset.x;
+    }
+    x += offsetX;
+    y += offsetY;
+    
     if (_spreadsheetView) {
-        [self.spreadsheetView setContentOffset:CGPointMake(0, 0) animated: true];
+        [self.spreadsheetView setContentOffset:CGPointMake(x, y) animated: animated];
+    }
+}
+
+- (void)scrollToLine:(NSInteger)x y:(NSInteger)y {
+    if (_spreadsheetView) {
+        
+        [self.spreadsheetView setContentOffset:CGPointMake(x, y) animated: true];
     }
 }
 
@@ -178,7 +209,7 @@
         [ssv.mergedCells enumerateObjectsUsingBlock:^(ZMJCellRange * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             ReportTableCell *cell = [ssv cellForItemAt: [NSIndexPath indexPathWithRow: obj.from.row column: obj.from.column]];
             // cell 在显示池
-            if (cell) {
+            if (cell && cell.label != nil) {
                 CGFloat tableHeight = ssv.tableView.frame.size.height;
                 CGRect rect = cell.frame;
                 // label react 超出table Height
@@ -276,16 +307,16 @@
     }
     cell.gridlines = nil;
     if (ClassificationLinePositionTop & model.classificationLinePosition) {
-        cell.gridlines.top = [GridStyle style:GridStyle_solid width:1 color: model.itemConfig.classificationLineColor];
+        cell.gridlines.top = [GridStyle style:GridStyle_solid width:1 color: model.classificationLineColor];
     }
     if (ClassificationLinePositionLeft & model.classificationLinePosition) {
-        cell.gridlines.left = [GridStyle style:GridStyle_solid width:1 color: model.itemConfig.classificationLineColor];
+        cell.gridlines.left = [GridStyle style:GridStyle_solid width:1 color: model.classificationLineColor];
     }
     if (ClassificationLinePositionRight & model.classificationLinePosition) {
-        cell.gridlines.right = [GridStyle style:GridStyle_solid width:1 color: model.itemConfig.classificationLineColor];
+        cell.gridlines.right = [GridStyle style:GridStyle_solid width:1 color: model.classificationLineColor];
     }
     if (ClassificationLinePositionBottom & model.classificationLinePosition) {
-        cell.gridlines.bottom = [GridStyle style:GridStyle_solid width:1 color: model.itemConfig.classificationLineColor];
+        cell.gridlines.bottom = [GridStyle style:GridStyle_solid width:1 color: model.classificationLineColor];
     }
     cell.contentView.backgroundColor = model.backgroundColor;
     cell.textAlignment = model.textAlignment;
@@ -293,6 +324,8 @@
     cell.label.text = model.title;
     cell.label.textColor = model.textColor;
     cell.label.font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
+    cell.lineColor = self.reportTableModel.lineColor;
+    cell.isForbidden = model.isForbidden;
     return cell;
 }
 

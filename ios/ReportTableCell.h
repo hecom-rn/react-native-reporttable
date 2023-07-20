@@ -20,6 +20,9 @@
 @property (nonatomic, assign) BOOL isUnLocked;
 @property (nonatomic, strong) IconStyle *icon;
 
+@property (nonatomic, assign) BOOL isForbidden; // 覆盖禁用线
+@property (nonatomic, strong) UIColor *lineColor;
+
 @property (nonatomic, strong) UIImageView *lockImageView;
 @property (nonatomic, strong) UIImageView *customImageView;
 

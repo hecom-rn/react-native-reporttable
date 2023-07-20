@@ -2,11 +2,11 @@ import React from 'react';
 import { findNodeHandle, requireNativeComponent, UIManager } from 'react-native';
 export default class ReportTableView extends React.Component {
 
-    scrollTo = () => {
+    scrollTo = (params) => {
         UIManager.dispatchViewManagerCommand(
             findNodeHandle(this),
             UIManager.getViewManagerConfig('ReportTable').Commands.scrollTo,
-            null
+            params
         )
     }
 

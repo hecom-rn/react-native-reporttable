@@ -13,8 +13,7 @@
 
 - (id)initWithBridge:(RCTBridge *)bridge;
 
-// 表格滑动到顶部
-- (void)scrollToTop;
+- (void)scrollToLineX:(NSInteger)lineX lineY:(NSInteger)lineY offsetX:(float)offsetX offsetY:(float)offsetY animated:(BOOL)animated;
 
 @end
 

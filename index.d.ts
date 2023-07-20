@@ -86,6 +86,9 @@ declare module "@hecom/react-native-report-table" {
         textAlignment?: 0 | 1 | 2; // default 0
 
         classificationLinePosition?: ClassificationLinePosition; // 特殊分割线颜色的位置
+        classificationLineColor?: Color; // 分割线颜色，优先级比ItemConfig中的高，可选
+
+        isForbidden?: boolean; // 显示禁用线
 
         isOverstriking?: boolean; // 文本是否加粗。 default false
         icon?: IconStyle;
@@ -100,5 +103,11 @@ declare module "@hecom/react-native-report-table" {
     }
 
     export default class ReportTable extends React.Component<ReportTableProps>{
+        /** 
+         * default lineX = 0, lineY = 0, offsetX = 0, offsetY = 0, animated = true 
+         * lineX ｜ lineY 小于0 时，代表为保留当前偏移量 可用 -1
+         * 不传参则是（0，0）～
+        */
+        scrollTo(params: { lineX?: number; lineY?: number; offsetX?: number; offsetY?: number; animated?: boolean })
     }
 }
