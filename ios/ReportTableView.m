@@ -324,8 +324,16 @@
     cell.label.text = model.title;
     cell.label.textColor = model.textColor;
     cell.label.font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
-    cell.lineColor = self.reportTableModel.lineColor;
-    cell.isForbidden = model.isForbidden;
+    
+    if (model.isForbidden) {
+        CGFloat x = [self.reportTableModel.rowsWidth[column] floatValue];
+        CGFloat y = [self.reportTableModel.cloumsHight[row] floatValue];
+        CGPoint point = CGPointMake(x, y);
+        [cell drawLinePoint:point WithLineColor:self.reportTableModel.lineColor];
+    } else {
+        [cell hiddenLineView];
+    }
+
     return cell;
 }
 

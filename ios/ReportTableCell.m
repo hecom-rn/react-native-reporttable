@@ -10,8 +10,33 @@
 #import "ReportTableModel.h"
 #import <React/RCTConvert.h>
 
-@interface ReportTableCell()
+@interface LineView : UIView
+@property (strong, atomic) UIColor *lineColor;
+@end
 
+@implementation LineView
+
+- (void)drawRect:(CGRect)rect {
+    [super drawRect:rect];
+    
+    // 获取当前绘制上下文
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    
+    // 设置线条颜色和宽度
+    CGContextSetStrokeColorWithColor(context, self.lineColor.CGColor);
+    CGContextSetLineWidth(context, 1.0);
+    
+    // 绘制线条
+    CGContextMoveToPoint(context, 0, 0);
+    CGContextAddLineToPoint(context, rect.size.width, rect.size.height);
+    CGContextStrokePath(context);
+}
+
+@end
+
+
+@interface ReportTableCell()
+@property (strong, atomic) LineView *lineView;
 @end
 
 @implementation ReportTableCell
@@ -160,33 +185,28 @@
     return self;
 }
 
-- (void)setIsForbidden:(BOOL)isForbidden {
-    _isForbidden = isForbidden;
-    if (isForbidden) {
-        self.label.text = @"";
-        self.backgroundColor = self.contentView.backgroundColor;
-        self.contentView.backgroundColor = [UIColor clearColor];
+- (void)drawLinePoint:(CGPoint)point WithLineColor: (UIColor *)color {
+    // 不能使用drawReact 会导致分割线闪动
+    self.label.text = @"";
+    self.lineView.frame = CGRectMake(0, 0, point.x, point.y);
+    self.lineView.lineColor = color;
+}
+
+- (void)hiddenLineView {
+    if (_lineView != nil) {
+        [_lineView removeFromSuperview];
+        _lineView = nil;
     }
 }
 
 
-- (void)drawRect:(CGRect)rect {
-    [super drawRect:rect];
-    if (!self.isForbidden) {
-        return;
+- (LineView *)lineView {
+    if (!_lineView) {
+        _lineView = [[LineView alloc] init];
+        _lineView.backgroundColor = [UIColor clearColor];
+        [self.contentView addSubview:_lineView];
     }
-    
-    // 获取当前绘制上下文
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    
-    // 设置线条颜色和宽度
-    CGContextSetStrokeColorWithColor(context, self.lineColor.CGColor);
-    CGContextSetLineWidth(context, 1.0);
-    
-    // 绘制线条
-    CGContextMoveToPoint(context, 0, 0);
-    CGContextAddLineToPoint(context, rect.size.width, rect.size.height);
-    CGContextStrokePath(context);
+    return _lineView;
 }
 
 @end

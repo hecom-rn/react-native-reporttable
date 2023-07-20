@@ -21,11 +21,13 @@
 @property (nonatomic, strong) IconStyle *icon;
 
 @property (nonatomic, assign) BOOL isForbidden; // 覆盖禁用线
-@property (nonatomic, strong) UIColor *lineColor;
 
 @property (nonatomic, strong) UIImageView *lockImageView;
 @property (nonatomic, strong) UIImageView *customImageView;
 
 - (void)updateContentView:(NSInteger)textPaddingHorizontal;
+
+- (void)drawLinePoint:(CGPoint)point WithLineColor: (UIColor *)color;
+- (void)hiddenLineView;
 
 @end
