@@ -10,8 +10,28 @@ public class JsonTableBean {
     public Integer textAlignment;  // 0左 1中 2右  default 0
     public Icon icon;
     public Boolean isOverstriking = null;
+
+    public Boolean isForbidden = null; //斜线
     public int textPaddingHorizontal;
     public int classificationLinePosition;
+
+    public String classificationLineColor;
+
+    public Boolean getForbidden() {
+        return isForbidden;
+    }
+
+    public void setForbidden(Boolean forbidden) {
+        isForbidden = forbidden;
+    }
+
+    public String getClassificationLineColor() {
+        return classificationLineColor;
+    }
+
+    public void setClassificationLineColor(String classificationLineColor) {
+        this.classificationLineColor = classificationLineColor;
+    }
 
     public int getTextPaddingHorizontal() {
         return textPaddingHorizontal;
