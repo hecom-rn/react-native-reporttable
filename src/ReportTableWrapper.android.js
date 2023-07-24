@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanResponder, ScrollView } from 'react-native';
+import { PanResponder, ScrollView, UIManager } from 'react-native';
 import ReportTableView from './ReportTableView';
 
 export default class ReportTableWrapper extends React.Component {
@@ -73,7 +73,7 @@ export default class ReportTableWrapper extends React.Component {
                 </ScrollView>
 
                 <ReportTableView
-                    ref={ref => this.table = ref}
+                    ref={'AndroidReportTableView'}
                     onScrollEnd={this.props.onScrollEnd}
                     onScroll={this.props.onScroll}
                     onClickEvent={({nativeEvent: data}) => {
@@ -91,8 +91,15 @@ export default class ReportTableWrapper extends React.Component {
     }
 
     scrollTo = (params) => {
-        this.table.scrollTo(params);
+        UIManager.dispatchViewManagerCommand(
+            this._getTableHandle(),
+            'scrollTo',
+            [params]
+        );
     }
+    _getTableHandle = () => {
+        return ReactNative.findNodeHandle(this.refs.AndroidReportTableView);
+    };
 
 
     _toAndroidData = (props, headerHeight) => {
