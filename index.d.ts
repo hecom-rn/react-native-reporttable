@@ -106,8 +106,13 @@ declare module "@hecom/react-native-report-table" {
         /** 
          * default lineX = 0, lineY = 0, offsetX = 0, offsetY = 0, animated = true 
          * lineX ｜ lineY 小于0 时，代表为保留当前偏移量 可用 -1
-         * 不传参则是（0，0）～
         */
-        scrollTo(params: { lineX?: number; lineY?: number; offsetX?: number; offsetY?: number; animated?: boolean })
+        scrollTo(params: { lineX?: number; lineY?: number; offsetX?: number; offsetY?: number; animated?: boolean });
+
+
+        /**
+         * 滚动到底部，x偏移量保持不变
+         */
+        scrollToBottom();
     }
 }
