@@ -273,12 +273,12 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             //根据滑动速率 设置Scroller final值,然后使用属性动画计算
             if(Math.abs(velocityX) >mMinimumVelocity || Math.abs(velocityY) >mMinimumVelocity) {
-               scroller.setFinalX(0);
-               scroller.setFinalY(0);
+                scroller.setFinalX(0);
+                scroller.setFinalY(0);
                 tempTranslateX = translateX;
                 tempTranslateY = translateY;
                 scroller.fling(0,0,(int)velocityX,(int)velocityY,-50000,50000
-               ,-50000,50000);
+                        ,-50000,50000);
                 isFling = true;
                 startFilingAnim(false);
             }
@@ -391,7 +391,7 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         }
         this.zoom = tempZoom * scale;
         if (zoom >= maxZoom) {
-           if(zoom > maxZoom) showMaxTips();
+            if(zoom > maxZoom) showMaxTips();
             isScaleMax = true;
             this.zoom = maxZoom;
             isScaleEnd = true;
@@ -683,9 +683,9 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
     /**
      * 飞滚到最左边
      */
-    public void flingLeft(int duration){
+    public void flingLeft(int duration, int offset){
         final int width = zoomRect.width();
-        ValueAnimator valueAnimator = ValueAnimator.ofInt(zoomRect.left,0).setDuration(duration);
+        ValueAnimator valueAnimator = ValueAnimator.ofInt(zoomRect.left,offset).setDuration(duration);
         valueAnimator.addListener(animatorListenerAdapter);
         valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
@@ -724,9 +724,9 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
     /**
      * 飞滚到顶部
      */
-    public void flingTop(int duration){
+    public void flingTop(int duration, int offset){
         final int height = zoomRect.height();
-        ValueAnimator valueAnimator = ValueAnimator.ofInt(zoomRect.top,0).setDuration(duration);
+        ValueAnimator valueAnimator = ValueAnimator.ofInt(zoomRect.top, offset).setDuration(duration);
         valueAnimator.addListener(animatorListenerAdapter);
         valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
@@ -737,6 +737,43 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
             }
         });
         valueAnimator.start();
+    }
+
+    public void flingToRow( TableInfo tableInfo, int row, int offset,int duration){
+        try {
+            final int height = zoomRect.height();
+            int oriHeight = originalRect.height();
+            if(height<oriHeight){
+                return;//内容区域没有充满table
+            }
+            int oriBottom = originalRect.bottom;
+            int[] lineHeightArray = tableInfo.getLineHeightArray();
+            int targetRowHeight = offset;
+            for (int i = 0; i < row; i++) {
+                targetRowHeight+=lineHeightArray[i];
+            }
+
+            int targetTop = (int) (oriBottom - targetRowHeight*getZoom());
+
+            ValueAnimator valueAnimator = ValueAnimator.ofInt(zoomRect.top,
+                    targetTop).setDuration(duration);
+            valueAnimator.addListener(animatorListenerAdapter);
+            valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    zoomRect.top = (int)animation.getAnimatedValue();
+                    zoomRect.bottom = zoomRect.top+height;
+                    notifyViewChanged();
+                }
+            });
+            valueAnimator.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void flingToColumn( TableInfo tableInfo, int column, int offset,int duration){
+
     }
 
 

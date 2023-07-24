@@ -197,17 +197,18 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                 }
             });
 
-            for (int i = 0; i < configBean.getFrozenColumns(); i++) {
+            int arrayColumnSize = tableData.getArrayColumns().size();
+            for (int i = 0; i < configBean.getFrozenColumns() && i< arrayColumnSize; i++) {
                 tableData.getArrayColumns().get(i).setFixed(true);
             }
 
             if (rawTableData != null) {
                 tableData.setCurFixedColumnIndex(rawTableData.getCurFixedColumnIndex());
-                for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
+                for (int i = 0; i < arrayColumnSize; i++) {
                     if (rawTableData.getArrayColumns() != null &&
                             rawTableData.getArrayColumns().size() > i) {
                         Column column = rawTableData.getArrayColumns().get(i);
-                        if (column.isFixed() && tableData.getArrayColumns().size() > i) {
+                        if (column.isFixed() && arrayColumnSize > i) {
                             tableData.getArrayColumns().get(i).setFixed(true);
                         }
                     }
@@ -218,7 +219,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             Resources resources = context.getResources();
             int rightMargin4Icon = 0;
             int leftMargin4Icon = 0;
-            for (int i = 0; i < tableData.getArrayColumns().size(); i++) {
+            for (int i = 0; i < arrayColumnSize; i++) {
                 //插入逻辑
                 rightMargin4Icon = 0;
                 leftMargin4Icon = 0;
@@ -278,7 +279,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                 }
 
                 column.setMargin4Icon(rightMargin4Icon + leftMargin4Icon);
-                column.setColumn(i, tableData.getArrayColumns().size());
+                column.setColumn(i, arrayColumnSize);
             }
 
             LineStyle lineStyle = new LineStyle();

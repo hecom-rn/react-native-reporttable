@@ -18,7 +18,9 @@ import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.hecom.JacksonUtil;
 import com.hecom.reporttable.form.core.SmartTable;
+import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.format.grid.IGridFormat;
+import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomGridFormat;
@@ -35,7 +37,6 @@ import androidx.annotation.Nullable;
 
 
 public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> {
-    private static final int COMMAND_SCROLL = 1;
     private ThemedReactContext mReactContext;
     private Gson mGson = new GsonBuilder()
             .registerTypeAdapter(ItemCommonStyleConfig.class, new ItemCommonStyleConfigDeserializer())
@@ -53,7 +54,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
         IGridFormat gridFormat = new HecomGridFormat(table);
         table.getConfig().setTableGridFormat(gridFormat);
 
-        table.setZoom(true,2,0.5f);
+        table.setZoom(true, 2, 0.5f);
 
         final OnTableChangeListener listener = table.getMatrixHelper().getOnTableChangeListener();
 
@@ -166,7 +167,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                     configBean.setColumnConfigMap(columnConfigMap);
                 }
             }
-            if(!TextUtils.isEmpty(itemConfig)){
+            if (!TextUtils.isEmpty(itemConfig)) {
                 ItemCommonStyleConfig itemCommonStyleConfig = mGson.fromJson(itemConfig, ItemCommonStyleConfig.class);
                 configBean.setItemCommonStyleConfig(itemCommonStyleConfig);
                 view.getConfig().setItemCommonStyleConfig(itemCommonStyleConfig);
@@ -185,22 +186,42 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
     }
 
 
-    @Nullable
     @Override
-    public Map<String, Integer> getCommandsMap() {
-        return MapBuilder.<String, Integer>builder().put("scrollTo", COMMAND_SCROLL).build();
-    }
-
-    @Override
-    public void receiveCommand(@NonNull SmartTable<String> root, int commandId,
+    public void receiveCommand(@NonNull SmartTable<String> root, String commandId,
                                @Nullable ReadableArray args) {
         super.receiveCommand(root, commandId, args);
         switch (commandId) {
-            case COMMAND_SCROLL:
-                root.getMatrixHelper().flingTop(300);
-                root.getMatrixHelper().flingLeft(300);
+            case "scrollTo":
+                processScrollTo(root, args);
                 break;
         }
+    }
+
+    private void processScrollTo(SmartTable<String> root, ReadableArray args) {
+        //{ lineX: 0, lineY: 0, offsetX: 0, offsetY: 0, animated : true }
+        TableInfo tableInfo = root.getTableData().getTableInfo();
+        ReadableMap map = args.getMap(0);
+        int lineX = map.getInt("lineX");
+        int lineY = map.getInt("lineY");
+        int offsetX = map.getInt("offsetX");
+        int offsetY = map.getInt("offsetY");
+        boolean animated = map.getBoolean("animated");
+        int duration = animated?300:0;
+        if(lineY==0){
+            root.getMatrixHelper().flingTop(duration, offsetY);
+        }
+        if(lineX==0){
+            root.getMatrixHelper().flingLeft(duration, offsetX);
+        }
+        if(lineY>0){
+            root.getMatrixHelper().flingToRow(tableInfo,lineY,offsetY,duration);
+        }
+        if(lineX>0){
+            root.getMatrixHelper().flingToColumn(tableInfo,lineX,offsetX,duration);
+        }
+
+
+
     }
 
     @Nullable

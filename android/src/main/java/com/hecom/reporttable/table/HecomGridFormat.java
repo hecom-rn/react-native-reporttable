@@ -66,7 +66,7 @@ public class HecomGridFormat extends BaseGridFormat {
         }
 
         paint.setColor(oriColor);
-        if(mForbidden){
+        if(mForbidden!=null && mForbidden){
             canvas.drawLine(rect.left, rect.top, rect.right, rect.bottom, paint);
         }
     }
