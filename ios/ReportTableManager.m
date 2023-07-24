@@ -47,6 +47,17 @@ RCT_EXPORT_METHOD(scrollTo:(nonnull NSNumber*)reactTag lineX:(NSInteger)lineX li
     }];
 }
 
+RCT_EXPORT_METHOD(scrollToBottom:(nonnull NSNumber*)reactTag) {
+    [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
+        ReportTableViewModel *view = viewRegistry[reactTag];
+        if (!view || ![view isKindOfClass:[ReportTableViewModel class]]) {
+            RCTLogError(@"Cannot find NativeView with tag #%@", reactTag);
+            return;
+        }
+        [view scrollToBottom];
+    }];
+}
+
 - (UIView *)view
 {
     return [[ReportTableViewModel alloc] initWithBridge: self.bridge];

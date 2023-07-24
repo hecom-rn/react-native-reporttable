@@ -19,6 +19,8 @@
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView;
 
+- (void)scrollToBottom;
+
 @end
 
 

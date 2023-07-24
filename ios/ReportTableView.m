@@ -142,9 +142,10 @@
     }
 }
 
-- (void)scrollToLine:(NSInteger)x y:(NSInteger)y {
+- (void)scrollToBottom {
     if (_spreadsheetView) {
-        
+        float x = self.spreadsheetView.contentOffset.x;
+        float y = MAX(0, self.spreadsheetView.contentSize.height - self.spreadsheetView.frame.size.height / self.zoomScale);
         [self.spreadsheetView setContentOffset:CGPointMake(x, y) animated: true];
     }
 }

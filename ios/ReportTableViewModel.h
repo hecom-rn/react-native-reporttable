@@ -15,6 +15,8 @@
 
 - (void)scrollToLineX:(NSInteger)lineX lineY:(NSInteger)lineY offsetX:(float)offsetX offsetY:(float)offsetY animated:(BOOL)animated;
 
+- (void)scrollToBottom;
+
 @end
 
 

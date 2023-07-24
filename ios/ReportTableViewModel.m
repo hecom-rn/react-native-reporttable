@@ -322,6 +322,9 @@
     [self.reportTableView scrollToLineX: lineX lineY: lineY offsetX: offsetX offsetY: offsetY animated: animated];
 }
 
+- (void)scrollToBottom {
+    [self.reportTableView scrollToBottom];
+}
 
 - (void)integratedDataSource {
     NSMutableArray<NSArray *> *dataSource = [NSMutableArray arrayWithArray: self.reportTableModel.data];

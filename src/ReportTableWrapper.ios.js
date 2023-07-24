@@ -33,6 +33,10 @@ export default class ReportTableWrapper extends React.Component{
         this.table.scrollTo([lineX, lineY, offsetX, offsetY, animated]);
     }
 
+    scrollToBottom = () => {
+        this.table.scrollToBottom();
+    }
+    
     render() {
         return (
             <ReportTableView

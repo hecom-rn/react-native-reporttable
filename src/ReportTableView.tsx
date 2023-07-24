@@ -10,6 +10,14 @@ export default class ReportTableView extends React.Component {
         )
     }
 
+    scrollToBottom = () => {
+        UIManager.dispatchViewManagerCommand(
+            findNodeHandle(this),
+            UIManager.getViewManagerConfig('ReportTable').Commands.scrollToBottom,
+            undefined
+        )
+    }
+
     render() {
         return <NativeReportTable {...this.props} />
     }
