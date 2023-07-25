@@ -108,10 +108,6 @@ export default class ReportTableWrapper extends React.Component {
         return ReactNative.findNodeHandle(this.refs.AndroidReportTableView);
     };
 
-    sscrollToBottom = () => {
-        this.table.scrollToBottom();
-    }
-
     _toAndroidData = (props, headerHeight) => {
         // let {headerHeight} = this.state;
         const {
