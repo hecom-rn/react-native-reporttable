@@ -194,6 +194,9 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
             case "scrollTo":
                 processScrollTo(root, args);
                 break;
+            case "scrollToBottom":
+                processScrollToBottom(root, args);
+                break;
         }
     }
 
@@ -206,23 +209,26 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
         int offsetX = map.getInt("offsetX");
         int offsetY = map.getInt("offsetY");
         boolean animated = map.getBoolean("animated");
-        int duration = animated?300:0;
-        if(lineY==0){
+        int duration = animated ? 300 : 0;
+        if (lineY == 0) {
             root.getMatrixHelper().flingTop(duration, offsetY);
         }
-        if(lineX==0){
+        if (lineX == 0) {
             root.getMatrixHelper().flingLeft(duration, offsetX);
         }
-        if(lineY>0){
-            root.getMatrixHelper().flingToRow(tableInfo,lineY,offsetY,duration);
+        if (lineY > 0) {
+            root.getMatrixHelper().flingToRow(tableInfo, lineY, offsetY, duration);
         }
-        if(lineX>0){
-            root.getMatrixHelper().flingToColumn(tableInfo,lineX,offsetX,duration);
+        if (lineX > 0) {
+            root.getMatrixHelper().flingToColumn(tableInfo, lineX, offsetX, duration);
         }
-
-
-
     }
+
+
+    private void processScrollToBottom(SmartTable<String> root, ReadableArray args) {
+        root.getMatrixHelper().flingBottom(300);
+    }
+
 
     @Nullable
     @Override

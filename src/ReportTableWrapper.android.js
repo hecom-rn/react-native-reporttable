@@ -97,6 +97,13 @@ export default class ReportTableWrapper extends React.Component {
             [params]
         );
     }
+    scrollToBottom = () => {
+        UIManager.dispatchViewManagerCommand(
+            this._getTableHandle(),
+            'scrollToBottom',
+            undefined
+        );
+    }
     _getTableHandle = () => {
         return ReactNative.findNodeHandle(this.refs.AndroidReportTableView);
     };

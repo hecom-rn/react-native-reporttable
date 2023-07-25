@@ -741,6 +741,10 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
 
     public void flingToRow( TableInfo tableInfo, int row, int offset,int duration){
         try {
+            if(row==0){
+                flingTop(duration,offset);
+                return;
+            }
             final int height = zoomRect.height();
             int oriHeight = originalRect.height();
             if(height<oriHeight){
@@ -753,7 +757,15 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
                 targetRowHeight+=lineHeightArray[i];
             }
 
+            int limitMinTop = originalRect.bottom-height;
             int targetTop = (int) (oriBottom - targetRowHeight*getZoom());
+            if(targetTop<limitMinTop){
+                targetTop = limitMinTop;
+            }
+            if(originalRect.bottom-zoomRect.top> targetRowHeight*getZoom() && (originalRect.top-zoomRect.top)<(targetRowHeight-lineHeightArray[row-1])*getZoom()){
+                return;
+            }
+
 
             ValueAnimator valueAnimator = ValueAnimator.ofInt(zoomRect.top,
                     targetTop).setDuration(duration);
@@ -782,6 +794,9 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
      * 飞滚到底部
      */
     public void flingBottom(int duration){
+        if (zoomRect.top >= originalRect.top && zoomRect.bottom <= originalRect.bottom) {
+            return;
+        }
         final int height = zoomRect.height();
         ValueAnimator valueAnimator = ValueAnimator.ofInt(zoomRect.bottom,
                 originalRect.bottom).setDuration(duration);
