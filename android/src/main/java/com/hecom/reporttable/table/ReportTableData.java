@@ -77,7 +77,10 @@ public class ReportTableData {
                     mergeBean.setStartRow(rowIndex);
                     mergeRow(uniqueKeyValue, rowIndex, columnIndex, tabArr);
 
-                    if (TextUtils.isEmpty(rowObj.title)) {
+                    if(rowObj.isForbidden!=null && rowObj.isForbidden){
+                        strArr[columnIndex][rowIndex] = "";
+                        rowObj.setTitle("");
+                    }else if (TextUtils.isEmpty(rowObj.title)) {
                         strArr[columnIndex][rowIndex] = "-";
                         rowObj.setTitle("-");
                     } else {
