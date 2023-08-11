@@ -113,7 +113,7 @@ export default class ReportTableWrapper extends React.Component {
         const {
             data, minWidth, minHeight, textPaddingHorizontal,
             lineColor, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size,
-            itemConfig, columnsWidthMap
+            itemConfig, columnsWidthMap, doubleClickZoom = true
         } = props;
         return {
             data: data && JSON.stringify(data),
@@ -130,6 +130,7 @@ export default class ReportTableWrapper extends React.Component {
             limitTableHeight: size.height,
             headerHeight: headerHeight,
             itemConfig: JSON.stringify(itemConfig),
+            doubleClickZoom: doubleClickZoom,
         };
     }
 }

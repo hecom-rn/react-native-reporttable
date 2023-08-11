@@ -549,6 +549,11 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
 
     }
 
+    public void setDoubleClickZoom(boolean doubleClickZoom) {
+        matrixHelper.setCanDoubleClickZoom(doubleClickZoom);
+        invalidate();
+
+    }
 
     /**
      * 获取缩放移动辅助类

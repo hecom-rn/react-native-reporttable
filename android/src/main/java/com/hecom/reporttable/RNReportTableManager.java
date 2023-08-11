@@ -135,6 +135,10 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                 limitTableHeight = transformDataType(dataSource.getDouble("limitTableHeight"));
             }
 
+            if (dataSource.hasKey("doubleClickZoom")) {
+                view.setDoubleClickZoom(dataSource.getBoolean("doubleClickZoom"));
+            }
+
             TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
             headerHeight = dip2px(mReactContext, headerHeight);
             configBean.setHeaderHeight(headerHeight);

@@ -43,6 +43,7 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
     private ScaleGestureDetector mScaleGestureDetector;
     private GestureDetector mGestureDetector;
     private boolean isCanZoom = false;
+    private boolean isCanDoubleClickZoom = true;
     private boolean isScale; //是否正在缩小
     private Rect originalRect; //原始大小
     private Rect zoomRect;
@@ -315,7 +316,7 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         //双击
         @Override
         public boolean onDoubleTap(MotionEvent e) {
-            if (isCanZoom) {
+            if (isCanZoom && isCanDoubleClickZoom) {
                 float oldZoom = zoom;
                 if (isScale) { //缩小
                     zoom = zoom / 1.5f;
@@ -636,6 +637,13 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         }
     }
 
+    /**
+     * 设置是否可以双击缩放
+     * @param canDoubleClickZoom
+     */
+    public void setCanDoubleClickZoom(boolean canDoubleClickZoom) {
+        this.isCanDoubleClickZoom = canDoubleClickZoom;
+    }
     /**
      * 设置最大缩放值
      * @return 最大缩放值
