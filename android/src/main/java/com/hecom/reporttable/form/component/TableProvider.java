@@ -367,6 +367,9 @@ public class TableProvider<T> implements TableClickObserver {
             clipRect.left -= mFixedTranslateX;
         }
         for (int columnIndex = 0; columnIndex < columnSize; columnIndex++) {
+            if (isFirstDraw) {
+                isFirstDraw = false;
+            }
             //遍历列
             top = scaleRect.top;
             Column column = columns.get(columnIndex);
@@ -539,9 +542,6 @@ public class TableProvider<T> implements TableClickObserver {
         }
         if (config.isFixedCountRow()) {
             canvas.restore();
-        }
-        if (isFirstDraw) {
-            isFirstDraw = false;
         }
         mMatrixHelper.setFixedReactLeft(this.mFixedReactLeft);
         mMatrixHelper.setFixedReactRight(this.mFixedReactRight);
