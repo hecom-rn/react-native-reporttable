@@ -1,7 +1,6 @@
 declare module "@hecom/react-native-report-table" {
     import * as React from 'react';
     import { ProcessedColorValue } from 'react-native';
-
     export interface ReportTableProps {
         size: {
             width: number;
@@ -51,6 +50,14 @@ declare module "@hecom/react-native-report-table" {
         left = 1 << 3,
     }
 
+    enum TrianglePosition {
+        NONE = 0,
+        TOP_LEFT = 1 << 0,
+        TOP_RIGHT = 1 << 1,
+        BOTTOM_LEFT = 1 << 2,
+        BOTTOM_RIGHT  = 1 << 3,
+    }
+
     interface ColumnsWidthMap  {
         [index: string]: {
             maxWidth: number;
@@ -85,6 +92,9 @@ declare module "@hecom/react-native-report-table" {
         textPaddingHorizontal?: number; // default 12
         textAlignment?: 0 | 1 | 2; // default 0
 
+        trianglePosition?: TrianglePosition; // 三角标位置
+        triangleColor?: Color; // 三角标颜色
+
         classificationLinePosition?: ClassificationLinePosition; // 特殊分割线颜色的位置
         classificationLineColor?: Color; // 分割线颜色，优先级比ItemConfig中的高，可选
 
@@ -103,8 +113,8 @@ declare module "@hecom/react-native-report-table" {
     }
 
     export default class ReportTable extends React.Component<ReportTableProps>{
-        /** 
-         * default lineX = 0, lineY = 0, offsetX = 0, offsetY = 0, animated = true 
+        /**
+         * default lineX = 0, lineY = 0, offsetX = 0, offsetY = 0, animated = true
          * lineX ｜ lineY 小于0 时，代表为保留当前偏移量 可用 -1
         */
         scrollTo(params: { lineX?: number; lineY?: number; offsetX?: number; offsetY?: number; animated?: boolean });

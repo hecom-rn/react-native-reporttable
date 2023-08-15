@@ -28,7 +28,7 @@ public class ItemCommonStyleConfigDeserializer implements JsonDeserializer<ItemC
                     .getAsString()));
         }
         if (jsonObject.has("classificationLineColor")) {
-            config.setSplitLineColor(Color.parseColor(jsonObject.get("classificationLineColor")
+            config.setClassificationLineColor(Color.parseColor(jsonObject.get("classificationLineColor")
                     .getAsString()));
         }
 

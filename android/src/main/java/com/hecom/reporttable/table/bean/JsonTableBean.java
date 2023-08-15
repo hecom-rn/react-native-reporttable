@@ -17,6 +17,26 @@ public class JsonTableBean {
 
     public String classificationLineColor;
 
+    public int trianglePosition;
+
+    public String triangleColor;
+
+    public int getTrianglePosition() {
+        return trianglePosition;
+    }
+
+    public void setTrianglePosition(int trianglePosition) {
+        this.trianglePosition = trianglePosition;
+    }
+
+    public String getTriangleColor() {
+        return triangleColor;
+    }
+
+    public void setTriangleColor(String triangleColor) {
+        this.triangleColor = triangleColor;
+    }
+
     public Boolean getForbidden() {
         return isForbidden;
     }

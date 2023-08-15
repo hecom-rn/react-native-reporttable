@@ -3,12 +3,14 @@ package com.hecom.reporttable.table;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.text.TextUtils;
 
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.format.grid.BaseGridFormat;
+import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 
 /**
@@ -21,6 +23,10 @@ public class HecomGridFormat extends BaseGridFormat {
     static final int RIGHT = 2;
     static final int BOTTOM = 4;
     static final int LEFT = 8;
+    static final int TOP_LEFT = 1;
+    static final int TOP_RIGHT = 2;
+    static final int BOTTOM_LEFT = 4;
+    static final int BOTTOM_RIGHT = 8;
 
     private SmartTable table;
 
@@ -29,11 +35,18 @@ public class HecomGridFormat extends BaseGridFormat {
      */
     int[] mGridType = new int[]{NORMAL, NORMAL, NORMAL, NORMAL};
     private int mClassificationLineColor;
-    private Boolean mForbidden
-            ;
+    private int mTriangleColor;
+    private int mTrianglePosition;
+    private Paint mTrianglePaint;
+    private Boolean mForbidden;
+    private int DP_15;
 
     public HecomGridFormat(SmartTable table) {
         this.table = table;
+        mTrianglePaint = new Paint();
+        mTrianglePaint.setAntiAlias(true);
+        mTrianglePaint.setStyle(Paint.Style.FILL);
+        DP_15 = DensityUtils.dp2px(table.getContext(),15);
     }
 
     @Override
@@ -42,12 +55,12 @@ public class HecomGridFormat extends BaseGridFormat {
         fillGridType(col, row);
         int oriColor = paint.getColor();
         int defColor = paint.getColor();
-        if(0!=mClassificationLineColor){
-            defColor = mClassificationLineColor ;
+        if (0 != mClassificationLineColor) {
+            defColor = mClassificationLineColor;
             paint.setColor(mClassificationLineColor);
         }
         if (needDraw(col, row)) {
-            int spColor = 0!=mClassificationLineColor?mClassificationLineColor:getColor();
+            int spColor = 0 != mClassificationLineColor ? mClassificationLineColor : getColor();
 
             paint.setColor(mGridType[0] != NORMAL ? spColor : defColor);
             canvas.drawLine(rect.left, rect.top, rect.right, rect.top, paint);
@@ -66,8 +79,42 @@ public class HecomGridFormat extends BaseGridFormat {
         }
 
         paint.setColor(oriColor);
-        if(mForbidden!=null && mForbidden){
+        if (mForbidden != null && mForbidden) {
             canvas.drawLine(rect.left, rect.top, rect.right, rect.bottom, paint);
+        }
+
+        if (0 != mTriangleColor) {
+            float zoom = this.table.getConfig().getZoom();
+            mTrianglePaint.setColor(mTriangleColor);
+            Path path = new Path();
+            if ((mTrianglePosition & TOP_LEFT) != 0) {
+                path.moveTo(rect.left, rect.top);
+                path.lineTo(rect.left + zoom * DP_15, rect.top);
+                path.lineTo(rect.left, rect.top + zoom * DP_15);
+                path.close();
+                canvas.drawPath(path, mTrianglePaint);
+            }
+            if ((mTrianglePosition & TOP_RIGHT) != 0) {
+                path.moveTo(rect.right, rect.top);
+                path.lineTo(rect.right - zoom * DP_15, rect.top);
+                path.lineTo(rect.right, rect.top + zoom * DP_15);
+                path.close();
+                canvas.drawPath(path, mTrianglePaint);
+            }
+            if ((mTrianglePosition & BOTTOM_LEFT) != 0) {
+                path.moveTo(rect.left, rect.bottom);
+                path.lineTo(rect.left + zoom * DP_15, rect.bottom);
+                path.lineTo(rect.left, rect.bottom - zoom * DP_15);
+                path.close();
+                canvas.drawPath(path, mTrianglePaint);
+            }
+            if ((mTrianglePosition & BOTTOM_RIGHT) != 0) {
+                path.moveTo(rect.right, rect.bottom);
+                path.lineTo(rect.right - zoom * DP_15, rect.bottom);
+                path.lineTo(rect.right, rect.bottom - zoom * DP_15);
+                path.close();
+                canvas.drawPath(path, mTrianglePaint);
+            }
         }
     }
 
@@ -78,13 +125,14 @@ public class HecomGridFormat extends BaseGridFormat {
     private void fillGridType(int col, int row) {
         JsonTableBean bean = this.table.getConfig().getTabArr()[row][col];
         int position = bean.getClassificationLinePosition();
+        mTrianglePosition = bean.getTrianglePosition();
         mForbidden = bean.getForbidden();
-        mClassificationLineColor = TextUtils.isEmpty(bean.getClassificationLineColor())?0:Color.parseColor(bean.getClassificationLineColor());
+        mClassificationLineColor = TextUtils.isEmpty(bean.getClassificationLineColor()) ? 0 : Color.parseColor(bean.getClassificationLineColor());
+        mTriangleColor = TextUtils.isEmpty(bean.getTriangleColor()) ? 0 : Color.parseColor(bean.getTriangleColor());
         mGridType[0] = position & TOP;
         mGridType[1] = position & RIGHT;
         mGridType[2] = position & BOTTOM;
         mGridType[3] = position & LEFT;
-
     }
 
     private boolean needDraw(int col, int row) {
