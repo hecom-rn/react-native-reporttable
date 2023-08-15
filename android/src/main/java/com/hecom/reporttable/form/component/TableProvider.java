@@ -317,6 +317,7 @@ public class TableProvider<T> implements TableClickObserver {
     private void drawContent(Canvas canvas, boolean onlyDrawFrozenRows) {
         float top;
         float left = scaleRect.left;
+        boolean hasDrawed = false;
         List<Column> columns = tableData.getChildColumns();
 
         Rect showRect = new Rect(this.showRect.left, this.showRect.top, this.showRect.right, this.showRect.bottom);
@@ -367,9 +368,6 @@ public class TableProvider<T> implements TableClickObserver {
             clipRect.left -= mFixedTranslateX;
         }
         for (int columnIndex = 0; columnIndex < columnSize; columnIndex++) {
-            if (isFirstDraw) {
-                isFirstDraw = false;
-            }
             //遍历列
             top = scaleRect.top;
             Column column = columns.get(columnIndex);
@@ -533,6 +531,7 @@ public class TableProvider<T> implements TableClickObserver {
                     isScrollToBottom = false;
                 }
                 left = tempLeft + width;
+                hasDrawed = true;
             } else {
                 break;
             }
@@ -542,6 +541,9 @@ public class TableProvider<T> implements TableClickObserver {
         }
         if (config.isFixedCountRow()) {
             canvas.restore();
+        }
+        if (isFirstDraw && hasDrawed) {
+            isFirstDraw = false;
         }
         mMatrixHelper.setFixedReactLeft(this.mFixedReactLeft);
         mMatrixHelper.setFixedReactRight(this.mFixedReactRight);
