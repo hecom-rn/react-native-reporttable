@@ -53,7 +53,7 @@ public class TableMeasurer<T> {
         TableInfo tableInfo = tableData.getTableInfo();
         int columnLen = tableData.getMaxValues4Column().length;
         int rowLen = tableData.getMaxValues4Row().length;
-        boolean fastModel = columnLen * rowLen > 5000;
+        boolean fastModel = columnLen * rowLen > 10000;
         int width = getTableWidth(tableData, config, fastModel);
         int height = getTableHeight(tableData, config, fastModel);
 //        if (height > limitTableHeight) {
@@ -266,13 +266,25 @@ public class TableMeasurer<T> {
                 currentPosition=0;
                 boolean isArrayColumn = column instanceof ArrayColumn;
                 Cell[][] rangeCells = tableData.getTableInfo().getRangeCells();
+                boolean hasMergedCell = false;
                 for(int rowIndex = 0;rowIndex < size;rowIndex++) {
                     JsonTableBean.Icon icon = tabArr[rowIndex][columnIndex].getIcon();
                     iconWidth = TableUtil.calculateIconWidth(config,columnIndex,rowIndex);
-                    int textWidth = column.getDrawFormat().measureWidth(column, rowIndex, config);
-                    int iconPadding = textWidth>0&&iconWidth>0? config.dp4:0;
-                    int width = textWidth+iconWidth+iconPadding;
-                    measureRowHeight(config, lineHeightArray, column, currentPosition, rowIndex);
+                    int textWidth;
+                    int iconPadding;
+                    int width;
+                    Cell cell1 = rangeCells[rowIndex][columnPos];
+                    if (cell1 == null || cell1.realCell.col==0) {
+                        textWidth = column.getDrawFormat().measureWidth(column, rowIndex, config, false, -1);
+                        iconPadding = textWidth > 0 && iconWidth > 0 ? config.dp4 : 0;
+                        width = textWidth + iconWidth + iconPadding;
+                        measureRowHeight(config, lineHeightArray, column, currentPosition, rowIndex);
+                    } else {
+                        hasMergedCell=true;
+                        textWidth = column.getDrawFormat().measureWidth(column, rowIndex, config, true, -1);
+                        iconPadding = textWidth > 0 && iconWidth > 0 ? config.dp4 : 0;
+                        width = textWidth + iconWidth + iconPadding;
+                    }
                     int skipPosition = tableInfo.getSeizeCellSize(column, rowIndex);
                     currentPosition += skipPosition;
                     /**
@@ -307,6 +319,25 @@ public class TableMeasurer<T> {
                 }
                 width = Math.max(column.getMinWidth(),width);
                 column.setComputeWidth(width);
+
+                if(hasMergedCell){//计算合并单元格行高
+                    int tempPosition=0;
+                    for(int rowIndex = 0;rowIndex < size;rowIndex++) {
+//                        iconWidth = TableUtil.calculateIconWidth(config, columnIndex, rowIndex);
+                        Cell cell1 = rangeCells[rowIndex][columnPos];
+                        if (cell1 != null && cell1.realCell.col>0 && cell1.realCell.lastColIndex == columnPos) {
+                            int maxWidth = 0;
+                            for (int i = cell1.realCell.firstColIndex; i <= cell1.realCell.lastColIndex ; i++) {
+                                maxWidth+= childColumns.get(i).getComputeWidth();
+                            }
+                            column.getDrawFormat().measureWidth(childColumns.get(cell1.realCell.firstColIndex), rowIndex, config, false,maxWidth );
+                            measureRowHeight(config, lineHeightArray, childColumns.get(cell1.realCell.firstColIndex), tempPosition, rowIndex);
+                        }
+                        int skipPosition = tableInfo.getSeizeCellSize(column, rowIndex);
+                        tempPosition += skipPosition;
+                    }
+                }
+
                 contentWidth+=width;
                 columnPos++;
             }

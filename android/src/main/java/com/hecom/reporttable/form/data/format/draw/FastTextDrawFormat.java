@@ -23,7 +23,7 @@ public class FastTextDrawFormat<T> extends TextDrawFormat<T> {
     private int maxLengthValue;
 
     @Override
-    public int measureWidth(Column<T> column, int position, TableConfig config) {
+    public int measureWidth(Column<T> column, int position, TableConfig config, boolean onlyCalculate, int sepcWidth) {
         String value = column.format(position);
         if(value.length() >maxLengthValue){
             maxLengthValue = value.length();

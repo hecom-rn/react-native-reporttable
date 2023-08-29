@@ -53,7 +53,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     }
 
     @Override
-    public int measureWidth(Column<T> column, int position, TableConfig config) {
+    public int measureWidth(Column<T> column, int position, TableConfig config, boolean onlyCalculate, int sepcWidth) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         String value = column.getCacheWrapText(position);

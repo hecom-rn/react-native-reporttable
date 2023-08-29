@@ -198,7 +198,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
                         try {
                             provider.onDraw(canvas, scaleRect, showRect, tableData, config);
                         } catch (Exception e) {
-
+                            e.printStackTrace();
                         }
                     }
                 }

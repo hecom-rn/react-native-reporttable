@@ -82,8 +82,8 @@ public  class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
 
 
     @Override
-    public int measureWidth(Column<T> column, int position, TableConfig config) {
-        int textWidth = textDrawFormat.measureWidth(column,position, config);
+    public int measureWidth(Column<T> column, int position, TableConfig config, boolean onlyCalculate, int sepcWidth) {
+        int textWidth = textDrawFormat.measureWidth(column,position, config, false, -1);
         return textWidth;
 //        if(direction == LEFT || direction == RIGHT) {
 //            return getImageWidth() + textWidth+drawPadding;
