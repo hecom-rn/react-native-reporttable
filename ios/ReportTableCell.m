@@ -169,9 +169,7 @@
 
 - (void)setIcon:(IconStyle *)icon {
     _icon = icon;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        self.customImageView.image = [RCTConvert UIImage:icon.path];
-    });
+    self.customImageView.image = [RCTConvert UIImage:icon.path];
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
