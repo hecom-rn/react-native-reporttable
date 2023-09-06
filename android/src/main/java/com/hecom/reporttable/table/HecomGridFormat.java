@@ -39,14 +39,14 @@ public class HecomGridFormat extends BaseGridFormat {
     private int mTrianglePosition;
     private Paint mTrianglePaint;
     private Boolean mForbidden;
-    private int DP_15;
+    private int DP_10;
 
     public HecomGridFormat(SmartTable table) {
         this.table = table;
         mTrianglePaint = new Paint();
         mTrianglePaint.setAntiAlias(true);
         mTrianglePaint.setStyle(Paint.Style.FILL);
-        DP_15 = DensityUtils.dp2px(table.getContext(),15);
+        DP_10 = DensityUtils.dp2px(table.getContext(),10);
     }
 
     @Override
@@ -89,29 +89,29 @@ public class HecomGridFormat extends BaseGridFormat {
             Path path = new Path();
             if ((mTrianglePosition & TOP_LEFT) != 0) {
                 path.moveTo(rect.left, rect.top);
-                path.lineTo(rect.left + zoom * DP_15, rect.top);
-                path.lineTo(rect.left, rect.top + zoom * DP_15);
+                path.lineTo(rect.left + zoom * DP_10, rect.top);
+                path.lineTo(rect.left, rect.top + zoom * DP_10);
                 path.close();
                 canvas.drawPath(path, mTrianglePaint);
             }
             if ((mTrianglePosition & TOP_RIGHT) != 0) {
                 path.moveTo(rect.right, rect.top);
-                path.lineTo(rect.right - zoom * DP_15, rect.top);
-                path.lineTo(rect.right, rect.top + zoom * DP_15);
+                path.lineTo(rect.right - zoom * DP_10, rect.top);
+                path.lineTo(rect.right, rect.top + zoom * DP_10);
                 path.close();
                 canvas.drawPath(path, mTrianglePaint);
             }
             if ((mTrianglePosition & BOTTOM_LEFT) != 0) {
                 path.moveTo(rect.left, rect.bottom);
-                path.lineTo(rect.left + zoom * DP_15, rect.bottom);
-                path.lineTo(rect.left, rect.bottom - zoom * DP_15);
+                path.lineTo(rect.left + zoom * DP_10, rect.bottom);
+                path.lineTo(rect.left, rect.bottom - zoom * DP_10);
                 path.close();
                 canvas.drawPath(path, mTrianglePaint);
             }
             if ((mTrianglePosition & BOTTOM_RIGHT) != 0) {
                 path.moveTo(rect.right, rect.bottom);
-                path.lineTo(rect.right - zoom * DP_15, rect.bottom);
-                path.lineTo(rect.right, rect.bottom - zoom * DP_15);
+                path.lineTo(rect.right - zoom * DP_10, rect.bottom);
+                path.lineTo(rect.right, rect.bottom - zoom * DP_10);
                 path.close();
                 canvas.drawPath(path, mTrianglePaint);
             }
