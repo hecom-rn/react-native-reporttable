@@ -10,6 +10,33 @@
 #import "ReportTableModel.h"
 #import <React/RCTConvert.h>
 
+@interface BoxView : UIView
+@property (strong, atomic) UIColor *lineColor;
+@end
+
+@implementation BoxView
+
+- (void)drawRect:(CGRect)rect {
+    [super drawRect:rect];
+    
+    // 获取当前绘制上下文
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    
+    // 设置线条颜色和宽度
+    CGContextSetStrokeColorWithColor(context, self.lineColor.CGColor);
+    CGContextSetLineWidth(context, 1.0);
+    
+    // 绘制线条
+    CGContextMoveToPoint(context, 0, 0);
+    CGContextAddLineToPoint(context, 0, rect.size.height);
+    CGContextAddLineToPoint(context, rect.size.width, rect.size.height);
+    CGContextAddLineToPoint(context, rect.size.width, 0);
+    CGContextAddLineToPoint(context, 0, 0);
+    CGContextStrokePath(context);
+}
+
+@end
+
 @interface LineView : UIView
 @property (strong, atomic) UIColor *lineColor;
 @end
@@ -37,6 +64,7 @@
 
 @interface ReportTableCell()
 @property (strong, atomic) LineView *lineView;
+@property (strong, atomic) BoxView *boxView;
 @end
 
 @implementation ReportTableCell
@@ -183,6 +211,8 @@
     return self;
 }
 
+
+// ForbiddenLine
 - (void)drawLinePoint:(CGPoint)point WithLineColor: (UIColor *)color {
     // 不能使用drawReact 会导致分割线闪动
     self.label.text = @"";
@@ -205,6 +235,28 @@
         [self.contentView addSubview:_lineView];
     }
     return _lineView;
+}
+
+// BoxLine
+- (void)drawBoxPoint:(CGPoint)point WithLineColor: (UIColor *)color {
+    self.boxView.frame = CGRectMake(0, 0, point.x, point.y);
+    self.boxView.lineColor = color;
+}
+
+- (void)hiddenBoxView {
+    if (_boxView != nil) {
+        [_boxView removeFromSuperview];
+        _boxView = nil;
+    }
+}
+
+- (BoxView *)boxView {
+    if (!_boxView) {
+        _boxView = [[BoxView alloc] init];
+        _boxView.backgroundColor = [UIColor clearColor];
+        [self.contentView addSubview:_boxView];
+    }
+    return _boxView;
 }
 
 @end

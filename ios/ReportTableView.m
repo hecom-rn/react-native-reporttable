@@ -326,13 +326,18 @@
     cell.label.textColor = model.textColor;
     cell.label.font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
     
+    [cell hiddenLineView];
+    [cell hiddenBoxView];
     if (model.isForbidden) {
         CGFloat x = [self.reportTableModel.rowsWidth[column] floatValue];
         CGFloat y = [self.reportTableModel.cloumsHight[row] floatValue];
         CGPoint point = CGPointMake(x, y);
         [cell drawLinePoint:point WithLineColor:self.reportTableModel.lineColor];
-    } else {
-        [cell hiddenLineView];
+    } else if (model.boxLineColor != nil) {
+        CGFloat x = [self.reportTableModel.rowsWidth[column] floatValue];
+        CGFloat y = [self.reportTableModel.cloumsHight[row] floatValue];
+        CGPoint point = CGPointMake(x, y);
+        [cell drawBoxPoint:point WithLineColor: model.boxLineColor];
     }
 
     return cell;
