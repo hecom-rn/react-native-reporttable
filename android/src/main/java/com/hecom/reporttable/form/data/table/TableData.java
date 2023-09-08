@@ -12,6 +12,7 @@ import com.hecom.reporttable.form.data.format.sequence.NumberSequenceFormat;
 import com.hecom.reporttable.form.data.format.title.ITitleDrawFormat;
 import com.hecom.reporttable.form.data.format.title.TitleDrawFormat;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
+import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.ArrayList;
@@ -43,6 +44,15 @@ public class TableData<T> {
     private OnItemClickListener onItemClickListener;
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
+    private TableConfigBean tableConfigBean;
+
+    public TableConfigBean getTableConfigBean() {
+        return tableConfigBean;
+    }
+
+    public void setTableConfigBean(TableConfigBean tableConfigBean) {
+        this.tableConfigBean = tableConfigBean;
+    }
 
     public TypicalCell[][] getMaxValues4Column() {
         return maxValues4Column;
@@ -490,8 +500,12 @@ public class TableData<T> {
                             if (!isResponseOnClick) return;
                             if (position == 0) {
                                 int firstColumnMaxMerge = getFirstColumnMaxMerge();
-                                if (firstColumnMaxMerge > 0) {
-                                    if (curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
+                                int frozenIndex = 0;
+                                if (tableConfigBean != null) {
+                                    frozenIndex = tableConfigBean.getFrozenColumns();
+                                }
+                                if (firstColumnMaxMerge > 0){
+                                    if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
                                         //前面列全部锁定
                                         for (int i = 0; i <= firstColumnMaxMerge; i++) {
                                             columns.get(i).setFixed(true);
@@ -505,7 +519,7 @@ public class TableData<T> {
                                         curFixedColumnIndex = index;
                                     } else {
                                         //全部列取消锁定
-                                        for (int i = 0; i <= firstColumnMaxMerge; i++) {
+                                        for (int i = frozenIndex; i <= firstColumnMaxMerge; i++) {
                                             columns.get(i).setFixed(false);
                                         }
                                         curFixedColumnIndex = -1;
@@ -526,7 +540,7 @@ public class TableData<T> {
                                     curFixedColumnIndex = index;
                                 } else {
                                     //全部列取消锁定
-                                    for (int i = 0; i <= index; i++) {
+                                    for (int i = frozenIndex; i <= index; i++) {
                                         columns.get(i).setFixed(false);
                                     }
                                     curFixedColumnIndex = -1;
