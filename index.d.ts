@@ -18,8 +18,19 @@ declare module "@hecom/react-native-report-table" {
         onScroll?: (pro: ScrollPro) => void;
         lineColor?: Color;
 
-        frozenPoint?: number; // 首行 指定列支持冻结  第一优先  使用后带🔒的icon   优先级比 frozenColumns 高
-        frozenCount?: number; // 首行前几列 可支持点击冻结  第二优先 🔒自动锁住
+        /* 
+            首行 指定列支持冻结  第一优先  使用指定列后显示带🔓的icon  默认不锁定
+            frozenColumns 与 frozenPoint 相等时，可显示🔒
+            取消锁定后冻结frozenColumns
+         */
+        frozenPoint?: number; 
+
+        /*
+            首行前几列支持冻结  第二优先  使用前几列后显示带🔓的icon  
+            使用frozenColumns比frozenCount小时，可使🔒
+            取消锁定后冻结点击列的前几列
+        */
+        frozenCount?: number;
 
         headerView?: () => React.ReactElement;
 
@@ -103,6 +114,7 @@ declare module "@hecom/react-native-report-table" {
         classificationLineColor?: Color; // 分割线颜色，优先级比ItemConfig中的高，可选
 
         isForbidden?: boolean; // 显示禁用线
+        asteriskColor?: Color; // 显示一个必填标识符 *， 显示位置与textAlignment相关，0显示在右侧，1，2是显示在左侧
 
         isOverstriking?: boolean; // 文本是否加粗。 default false
         icon?: IconStyle;
