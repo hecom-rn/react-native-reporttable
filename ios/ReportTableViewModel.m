@@ -179,6 +179,7 @@
 
 - (void)setFrozenColumns:(NSInteger)frozenColumns {
     self.reportTableModel.frozenColumns = frozenColumns;
+    self.reportTableModel.oriFrozenColumns = frozenColumns;
     self.propertyCount += 1;
     [self reloadCheck];
 }
@@ -364,6 +365,9 @@
            if ([keys containsObject: @"boxLineColor"]) {
                model.boxLineColor = [RCTConvert UIColor:[dir objectForKey:@"boxLineColor"]] ;
            }
+           if ([keys containsObject: @"asteriskColor"]) {
+               model.asteriskColor = [RCTConvert UIColor:[dir objectForKey:@"asteriskColor"]] ;
+           }
            model.textAlignment = model.itemConfig.textAlignment;
            if ([keys containsObject: @"textAlignment"]) {
                model.textAlignment = [RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
@@ -405,8 +409,8 @@
            }
            
            CGFloat imageIconWidth = (showLock ? 13 : iconDic != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
-           CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth; //margin
-           CGRect textRect = [model isEqual: @"--"] ? CGRectMake(0, 0, 30, model.fontSize) : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: maxWidth - exceptText];
+           CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.asteriskColor != nil ? 10 : 0); //margin
+           CGRect textRect = model.title.length < 4 ? CGRectMake(0, 0, 30, model.fontSize) : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: maxWidth - exceptText];
            // 不是一行
            if (textRect.size.width + 5 + exceptText > minWidth || textRect.size.height > model.fontSize + 5) {
                if (textRect.size.height < model.fontSize + 4) {

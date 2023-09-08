@@ -54,6 +54,13 @@
     return _frozenColumns;
 }
 
+- (NSInteger)oriFrozenColumns {
+    if (!_oriFrozenColumns) {
+        return 0;
+    }
+    return _oriFrozenColumns;
+}
+
 - (NSInteger)frozenRows {
     if (!_frozenRows) {
         return 0;
