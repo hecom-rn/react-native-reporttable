@@ -92,8 +92,12 @@ declare module "@hecom/react-native-report-table" {
         textPaddingHorizontal?: number; // default 12
         textAlignment?: 0 | 1 | 2; // default 0
 
+        /* Android only */
         trianglePosition?: TrianglePosition; // 三角标位置
         triangleColor?: Color; // 三角标颜色
+
+        /* ios only */
+        boxLineColor?: Color; // 显示一个内嵌宽度为1的框线
 
         classificationLinePosition?: ClassificationLinePosition; // 特殊分割线颜色的位置
         classificationLineColor?: Color; // 分割线颜色，优先级比ItemConfig中的高，可选
