@@ -345,6 +345,21 @@
         
         [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:nonRequiredRange];
         [attributedText addAttribute:NSFontAttributeName value:font range:nonRequiredRange];
+        if (model.strikethrough) {
+            // 添加删除线
+            [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
+
+        }
+        cell.label.attributedText = attributedText;
+    } else if (model.strikethrough) {
+        NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString:model.title];
+
+        [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:NSMakeRange(0, attributedText.length)];
+
+        // 添加删除线
+        [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
+
+        cell.label.font = font;
         cell.label.attributedText = attributedText;
     } else {
         cell.label.text = model.title;

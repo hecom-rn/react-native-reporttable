@@ -35,6 +35,7 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, strong) UIColor *classificationLineColor;
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) BOOL isForbidden;
+@property (nonatomic, assign) BOOL strikethrough;
 @property (nonatomic, strong) UIColor *boxLineColor;
 @property (nonatomic, strong) UIColor *asteriskColor;
 @property (nonatomic, assign) CGFloat fontSize;

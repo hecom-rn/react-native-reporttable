@@ -378,6 +378,9 @@
            if ([keys containsObject: @"isForbidden"]) {
                model.isForbidden = [RCTConvert BOOL:[dir objectForKey:@"isForbidden"]];
            }
+           if ([keys containsObject: @"strikethrough"]) {
+               model.strikethrough = [RCTConvert BOOL:[dir objectForKey:@"strikethrough"]];
+           }
            model.classificationLineColor = model.itemConfig.classificationLineColor;
            if ([keys containsObject: @"classificationLineColor"]) {
                model.classificationLineColor = [RCTConvert UIColor:[dir objectForKey:@"classificationLineColor"]];

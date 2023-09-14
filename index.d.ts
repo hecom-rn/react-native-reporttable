@@ -115,6 +115,7 @@ declare module "@hecom/react-native-report-table" {
 
         isForbidden?: boolean; // 显示禁用线
         asteriskColor?: Color; // 显示一个必填标识符 *， 显示位置与textAlignment相关，0显示在右侧，1，2是显示在左侧
+        strikethrough?: boolean; // 文本显示删除线
 
         isOverstriking?: boolean; // 文本是否加粗。 default false
         icon?: IconStyle;
