@@ -21,12 +21,22 @@ public class JsonTableBean {
 
     public String triangleColor;
 
+    public String asteriskColor; //必填
+
     public int getTrianglePosition() {
         return trianglePosition;
     }
 
     public void setTrianglePosition(int trianglePosition) {
         this.trianglePosition = trianglePosition;
+    }
+
+    public String getAsteriskColor() {
+        return asteriskColor;
+    }
+
+    public void setAsteriskColor(String asteriskColor) {
+        this.asteriskColor = asteriskColor;
     }
 
     public String getTriangleColor() {

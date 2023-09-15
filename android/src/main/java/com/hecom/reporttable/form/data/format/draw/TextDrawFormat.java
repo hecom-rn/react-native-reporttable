@@ -44,11 +44,11 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     }
 
     @Override
-    public int measureHeight(Column<T> column, String value, TableConfig config) {
+    public int measureHeight(Column<T> column, TypicalCell cell, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-//        int iconSpace = TableUtil.calculateIconWidth(config,column.getColumn(),position);
-        String text = getWrapText(column, value, paint, config, 0);
+        int iconSpace = TableUtil.calculateIconWidth(config,cell.columnIndex,cell.rowIndex);
+        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, iconSpace);
         return DrawUtils.getMultiTextHeight(paint, getSplitString(text)) + 40;
     }
 
@@ -61,7 +61,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             int iconSpace = TableUtil.calculateIconWidth(config, column.getColumn(), position);
             value = getWrapText(column, column.format(position), paint, config, iconSpace);
         }
-        column.setFormatData(position, value);
+        if(!onlyCalculate)column.setFormatData(position, value);
         return DrawUtils.getMultiTextWidth(paint, getSplitString(value));
     }
 

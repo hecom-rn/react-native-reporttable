@@ -124,15 +124,24 @@ public class TableMeasurer<T> {
         tableInfo.setTitleHeight(titleHeight);
         tableInfo.setTopHeight(topHeight);
         int totalContentHeight = 0;
-        if(fastModel){
-            String[] maxValues4Row = tableData.getMaxValues4Row();
+        if(fastModel) {
+            Cell[][] rangeCells = tableData.getTableInfo().getRangeCells();
+            TypicalCell[][] maxValues4Row = tableData.getMaxValues4Row();
             List<Column> childColumns = tableData.getChildColumns();
             Column column = childColumns.get(0);
             int[] lineHeightArray = tableData.getTableInfo().getLineHeightArray();//如果有的行是图片会造成误差 暂时按照全是文字
             int rowLength = maxValues4Row.length;
-            for (int i = 0; i < rowLength; i++) {
-                int rowHeight = column.getDrawFormat().measureHeight(column, maxValues4Row[i], config) + 2 * config.getVerticalPadding();
-                lineHeightArray[i] = rowHeight;
+            int tempHeight = 0;
+            int rowHeight = 0;
+            for (int rowIndex = 0; rowIndex < rowLength; rowIndex++) {
+                for (TypicalCell typicalCell : maxValues4Row[rowIndex]) {
+                    if (typicalCell != null) {
+                        // TODO 合并列处理
+                        tempHeight = column.getDrawFormat().measureHeight(column, typicalCell, config);
+                        if (tempHeight > rowHeight) rowHeight = tempHeight;
+                    }
+                }
+                lineHeightArray[rowIndex] = rowHeight + 2 * config.getVerticalPadding();
                 totalContentHeight += rowHeight;
             }
         }else {
@@ -192,7 +201,6 @@ public class TableMeasurer<T> {
                         tempWidth = textWidth + iconWidth + iconPadding;
                         columnWidth = tempWidth > columnWidth ? tempWidth : columnWidth;
                     }
-
                 }
 
                 size = column.getDatas().size();
