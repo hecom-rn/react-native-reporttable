@@ -134,10 +134,19 @@ public class TableMeasurer<T> {
             int tempHeight = 0;
             int rowHeight = 0;
             for (int rowIndex = 0; rowIndex < rowLength; rowIndex++) {
+                rowHeight=0;
                 for (TypicalCell typicalCell : maxValues4Row[rowIndex]) {
                     if (typicalCell != null) {
-                        // TODO 合并列处理
-                        tempHeight = column.getDrawFormat().measureHeight(column, typicalCell, config);
+                        Cell cell = rangeCells[typicalCell.rowIndex][typicalCell.columnIndex];
+                        if (cell == null || cell.realCell.col==0) {
+                             tempHeight = column.getDrawFormat().measureHeight(column, typicalCell, config, -1);
+                        }else {
+                            int totalWidth = 0;
+                            for (int i = cell.realCell.firstColIndex; i <= cell.realCell.lastColIndex ; i++) {
+                                totalWidth+= childColumns.get(i).getComputeWidth();
+                            }
+                            tempHeight = column.getDrawFormat().measureHeight(column, typicalCell, config, totalWidth);
+                        }
                         if (tempHeight > rowHeight) rowHeight = tempHeight;
                     }
                 }
@@ -281,8 +290,8 @@ public class TableMeasurer<T> {
                     int textWidth;
                     int iconPadding;
                     int width;
-                    Cell cell1 = rangeCells[rowIndex][columnPos];
-                    if (cell1 == null || cell1.realCell.col==0) {
+                    Cell cell = rangeCells[rowIndex][columnPos];
+                    if (cell == null || cell.realCell.col==0) {
                         textWidth = column.getDrawFormat().measureWidth(column, rowIndex, config, false, -1);
                         iconPadding = textWidth > 0 && iconWidth > 0 ? config.dp4 : 0;
                         width = textWidth + iconWidth + iconPadding;
@@ -301,13 +310,13 @@ public class TableMeasurer<T> {
                     // 合并单元格的分配会在合适场景下表现为列宽会超出列宽最大限制
                     if (!isArrayColumn) {
                         if(rangeCells !=null) {
-                            Cell cell = rangeCells[rowIndex][columnPos];
-                            if (cell != null) {
-                                if (cell.row != Cell.INVALID && cell.col != Cell.INVALID) {
-                                    cell.width = width;
-                                    width = width / cell.col;
-                                } else if (cell.realCell != null) {
-                                    width = cell.realCell.width / cell.realCell.col;
+                            Cell rangeCell = rangeCells[rowIndex][columnPos];
+                            if (rangeCell != null) {
+                                if (rangeCell.row != Cell.INVALID && rangeCell.col != Cell.INVALID) {
+                                    rangeCell.width = width;
+                                    width = width / rangeCell.col;
+                                } else if (rangeCell.realCell != null) {
+                                    width = rangeCell.realCell.width / rangeCell.realCell.col;
                                 }
 
                             }
@@ -332,14 +341,14 @@ public class TableMeasurer<T> {
                     int tempPosition=0;
                     for(int rowIndex = 0;rowIndex < size;rowIndex++) {
 //                        iconWidth = TableUtil.calculateIconWidth(config, columnIndex, rowIndex);
-                        Cell cell1 = rangeCells[rowIndex][columnPos];
-                        if (cell1 != null && cell1.realCell.col>0 && cell1.realCell.lastColIndex == columnPos) {
+                        Cell cell = rangeCells[rowIndex][columnPos];
+                        if (cell != null && cell.realCell.col>0 && cell.realCell.lastColIndex == columnPos) {
                             int maxWidth = 0;
-                            for (int i = cell1.realCell.firstColIndex; i <= cell1.realCell.lastColIndex ; i++) {
+                            for (int i = cell.realCell.firstColIndex; i <= cell.realCell.lastColIndex ; i++) {
                                 maxWidth+= childColumns.get(i).getComputeWidth();
                             }
-                            column.getDrawFormat().measureWidth(childColumns.get(cell1.realCell.firstColIndex), rowIndex, config, false,maxWidth );
-                            measureRowHeight(config, lineHeightArray, childColumns.get(cell1.realCell.firstColIndex), tempPosition, rowIndex);
+                            column.getDrawFormat().measureWidth(childColumns.get(cell.realCell.firstColIndex), rowIndex, config, false,maxWidth );
+                            measureRowHeight(config, lineHeightArray, childColumns.get(cell.realCell.firstColIndex), tempPosition, rowIndex);
                         }
                         int skipPosition = tableInfo.getSeizeCellSize(column, rowIndex);
                         tempPosition += skipPosition;

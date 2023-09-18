@@ -93,9 +93,9 @@ public  class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
     }
 
     @Override
-    public int measureHeight(Column<T> column, TypicalCell cell, TableConfig config) {
+    public int measureHeight(Column<T> column, TypicalCell cell, TableConfig config, int sepcWidth) {
         int imgHeight = this.imageHeight;
-        int textHeight = textDrawFormat.measureHeight(column, cell,config);
+        int textHeight = textDrawFormat.measureHeight(column, cell,config, -1);
 
         if(direction == TOP || direction == BOTTOM) {
             return getImageHeight() + textHeight+drawPadding;

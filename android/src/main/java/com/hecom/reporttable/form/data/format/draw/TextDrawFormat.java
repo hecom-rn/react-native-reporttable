@@ -38,30 +38,32 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         int iconSpace = TableUtil.calculateIconWidth(config,cell.columnIndex,cell.rowIndex);
-        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, iconSpace);
+        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, iconSpace,-1);
 //        column.setFormatData(position,value);
         return DrawUtils.getMultiTextWidth(paint, getSplitString(text));
     }
 
     @Override
-    public int measureHeight(Column<T> column, TypicalCell cell, TableConfig config) {
+    public int measureHeight(Column<T> column, TypicalCell cell, TableConfig config, int sepcWidth) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         int iconSpace = TableUtil.calculateIconWidth(config,cell.columnIndex,cell.rowIndex);
-        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, iconSpace);
+        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, iconSpace,sepcWidth);
         return DrawUtils.getMultiTextHeight(paint, getSplitString(text)) + 40;
     }
 
     @Override
-    public int measureWidth(Column<T> column, int position, TableConfig config, boolean onlyCalculate, int sepcWidth) {
+    public int measureWidth(Column<T> column, int position, TableConfig config, boolean onlyCalculate, int specWidth) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         String value = column.getCacheWrapText(position);
         if(null == value) {
             int iconSpace = TableUtil.calculateIconWidth(config, column.getColumn(), position);
-            value = getWrapText(column, column.format(position), paint, config, iconSpace);
+            value = getWrapText(column, column.format(position), paint, config, iconSpace, specWidth);
         }
-        if(!onlyCalculate)column.setFormatData(position, value);
+        if(!onlyCalculate){
+            column.setFormatData(position, value);
+        }
         return DrawUtils.getMultiTextWidth(paint, getSplitString(value));
     }
 
@@ -73,7 +75,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         String value = column.getCacheWrapText(position);
         if(null == value) {
             int iconSpace = TableUtil.calculateIconWidth(config, column.getColumn(), position);
-            value = getWrapText(column, column.format(position), paint, config, iconSpace);
+            value = getWrapText(column, column.format(position), paint, config, iconSpace, -1);
         }
         return DrawUtils.getMultiTextHeight(paint, getSplitString(value)) + config.dp8*2;
     }
@@ -118,10 +120,10 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     }
 
 
-    public String getWrapText(Column column, String value, Paint paint, TableConfig config, int marginRight) {
+    public String getWrapText(Column column, String value, Paint paint, TableConfig config, int marginRight, int specWidth) {
         int paddingLeftSize = config.getTextLeftOffset();
         int paddingRightSize = config.getTextRightOffset();
-        int maxWidth = column.getMaxWidth();
+        int maxWidth =  specWidth<0? column.getMaxWidth():specWidth;
         return getWrapText(value, paint, marginRight, paddingLeftSize, paddingRightSize, maxWidth);
     }
 
