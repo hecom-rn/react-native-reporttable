@@ -137,7 +137,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         int textSize = (jsonTableBean.getFontSize() != null && jsonTableBean.getFontSize().compareTo(0) > 0) ? jsonTableBean.getFontSize() : config.getContentStyle().getTextSize();
         asteriskPaint.setTextSize(textSize * config.getZoom());
         asteriskPaint.setColor(Color.parseColor(asteriskColor));
-        return drawText(c, cellInfo, rect, asteriskPaint, config, 0);
+        return DrawUtils.getMultiTextWidth(asteriskPaint, config.ASTERISK_ARRAY);
     }
 
     protected float drawText(Canvas c, CellInfo<T> cellInfo, Rect rect, Paint paint, TableConfig config, int marginRight) {
@@ -149,6 +149,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
 
     public void setTextPaint(TableConfig config, CellInfo<T> cellInfo, Paint paint) {
+        JsonTableBean jsonTableBean = config.getTabArr()[cellInfo.row][cellInfo.col];
         config.getContentStyle().fillPaint(paint);
         ICellBackgroundFormat<CellInfo> backgroundFormat = config.getContentCellBackgroundFormat();
         if (backgroundFormat != null && backgroundFormat.getTextColor(cellInfo) != TableConfig.INVALID_COLOR) {
@@ -157,6 +158,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         paint.setTextSize(paint.getTextSize() * config.getZoom() * config.getPartlyCellZoom());
         paint.setFakeBoldText(config.getTabArr()[cellInfo.row][cellInfo.col].isOverstriking);
         paint.setTextAlign(TableUtil.getAlignConfig(config, cellInfo.row, cellInfo.col));
+        paint.setStrikeThruText(null==jsonTableBean.strikethrough?false:jsonTableBean.strikethrough);
     }
 
     protected String[] getSplitString(String val) {

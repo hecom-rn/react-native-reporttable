@@ -27,6 +27,7 @@ import com.hecom.reporttable.table.bean.JsonTableBean;
 
 public class TableConfig<T> {
     public  static String ASTERISK  = "*";
+    public  static String[] ASTERISK_ARRAY  = new String[]{ASTERISK};
     /**
      * 默认字体样式
      */
