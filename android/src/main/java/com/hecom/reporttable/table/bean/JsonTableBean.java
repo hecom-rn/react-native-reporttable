@@ -23,6 +23,16 @@ public class JsonTableBean {
 
     public String asteriskColor; //必填
 
+    public Boolean strikethrough = null; //删除线
+
+    public Boolean getStrikethrough() {
+        return strikethrough;
+    }
+
+    public void setStrikethrough(Boolean strikethrough) {
+        this.strikethrough = strikethrough;
+    }
+
     public int getTrianglePosition() {
         return trianglePosition;
     }

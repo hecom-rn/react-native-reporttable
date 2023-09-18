@@ -38,7 +38,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         int iconSpace = TableUtil.calculateIconWidth(config,cell.columnIndex,cell.rowIndex);
-        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, iconSpace,-1);
+        float asteriskWidth = TableUtil.calculateAsteriskWidth(config,cell.columnIndex,cell.rowIndex);
+        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, (int) (iconSpace+asteriskWidth),-1);
 //        column.setFormatData(position,value);
         return DrawUtils.getMultiTextWidth(paint, getSplitString(text));
     }
@@ -48,7 +49,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         int iconSpace = TableUtil.calculateIconWidth(config,cell.columnIndex,cell.rowIndex);
-        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, iconSpace,sepcWidth);
+        float asteriskWidth = TableUtil.calculateAsteriskWidth(config,cell.columnIndex,cell.rowIndex);
+        String text = getWrapText(column, cell.jsonTableBean.title, paint, config, (int) (iconSpace+asteriskWidth),sepcWidth);
         return DrawUtils.getMultiTextHeight(paint, getSplitString(text)) + 40;
     }
 
@@ -59,7 +61,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         String value = column.getCacheWrapText(position);
         if(null == value) {
             int iconSpace = TableUtil.calculateIconWidth(config, column.getColumn(), position);
-            value = getWrapText(column, column.format(position), paint, config, iconSpace, specWidth);
+            float asteriskWidth = TableUtil.calculateAsteriskWidth(config, column.getColumn(), position);
+            value = getWrapText(column, column.format(position), paint, config, (int) (iconSpace+asteriskWidth), specWidth);
         }
         if(!onlyCalculate){
             column.setFormatData(position, value);
@@ -75,7 +78,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         String value = column.getCacheWrapText(position);
         if(null == value) {
             int iconSpace = TableUtil.calculateIconWidth(config, column.getColumn(), position);
-            value = getWrapText(column, column.format(position), paint, config, iconSpace, -1);
+            float asteriskWidth = TableUtil.calculateAsteriskWidth(config, column.getColumn(), position);
+            value = getWrapText(column, column.format(position), paint, config, (int) (iconSpace+asteriskWidth), -1);
         }
         return DrawUtils.getMultiTextHeight(paint, getSplitString(value)) + config.dp8*2;
     }

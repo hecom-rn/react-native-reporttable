@@ -58,6 +58,8 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private TableMeasurer<T> measurer;
     private AnnotationParser<T> annotationParser;
     protected Paint paint;
+
+    protected Paint asteriskPaint;
     protected TextPaint textPaint;
     private MatrixHelper matrixHelper;
     private boolean isExactly = true; //是否是测量精准模式
@@ -111,6 +113,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         FontStyle.setDefaultTextSpSize(getContext(), 14);
         initConfig(context);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        asteriskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(new FontStyle().getTextSize());
@@ -121,6 +124,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         parser = new TableParser<>();
         provider = new TableProvider<>(context);
         config.setPaint(paint);
+        config.setAsteriskPaint(asteriskPaint);
         measurer = new TableMeasurer<>();
         measurer.setContext(context);
         tableTitle = new TableTitle();

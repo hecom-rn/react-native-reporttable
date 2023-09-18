@@ -197,7 +197,8 @@ public class TableMeasurer<T> {
             List<Column> childColumns = tableData.getChildColumns();
             int horizontalPadding = config.getTextRightOffset() + config.getTextLeftOffset();
             int columnLength = childColumns.size();
-            int columnWidth = 0,iconWidth,textWidth,iconPadding, tempWidth;
+            int columnWidth = 0, iconWidth, textWidth, iconPadding, tempWidth;
+            float asteriskWidth;
             for (int columnPos = 0; columnPos < columnLength; columnPos++) {
                 Column column = childColumns.get(columnPos);
 //                float columnNameWidth = tableData.getTitleDrawFormat().measureWidth(column, config)
@@ -205,9 +206,10 @@ public class TableMeasurer<T> {
                 for (TypicalCell typicalCell : maxValues4Column[columnPos]) {
                     if (typicalCell != null) {
                         iconWidth = TableUtil.calculateIconWidth(config, typicalCell.columnIndex, typicalCell.rowIndex);
+                        asteriskWidth = TableUtil.calculateAsteriskWidth(config, typicalCell.columnIndex, typicalCell.rowIndex);
                         textWidth = column.getDrawFormat().measureWidth(column, typicalCell, config);
                         iconPadding = textWidth > 0 && iconWidth > 0 ? config.dp4 : 0;
-                        tempWidth = textWidth + iconWidth + iconPadding;
+                        tempWidth = (int) (textWidth + iconWidth + iconPadding + asteriskWidth);
                         columnWidth = tempWidth > columnWidth ? tempWidth : columnWidth;
                     }
                 }
@@ -274,6 +276,7 @@ public class TableMeasurer<T> {
             List<Column> childColumns = tableData.getChildColumns();
             int horizontalPadding = config.getTextRightOffset()+ config.getTextLeftOffset();
             int iconWidth = 0;
+            float asteriskWidth = 0;
             for (int columnIndex = 0; columnIndex < childColumns.size(); columnIndex++) {
                 Column  column =childColumns.get(columnIndex);
 //                float columnNameWidth =tableData.getTitleDrawFormat().measureWidth(column,config)
@@ -287,20 +290,21 @@ public class TableMeasurer<T> {
                 for(int rowIndex = 0;rowIndex < size;rowIndex++) {
                     JsonTableBean.Icon icon = tabArr[rowIndex][columnIndex].getIcon();
                     iconWidth = TableUtil.calculateIconWidth(config,columnIndex,rowIndex);
+                    asteriskWidth = TableUtil.calculateAsteriskWidth(config,columnIndex,rowIndex);
                     int textWidth;
                     int iconPadding;
                     int width;
                     Cell cell = rangeCells[rowIndex][columnPos];
-                    if (cell == null || cell.realCell.col==0) {
+                    if (cell == null || cell.realCell.col == 0) {
                         textWidth = column.getDrawFormat().measureWidth(column, rowIndex, config, false, -1);
                         iconPadding = textWidth > 0 && iconWidth > 0 ? config.dp4 : 0;
-                        width = textWidth + iconWidth + iconPadding;
+                        width = (int) (textWidth + iconWidth + iconPadding + asteriskWidth);
                         measureRowHeight(config, lineHeightArray, column, currentPosition, rowIndex);
                     } else {
-                        hasMergedCell=true;
+                        hasMergedCell = true;
                         textWidth = column.getDrawFormat().measureWidth(column, rowIndex, config, true, -1);
                         iconPadding = textWidth > 0 && iconWidth > 0 ? config.dp4 : 0;
-                        width = textWidth + iconWidth + iconPadding;
+                        width = (int) (textWidth + iconWidth + iconPadding + asteriskWidth);
                     }
                     int skipPosition = tableInfo.getSeizeCellSize(column, rowIndex);
                     currentPosition += skipPosition;

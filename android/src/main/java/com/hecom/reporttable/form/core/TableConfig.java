@@ -26,6 +26,7 @@ import com.hecom.reporttable.table.bean.JsonTableBean;
 
 
 public class TableConfig<T> {
+    public  static String ASTERISK  = "*";
     /**
      * 默认字体样式
      */
@@ -226,6 +227,8 @@ public class TableConfig<T> {
      * 画笔
      */
     private Paint paint;
+
+    private Paint asteriskPaint;
     /**
      * 缩放值
      */
@@ -379,6 +382,14 @@ public class TableConfig<T> {
 
     public void setPaint(Paint paint) {
         this.paint = paint;
+    }
+
+    public Paint getAsteriskPaint() {
+        return asteriskPaint;
+    }
+
+    public void setAsteriskPaint(Paint asteriskPaint) {
+        this.asteriskPaint = asteriskPaint;
     }
 
     public LineStyle getContentGridStyle() {
