@@ -31,7 +31,4 @@ public interface IDrawFormat<T>  {
 
     float draw(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config);
 
-
-
-
 }

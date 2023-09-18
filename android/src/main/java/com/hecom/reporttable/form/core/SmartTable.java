@@ -114,6 +114,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         initConfig(context);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         asteriskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        asteriskPaint.setTextAlign(Paint.Align.CENTER);
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(new FontStyle().getTextSize());
