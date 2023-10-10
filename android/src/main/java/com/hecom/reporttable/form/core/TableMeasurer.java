@@ -139,7 +139,7 @@ public class TableMeasurer<T> {
                     if (typicalCell != null) {
                         Cell cell = rangeCells[typicalCell.rowIndex][typicalCell.columnIndex];
                         if (cell == null || cell.realCell.col==0) {
-                             tempHeight = column.getDrawFormat().measureHeight(column, typicalCell, config, -1);
+                            tempHeight = column.getDrawFormat().measureHeight(column, typicalCell, config, -1);
                         }else {
                             int totalWidth = 0;
                             for (int i = cell.realCell.firstColIndex; i <= cell.realCell.lastColIndex ; i++) {
@@ -151,7 +151,7 @@ public class TableMeasurer<T> {
                     }
                 }
                 lineHeightArray[rowIndex] = rowHeight + 2 * config.getVerticalPadding();
-                totalContentHeight += rowHeight;
+                totalContentHeight += lineHeightArray[rowIndex];
             }
         }else {
             for(int height :tableInfo.getLineHeightArray()){
