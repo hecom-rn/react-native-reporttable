@@ -218,9 +218,19 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                         start = end;
                     }
                 } else {
-                    stringBuilder.append(curLineStr);
-                    stringBuilder.append("\n");
-                    start = end - 1;
+                    if(end - start == 1){
+                        curLineStr = temp;
+                        start=end;
+                        end = breakIterator.next();
+                        if(end != BreakIterator.DONE){
+                            stringBuilder.append(curLineStr);
+                            stringBuilder.append("\n");
+                        }
+                    }else {
+                        stringBuilder.append(curLineStr);
+                        stringBuilder.append("\n");
+                        start = end - 1;
+                    }
                     continue;
                 }
                 end = breakIterator.next();
