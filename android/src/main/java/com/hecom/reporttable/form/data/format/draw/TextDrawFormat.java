@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.core.TableConfig;
@@ -207,6 +208,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             String curLineStr = "";
             int start = breakIterator.first();
             int end = breakIterator.next();
+            boolean limitWidthError = false;
             while (end != BreakIterator.DONE) {
                 temp = value.substring(start, end);
                 float tempStrLen = paint.measureText(temp);
@@ -219,6 +221,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                     }
                 } else {
                     if(end - start == 1){
+                        limitWidthError = true;
                         curLineStr = temp;
                         start=end;
                         end = breakIterator.next();
@@ -234,6 +237,9 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                     continue;
                 }
                 end = breakIterator.next();
+            }
+            if(limitWidthError){
+                Log.w("TextDrawFormat",value+"————外部限定所在单元格宽度过小！！！");
             }
             stringBuilder.append(curLineStr);
             return stringBuilder.toString();
