@@ -203,6 +203,7 @@ public class TableMeasurer<T> {
                 Column column = childColumns.get(columnPos);
 //                float columnNameWidth = tableData.getTitleDrawFormat().measureWidth(column, config)
 //                        + config.getColumnTitleHorizontalPadding() * 2;
+                columnWidth=0;
                 for (TypicalCell typicalCell : maxValues4Column[columnPos]) {
                     if (typicalCell != null) {
                         iconWidth = TableUtil.calculateIconWidth(config, typicalCell.columnIndex, typicalCell.rowIndex);
