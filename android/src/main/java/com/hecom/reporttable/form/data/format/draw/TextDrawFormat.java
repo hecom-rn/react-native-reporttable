@@ -131,14 +131,14 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         }
     }
 
-    private float drawAsterisk(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+    private  void drawAsterisk(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
         Paint asteriskPaint = config.getAsteriskPaint();
         JsonTableBean jsonTableBean = config.getTabArr()[cellInfo.row][cellInfo.col];
         String asteriskColor = jsonTableBean.getAsteriskColor();
         int textSize = (jsonTableBean.getFontSize() != null && jsonTableBean.getFontSize().compareTo(0) > 0) ? jsonTableBean.getFontSize() : config.getContentStyle().getTextSize();
         asteriskPaint.setTextSize(textSize * config.getZoom());
         asteriskPaint.setColor(Color.parseColor(asteriskColor));
-        return DrawUtils.getMultiTextWidth(asteriskPaint, config.ASTERISK_ARRAY);
+        DrawUtils.drawMultiText(c,asteriskPaint,rect, config.ASTERISK_ARRAY);
     }
 
     protected float drawText(Canvas c, CellInfo<T> cellInfo, Rect rect, Paint paint, TableConfig config, int marginRight) {
