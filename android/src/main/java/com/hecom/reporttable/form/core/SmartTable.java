@@ -7,7 +7,6 @@ import android.graphics.Rect;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -23,6 +22,7 @@ import com.hecom.reporttable.form.data.format.selected.ISelectFormat;
 import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.table.PageTableData;
 import com.hecom.reporttable.form.data.table.TableData;
+import com.hecom.reporttable.form.listener.MainThreadExecuteHandle;
 import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 表格
  */
 
-public class SmartTable<T> extends View implements OnTableChangeListener {
+public class SmartTable<T> extends View implements OnTableChangeListener, MainThreadExecuteHandle {
 
     private XSequence<T> xAxis;
     private YSequence<T> yAxis;
@@ -132,6 +132,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         tableTitle.setDirection(IComponent.TOP);
         matrixHelper = new MatrixHelper(getContext());
         matrixHelper.setOnTableChangeListener(this);
+        matrixHelper.setMainThreadExecuteHandle(this);
         matrixHelper.register(provider);
         matrixHelper.setOnInterceptListener(provider.getOperation());
         provider.setMatrixHelper(matrixHelper);
@@ -707,6 +708,16 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
 
     public void setReportTableConfig(ReportTableStore mReportTableStore) {
         this.mReportTableStore = mReportTableStore;
+    }
+
+    @Override
+    public void updateFlingFlage(final MatrixHelper matrixHelper, final boolean value) {
+        postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                matrixHelper.setAutoFling(value);
+            }
+        },500);
     }
 }
 

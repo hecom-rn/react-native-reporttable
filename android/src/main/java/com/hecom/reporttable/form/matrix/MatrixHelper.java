@@ -19,8 +19,8 @@ import android.widget.Scroller;
 import android.widget.Toast;
 
 
-import com.hecom.reporttable.form.component.IComponent;
 import com.hecom.reporttable.form.data.TableInfo;
+import com.hecom.reporttable.form.listener.MainThreadExecuteHandle;
 import com.hecom.reporttable.form.listener.Observable;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.listener.TableClickObserver;
@@ -53,6 +53,7 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
     private int mMinimumVelocity;
     private boolean isFling;
     private OnTableChangeListener listener;
+    private MainThreadExecuteHandle mMainThreadExecuteHandle;
     private float flingRate = 1f; //速率
     private Rect scaleRect = new Rect();
     private boolean isZooming; //是否正在缩放
@@ -65,6 +66,9 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
     private int minFixedTranslateX;
     public int mFixedTranslateX;
     boolean touchFromFixed;
+    private Rect originalProviderRect;
+    private int offsetX;
+    private int offsetY;
 
     /**
      * 手势帮助类构造方法
@@ -495,6 +499,9 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         int showHeight = showRect.height();
         int offsetX = (int) (showWidth * (zoom - 1)) / 2;
         int offsetY = (int) (showHeight * (zoom - 1)) / 2;
+        this.originalProviderRect = providerRect;
+        this.offsetX =offsetX;
+        this.offsetY =offsetY;
         if(!isAutoFling) {
             int oldw = providerRect.width();
             int oldh = providerRect.height();
@@ -503,10 +510,10 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
             /**
              * 在表格中，x序列和Y序列不需要跟随放大，需要减掉多计算部分
              */
-            if (zoom > 1) {
-                newWidth -= (int) (tableInfo.getyAxisWidth() * (zoom - 1));
-                newHeight -= (int) (tableInfo.getTopHeight() * (zoom - 1));
-            }
+//            if (zoom > 1) {
+//                newWidth -= (int) (tableInfo.getyAxisWidth() * (zoom - 1));
+//                newHeight -= (int) (tableInfo.getTopHeight() * (zoom - 1));
+//            }
 
             /**
              * 表格的标题不会跟随放大和缩小，也需要减掉多计算部分
@@ -624,6 +631,10 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
      */
     public void setOnTableChangeListener(OnTableChangeListener onTableChangeListener) {
         this.listener = onTableChangeListener;
+    }
+
+    public void setMainThreadExecuteHandle(MainThreadExecuteHandle mMainThreadExecuteHandle) {
+        this.mMainThreadExecuteHandle = mMainThreadExecuteHandle;
     }
 
     /**
@@ -783,6 +794,7 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
                 public void onAnimationUpdate(ValueAnimator animation) {
                     zoomRect.top = (int)animation.getAnimatedValue();
                     zoomRect.bottom = zoomRect.top+height;
+                    translateY  = originalProviderRect.top-zoomRect.top - offsetY;
                     notifyViewChanged();
                 }
             });
@@ -814,6 +826,7 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
             public void onAnimationUpdate(ValueAnimator animation) {
                 zoomRect.bottom = (int)animation.getAnimatedValue();
                 zoomRect.top = zoomRect.bottom-height;
+                translateY  = originalProviderRect.top-zoomRect.top - offsetY;
                 notifyViewChanged();
             }
         });
@@ -827,11 +840,11 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
 
         @Override
         public void onAnimationCancel(Animator animation) {
-            isAutoFling = false;
+            mMainThreadExecuteHandle.updateFlingFlage(MatrixHelper.this,false);
         }
         @Override
         public void onAnimationEnd(Animator animation) {
-            isAutoFling = false;
+            mMainThreadExecuteHandle.updateFlingFlage(MatrixHelper.this,false);
         }
     };
     /**
@@ -869,5 +882,8 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
 
     public interface OnInterceptListener {
         boolean isIntercept(MotionEvent e1, float distanceX, float distanceY);
+    }
+    public void setAutoFling(boolean autoFling) {
+        isAutoFling = autoFling;
     }
 }

@@ -452,7 +452,7 @@ public class TableProvider<T> implements TableClickObserver {
                             }
                         }
                         if (correctCellRect.top < showRect.bottom) {
-                            if (correctCellRect.right > showRect.left && correctCellRect.bottom > showRect.top) {
+                            if (correctCellRect.left < showRect.right && correctCellRect.right > showRect.left && correctCellRect.bottom > showRect.top) {
                                 Object data = column.getDatas().get(rowIndex);
                                 if (singleClickItem && DrawUtils.isClick(correctCellRect, clickPoint)) {
                                     operation.setSelectionRect(columnIndex, rowIndex, correctCellRect);
