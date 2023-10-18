@@ -11,6 +11,7 @@
 #import "ReportTableModel.h"
 #import "ReportTableHeaderView.h"
 #import "UIView+Toast.h"
+#import "ReportTableEvent.h"
 
 @interface ReportTableView () <SpreadsheetViewDelegate, SpreadsheetViewDataSource, UIScrollViewDelegate>
 
@@ -426,7 +427,9 @@
 - (void)spreadsheetViewDidLayout:(SpreadsheetView *)spreadsheetView {
     // 锁定，解除锁定时需要调用
     [self setMergedCellsLabelOffset];
+    [[[ReportTableEvent alloc] init] tableDidLayout]; // 回调完成回调
 }
+
 @end
 
 
