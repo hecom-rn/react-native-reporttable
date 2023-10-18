@@ -80,6 +80,7 @@
     [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
     [self setMergedCellsLabelOffset];
+    [[[ReportTableEvent alloc] init] tableDidLayout]; // 回调完成回调
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
@@ -427,7 +428,6 @@
 - (void)spreadsheetViewDidLayout:(SpreadsheetView *)spreadsheetView {
     // 锁定，解除锁定时需要调用
     [self setMergedCellsLabelOffset];
-    [[[ReportTableEvent alloc] init] tableDidLayout]; // 回调完成回调
 }
 
 @end
