@@ -1,6 +1,5 @@
 package com.hecom.reporttable.form.core;
 
-import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -36,6 +35,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import com.facebook.react.uimanager.ThemedReactContext;
 
 /**
  * Created by huang on 2017/10/30.
@@ -90,18 +90,18 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         return mExecutor;
     }
 
-    public SmartTable(Context context) {
+    public SmartTable(ThemedReactContext context) {
         super(context);
         init(context);
         this.mReportTableStore = new ReportTableStore(context,this);
     }
 
-    public SmartTable(Context context, AttributeSet attrs) {
+    public SmartTable(ThemedReactContext context, AttributeSet attrs) {
         super(context, attrs);
         init(context);
     }
 
-    public SmartTable(Context context, AttributeSet attrs, int defStyleAttr) {
+    public SmartTable(ThemedReactContext context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init(context);
     }
@@ -109,7 +109,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     /**
      * 初始化
      */
-    private void init(Context context) {
+    private void init(ThemedReactContext context) {
         FontStyle.setDefaultTextSpSize(getContext(), 14);
         initConfig(context);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -139,7 +139,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
 
     }
 
-    private void initConfig(Context context) {
+    private void initConfig(ThemedReactContext context) {
         config = new TableConfig(context);
         config.dp10 = DensityUtils.dp2px(getContext(), 10);
         config.dp8 = DensityUtils.dp2px(getContext(), 8);
