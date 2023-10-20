@@ -7,20 +7,40 @@
 
 #import "ReportTableEvent.h"
 
-@implementation ReportTableEvent
+@implementation ReportTableEvent {
+    bool hasListeners;
+  }
+
 RCT_EXPORT_MODULE()
 
-static id _instace;
-+ (instancetype)allocWithZone:(struct _NSZone *)zone {
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        _instace = [super allocWithZone:zone];
-    });
-    return _instace;
+// 在添加第一个监听函数时触发
+- (void)startObserving
+{
+  hasListeners = YES;
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(tableDidLayout)
+                                               name:@"event-emitted-tableDidLayout"
+                                             object:nil];
+}
+
+- (void)stopObserving
+{
+  hasListeners = NO;
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+
++ (void)tableDidLayout
+{
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"event-emitted-tableDidLayout"
+                                                      object:self
+                                                    userInfo:nil];
 }
 
 - (void)tableDidLayout {
-    [self sendEventWithName:@"tableDidLayout" body: @{}];
+    if (hasListeners) {
+        [self sendEventWithName:@"tableDidLayout" body: @{}];
+    }
 }
 
 // 注册事件名称
