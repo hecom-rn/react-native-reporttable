@@ -650,6 +650,9 @@ public class TableProvider<T> implements TableClickObserver {
             } else if ("dot_white".equals(name)) {
                 leftTextImageDrawFormat.setResourceId(R.mipmap.dot_white);
                 leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("dot_select".equals(name)) {
+                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_select);
+                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
             } else if ("portal_icon".equals(name)) {
                 leftTextImageDrawFormat.setResourceId(R.mipmap.portal_icon);
                 leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
@@ -663,6 +666,15 @@ public class TableProvider<T> implements TableClickObserver {
                 rightTextImageDrawFormat.setResourceId(R.mipmap.copy);
                 rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
             } else if ("edit".equals(name)) {
+                rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("selected".equals(name)) {
+                rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("unselected".equals(name)) {
+                rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
+                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+            } else if ("unselected_disable".equals(name)) {
                 rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
                 rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
             } else if ("copy_disable".equals(name)) {
