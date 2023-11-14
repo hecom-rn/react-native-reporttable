@@ -101,6 +101,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             };
             final ArrayTableData<String> tableData = ArrayTableData.create("", null, mergeResult.data, mTextDrawFormat);
 
+            tableData.setTableConfigBean(configBean);
             tableData.setMaxValues4Column(mergeResult.maxValues4Column);
             tableData.setMaxValues4Row(mergeResult.maxValues4Row);
             tableData.setWidthLimit(DensityUtils.dp2px(this.context, minWidth),DensityUtils.dp2px(this.context,  maxWidth), configBean.getColumnConfigMap());

@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.text.TextUtils;
 
 import com.hecom.reporttable.form.core.SmartTable;
@@ -39,14 +40,12 @@ public class HecomGridFormat extends BaseGridFormat {
     private int mTrianglePosition;
     private Paint mTrianglePaint;
     private Boolean mForbidden;
-    private int DP_15;
 
     public HecomGridFormat(SmartTable table) {
         this.table = table;
         mTrianglePaint = new Paint();
-        mTrianglePaint.setAntiAlias(true);
-        mTrianglePaint.setStyle(Paint.Style.FILL);
-        DP_15 = DensityUtils.dp2px(table.getContext(),15);
+        mTrianglePaint.setAntiAlias(false);
+        mTrianglePaint.setStyle(Paint.Style.STROKE);
     }
 
     @Override
@@ -84,37 +83,14 @@ public class HecomGridFormat extends BaseGridFormat {
         }
 
         if (0 != mTriangleColor) {
-            float zoom = this.table.getConfig().getZoom();
             mTrianglePaint.setColor(mTriangleColor);
-            Path path = new Path();
-            if ((mTrianglePosition & TOP_LEFT) != 0) {
-                path.moveTo(rect.left, rect.top);
-                path.lineTo(rect.left + zoom * DP_15, rect.top);
-                path.lineTo(rect.left, rect.top + zoom * DP_15);
-                path.close();
-                canvas.drawPath(path, mTrianglePaint);
-            }
-            if ((mTrianglePosition & TOP_RIGHT) != 0) {
-                path.moveTo(rect.right, rect.top);
-                path.lineTo(rect.right - zoom * DP_15, rect.top);
-                path.lineTo(rect.right, rect.top + zoom * DP_15);
-                path.close();
-                canvas.drawPath(path, mTrianglePaint);
-            }
-            if ((mTrianglePosition & BOTTOM_LEFT) != 0) {
-                path.moveTo(rect.left, rect.bottom);
-                path.lineTo(rect.left + zoom * DP_15, rect.bottom);
-                path.lineTo(rect.left, rect.bottom - zoom * DP_15);
-                path.close();
-                canvas.drawPath(path, mTrianglePaint);
-            }
-            if ((mTrianglePosition & BOTTOM_RIGHT) != 0) {
-                path.moveTo(rect.right, rect.bottom);
-                path.lineTo(rect.right - zoom * DP_15, rect.bottom);
-                path.lineTo(rect.right, rect.bottom - zoom * DP_15);
-                path.close();
-                canvas.drawPath(path, mTrianglePaint);
-            }
+            mTrianglePaint.setStrokeWidth(paint.getStrokeWidth()*4);
+            float strokeWidth = paint.getStrokeWidth();
+            RectF rectF = new RectF(rect.left+ strokeWidth,rect.top+strokeWidth,rect.right-strokeWidth,rect.bottom-strokeWidth);
+            canvas.save();
+            canvas.clipRect(rectF);
+            canvas.drawRect( new RectF(rect.left+ strokeWidth+1,rect.top+strokeWidth+1,rect.right-strokeWidth-1,rect.bottom-strokeWidth-1), mTrianglePaint);
+            canvas.restore();
         }
     }
 

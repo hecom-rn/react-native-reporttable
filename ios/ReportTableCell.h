@@ -30,4 +30,7 @@
 - (void)drawLinePoint:(CGPoint)point WithLineColor: (UIColor *)color;
 - (void)hiddenLineView;
 
+- (void)drawBoxPoint:(CGPoint)point WithLineColor: (UIColor *)color;
+- (void)hiddenBoxView;
+
 @end

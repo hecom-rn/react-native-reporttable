@@ -35,6 +35,9 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, strong) UIColor *classificationLineColor;
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) BOOL isForbidden;
+@property (nonatomic, assign) BOOL strikethrough;
+@property (nonatomic, strong) UIColor *boxLineColor;
+@property (nonatomic, strong) UIColor *asteriskColor;
 @property (nonatomic, assign) CGFloat fontSize;
 @property (nonatomic, assign) NSTextAlignment textAlignment;
 @property (nonatomic, assign) NSInteger textPaddingHorizontal;
@@ -59,7 +62,8 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, strong) NSMutableArray<ForzenRange *> *frozenArray;
 @property (nonatomic, strong) NSArray *cloumsHight;
 @property (nonatomic, strong) NSArray *rowsWidth;
-@property (nonatomic, assign) NSInteger frozenColumns;
+@property (nonatomic, assign) NSInteger frozenColumns; // 运行值
+@property (nonatomic, assign) NSInteger oriFrozenColumns; // 初始值
 @property (nonatomic, assign) NSInteger frozenRows;
 @property (nonatomic, assign) float minWidth;
 @property (nonatomic, assign) float maxWidth;

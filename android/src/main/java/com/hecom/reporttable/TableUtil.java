@@ -2,6 +2,7 @@ package com.hecom.reporttable;
 
 import android.content.Context;
 import android.graphics.Paint;
+import android.text.TextUtils;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellRange;
@@ -84,6 +85,18 @@ public class TableUtil {
             }
         }
         return 0;
+    }
+
+    public static float calculateAsteriskWidth(TableConfig config, int col, int row) {
+        JsonTableBean jsonTableBean = config.getTabArr()[row][col];
+        String asteriskColor = jsonTableBean.getAsteriskColor();
+        if (TextUtils.isEmpty(asteriskColor)) {
+            return 0;
+        } else {
+            Paint asteriskPaint = config.getAsteriskPaint();
+            asteriskPaint.setTextSize((jsonTableBean.getFontSize() != null && jsonTableBean.getFontSize().compareTo(0) > 0) ? jsonTableBean.getFontSize() : config.getContentStyle().getTextSize());
+            return asteriskPaint.measureText(config.ASTERISK);
+        }
     }
 
     public static Paint.Align getAlignConfig(TableConfig config, int row, int col) {

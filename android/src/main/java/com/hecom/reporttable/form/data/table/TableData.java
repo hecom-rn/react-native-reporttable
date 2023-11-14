@@ -1,7 +1,6 @@
 package com.hecom.reporttable.form.data.table;
 
 
-
 import com.hecom.reporttable.form.data.Cell;
 import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.TableInfo;
@@ -13,6 +12,7 @@ import com.hecom.reporttable.form.data.format.sequence.NumberSequenceFormat;
 import com.hecom.reporttable.form.data.format.title.ITitleDrawFormat;
 import com.hecom.reporttable.form.data.format.title.TitleDrawFormat;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
+import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ import java.util.List;
 public class TableData<T> {
 
     private TypicalCell[][] maxValues4Column;
-    private String[] maxValues4Row;
+    private TypicalCell[][] maxValues4Row;
     private String tableName;
     private List<Column> columns;
     private List<T> t;
@@ -44,6 +44,15 @@ public class TableData<T> {
     private OnItemClickListener onItemClickListener;
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
+    private TableConfigBean tableConfigBean;
+
+    public TableConfigBean getTableConfigBean() {
+        return tableConfigBean;
+    }
+
+    public void setTableConfigBean(TableConfigBean tableConfigBean) {
+        this.tableConfigBean = tableConfigBean;
+    }
 
     public TypicalCell[][] getMaxValues4Column() {
         return maxValues4Column;
@@ -53,11 +62,11 @@ public class TableData<T> {
         this.maxValues4Column = maxValues4Column;
     }
 
-    public String[] getMaxValues4Row() {
+    public TypicalCell[][] getMaxValues4Row() {
         return maxValues4Row;
     }
 
-    public void setMaxValues4Row(String[] maxValues4Row) {
+    public void setMaxValues4Row(TypicalCell[][] maxValues4Row) {
         this.maxValues4Row = maxValues4Row;
     }
 
@@ -73,32 +82,31 @@ public class TableData<T> {
     private OnResponseItemClickListener onResponseItemClickListener;
 
     /**
-     *
      * @param tableName 表名
-     * @param t 数据
-     * @param columns 列列表
+     * @param t         数据
+     * @param columns   列列表
      */
-    public TableData(String tableName,List<T> t,List<Column> columns) {
-        this(tableName,t,columns,null);
+    public TableData(String tableName, List<T> t, List<Column> columns) {
+        this(tableName, t, columns, null);
 
     }
+
     /**
-     *
      * @param tableName 表名
-     * @param t 数据
-     * @param columns 列列表
+     * @param t         数据
+     * @param columns   列列表
      */
-    public TableData(String tableName,List<T> t, Column... columns) {
-        this(tableName,t,Arrays.asList(columns));
+    public TableData(String tableName, List<T> t, Column... columns) {
+        this(tableName, t, Arrays.asList(columns));
     }
+
     /**
-     *
-     * @param tableName 表名
-     * @param t 数据
-     * @param columns 列列表
+     * @param tableName       表名
+     * @param t               数据
+     * @param columns         列列表
      * @param titleDrawFormat 列标题绘制格式化
      */
-    public TableData(String tableName,List<T> t,List<Column> columns,ITitleDrawFormat titleDrawFormat) {
+    public TableData(String tableName, List<T> t, List<Column> columns, ITitleDrawFormat titleDrawFormat) {
         this.tableName = tableName;
         this.columns = columns;
         this.t = t;
@@ -107,17 +115,19 @@ public class TableData<T> {
         columnInfos = new ArrayList<>();
         childColumnInfos = new ArrayList<>();
         //cellRangeAddresses = new ArrayList<>();
-        this.titleDrawFormat = titleDrawFormat == null?new TitleDrawFormat() :titleDrawFormat;
+        this.titleDrawFormat = titleDrawFormat == null ? new TitleDrawFormat() : titleDrawFormat;
     }
 
 
     /**
      * 获取表名
+     *
      * @return 表名
      */
     public String getTableName() {
         return tableName;
     }
+
     /**
      * 设置表名
      */
@@ -127,48 +137,57 @@ public class TableData<T> {
 
     /**
      * 获取所有列
+     *
      * @return 所有列
      */
     public List<Column> getColumns() {
         return columns;
     }
+
     /**
      * 设置新列列表
      */
     public void setColumns(List<Column> columns) {
         this.columns = columns;
     }
+
     /**
      * 获取解析数据
-     * @return  解析数据
+     *
+     * @return 解析数据
      */
     public List<T> getT() {
         return t;
     }
+
     /**
      * 设置解析数据
      */
     public void setT(List<T> t) {
         this.t = t;
-        tableInfo.setLineSize( t.size());
+        tableInfo.setLineSize(t.size());
     }
 
 
     /**
      * 获取所有需要显示列数据的列
      * isParent true的列不包含
+     *
      * @return 所有需要显示列数据的列
      */
     public List<Column> getChildColumns() {
         return childColumns;
     }
+
     /**
      * 获取表格信息
+     *
      * @return 表格信息tableInfo
      */
     public TableInfo getTableInfo() {
         return tableInfo;
     }
+
     /**
      * 设置表格信息
      * 一般情况下不会使用到这个方法
@@ -176,32 +195,39 @@ public class TableData<T> {
     public void setTableInfo(TableInfo tableInfo) {
         this.tableInfo = tableInfo;
     }
+
     /**
      * 获取列信息列表
+     *
      * @return 列信息列表
      */
     public List<ColumnInfo> getColumnInfos() {
         return columnInfos;
     }
+
     /**
      * 获取isParent false列(子列)信息列表
-     *  @return 子列信息列表
+     *
+     * @return 子列信息列表
      */
     public List<ColumnInfo> getChildColumnInfos() {
         return childColumnInfos;
     }
+
     /**
      * 设置子列信息列表
      */
     public void setChildColumnInfos(List<ColumnInfo> childColumnInfos) {
         this.childColumnInfos = childColumnInfos;
     }
+
     /**
      * 设置列信息列表
      */
     public void setColumnInfos(List<ColumnInfo> columnInfos) {
         this.columnInfos = columnInfos;
     }
+
     /**
      * 设置子列
      */
@@ -211,11 +237,13 @@ public class TableData<T> {
 
     /**
      * 获取需要根据排序的列
+     *
      * @return 排序的列
      */
     public Column getSortColumn() {
         return sortColumn;
     }
+
     /**
      * 设置需要根据排序的列
      */
@@ -225,6 +253,7 @@ public class TableData<T> {
 
     /**
      * 判断是否需要显示统计行
+     *
      * @return 是否需要显示统计行
      */
     public boolean isShowCount() {
@@ -234,18 +263,22 @@ public class TableData<T> {
 
     /**
      * 设置是否显示统计总数
+     *
      * @param showCount 显示统计总数
      */
     public void setShowCount(boolean showCount) {
         this.showCount = showCount;
     }
+
     /**
      * 获取列标题绘制格式化
-     * @return  列标题绘制格式化
+     *
+     * @return 列标题绘制格式化
      */
     public ITitleDrawFormat getTitleDrawFormat() {
         return titleDrawFormat;
     }
+
     /**
      * 设置列标题绘制格式化
      * 通过这个方法可以对列名进行格式化
@@ -253,32 +286,38 @@ public class TableData<T> {
     public void setTitleDrawFormat(ITitleDrawFormat titleDrawFormat) {
         this.titleDrawFormat = titleDrawFormat;
     }
+
     /**
      * 获取X序号行文字格式化
-     * @return  X行文字格式化
+     *
+     * @return X行文字格式化
      */
     public ISequenceFormat getXSequenceFormat() {
-        if(XSequenceFormat == null){
+        if (XSequenceFormat == null) {
             XSequenceFormat = new LetterSequenceFormat();
         }
         return XSequenceFormat;
     }
+
     /**
      * 设置X序号行文字格式化
      */
     public void setXSequenceFormat(ISequenceFormat XSequenceFormat) {
         this.XSequenceFormat = XSequenceFormat;
     }
+
     /**
      * 获取Y序号列文字格式化
-     * @return  Y序号列文字格式化
+     *
+     * @return Y序号列文字格式化
      */
     public ISequenceFormat getYSequenceFormat() {
-        if(YSequenceFormat == null){
+        if (YSequenceFormat == null) {
             YSequenceFormat = new NumberSequenceFormat();
         }
         return YSequenceFormat;
     }
+
     /**
      * 设置Y序号列文字格式化
      */
@@ -288,13 +327,14 @@ public class TableData<T> {
 
     /**
      * 获取包含ID的子列
+     *
      * @param id 列ID
      * @return 包含ID的子列
      */
-    public Column getColumnByID(int id){
+    public Column getColumnByID(int id) {
         List<Column> columns = getChildColumns();
-        for(Column column :columns){
-            if(column.getId() == id){
+        for (Column column : columns) {
+            if (column.getId() == id) {
                 return column;
             }
         }
@@ -304,13 +344,14 @@ public class TableData<T> {
 
     /**
      * 获取包含fieldName的子列
-     * @fieldName id 列Name
+     *
      * @return 包含ID的子列
+     * @fieldName id 列Name
      */
-    public Column getColumnByFieldName(String fieldName){
+    public Column getColumnByFieldName(String fieldName) {
         List<Column> columns = getChildColumns();
-        for(Column column :columns){
-            if(column.getFieldName().equals( fieldName)){
+        for (Column column : columns) {
+            if (column.getFieldName().equals(fieldName)) {
                 return column;
             }
         }
@@ -319,16 +360,17 @@ public class TableData<T> {
 
     /**
      * 获取行数
+     *
      * @return 行数
      */
     public int getLineSize() {
         return tableInfo.getLineHeightArray().length;
     }
 
-    private void addCellRange(int firstRow,int lastRow,int firstCol,int lastCol){
+    private void addCellRange(int firstRow, int lastRow, int firstCol, int lastCol) {
         Cell[][] tableCells = tableInfo.getRangeCells();
         Cell realCell = null;
-        if(tableCells !=null) {
+        if (tableCells != null) {
             for (int i = firstRow; i <= lastRow; i++) {
                 if (i < tableCells.length)
                     for (int j = firstCol; j <= lastCol; j++) {
@@ -336,7 +378,7 @@ public class TableData<T> {
                             if (i == firstRow && j == firstCol) {
                                 int rowCount = Math.min(lastRow + 1, tableCells.length) - firstRow;
                                 int colCount = Math.min(lastCol + 1, tableCells[i].length) - firstCol;
-                                realCell = new Cell(colCount, rowCount);
+                                realCell = new Cell(colCount, rowCount, firstCol, firstRow, Math.min(lastCol, tableCells[i].length - 1), Math.min(lastRow, tableCells.length - 1));
                                 tableCells[i][j] = realCell;
                                 continue;
                             }
@@ -347,32 +389,37 @@ public class TableData<T> {
         }
     }
 
-    /* *//**
+    /* */
+
+    /**
      * 获取所有合并规则，包括自定义和自动合并规则
      * 请不要使用该方法来添加合并单元格
      * 而是通过设置setUserCellRange来添加
+     *
      * @return
      */
     public void addCellRange(CellRange range) {
-        addCellRange(range.getFirstRow(),range.getLastRow(),
-                range.getFirstCol(),range.getLastCol());
+        addCellRange(range.getFirstRow(), range.getLastRow(),
+                range.getFirstCol(), range.getLastCol());
         //cellRangeAddresses.add(range);
     }
 
     /**
      * 清除自动合并的规则
      */
-    public void clearCellRangeAddresses(){
+    public void clearCellRangeAddresses() {
         //cellRangeAddresses.clear();
-        if(userSetRangeAddress !=null) {
-            for(CellRange range:userSetRangeAddress) {
+        if (userSetRangeAddress != null) {
+            for (CellRange range : userSetRangeAddress) {
                 addCellRange(range);
             }
 
         }
     }
+
     /**
      * 提供添加自定义合并规则
+     *
      * @return
      */
     public void setUserCellRange(List<CellRange> userCellRange) {
@@ -381,25 +428,26 @@ public class TableData<T> {
 
     /**
      * 获取自定义合并规则
+     *
      * @return
      */
     public List<CellRange> getUserCellRange() {
         return userSetRangeAddress;
     }
 
-    public void clear(){
-        if(t !=null) {
+    public void clear() {
+        if (t != null) {
             t.clear();
-            t= null;
+            t = null;
         }
-        if(childColumns !=null){
+        if (childColumns != null) {
             childColumns.clear();
             childColumns = null;
         }
-        if(columns !=null){
+        if (columns != null) {
             columns = null;
         }
-        if(childColumnInfos !=null){
+        if (childColumnInfos != null) {
             childColumnInfos.clear();
             childColumnInfos = null;
         }
@@ -407,17 +455,17 @@ public class TableData<T> {
             cellRangeAddresses.clear();
             cellRangeAddresses =null;
         }*/
-        if(userSetRangeAddress !=null){
+        if (userSetRangeAddress != null) {
             userSetRangeAddress.clear();
-            userSetRangeAddress =null;
+            userSetRangeAddress = null;
         }
-        if(tableInfo !=null){
+        if (tableInfo != null) {
             tableInfo.clear();
             tableInfo = null;
         }
         sortColumn = null;
         titleDrawFormat = null;
-        XSequenceFormat=null;
+        XSequenceFormat = null;
         YSequenceFormat = null;
 
     }
@@ -432,33 +480,38 @@ public class TableData<T> {
 
     /**
      * 设置表格单元格Cell点击事件
+     *
      * @param onItemClickListener 点击事件
      */
     public void setOnItemClickListener(final OnItemClickListener onItemClickListener) {
         this.onItemClickListener = onItemClickListener;
-        for(Column column: columns){
-            if(!column.isParent()) {
+        for (Column column : columns) {
+            if (!column.isParent()) {
                 column.setOnColumnItemClickListener(new OnColumnItemClickListener() {
                     @Override
                     public void onClick(Column column, String value, Object t, int position) {
                         if (onItemClickListener != null) {
                             int index = childColumns.indexOf(column);
                             boolean isResponseOnClick = true;
-                            if(onResponseItemClickListener != null){
+                            if (onResponseItemClickListener != null) {
                                 isResponseOnClick = onResponseItemClickListener.responseOnClick(column, value, t, index, position);
                             }
                             TableData.this.onItemClickListener.onClick(column, value, t, index, position, TableData.this);
-                            if(!isResponseOnClick) return;
-                            if(position == 0) {
+                            if (!isResponseOnClick) return;
+                            if (position == 0) {
                                 int firstColumnMaxMerge = getFirstColumnMaxMerge();
-                                if(firstColumnMaxMerge > 0){
+                                int frozenIndex = 0;
+                                if (tableConfigBean != null) {
+                                    frozenIndex = tableConfigBean.getFrozenColumns();
+                                }
+                                if (firstColumnMaxMerge > 0){
                                     if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
                                         //前面列全部锁定
                                         for (int i = 0; i <= firstColumnMaxMerge; i++) {
                                             columns.get(i).setFixed(true);
                                         }
                                         curFixedColumnIndex = index;
-                                    } else if(index < curFixedColumnIndex) {
+                                    } else if (index < curFixedColumnIndex) {
                                         //后面列取消锁定
                                         for (int i = index + 1; i <= firstColumnMaxMerge; i++) {
                                             columns.get(i).setFixed(false);
@@ -466,20 +519,20 @@ public class TableData<T> {
                                         curFixedColumnIndex = index;
                                     } else {
                                         //全部列取消锁定
-                                        for (int i = 0; i <= firstColumnMaxMerge; i++) {
+                                        for (int i = frozenIndex; i <= firstColumnMaxMerge; i++) {
                                             columns.get(i).setFixed(false);
                                         }
                                         curFixedColumnIndex = -1;
                                     }
                                     return;
                                 }
-                                if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
+                                if (curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
                                     //前面列全部锁定
                                     for (int i = 0; i <= index; i++) {
                                         columns.get(i).setFixed(true);
                                     }
                                     curFixedColumnIndex = index;
-                                } else if(index < curFixedColumnIndex) {
+                                } else if (index < curFixedColumnIndex) {
                                     //后面列取消锁定
                                     for (int i = index + 1; i <= curFixedColumnIndex; i++) {
                                         columns.get(i).setFixed(false);
@@ -487,7 +540,7 @@ public class TableData<T> {
                                     curFixedColumnIndex = index;
                                 } else {
                                     //全部列取消锁定
-                                    for (int i = 0; i <= index; i++) {
+                                    for (int i = frozenIndex; i <= index; i++) {
                                         columns.get(i).setFixed(false);
                                     }
                                     curFixedColumnIndex = -1;
@@ -506,11 +559,12 @@ public class TableData<T> {
 
     /**
      * 设置表格行点击事件
+     *
      * @param onRowClickListener 行点击事件
      */
     public void setOnRowClickListener(final OnRowClickListener<T> onRowClickListener) {
         this.onRowClickListener = onRowClickListener;
-        if(this.onRowClickListener !=null) {
+        if (this.onRowClickListener != null) {
             setOnItemClickListener(new OnItemClickListener() {
                 @Override
                 public void onClick(Column column, String value, Object o, int col, int row, TableData tableData) {
@@ -527,7 +581,7 @@ public class TableData<T> {
      */
     public void setOnColumnClickListener(final OnColumnClickListener onColumnClickListener) {
         this.onColumnClickListener = onColumnClickListener;
-        if(this.onRowClickListener !=null) {
+        if (this.onRowClickListener != null) {
             setOnItemClickListener(new OnItemClickListener() {
                 @Override
                 public void onClick(Column column, String value, Object o, int col, int row, TableData tableData) {
@@ -545,35 +599,36 @@ public class TableData<T> {
     /**
      * 表格单元格Cell点击事件接口
      */
-    public interface  OnItemClickListener<T>{
+    public interface OnItemClickListener<T> {
         void onClick(Column<T> column, String value, T t, int col, int row, TableData tableData);
     }
+
     /**
      * 表格行点击事件接口
      */
-    public interface OnRowClickListener<T>{
+    public interface OnRowClickListener<T> {
         void onClick(Column column, T t, int col, int row);
     }
 
-    public interface OnColumnClickListener<T>{
+    public interface OnColumnClickListener<T> {
         void onClick(Column column, List<T> t, int col, int row);
     }
 
     /**
      * 是否响应表格单元格Cell点击事件接口
      */
-    public interface  OnResponseItemClickListener<T>{
-        boolean responseOnClick(Column<T> column,String value, T t, int col,int row);
+    public interface OnResponseItemClickListener<T> {
+        boolean responseOnClick(Column<T> column, String value, T t, int col, int row);
     }
 
 
-    public int getFirstColumnMaxMerge(){
+    public int getFirstColumnMaxMerge() {
         int maxColumn = -1;
-        List<CellRange> list =  getUserCellRange();
+        List<CellRange> list = getUserCellRange();
         for (int i = 0; i < list.size(); i++) {
             CellRange cellRange = list.get(i);
-            if(cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0){
-                if(maxColumn < cellRange.getLastCol()){
+            if (cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0) {
+                if (maxColumn < cellRange.getLastCol()) {
                     maxColumn = cellRange.getLastCol();
                 }
             }

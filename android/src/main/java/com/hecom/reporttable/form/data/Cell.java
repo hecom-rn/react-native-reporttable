@@ -9,13 +9,21 @@ public class Cell {
 
     public int col;
     public int row;
+    public int firstColIndex;
+    public int firstRowIndex;
+    public int lastColIndex;
+    public int lastRowIndex;
     public Cell realCell;
     public int width;
     public int height;
 
-    public Cell(int col, int row) {
+    public Cell(int col, int row, int firstColIndex, int firstRowIndex, int lastColIndex, int lastRowIndex) {
         this.col = col;
         this.row = row;
+        this.firstColIndex = firstColIndex;
+        this.firstRowIndex = firstRowIndex;
+        this.lastColIndex = lastColIndex;
+        this.lastRowIndex = lastRowIndex;
         realCell = this;
     }
 

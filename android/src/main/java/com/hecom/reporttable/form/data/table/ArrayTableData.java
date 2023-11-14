@@ -70,17 +70,19 @@ public class ArrayTableData<T> extends TableData<T> {
      */
     public static<T> ArrayTableData<T> create(String tableName,String[] titleNames, T[][] data, IDrawFormat<T> drawFormat){
         List<Column<T>> columns = new ArrayList<>();
-        for(int i = 0;i <data.length;i++){
+        int dataLength = data.length;
+        for(int i = 0; i < dataLength; i++){
             T[] dataArray = data[i];
             Column<T> column = new Column<>(titleNames == null?"":titleNames[i], null,drawFormat);
+            column.setColumn(i,dataLength);
             column.setDatas(Arrays.asList(dataArray));
             columns.add(column);
         }
         ArrayList<T> arrayList;
-        if(data.length>0){
-           arrayList = new ArrayList(Arrays.asList(data[0]));
+        if(dataLength >0){
+            arrayList = new ArrayList(Arrays.asList(data[0]));
         }else {
-           arrayList = new ArrayList<>();
+            arrayList = new ArrayList<>();
         }
         ArrayTableData<T> tableData =  new ArrayTableData<>(tableName,arrayList,columns);
         tableData.setData(data);

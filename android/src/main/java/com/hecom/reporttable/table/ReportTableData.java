@@ -49,20 +49,20 @@ public class ReportTableData {
         mergeKeyMap.clear();
         if (TextUtils.isEmpty(json)) {
             tabArr = new JsonTableBean[][]{};
-            return new MergeResult(new String[][]{}, new TypicalCell[][]{}, new String[]{});
+            return new MergeResult(new String[][]{}, new TypicalCell[][]{}, new TypicalCell[][]{});
         }
         try {
             tabArr = JacksonUtil.decode(json, JsonTableBean[][].class);
             String[][] strArr = creatArr(tabArr);
             TypicalCell[][] maxValues4Column = new TypicalCell[strArr.length][3];
-            String[] maxValues4Row = new String[strArr[0].length];
+            TypicalCell[][] maxValues4Row = new TypicalCell[strArr[0].length][2];
             if (strArr == null) {
                 return null;
             }
             int rowLength = tabArr.length;
             int colLength = tabArr[0].length;
 
-            TypicalCell preMaxContentCloumn,preMaxIconCloumn;
+            TypicalCell preMaxContentCloumn,preMaxIconCloumn,preMaxIconRow,preMaxMergeRow,preMaxContentRow;
             String preMaxRow;
             ItemCommonStyleConfig commonStyleConfig = configBean.getItemCommonStyleConfig();
             for (int rowIndex = 0; rowIndex < rowLength; rowIndex++) {
@@ -125,10 +125,25 @@ public class ReportTableData {
                             }
                         }
                     }
-                    if (!mergeBean.isMergeRow()){
-                        preMaxRow = maxValues4Row[rowIndex];
-                        if (null == preMaxRow || preMaxRow.length() < rowObj.title.length()) {
-                            maxValues4Row[rowIndex] = rowObj.title;
+                    if (!mergeBean.isMergeRow()) {
+                        if(mergeBean.isMergeColumn()){
+                             // 合并列中的最大值
+                            preMaxMergeRow = maxValues4Row[rowIndex][0];
+                            if(preMaxMergeRow == null){
+                                maxValues4Row[rowIndex][0]= new TypicalCell(rowObj,mergeBean.getStartColum(),rowIndex);
+                            }else if(  preMaxMergeRow.jsonTableBean.title.length() < rowObj.title.length()) {
+                                preMaxMergeRow.columnIndex=mergeBean.getStartColum();
+                                preMaxMergeRow.jsonTableBean=rowObj;
+                            }
+                        }else {
+                            //非合并列的最大值
+                            preMaxMergeRow = maxValues4Row[rowIndex][1];
+                            if(preMaxMergeRow == null){
+                                maxValues4Row[rowIndex][1]= new TypicalCell(rowObj,columnIndex ,rowIndex);
+                            }else if(  preMaxMergeRow.jsonTableBean.title.length() < rowObj.title.length()) {
+                                preMaxMergeRow.columnIndex=mergeBean.getStartColum();
+                                preMaxMergeRow.jsonTableBean=rowObj;
+                            }
                         }
                     }
 
@@ -161,7 +176,7 @@ public class ReportTableData {
             e.printStackTrace();
             System.out.println("table------合并异常了----------");
             tabArr = new JsonTableBean[][]{};
-            return new MergeResult(new String[][]{}, new TypicalCell[][]{}, new String[]{});
+            return new MergeResult(new String[][]{}, new TypicalCell[][]{}, new TypicalCell[][]{});
         }
     }
 

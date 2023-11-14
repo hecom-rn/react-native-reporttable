@@ -11,6 +11,7 @@
 #import "ReportTableModel.h"
 #import "ReportTableHeaderView.h"
 #import "UIView+Toast.h"
+#import "ReportTableEvent.h"
 
 @interface ReportTableView () <SpreadsheetViewDelegate, SpreadsheetViewDataSource, UIScrollViewDelegate>
 
@@ -79,6 +80,7 @@
     [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
     [self setMergedCellsLabelOffset];
+    [ReportTableEvent tableDidLayout]; // 回调完成回调
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
@@ -322,17 +324,62 @@
     cell.contentView.backgroundColor = model.backgroundColor;
     cell.textAlignment = model.textAlignment;
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
-    cell.label.text = model.title;
-    cell.label.textColor = model.textColor;
-    cell.label.font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
-    
+
+    UIFont *font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
+    if (model.asteriskColor != nil) {
+        NSMutableAttributedString *attributedText;
+        NSRange range;
+        NSRange nonRequiredRange;
+        if (model.textAlignment == NSTextAlignmentLeft) {
+            // 必填符在右侧
+            attributedText = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@%@", model.title, @"*"]];
+            range = NSMakeRange(model.title.length, 1);
+            nonRequiredRange = NSMakeRange(0, model.title.length);
+        } else {
+            attributedText = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@%@", @"*", model.title]];
+            range = NSMakeRange(0, 1);
+            nonRequiredRange = NSMakeRange(1, model.title.length);
+        }
+        [attributedText addAttribute:NSForegroundColorAttributeName value:model.asteriskColor range:range];
+        [attributedText addAttribute:NSFontAttributeName value:font range:range];
+        
+        [attributedText addAttribute:NSBaselineOffsetAttributeName value:@(-model.fontSize/7) range:range];
+        
+        [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:nonRequiredRange];
+        [attributedText addAttribute:NSFontAttributeName value:font range:nonRequiredRange];
+        if (model.strikethrough) {
+            // 添加删除线
+            [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
+
+        }
+        cell.label.attributedText = attributedText;
+    } else if (model.strikethrough) {
+        NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString:model.title];
+
+        [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:NSMakeRange(0, attributedText.length)];
+
+        // 添加删除线
+        [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
+
+        cell.label.font = font;
+        cell.label.attributedText = attributedText;
+    } else {
+        cell.label.text = model.title;
+        cell.label.textColor = model.textColor;
+        cell.label.font = font;
+    }
+    [cell hiddenLineView];
+    [cell hiddenBoxView];
     if (model.isForbidden) {
         CGFloat x = [self.reportTableModel.rowsWidth[column] floatValue];
         CGFloat y = [self.reportTableModel.cloumsHight[row] floatValue];
         CGPoint point = CGPointMake(x, y);
         [cell drawLinePoint:point WithLineColor:self.reportTableModel.lineColor];
-    } else {
-        [cell hiddenLineView];
+    } else if (model.boxLineColor != nil) {
+        CGFloat x = [self.reportTableModel.rowsWidth[column] floatValue];
+        CGFloat y = [self.reportTableModel.cloumsHight[row] floatValue];
+        CGPoint point = CGPointMake(x, y);
+        [cell drawBoxPoint:point WithLineColor: model.boxLineColor];
     }
 
     return cell;
@@ -365,7 +412,7 @@
                     [self hideAllToasts];
                     [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
                 } else {
-                    self.reportTableModel.frozenColumns = willUnLock ? 0 : self.reportTableModel.frozenPoint;
+                    self.reportTableModel.frozenColumns = willUnLock ? self.reportTableModel.oriFrozenColumns : self.reportTableModel.frozenPoint;
                     [self.spreadsheetView reloadData];
                     [self scrollViewDidZoom: self];
                 }
@@ -382,6 +429,7 @@
     // 锁定，解除锁定时需要调用
     [self setMergedCellsLabelOffset];
 }
+
 @end
 
 

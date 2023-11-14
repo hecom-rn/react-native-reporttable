@@ -42,12 +42,12 @@ public abstract class BitmapDrawFormat<T> implements IDrawFormat<T> {
     }
 
     @Override
-    public int measureHeight(Column<T> column, String value, TableConfig config) {
+    public int measureHeight(Column<T> column, TypicalCell cell, TableConfig config, int sepcWidth) {
         return 0;
     }
 
     @Override
-    public int measureWidth(Column<T>column,int position, TableConfig config) {
+    public int measureWidth(Column<T>column, int position, TableConfig config, boolean onlyCalculate, int sepcWidth) {
         return  imageWidth;
     }
 

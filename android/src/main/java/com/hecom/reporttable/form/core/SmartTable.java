@@ -1,13 +1,11 @@
 package com.hecom.reporttable.form.core;
 
-import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -23,6 +21,7 @@ import com.hecom.reporttable.form.data.format.selected.ISelectFormat;
 import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.table.PageTableData;
 import com.hecom.reporttable.form.data.table.TableData;
+import com.hecom.reporttable.form.listener.MainThreadExecuteHandle;
 import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
@@ -36,13 +35,14 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import com.facebook.react.uimanager.ThemedReactContext;
 
 /**
  * Created by huang on 2017/10/30.
  * 表格
  */
 
-public class SmartTable<T> extends View implements OnTableChangeListener {
+public class SmartTable<T> extends View implements OnTableChangeListener, MainThreadExecuteHandle {
 
     private XSequence<T> xAxis;
     private YSequence<T> yAxis;
@@ -58,6 +58,8 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     private TableMeasurer<T> measurer;
     private AnnotationParser<T> annotationParser;
     protected Paint paint;
+
+    protected Paint asteriskPaint;
     protected TextPaint textPaint;
     private MatrixHelper matrixHelper;
     private boolean isExactly = true; //是否是测量精准模式
@@ -88,18 +90,18 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         return mExecutor;
     }
 
-    public SmartTable(Context context) {
+    public SmartTable(ThemedReactContext context) {
         super(context);
         init(context);
         this.mReportTableStore = new ReportTableStore(context,this);
     }
 
-    public SmartTable(Context context, AttributeSet attrs) {
+    public SmartTable(ThemedReactContext context, AttributeSet attrs) {
         super(context, attrs);
         init(context);
     }
 
-    public SmartTable(Context context, AttributeSet attrs, int defStyleAttr) {
+    public SmartTable(ThemedReactContext context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init(context);
     }
@@ -107,10 +109,12 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
     /**
      * 初始化
      */
-    private void init(Context context) {
+    private void init(ThemedReactContext context) {
         FontStyle.setDefaultTextSpSize(getContext(), 14);
         initConfig(context);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        asteriskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        asteriskPaint.setTextAlign(Paint.Align.CENTER);
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(new FontStyle().getTextSize());
@@ -121,19 +125,21 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
         parser = new TableParser<>();
         provider = new TableProvider<>(context);
         config.setPaint(paint);
+        config.setAsteriskPaint(asteriskPaint);
         measurer = new TableMeasurer<>();
         measurer.setContext(context);
         tableTitle = new TableTitle();
         tableTitle.setDirection(IComponent.TOP);
         matrixHelper = new MatrixHelper(getContext());
         matrixHelper.setOnTableChangeListener(this);
+        matrixHelper.setMainThreadExecuteHandle(this);
         matrixHelper.register(provider);
         matrixHelper.setOnInterceptListener(provider.getOperation());
         provider.setMatrixHelper(matrixHelper);
 
     }
 
-    private void initConfig(Context context) {
+    private void initConfig(ThemedReactContext context) {
         config = new TableConfig(context);
         config.dp10 = DensityUtils.dp2px(getContext(), 10);
         config.dp8 = DensityUtils.dp2px(getContext(), 8);
@@ -198,7 +204,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
                         try {
                             provider.onDraw(canvas, scaleRect, showRect, tableData, config);
                         } catch (Exception e) {
-
+                            e.printStackTrace();
                         }
                     }
                 }
@@ -551,7 +557,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
 
     public void setDoubleClickZoom(boolean doubleClickZoom) {
         matrixHelper.setCanDoubleClickZoom(doubleClickZoom);
-        invalidate();
 
     }
 
@@ -703,6 +708,16 @@ public class SmartTable<T> extends View implements OnTableChangeListener {
 
     public void setReportTableConfig(ReportTableStore mReportTableStore) {
         this.mReportTableStore = mReportTableStore;
+    }
+
+    @Override
+    public void updateFlingFlage(final MatrixHelper matrixHelper, final boolean value) {
+        postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                matrixHelper.setAutoFling(value);
+            }
+        },500);
     }
 }
 
