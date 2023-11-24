@@ -211,8 +211,9 @@
         // 取合并的cell
         [ssv.mergedCells enumerateObjectsUsingBlock:^(ZMJCellRange * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             ReportTableCell *cell = [ssv cellForItemAt: [NSIndexPath indexPathWithRow: obj.from.row column: obj.from.column]];
+            BOOL isLockRow = obj.from && obj.from.row <= self.reportTableModel.frozenRows;
             // cell 在显示池
-            if (cell && cell.label != nil) {
+            if (cell && cell.label != nil && !isLockRow) {
                 CGFloat tableHeight = ssv.tableView.frame.size.height;
                 CGRect rect = cell.frame;
                 // label react 超出table Height
