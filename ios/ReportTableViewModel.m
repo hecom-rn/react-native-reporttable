@@ -335,116 +335,132 @@
     CGFloat minHeight = self.reportTableModel.minHeight;
     [self.dataSource removeAllObjects]; // clear
     ItemModel *itemStyle = self.reportTableModel.itemConfig;
-
     for (int i = 0; i < dataSource.count; i++) {
-       NSMutableArray *modelArr = [NSMutableArray arrayWithCapacity: rowCount];
-       CGFloat columnHeigt = minHeight;
-       for (int j = 0; j < dataSource[i].count; j ++) {
-           NSDictionary *columnWidthMap = [self.reportTableModel.columnsWidthMap objectForKey:[NSString stringWithFormat:@"%d", j]];
-           CGFloat minWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"minWidth"] floatValue] : self.reportTableModel.minWidth;
-           CGFloat maxWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"maxWidth"] floatValue] : self.reportTableModel.maxWidth;
-           CGFloat rowWith = minWidth;
-           if (i == 0) {
-               [rowsWidth addObject:[NSNumber numberWithFloat:rowWith]];
-           }
-           NSDictionary *dir = dataSource[i][j];
-           ItemModel *model = [[ItemModel alloc] init];
-           model.itemConfig = self.reportTableModel.itemConfig;
-           NSArray *keys = [dir allKeys];
-           model.keyIndex = [RCTConvert NSInteger:[dir objectForKey:@"keyIndex"]];
-           model.title = [RCTConvert NSString:[dir objectForKey:@"title"]];
-           if ([keys containsObject: @"backgroundColor"]) {
-               model.backgroundColor = [RCTConvert UIColor:[dir objectForKey:@"backgroundColor"]];
-           }
-           if ([keys containsObject: @"fontSize"]) {
-               model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
-           }
-           if ([keys containsObject: @"textColor"]) {
-               model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]] ;
-           }
-           if ([keys containsObject: @"boxLineColor"]) {
-               model.boxLineColor = [RCTConvert UIColor:[dir objectForKey:@"boxLineColor"]] ;
-           }
-           if ([keys containsObject: @"asteriskColor"]) {
-               model.asteriskColor = [RCTConvert UIColor:[dir objectForKey:@"asteriskColor"]] ;
-           }
-           model.textAlignment = model.itemConfig.textAlignment;
-           if ([keys containsObject: @"textAlignment"]) {
-               model.textAlignment = [RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
-           }
-           if ([keys containsObject: @"classificationLinePosition"]) {
-               model.classificationLinePosition = [RCTConvert NSInteger:[dir objectForKey:@"classificationLinePosition"]];
-           }
-           if ([keys containsObject: @"isForbidden"]) {
-               model.isForbidden = [RCTConvert BOOL:[dir objectForKey:@"isForbidden"]];
-           }
-           if ([keys containsObject: @"strikethrough"]) {
-               model.strikethrough = [RCTConvert BOOL:[dir objectForKey:@"strikethrough"]];
-           }
-           model.classificationLineColor = model.itemConfig.classificationLineColor;
-           if ([keys containsObject: @"classificationLineColor"]) {
-               model.classificationLineColor = [RCTConvert UIColor:[dir objectForKey:@"classificationLineColor"]];
-           }
-           if ([keys containsObject: @"textPaddingHorizontal"]) {
-               model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
-           }
-           if ([keys containsObject: @"isOverstriking"]) {
-               model.isOverstriking = [RCTConvert BOOL:[dir objectForKey:@"isOverstriking"]];
-           }
-           NSDictionary *iconDic = [dir objectForKey:@"icon"] ? [RCTConvert NSDictionary:[dir objectForKey:@"icon"]] : nil;
-           if (iconDic != nil) {
-               IconStyle *icon = [[IconStyle alloc] init];
-               icon.size = CGSizeMake([[iconDic objectForKey:@"width"] floatValue], [[iconDic objectForKey:@"height"] floatValue]);
-               icon.path = [iconDic objectForKey:@"path"];
-               icon.imageAlignment = [[iconDic objectForKey:@"imageAlignment"] integerValue];
-               if ([iconDic objectForKey:@"paddingHorizontal"]) {
-                   icon.paddingHorizontal = [[iconDic objectForKey:@"paddingHorizontal"] floatValue];
-               }
-               model.iconStyle = icon;
-           }
-           BOOL showLock = false;
-           if (i == 0) {
-               if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
-                   showLock = true;
-               } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
-                   showLock = true;
-               }
-           }
-           
-           CGFloat imageIconWidth = (showLock ? 13 : iconDic != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
-           CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.asteriskColor != nil ? 10 : 0); //margin
-           CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: maxWidth - exceptText];
-           // 不是一行
-           if (textRect.size.width + 5 + exceptText > minWidth || textRect.size.height > model.fontSize + 5) {
-               if (textRect.size.height < model.fontSize + 4) {
-                   rowWith = textRect.size.width + exceptText + 8;
-               } else {
-                   rowWith = maxWidth;
-                   CGFloat textHeight = textRect.size.height + (minHeight - model.fontSize - 3); // marginVer*2
-                   int samekey = 1;
-                   for (int k = i + 1; k < dataSource.count; k++) {
-                       NSInteger nextKeyIndex = [RCTConvert NSInteger:[dataSource[k][j] objectForKey:@"keyIndex"]];
-                       if (nextKeyIndex == model.keyIndex) {
-                           samekey += 1;
-                       } else {
-                           break;
-                       }
-                   }
-                   textHeight /= samekey;
-                   
-                   for (int k = i + 1; k < samekey + i; k++) {
-                       [dataSource[k][j] setObject: [NSNumber numberWithFloat: MAX(textHeight, minHeight)] forKey: @"apportionHeight"];
-                   }
-                   NSNumber *apportionHeight = [dir objectForKey:@"apportionHeight"];
-                   columnHeigt = MAX(columnHeigt, apportionHeight == nil ? textHeight : [apportionHeight floatValue]);
-               }
+        NSMutableArray *modelArr = [NSMutableArray arrayWithCapacity: rowCount];
+        CGFloat columnHeigt = minHeight;
+        NSMutableArray *mergeLen = [NSMutableArray arrayWithCapacity: rowCount]; // 对应index 会有多少个合并
+        NSInteger curKeyIndex = -1;
+        NSInteger sameLenth = 1;
+        for (int j = 0; j < dataSource[i].count; j ++) {
+            NSDictionary *dir = dataSource[i][j];
+            ItemModel *model = [[ItemModel alloc] init];
+            model.itemConfig = self.reportTableModel.itemConfig;
+            NSArray *keys = [dir allKeys];
+            model.keyIndex = [RCTConvert NSInteger:[dir objectForKey:@"keyIndex"]];
+            if (curKeyIndex != model.keyIndex || j == rowCount - 1) {
+                for(int k = 0; k < sameLenth; k++) {
+                   [mergeLen addObject:@(sameLenth)];
+                }
+                sameLenth = 1;
             } else {
-               rowWith = minWidth;
+                sameLenth += 1;
+            }
+            curKeyIndex = model.keyIndex;
+            model.title = [RCTConvert NSString:[dir objectForKey:@"title"]];
+            if ([keys containsObject: @"backgroundColor"]) {
+                model.backgroundColor = [RCTConvert UIColor:[dir objectForKey:@"backgroundColor"]];
+            }
+            if ([keys containsObject: @"fontSize"]) {
+                model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
+            }
+            if ([keys containsObject: @"textColor"]) {
+                model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]] ;
+            }
+            if ([keys containsObject: @"boxLineColor"]) {
+                model.boxLineColor = [RCTConvert UIColor:[dir objectForKey:@"boxLineColor"]] ;
+            }
+            if ([keys containsObject: @"asteriskColor"]) {
+                model.asteriskColor = [RCTConvert UIColor:[dir objectForKey:@"asteriskColor"]] ;
+            }
+            model.textAlignment = model.itemConfig.textAlignment;
+            if ([keys containsObject: @"textAlignment"]) {
+                model.textAlignment = [RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
+            }
+            if ([keys containsObject: @"classificationLinePosition"]) {
+                model.classificationLinePosition = [RCTConvert NSInteger:[dir objectForKey:@"classificationLinePosition"]];
+            }
+            if ([keys containsObject: @"isForbidden"]) {
+                model.isForbidden = [RCTConvert BOOL:[dir objectForKey:@"isForbidden"]];
+            }
+            if ([keys containsObject: @"strikethrough"]) {
+                model.strikethrough = [RCTConvert BOOL:[dir objectForKey:@"strikethrough"]];
+            }
+            model.classificationLineColor = model.itemConfig.classificationLineColor;
+            if ([keys containsObject: @"classificationLineColor"]) {
+                model.classificationLineColor = [RCTConvert UIColor:[dir objectForKey:@"classificationLineColor"]];
+            }
+            if ([keys containsObject: @"textPaddingHorizontal"]) {
+                model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
+            }
+            if ([keys containsObject: @"isOverstriking"]) {
+                model.isOverstriking = [RCTConvert BOOL:[dir objectForKey:@"isOverstriking"]];
+            }
+            NSDictionary *iconDic = [dir objectForKey:@"icon"] ? [RCTConvert NSDictionary:[dir objectForKey:@"icon"]] : nil;
+            if (iconDic != nil) {
+                IconStyle *icon = [[IconStyle alloc] init];
+                icon.size = CGSizeMake([[iconDic objectForKey:@"width"] floatValue], [[iconDic objectForKey:@"height"] floatValue]);
+                icon.path = [iconDic objectForKey:@"path"];
+                icon.imageAlignment = [[iconDic objectForKey:@"imageAlignment"] integerValue];
+                if ([iconDic objectForKey:@"paddingHorizontal"]) {
+                    icon.paddingHorizontal = [[iconDic objectForKey:@"paddingHorizontal"] floatValue];
+                }
+                model.iconStyle = icon;
+            }
+            [modelArr addObject: model];
+         }
+       for (int j = 0; j < dataSource[i].count; j ++) {
+            NSDictionary *columnWidthMap = [self.reportTableModel.columnsWidthMap objectForKey:[NSString stringWithFormat:@"%d", j]];
+            CGFloat minWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"minWidth"] floatValue] : self.reportTableModel.minWidth;
+            CGFloat maxWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"maxWidth"] floatValue] : self.reportTableModel.maxWidth;
+            CGFloat rowWith = minWidth;
+            if (i == 0) {
+                [rowsWidth addObject:[NSNumber numberWithFloat:rowWith]];
+            }
+            NSInteger mergeNum = [mergeLen[j] intValue];
+            ItemModel *model = modelArr[j];
+            NSDictionary *dir = dataSource[i][j];
+            BOOL showLock = false;
+            if (i == 0) {
+                if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
+                    showLock = true;
+                } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
+                    showLock = true;
+                }
+            }
+            CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
+            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.asteriskColor != nil ? 10 : 0); //margin
+            CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: MAX(maxWidth, mergeNum * minWidth) - exceptText];
+            if (textRect.size.width + 5 + exceptText > mergeNum * minWidth || textRect.size.height > model.fontSize + 5) {
+                BOOL useMerge = mergeNum > maxWidth/ minWidth; // 当横向有合并时，使用最小宽度来计算对应的高
+                if (textRect.size.height < model.fontSize * 1.5) {
+                   // minWidth < text < maxWidth
+                    rowWith =  useMerge ? maxWidth + 6 : textRect.size.width + exceptText + 8; // 加的是额外的容错空间
+                } else {
+                   // 多行
+                    rowWith = useMerge ? minWidth : maxWidth;
+                    CGFloat textHeight = textRect.size.height + (minHeight - model.fontSize - 3); // marginVer*2
+                    int samekey = 1;
+                    for (int k = i + 1; k < dataSource.count; k++) {
+                        NSInteger nextKeyIndex = [RCTConvert NSInteger:[dataSource[k][j] objectForKey:@"keyIndex"]];
+                        if (nextKeyIndex == model.keyIndex) {
+                            samekey += 1;
+                        } else {
+                           break;
+                        }
+                    }
+                    textHeight /= samekey;
+                    for (int k = i + 1; k < samekey + i; k++) {
+                        [dataSource[k][j] setObject: [NSNumber numberWithFloat: MAX(textHeight, minHeight)] forKey: @"apportionHeight"];
+                    }
+                    NSNumber *apportionHeight = [dir objectForKey:@"apportionHeight"]; // 记录一下纵向合并
+                    columnHeigt = MAX(columnHeigt, apportionHeight == nil ? textHeight : [apportionHeight floatValue]);
+                }
+            } else {
+                rowWith = minWidth;
             }
             if ([rowsWidth[j] floatValue] < rowWith) {
-               rowsWidth[j] = [NSNumber numberWithFloat:rowWith];
+                rowsWidth[j] = [NSNumber numberWithFloat:rowWith];
             }
-           [modelArr addObject: model];
         }
         [cloumsHight addObject:[NSNumber numberWithFloat:columnHeigt]];
         [self.dataSource addObject:modelArr];
