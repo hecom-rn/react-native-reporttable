@@ -8,6 +8,18 @@
 #import "ReportTableModel.h"
 
 
+@implementation ExtraTextBackGroundStyle
+
+@end
+
+@implementation ExtraTextStyle
+
+@end
+
+@implementation ExtraText
+
+@end
+
 @implementation IconStyle
 - (NSInteger)imageAlignment {
     if (!_imageAlignment) {

@@ -119,6 +119,20 @@ declare module "@hecom/react-native-report-table" {
 
         isOverstriking?: boolean; // 文本是否加粗。 default false
         icon?: IconStyle;
+
+        extraText?: {
+            backgroundStyle: {
+                color: Color;
+                width: number;
+                height: number;
+            },
+            style: {
+                color: Color;
+                fontSize: number;
+            }, 
+            text: string;
+            isLeft: boolean; // 在原本文本左边 default false
+        }; // 在原本文本内容中额外追加的文本
     }
 
     export interface IconStyle {

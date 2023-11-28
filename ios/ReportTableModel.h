@@ -15,6 +15,25 @@
 @property (nonatomic, assign) CGFloat paddingHorizontal;
 @end
 
+@interface ExtraTextBackGroundStyle: NSObject
+@property (nonatomic, strong) UIColor *color;
+@property (nonatomic, assign) CGFloat width;
+@property (nonatomic, assign) CGFloat height;
+@property (nonatomic, assign) CGFloat radius;
+@end
+
+@interface ExtraTextStyle: NSObject
+@property (nonatomic, strong) UIColor *color;
+@property (nonatomic, assign) CGFloat fontSize;
+@end
+
+@interface ExtraText: NSObject
+@property (nonatomic, strong) NSString *text;
+@property (nonatomic, strong) ExtraTextBackGroundStyle *backgroundStyle;
+@property (nonatomic, strong) ExtraTextStyle *style;
+@property (nonatomic, assign) BOOL isLeft;
+@end
+
 
 typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
     ClassificationLinePositionNone = 0,
@@ -46,6 +65,7 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, assign) NSInteger verCount;
 @property (nonatomic, strong) IconStyle *iconStyle;
 @property (nonatomic, strong) ItemModel *itemConfig;
+@property (nonatomic, strong) ExtraText *extraText;
 @end
 
 @interface ForzenRange: NSObject

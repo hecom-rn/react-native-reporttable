@@ -406,9 +406,32 @@
                 }
                 model.iconStyle = icon;
             }
+            NSDictionary *extraTextDic = [dir objectForKey:@"extraText"] ? [RCTConvert NSDictionary:[dir objectForKey:@"extraText"]] : nil;
+            if (extraTextDic != nil) {
+                ExtraText *text = [[ExtraText alloc] init];
+                text.text = [extraTextDic objectForKey:@"text"];
+                text.isLeft = [RCTConvert BOOL:[extraTextDic objectForKey:@"isLeft"]];
+                NSDictionary *backgroundStyleDic = [extraTextDic objectForKey:@"backgroundStyle"];
+                if (backgroundStyleDic) {
+                    ExtraTextBackGroundStyle *bgStyle = [[ExtraTextBackGroundStyle alloc] init];
+                    bgStyle.width = [[backgroundStyleDic objectForKey:@"width"] floatValue];
+                    bgStyle.height = [[backgroundStyleDic objectForKey:@"height"] floatValue];
+                    bgStyle.radius = [[backgroundStyleDic objectForKey:@"radius"] floatValue];
+                    bgStyle.color = [RCTConvert UIColor:[backgroundStyleDic objectForKey:@"color"]] ;
+                    text.backgroundStyle = bgStyle;
+                }
+                NSDictionary *styleDic = [extraTextDic objectForKey:@"style"];
+                if (styleDic) {
+                    ExtraTextStyle *style = [[ExtraTextStyle alloc] init];
+                    style.fontSize = [[styleDic objectForKey:@"fontSize"] floatValue];
+                    style.color =  [RCTConvert UIColor:[styleDic objectForKey:@"color"]] ;
+                    text.style = style;
+                }
+                model.extraText = text;
+            }
             [modelArr addObject: model];
-         }
-       for (int j = 0; j < dataSource[i].count; j ++) {
+        }
+        for (int j = 0; j < dataSource[i].count; j ++) {
             NSDictionary *columnWidthMap = [self.reportTableModel.columnsWidthMap objectForKey:[NSString stringWithFormat:@"%d", j]];
             CGFloat minWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"minWidth"] floatValue] : self.reportTableModel.minWidth;
             CGFloat maxWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"maxWidth"] floatValue] : self.reportTableModel.maxWidth;
@@ -428,7 +451,7 @@
                 }
             }
             CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
-            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.asteriskColor != nil ? 10 : 0); //margin
+            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.asteriskColor != nil ? 10 : 0) + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
             CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: MAX(maxWidth, mergeNum * minWidth) - exceptText];
             CGFloat tolerant = 6; // 额外的容错空间
             if (textRect.size.width + tolerant + exceptText > mergeNum * minWidth || textRect.size.height > model.fontSize * 1.5) {

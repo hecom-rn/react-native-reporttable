@@ -12,6 +12,7 @@
 #import "ReportTableHeaderView.h"
 #import "UIView+Toast.h"
 #import "ReportTableEvent.h"
+#import "UIImage+ImageTag.h"
 
 @interface ReportTableView () <SpreadsheetViewDelegate, SpreadsheetViewDataSource, UIScrollViewDelegate>
 
@@ -327,7 +328,31 @@
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
 
     UIFont *font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
-    if (model.asteriskColor != nil) {
+    if (model.extraText) {
+        NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString: model.title];
+        NSRange range = NSMakeRange(0, model.title.length);
+        [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:range];
+        [attributedText addAttribute:NSFontAttributeName value:font range:range];
+        if (model.strikethrough) {
+            // 添加删除线
+            [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
+        }
+        NSTextAttachment *attachment = [[NSTextAttachment alloc] init];
+        UIImage *image = [UIImage imageWithExtra:model.extraText];
+        attachment.image = image;
+        NSAttributedString *tagString = [NSAttributedString attributedStringWithAttachment:attachment];
+        if (model.extraText.isLeft) {
+            [attributedText insertAttributedString:tagString atIndex:0];
+            [attributedText addAttribute:NSKernAttributeName value:@(2) range:NSMakeRange(0, 1)];
+            [attributedText addAttribute:NSBaselineOffsetAttributeName value:@(-3) range:NSMakeRange(0, tagString.length)];
+        } else {
+            [attributedText insertAttributedString:tagString atIndex:model.title.length];
+            [attributedText addAttribute:NSKernAttributeName value:@(2) range:NSMakeRange(MAX(model.title.length - 1, 0), 1)];
+            [attributedText addAttribute:NSBaselineOffsetAttributeName value:@(-3) range:NSMakeRange(model.title.length, 1)];
+        }
+        cell.label.attributedText = attributedText;
+        
+    } else if (model.asteriskColor != nil) {
         NSMutableAttributedString *attributedText;
         NSRange range;
         NSRange nonRequiredRange;
