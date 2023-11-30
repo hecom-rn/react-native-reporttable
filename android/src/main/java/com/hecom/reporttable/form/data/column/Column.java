@@ -13,6 +13,7 @@ import com.hecom.reporttable.form.data.format.draw.FastTextDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.MultiLineDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
+import com.hecom.reporttable.form.data.format.draw.WrapTextResult;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
 import com.hecom.reporttable.form.utils.LetterUtils;
 
@@ -42,7 +43,7 @@ public class Column<T> implements Comparable<Column> {
     private IDrawFormat<T> drawFormat;
     private String fieldName;
     private List<T> datas;
-    private List<String> formatDatas;
+    private List<WrapTextResult> formatDatas;
     private boolean isFixed;
     private int computeWidth;
     private int level;
@@ -376,7 +377,7 @@ public class Column<T> implements Comparable<Column> {
     }
 
 
-    public void setFormatData(int position, String value){
+    public void setFormatData(int position, WrapTextResult value){
         if(position >=0 && position< datas.size()){
             formatDatas.set(position,value);
         }
@@ -385,14 +386,14 @@ public class Column<T> implements Comparable<Column> {
     public String format(int position){
        if(position >=0 && position< datas.size()){
            if(formatDatas.get(position)!=null){
-               return formatDatas.get(position);
+               return formatDatas.get(position).text;
            }
           return format(datas.get(position));
        }
        return INVAL_VALUE;
     }
 
-    public String getCacheWrapText(int position){
+    public WrapTextResult getCacheWrapText(int position){
         if(position >=0 && position< datas.size()){
             if(formatDatas.get(position)!=null){
                 return formatDatas.get(position);
@@ -801,7 +802,7 @@ public class Column<T> implements Comparable<Column> {
      public String format(int position, int frozenCount,int frozenPoint){
             if(position >=0 && position< datas.size()){
                 if(formatDatas.get(position)!=null){
-                     return formatDatas.get(position);
+                     return formatDatas.get(position).text;
                 }
                 return format(datas.get(position), position, frozenCount, frozenPoint);
             }

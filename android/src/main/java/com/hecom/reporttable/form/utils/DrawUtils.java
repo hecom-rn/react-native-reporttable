@@ -129,13 +129,26 @@ public class DrawUtils {
      * @param rect
      */
     public static void drawMultiText(Canvas canvas,Paint paint,Rect rect,String[] values){
-//        Log.e(TAG, "drawMultiText");
         for(int i =0;i <values.length;i++) {
-//            Log.e(TAG, values[i]);
             int centerY = (int) ((rect.bottom + rect.top) / 2+ (values.length/2f-i-0.5)*getTextHeight(paint));
             canvas.drawText(values[values.length-i-1], DrawUtils.getTextCenterX(rect.left, rect.right, paint),
                     DrawUtils.getTextCenterY(centerY, paint), paint);
         }
+    }
+
+    /**
+     * 绘制多行文字
+     * @param canvas
+     * @param paint
+     * @param rect
+     */
+    public static void drawMultiText(Canvas canvas,Paint paint,Rect rect,CharSequence value){
+//        Log.e(TAG, "drawMultiText");
+//        for(int i =0;i <values.length;i++) {
+//            Log.e(TAG, values[i]);
+            canvas.drawText(value,0,value.length(), DrawUtils.getTextCenterX(rect.left, rect.right, paint),
+                    DrawUtils.getTextCenterY(rect.centerY(), paint), paint);
+//        }
     }
 
     /**
