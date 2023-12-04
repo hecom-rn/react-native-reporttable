@@ -199,6 +199,10 @@
                 }
                 [weak_self setMergedCellsLabelOffset];
             };
+            ssv.rowHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_rowHeaderView"];
+            ssv.cornerView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_cornerView"];
+            ssv.tableView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_tableView"];
+            ssv.columnHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_columnHeaderView"];
             [self addSubview:ssv];
             ssv;
         });
@@ -311,6 +315,7 @@
         }
     }
     cell.gridlines = nil;
+    cell.contentView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_%d_%d", row, column];
     if (ClassificationLinePositionTop & model.classificationLinePosition) {
         cell.gridlines.top = [GridStyle style:GridStyle_solid width:1 color: model.classificationLineColor];
     }
