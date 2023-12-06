@@ -10,7 +10,10 @@ public class ExtraTextConfig {
     public String text;
     public boolean isLeft;
 
-   public ExtraTextConfig(Style backgroundStyle, Style style, String text, boolean isLeft) {
+    public ExtraTextConfig() {
+    }
+
+    public ExtraTextConfig(Style backgroundStyle, Style style, String text, boolean isLeft) {
       this.backgroundStyle = backgroundStyle;
       this.style = style;
       this.text = text;

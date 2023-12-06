@@ -57,18 +57,18 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         if (extraText == null) {
             return mainTextWidth;
         } else {
-            int maxWidth =  column.getMaxWidth();
-            int extraWidth = extraText.backgroundStyle.width+2;
-            if(maxWidth<0){
+            int maxWidth = column.getMaxWidth();
+            int extraWidth = config.getSp2Px(extraText.backgroundStyle.width + 2);
+            if (maxWidth < 0) {
                 return mainTextWidth + extraWidth;
-            }else{
+            } else {
                 int paddingLeftSize = config.getTextLeftOffset();
                 int paddingRightSize = config.getTextRightOffset();
-                int margin =  (int) (iconSpace + asteriskWidth);
-                if(maxWidth-paddingLeftSize-paddingRightSize-margin- result.lastLineWidth > extraWidth){
-                    return (int) Math.max(result.lastLineWidth+ extraWidth,mainTextWidth);
-                }else {
-                    return  Math.max(extraWidth,mainTextWidth);
+                int margin = (int) (iconSpace + asteriskWidth);
+                if (maxWidth - paddingLeftSize - paddingRightSize - margin - result.lastLineWidth > extraWidth) {
+                    return (int) Math.max(result.lastLineWidth + extraWidth, mainTextWidth);
+                } else {
+                    return Math.max(extraWidth, mainTextWidth);
                 }
             }
         }
@@ -87,18 +87,18 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         if (extraText == null) {
             return mainTextHeight;
         } else {
-            int maxWidth =  column.getMaxWidth();
-            if(maxWidth<0){
+            int maxWidth = column.getMaxWidth();
+            if (maxWidth < 0) {
                 return mainTextHeight;
-            }else{
-                int extraWidth = extraText.backgroundStyle.width+2;
+            } else {
+                int extraWidth = config.getSp2Px(extraText.backgroundStyle.width + 2);
                 int extraHeight = extraText.backgroundStyle.height;
                 int paddingLeftSize = config.getTextLeftOffset();
                 int paddingRightSize = config.getTextRightOffset();
-                int margin =  (int) (iconSpace + asteriskWidth);
-                if(maxWidth-paddingLeftSize-paddingRightSize-margin- result.lastLineWidth > extraWidth){
+                int margin = (int) (iconSpace + asteriskWidth);
+                if (maxWidth - paddingLeftSize - paddingRightSize - margin - result.lastLineWidth > extraWidth) {
                     return mainTextHeight;
-                }else {
+                } else {
                     return mainTextHeight + extraHeight;
                 }
             }
@@ -109,13 +109,13 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureWidth(Column<T> column, int position, TableConfig config, boolean onlyCalculate, int specWidth) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        JsonTableBean jsonTableBean = config.getTabArr()[column.getColumn()][position];
+        JsonTableBean jsonTableBean = config.getTabArr()[position][column.getColumn()];
         ExtraTextConfig extraText = jsonTableBean.extraText;
         WrapTextResult result = column.getCacheWrapText(position);
         float asteriskWidth = 0;
-        int iconSpace=0;
-        if(null == result||extraText != null){
-             asteriskWidth = TableUtil.calculateAsteriskWidth(config, column.getColumn(), position);
+        int iconSpace = 0;
+        if (null == result || extraText != null) {
+            asteriskWidth = TableUtil.calculateAsteriskWidth(config, column.getColumn(), position);
             iconSpace = TableUtil.calculateIconWidth(config, column.getColumn(), position);
         }
         if (null == result) {
@@ -128,18 +128,18 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         if (extraText == null) {
             return mainTextWidth;
         } else {
-            int maxWidth =  column.getMaxWidth();
-            int extraWidth = extraText.backgroundStyle.width+2;
-            if(maxWidth<0){
+            int maxWidth = column.getMaxWidth();
+            int extraWidth = config.getSp2Px(extraText.backgroundStyle.width + 2);
+            if (maxWidth < 0) {
                 return mainTextWidth + extraWidth;
-            }else{
+            } else {
                 int paddingLeftSize = config.getTextLeftOffset();
                 int paddingRightSize = config.getTextRightOffset();
-                int margin =  (int) (iconSpace + asteriskWidth);
-                if(maxWidth-paddingLeftSize-paddingRightSize-margin- result.lastLineWidth > extraWidth){
-                    return (int) Math.max(result.lastLineWidth+ extraWidth,mainTextWidth);
-                }else {
-                    return  Math.max(extraWidth,mainTextWidth);
+                int margin = (int) (iconSpace + asteriskWidth);
+                if (maxWidth - paddingLeftSize - paddingRightSize - margin - result.lastLineWidth > extraWidth) {
+                    return (int) Math.max(result.lastLineWidth + extraWidth, mainTextWidth);
+                } else {
+                    return Math.max(extraWidth, mainTextWidth);
                 }
             }
         }
@@ -150,12 +150,12 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureHeight(Column<T> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        JsonTableBean jsonTableBean = config.getTabArr()[column.getColumn()][position];
+        JsonTableBean jsonTableBean = config.getTabArr()[position][column.getColumn()];
         ExtraTextConfig extraText = jsonTableBean.extraText;
         WrapTextResult result = column.getCacheWrapText(position);
         float asteriskWidth = 0;
-        int iconSpace=0;
-        if(null == result||extraText != null){
+        int iconSpace = 0;
+        if (null == result || extraText != null) {
             asteriskWidth = TableUtil.calculateAsteriskWidth(config, column.getColumn(), position);
             iconSpace = TableUtil.calculateIconWidth(config, column.getColumn(), position);
         }
@@ -168,18 +168,18 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         if (extraText == null) {
             return mainTextHeight;
         } else {
-            int maxWidth =  column.getMaxWidth();
-            if(maxWidth<0){
+            int maxWidth = column.getMaxWidth();
+            if (maxWidth < 0) {
                 return mainTextHeight;
-            }else{
-                int extraWidth = extraText.backgroundStyle.width+2;
+            } else {
+                int extraWidth = config.getSp2Px(extraText.backgroundStyle.width + 2);
                 int extraHeight = extraText.backgroundStyle.height;
                 int paddingLeftSize = config.getTextLeftOffset();
                 int paddingRightSize = config.getTextRightOffset();
-                int margin =  (int) (iconSpace + asteriskWidth);
-                if(maxWidth-paddingLeftSize-paddingRightSize-margin- result.lastLineWidth > extraWidth){
+                int margin = (int) (iconSpace + asteriskWidth);
+                if (maxWidth - paddingLeftSize - paddingRightSize - margin - result.lastLineWidth > extraWidth) {
                     return mainTextHeight;
-                }else {
+                } else {
                     return mainTextHeight + extraHeight;
                 }
             }
@@ -225,39 +225,53 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         }
     }
 
-    private  void drawAsterisk(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+    private void drawAsterisk(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
         Paint asteriskPaint = config.getAsteriskPaint();
         JsonTableBean jsonTableBean = config.getTabArr()[cellInfo.row][cellInfo.col];
         String asteriskColor = jsonTableBean.getAsteriskColor();
         int textSize = (jsonTableBean.getFontSize() != null && jsonTableBean.getFontSize().compareTo(0) > 0) ? jsonTableBean.getFontSize() : config.getContentStyle().getTextSize();
         asteriskPaint.setTextSize(textSize * config.getZoom());
         asteriskPaint.setColor(Color.parseColor(asteriskColor));
-        DrawUtils.drawMultiText(c,asteriskPaint,rect, config.ASTERISK_ARRAY);
+        DrawUtils.drawMultiText(c, asteriskPaint, rect, config.ASTERISK_ARRAY);
     }
 
     protected float drawText(Canvas c, CellInfo<T> cellInfo, Rect rect, Paint paint, TableConfig config, int marginRight) {
-        WrapTextResult result=null;
-        if(cellInfo.wrapFlag){
+        WrapTextResult result = null;
+        if (cellInfo.wrapFlag) {
             result = cellInfo.column.getCacheWrapText(cellInfo.row);
-        }else {
-            result =  getWrapText(cellInfo.value, paint, config, marginRight, rect);
+        } else {
+            result = getWrapText(cellInfo.value, paint, config, marginRight, rect);
         }
         String[] values = getSplitString(result.text);
-        ExtraTextConfig extraText = config.getTabArr()[cellInfo.col][cellInfo.row].extraText;
-        if(extraText ==null){
+        ExtraTextConfig extraText = config.getTabArr()[cellInfo.row][cellInfo.col].extraText;
+        if (extraText == null) {
             DrawUtils.drawSingleText(c, paint, rect, result.text);
             return DrawUtils.getMultiTextWidth(paint, values);
-        }else {
-            if(rect.width()-result.lastLineWidth<extraText.backgroundStyle.width){
+        } else {
+            if (rect.width() - result.lastLineWidth < config.getSp2Px(extraText.backgroundStyle.width)) {
                 SpannableString span = new SpannableString(result.text + "\n" + extraText.text);
-                span.setSpan(new RadiusBackgroundSpan(0xffff00,2),result.text.length(),result.text.length()+extraText.text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                span.setSpan(new RadiusBackgroundSpan(
+                                Color.parseColor(extraText.backgroundStyle.color),
+                                Color.parseColor(extraText.style.color),
+                                2,
+                                config.getSp2Px(config.getSp2Px(extraText.backgroundStyle.width)),
+                                config.getSp2Px(config.getSp2Px(extraText.backgroundStyle.width)),
+                                config.getSp2Px(config.getSp2Px(extraText.style.fontSize))),
+                        result.text.length(), result.text.length() + extraText.text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 DrawUtils.drawMultiText(c, paint, rect, span);
                 return DrawUtils.getMultiTextWidth(paint, values);
-            }else {
+            } else {
                 SpannableString span = new SpannableString(result.text + extraText.text);
-                span.setSpan(new RadiusBackgroundSpan(0xffff00,2),result.text.length(),result.text.length()+extraText.text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                span.setSpan(new RadiusBackgroundSpan(
+                                Color.parseColor(extraText.backgroundStyle.color),
+                                Color.parseColor(extraText.style.color),
+                                2,
+                                config.getSp2Px(config.getSp2Px(extraText.backgroundStyle.width)),
+                                config.getSp2Px(config.getSp2Px(extraText.backgroundStyle.width)),
+                                config.getSp2Px(config.getSp2Px(extraText.style.fontSize))),
+                        result.text.length(), result.text.length() + extraText.text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 DrawUtils.drawMultiText(c, paint, rect, span);
-                return Math.max(DrawUtils.getMultiTextWidth(paint, values),result.lastLineWidth+extraText.backgroundStyle.width);
+                return Math.max(DrawUtils.getMultiTextWidth(paint, values), result.lastLineWidth + config.getSp2Px(extraText.backgroundStyle.width));
             }
         }
     }
@@ -273,7 +287,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         paint.setTextSize(paint.getTextSize() * config.getZoom() * config.getPartlyCellZoom());
         paint.setFakeBoldText(config.getTabArr()[cellInfo.row][cellInfo.col].isOverstriking);
         paint.setTextAlign(TableUtil.getAlignConfig(config, cellInfo.row, cellInfo.col));
-        paint.setStrikeThruText(null==jsonTableBean.strikethrough?false:jsonTableBean.strikethrough);
+        paint.setStrikeThruText(null == jsonTableBean.strikethrough ? false : jsonTableBean.strikethrough);
     }
 
     protected String[] getSplitString(String val) {
@@ -303,8 +317,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     }
 
     private WrapTextResult getWrapText(String value, Paint paint, int marginRight, int paddingLeftSize, int paddingRightSize, int maxWidth) {
-        if (TextUtils.isEmpty(value) || maxWidth <= 0){
-            return new WrapTextResult(value,0);
+        if (TextUtils.isEmpty(value) || maxWidth <= 0) {
+            return new WrapTextResult(value, 0);
         } else {
             float strLen = paint.measureText(value);
             int leeway = paddingLeftSize + paddingRightSize + (marginRight > 0 ? marginRight : 0);
@@ -336,16 +350,16 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                         start = end;
                     }
                 } else {
-                    if(end - start == 1){
+                    if (end - start == 1) {
                         limitWidthError = true;
                         curLineStr = temp;
-                        start=end;
+                        start = end;
                         end = breakIterator.next();
-                        if(end != BreakIterator.DONE){
+                        if (end != BreakIterator.DONE) {
                             stringBuilder.append(curLineStr);
                             stringBuilder.append("\n");
                         }
-                    }else {
+                    } else {
                         stringBuilder.append(curLineStr);
                         stringBuilder.append("\n");
                         start = end - 1;
@@ -354,8 +368,8 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
                 }
                 end = breakIterator.next();
             }
-            if(limitWidthError){
-                Log.w("TextDrawFormat",value+"————外部限定所在单元格宽度过小！！！");
+            if (limitWidthError) {
+                Log.w("TextDrawFormat", value + "————外部限定所在单元格宽度过小！！！");
             }
             stringBuilder.append(curLineStr);
             return new WrapTextResult(stringBuilder.toString(), curStrLen);

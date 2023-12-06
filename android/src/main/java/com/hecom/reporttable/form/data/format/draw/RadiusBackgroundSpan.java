@@ -10,17 +10,26 @@ import android.text.style.ReplacementSpan;
  * Created on 2023/11/30.
  */
 public class RadiusBackgroundSpan  extends ReplacementSpan {
+   private final int foregroundColor;
+   private final int height;
+   private final int fontSize;
    private int backgroundColor;
    private int cornerRadius;
+   private int width;
 
-   public RadiusBackgroundSpan(int backgroundColor, int cornerRadius) {
+   public RadiusBackgroundSpan(int backgroundColor, int foregroundColor, int cornerRadius, int width, int height,  int fontSize) {
       this.backgroundColor = backgroundColor;
+      this.foregroundColor = foregroundColor;
       this.cornerRadius = cornerRadius;
+      this.width = width;
+      this.height = height;
+      this.fontSize = fontSize;
    }
 
    @Override
    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) {
-      return Math.round(paint.measureText(text, start, end));
+//      return Math.round(paint.measureText(text, start, end));
+      return this.width;
    }
 
    @Override
@@ -32,12 +41,16 @@ public class RadiusBackgroundSpan  extends ReplacementSpan {
       // 绘制圆角矩形背景
       paint.setColor(backgroundColor);
       paint.setStyle(Paint.Style.FILL);
-      RectF rect = new RectF(x, top, x + paint.measureText(text, start, end), bottom);
+//      RectF rect = new RectF(x, top, x + paint.measureText(text, start, end), bottom);
+      RectF rect = new RectF(x, top, x + this.width, bottom);
       canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
 
       // 绘制文字
+      paint.setColor(foregroundColor);
+      paint.setTextSize(10);
+      canvas.drawText(text, start, end, x, y, paint);
+
       paint.setColor(originalColor);
       paint.setStyle(originalStyle);
-      canvas.drawText(text, start, end, x, y, paint);
    }
 }

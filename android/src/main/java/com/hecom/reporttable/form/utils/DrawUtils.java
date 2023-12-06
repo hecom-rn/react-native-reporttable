@@ -4,10 +4,18 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.NinePatch;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.os.Build;
+import android.text.Layout;
+import android.text.SpannableString;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+
+import androidx.annotation.RequiresApi;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.style.FontStyle;
@@ -142,12 +150,36 @@ public class DrawUtils {
      * @param paint
      * @param rect
      */
-    public static void drawMultiText(Canvas canvas,Paint paint,Rect rect,CharSequence value){
-//        Log.e(TAG, "drawMultiText");
-//        for(int i =0;i <values.length;i++) {
-//            Log.e(TAG, values[i]);
-            canvas.drawText(value,0,value.length(), DrawUtils.getTextCenterX(rect.left, rect.right, paint),
-                    DrawUtils.getTextCenterY(rect.centerY(), paint), paint);
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public static void drawMultiText(Canvas canvas, Paint paint, Rect rect, SpannableString spannableString){
+        int saveCount = canvas.getSaveCount();
+        canvas.save();
+        StaticLayout.Builder builder  =StaticLayout.Builder.obtain( spannableString,0,spannableString.length(),new TextPaint(paint), rect.width());
+        builder.setAlignment( Layout.Alignment.ALIGN_NORMAL);
+        StaticLayout staticLayout = builder.build();
+        int dx = 0; // x 方向偏移量
+        int dy = 0; // y 方向偏移量
+
+        // 根据对齐方式计算偏移量
+        switch ( paint.getTextAlign()) {
+            case LEFT: // 左对齐
+                dx = 0;
+                break;
+            case CENTER: // 居中对齐
+                dx = (rect.width()) / 2;
+                break;
+            case RIGHT: // 右对齐
+                dx = rect.width();
+                break;
+        }
+
+        // 计算垂直居中的偏移量
+        dy = (rect.height() - staticLayout.getHeight()) / 2;
+        canvas.translate(rect.left + dx, rect.top + dy);
+
+        // 绘制文本
+        staticLayout.draw(canvas);
+        canvas.restoreToCount(saveCount);
 //        }
     }
 
@@ -158,9 +190,38 @@ public class DrawUtils {
      * @param rect
      * @param value
      */
-    public static void drawSingleText(Canvas canvas,Paint paint,Rect rect,String value){
-        canvas.drawText(value, DrawUtils.getTextCenterX(rect.left, rect.right, paint),
-                DrawUtils.getTextCenterY(rect.centerY(), paint), paint);
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public static void drawSingleText(Canvas canvas, Paint paint, Rect rect, String value){
+//        canvas.drawText(value, DrawUtils.getTextCenterX(rect.left, rect.right, paint),
+//                DrawUtils.getTextCenterY(rect.centerY(), paint), paint);
+
+        int saveCount = canvas.getSaveCount();
+        canvas.save();
+        StaticLayout.Builder builder  =StaticLayout.Builder.obtain( value,0,value.length(),new TextPaint(paint), rect.width());
+        StaticLayout staticLayout = builder.build();
+        int dx = 0; // x 方向偏移量
+        int dy = 0; // y 方向偏移量
+
+        // 根据对齐方式计算偏移量
+        switch ( paint.getTextAlign()) {
+            case LEFT: // 左对齐
+                dx = 0;
+                break;
+            case CENTER: // 居中对齐
+                dx = (rect.width()) / 2;
+                break;
+            case RIGHT: // 右对齐
+                dx = rect.width();
+                break;
+        }
+
+
+        // 计算垂直居中的偏移量
+        dy = (rect.height() - staticLayout.getHeight()) / 2;
+        canvas.translate(rect.left + dx, rect.top + dy);
+        // 绘制文本
+        staticLayout.draw(canvas);
+        canvas.restoreToCount(saveCount);
     }
 
 }

@@ -10,6 +10,9 @@ public class Style {
    public int  height;
    public int  fontSize;
 
+   public Style() {
+   }
+
    public Style(String color, int width, int height, int fontSize) {
       this.color = color;
       this.width = width;
