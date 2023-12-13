@@ -18,17 +18,28 @@ declare module "@hecom/react-native-report-table" {
         onScroll?: (pro: ScrollPro) => void;
         lineColor?: Color;
 
+        disableZoom?: boolean; // 是否禁止缩放 default: false
+
+        /*
+         *  是否是可排列的，仅支持不包含合并单元格的表
+         *  开启后，每列表头显示锁定按钮🔒，锁定后可冻结指定列
+         *  开启后 frozenColumns生效，frozenPoint和 frozenCount 失效
+         *  frozenColumns 不显示锁定按钮，始终冻结
+         *  default: false
+         */
+        permutable?: boolean;
+        
         /* 
-            首行 指定列支持冻结  第一优先  使用指定列后显示带🔓的icon  默认不锁定
-            frozenColumns 与 frozenPoint 相等时，可显示🔒
-            取消锁定后冻结frozenColumns
+         *  首行 指定列支持冻结  第一优先  使用指定列后显示带🔓的icon  默认不锁定
+         *  frozenColumns 与 frozenPoint 相等时，可显示🔒
+         *  取消锁定后冻结frozenColumns
          */
         frozenPoint?: number; 
 
         /*
-            首行前几列支持冻结  第二优先  使用前几列后显示带🔓的icon  
-            使用frozenColumns比frozenCount小时，可使🔒
-            取消锁定后冻结点击列的前几列
+         *  首行前几列支持冻结  第二优先  使用前几列后显示带🔓的icon  
+         *   使用frozenColumns比frozenCount小时，可使🔒
+         *   取消锁定后冻结点击列的前几列
         */
         frozenCount?: number;
 
