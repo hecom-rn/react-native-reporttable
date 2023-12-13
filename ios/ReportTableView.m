@@ -446,13 +446,14 @@
                     NSArray *sortedArray = [self.reportTableModel.permutedArr sortedArrayUsingSelector:@selector(compare:)];
                     NSUInteger index = [sortedArray indexOfObject:oriColumn];
                     [self.reportTableModel.permutedArr removeObjectAtIndex:fixIndex];
-                    NSInteger toColumn = [oriColumn integerValue] - index + self.reportTableModel.permutedArr.count +  self.reportTableModel.oriFrozenColumns;
+                    NSInteger toColumn = [oriColumn integerValue] - index + self.reportTableModel.permutedArr.count;
                     [self changeColumn:column toColumn:toColumn inArray:self.dataSource];
                     [self changeColumn:column toColumn:toColumn inArray:self.rowsWidth];
                 } else {
                     NSInteger columIndex = model.columIndex;
                     float frozenWidth = 0;
-                    [self changeColumn:column toColumn:self.reportTableModel.permutedArr.count inArray:self.rowsWidth];
+                    NSInteger toColumn = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns;
+                    [self changeColumn:column toColumn: toColumn inArray:self.rowsWidth];
                     for (int i = 0; i < self.reportTableModel.permutedArr.count + 1; i++) {
                         frozenWidth += [self.rowsWidth[i] floatValue];
                     }
@@ -460,10 +461,10 @@
                         [self hideAllToasts];
                         [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
                         // 撤回
-                        [self changeColumn:self.reportTableModel.permutedArr.count toColumn:column inArray:self.rowsWidth];
+                        [self changeColumn:toColumn toColumn:column inArray:self.rowsWidth];
                         return;
                     }
-                    [self changeColumn:column toColumn:self.reportTableModel.permutedArr.count inArray:self.dataSource];
+                    [self changeColumn:column toColumn:toColumn inArray:self.dataSource];
                     [self.reportTableModel.permutedArr addObject:@(columIndex)];
                 }
                 self.reportTableModel.frozenColumns = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns;
