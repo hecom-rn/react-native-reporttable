@@ -33,6 +33,8 @@ RCT_EXPORT_VIEW_PROPERTY(itemConfig, NSDictionary)
 RCT_EXPORT_VIEW_PROPERTY(columnsWidthMap, NSDictionary)
 RCT_EXPORT_VIEW_PROPERTY(frozenCount, int)
 RCT_EXPORT_VIEW_PROPERTY(frozenPoint, int)
+RCT_EXPORT_VIEW_PROPERTY(permutable, BOOL)
+RCT_EXPORT_VIEW_PROPERTY(disableZoom, BOOL)
 
 RCT_EXPORT_MODULE(ReportTableManager)
 

@@ -66,6 +66,7 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, strong) IconStyle *iconStyle;
 @property (nonatomic, strong) ItemModel *itemConfig;
 @property (nonatomic, strong) ExtraText *extraText;
+@property (nonatomic, assign) NSInteger columIndex;
 @end
 
 @interface ForzenRange: NSObject
@@ -80,8 +81,8 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *data;
 @property (nonatomic, strong) NSMutableArray<ForzenRange *> *frozenArray;
-@property (nonatomic, strong) NSArray *cloumsHight;
-@property (nonatomic, strong) NSArray *rowsWidth;
+@property (nonatomic, strong) NSMutableArray *cloumsHight;
+@property (nonatomic, strong) NSMutableArray *rowsWidth;
 @property (nonatomic, assign) NSInteger frozenColumns; // 运行值
 @property (nonatomic, assign) NSInteger oriFrozenColumns; // 初始值
 @property (nonatomic, assign) NSInteger frozenRows;
@@ -97,4 +98,12 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, assign) NSInteger frozenPoint;
 @property (nonatomic, strong) ItemModel *itemConfig;
 @property (nonatomic, strong) NSDictionary *columnsWidthMap;
+/*
+*  是可排列的，仅支持不包含合并单元格的表
+*  开启后，每列表头显示锁定按钮🔒，锁定后可冻结指定列
+*  开启后 frozenColumns生效，frozenPoint和 frozenCount 失效
+*  frozenColumns 不显示锁定按钮，始终冻结
+*/
+@property (nonatomic, assign) BOOL permutable;
+@property (nonatomic, strong) NSMutableArray<NSNumber *> *permutedArr; // 冻结指定列arr
 @end

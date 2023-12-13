@@ -275,6 +275,24 @@
     [self reloadCheck];
 }
 
+- (void)setPermutable:(BOOL)permutable {
+    self.reportTableModel.permutable = permutable;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
+- (void)setDisableZoom:(BOOL)disableZoom {
+    if (disableZoom) {
+        self.reportTableView.maximumZoomScale = 1;
+        self.reportTableView.minimumZoomScale = 1;
+    } else {
+        self.reportTableView.maximumZoomScale = 2;
+        self.reportTableView.minimumZoomScale = 0.5;
+    }
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)setLineColor:(UIColor *)lineColor {
     self.reportTableModel.lineColor = lineColor;
     self.propertyCount += 1;
@@ -313,7 +331,7 @@
 }
 
 - (void)reloadCheck {
-    if (self.propertyCount >= 16) {
+    if (self.propertyCount >= 18) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
@@ -344,6 +362,7 @@
         for (int j = 0; j < dataSource[i].count; j ++) {
             NSDictionary *dir = dataSource[i][j];
             ItemModel *model = [[ItemModel alloc] init];
+            model.columIndex = j;
             model.itemConfig = self.reportTableModel.itemConfig;
             NSArray *keys = [dir allKeys];
             model.keyIndex = [RCTConvert NSInteger:[dir objectForKey:@"keyIndex"]];
@@ -444,10 +463,16 @@
             NSDictionary *dir = dataSource[i][j];
             BOOL showLock = false;
             if (i == 0) {
-                if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
-                    showLock = true;
-                } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
-                    showLock = true;
+                if (self.reportTableModel.permutable) {
+                    if (j >= self.reportTableModel.frozenColumns) {
+                        showLock = true;
+                    }
+                } else {
+                    if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
+                        showLock = true;
+                    } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
+                        showLock = true;
+                    }
                 }
             }
             CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
@@ -506,7 +531,10 @@
     
     self.reportTableView.frame = self.reportTableModel.tableRect;
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableModel.tableRect.size.width, self.headerScrollView.frame.size.height);
-    
+    if (frozenArray.count > 0 && self.reportTableModel.permutable) {
+        // 如果有合并的则让permutable失效
+        self.reportTableModel.permutable = NO;
+    }
     self.reportTableView.reportTableModel = self.reportTableModel;
 }
 

@@ -48,6 +48,8 @@ export default class ReportTable extends React.Component{
         frozenPoint: 0,
         columnsWidthMap: {},
         itemConfig: itemConfig,
+        permutable: false,
+        disableZoom: false,
     };
 
     scrollTo = (params) => {

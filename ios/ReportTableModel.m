@@ -44,6 +44,13 @@
     return _dataSource;
 }
 
+- (NSMutableArray<NSNumber *> *)permutedArr{
+    if (!_permutedArr) {
+        _permutedArr = [NSMutableArray array];
+    }
+    return _permutedArr;
+}
+
 - (NSMutableArray<ForzenRange *> *)frozenArray{
     if (!_frozenArray) {
         _frozenArray  = [NSMutableArray array];

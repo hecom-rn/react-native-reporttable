@@ -18,8 +18,8 @@
 
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
 @property (nonatomic, strong) NSMutableArray<ForzenRange *> *frozenArray;
-@property (nonatomic, strong) NSArray *cloumsHight;
-@property (nonatomic, strong) NSArray *rowsWidth;
+@property (nonatomic, strong) NSMutableArray *cloumsHight;
+@property (nonatomic, strong) NSMutableArray *rowsWidth;
 @property (nonatomic, assign) BOOL isOnHeader;
 
 @property (nonatomic, strong) UIView *containerView;
@@ -46,8 +46,7 @@
         self.bounces = false;
         self.scrollEnabled = false;
         self.contentSize = CGSizeMake(0, 0);
-        self.maximumZoomScale = 2;
-        self.minimumZoomScale = 0.5;
+        // maximumZoomScale minimumZoomScale 由ViewModel控制
         self.bouncesZoom = false;
         self.showsVerticalScrollIndicator = false;
         self.showsHorizontalScrollIndicator = false;
@@ -304,13 +303,20 @@
         cell.icon = model.iconStyle;
     }
     if (row == 0) {
-        if (self.reportTableModel.frozenPoint > 0) {
-            if (column == self.reportTableModel.frozenPoint - model.horCount) {
-                cell.isLocked = column == self.reportTableModel.frozenColumns - model.horCount;
+        if (self.reportTableModel.permutable) {
+            if (column >= self.reportTableModel.oriFrozenColumns) {
+                BOOL isLocked = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns > column;
+                cell.isLocked = isLocked;
             }
-        } else if (self.reportTableModel.frozenCount > 0) {
-            if (column < self.reportTableModel.frozenCount) {
-                cell.isLocked = column < self.reportTableModel.frozenColumns;
+        } else {
+            if (self.reportTableModel.frozenPoint > 0) {
+                if (column == self.reportTableModel.frozenPoint - model.horCount) {
+                    cell.isLocked = column == self.reportTableModel.frozenColumns - model.horCount;
+                }
+            } else if (self.reportTableModel.frozenCount > 0) {
+                if (column < self.reportTableModel.frozenCount) {
+                    cell.isLocked = column < self.reportTableModel.frozenColumns;
+                }
             }
         }
     }
@@ -431,34 +437,91 @@
         });
     }
     if (row == 0) {
-        NSInteger newFrozenColums = column + model.horCount;
-        if (self.reportTableModel.frozenPoint > 0) {
-            if (newFrozenColums == self.reportTableModel.frozenPoint) {
-                BOOL willUnLock = self.reportTableModel.frozenColumns == self.reportTableModel.frozenPoint;
-                float frozenWidth = 0;
-                for (int i = 0; i < newFrozenColums; i++) {
-                    frozenWidth += [self.rowsWidth[i] floatValue];
-                }
-                if (!willUnLock && frozenWidth * self.zoomScale > self.reportTableModel.tableRect.size.width - 40) {
-                    [self hideAllToasts];
-                    [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
+        if (self.reportTableModel.permutable) {
+            if (column >= self.reportTableModel.oriFrozenColumns) {
+                BOOL isLocked = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns > column;
+                if (isLocked) {
+                    NSInteger fixIndex = column - self.reportTableModel.oriFrozenColumns;
+                    NSNumber *oriColumn = self.reportTableModel.permutedArr[fixIndex];
+                    NSArray *sortedArray = [self.reportTableModel.permutedArr sortedArrayUsingSelector:@selector(compare:)];
+                    NSUInteger index = [sortedArray indexOfObject:oriColumn];
+                    [self.reportTableModel.permutedArr removeObjectAtIndex:fixIndex];
+                    NSInteger toColumn = [oriColumn integerValue] - index + self.reportTableModel.permutedArr.count +  self.reportTableModel.oriFrozenColumns;
+                    [self changeColumn:column toColumn:toColumn inArray:self.dataSource];
+                    [self changeColumn:column toColumn:toColumn inArray:self.rowsWidth];
                 } else {
-                    self.reportTableModel.frozenColumns = willUnLock ? self.reportTableModel.oriFrozenColumns : self.reportTableModel.frozenPoint;
-                    [self.spreadsheetView reloadData];
-                    [self scrollViewDidZoom: self];
+                    NSInteger columIndex = model.columIndex;
+                    float frozenWidth = 0;
+                    [self changeColumn:column toColumn:self.reportTableModel.permutedArr.count inArray:self.rowsWidth];
+                    for (int i = 0; i < self.reportTableModel.permutedArr.count + 1; i++) {
+                        frozenWidth += [self.rowsWidth[i] floatValue];
+                    }
+                    if (frozenWidth * self.zoomScale > self.reportTableModel.tableRect.size.width - 40) {
+                        [self hideAllToasts];
+                        [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
+                        // 撤回
+                        [self changeColumn:self.reportTableModel.permutedArr.count toColumn:column inArray:self.rowsWidth];
+                        return;
+                    }
+                    [self changeColumn:column toColumn:self.reportTableModel.permutedArr.count inArray:self.dataSource];
+                    [self.reportTableModel.permutedArr addObject:@(columIndex)];
                 }
+                self.reportTableModel.frozenColumns = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns;
+                [self.spreadsheetView reloadData];
+                [self scrollViewDidZoom: self];
             }
-        } else if (self.reportTableModel.frozenCount >= newFrozenColums) {
-            self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums ? 0 : newFrozenColums;
-            [self.spreadsheetView reloadData];
-            [self scrollViewDidZoom: self];
+        } else {
+            NSInteger newFrozenColums = column + model.horCount;
+            if (self.reportTableModel.frozenPoint > 0) {
+                if (newFrozenColums == self.reportTableModel.frozenPoint) {
+                    BOOL willUnLock = self.reportTableModel.frozenColumns == self.reportTableModel.frozenPoint;
+                    float frozenWidth = 0;
+                    for (int i = 0; i < newFrozenColums; i++) {
+                        frozenWidth += [self.rowsWidth[i] floatValue];
+                    }
+                    if (!willUnLock && frozenWidth * self.zoomScale > self.reportTableModel.tableRect.size.width - 40) {
+                        [self hideAllToasts];
+                        [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
+                    } else {
+                        self.reportTableModel.frozenColumns = willUnLock ? self.reportTableModel.oriFrozenColumns : self.reportTableModel.frozenPoint;
+                        [self.spreadsheetView reloadData];
+                        [self scrollViewDidZoom: self];
+                    }
+                }
+            } else if (self.reportTableModel.frozenCount >= newFrozenColums) {
+                self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums ? 0 : newFrozenColums;
+                [self.spreadsheetView reloadData];
+                [self scrollViewDidZoom: self];
+            }
         }
     }
+    // 注意有上面有return
 }
 
 - (void)spreadsheetViewDidLayout:(SpreadsheetView *)spreadsheetView {
     // 锁定，解除锁定时需要调用
     [self setMergedCellsLabelOffset];
+}
+
+- (void)changeColumn:(NSInteger)x toColumn:(NSInteger)y inArray:(NSMutableArray *)arr {
+    if (x == y || arr.count == 0) {
+        return;
+    }
+    if ([arr[0] isKindOfClass:[NSArray class]]) {
+        for (int i = 0; i < arr.count; i++) {
+            NSMutableArray *row = arr[i];
+            if (x < row.count && y < row.count) {
+                id obj = row[x];
+                [row removeObjectAtIndex: x];
+                [row insertObject:obj atIndex:y];
+            }
+        }
+    } else {
+        id obj = arr[x];
+        [arr removeObjectAtIndex: x];
+        [arr insertObject:obj atIndex:y];
+    }
+ 
 }
 
 @end
