@@ -25,6 +25,8 @@ public class JsonTableBean {
 
     public Boolean strikethrough = null; //删除线
 
+    public ExtraTextConfig extraText; // 后缀标签
+
     public Boolean getStrikethrough() {
         return strikethrough;
     }

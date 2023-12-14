@@ -15,6 +15,7 @@ import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.column.ColumnInfo;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
+import com.hecom.reporttable.form.data.format.draw.WrapTextResult;
 import com.hecom.reporttable.form.data.format.selected.IDrawOver;
 import com.hecom.reporttable.form.data.format.selected.ISelectFormat;
 import com.hecom.reporttable.form.data.format.tip.ITip;
@@ -418,8 +419,8 @@ public class TableProvider<T> implements TableClickObserver {
                 for (int rowIndex = 0; rowIndex < size; rowIndex++) {
                     //遍历行
                     boolean isDrawLock = (rowIndex == 0 && column.isFixed());
-                    String cacheWrapText = column.getCacheWrapText(rowIndex);
-                    String value = null == cacheWrapText ? column.format(rowIndex, config.getFrozenCount(), config.getFrozenPoint()) : cacheWrapText;
+                    WrapTextResult cacheWrapText = column.getCacheWrapText(rowIndex);
+                    String value = null == cacheWrapText ? column.format(rowIndex, config.getFrozenCount(), config.getFrozenPoint()) : cacheWrapText.text;
                     int skip = tableInfo.getSeizeCellSize(column, rowIndex);
                     int totalLineHeight = 0;
                     for (int k = realPosition; k < realPosition + skip; k++) {

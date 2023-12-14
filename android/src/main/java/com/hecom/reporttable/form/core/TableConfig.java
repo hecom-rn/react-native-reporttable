@@ -14,8 +14,12 @@ import com.hecom.reporttable.form.data.format.grid.SimpleGridFormat;
 import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.data.table.TableData;
+import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -43,6 +47,7 @@ public class TableConfig<T> {
 
     private final Context context;
 
+    public Map<Integer,Integer> sp2PxMap;
     public int dp10;
 
     public int dp4;
@@ -256,6 +261,16 @@ public class TableConfig<T> {
 
     public TableConfig(Context context) {
         this.context = context;
+        this.sp2PxMap = new HashMap<>();
+    }
+
+    public int getSp2Px( int sp){
+        Integer px = sp2PxMap.get(sp);
+        if(px==null){
+            px = DensityUtils.sp2px(getContext(), sp);
+            sp2PxMap.put(sp,px);
+        }
+        return px;
     }
 
     public ItemCommonStyleConfig getItemCommonStyleConfig() {
@@ -292,7 +307,7 @@ public class TableConfig<T> {
 
     public  void setTableData(TableData<T> tableData) {
         this.tableData = tableData;
-         this.firstColMaxMerge =   TableUtil.getFirstColumnMaxMerge(tableData);
+        this.firstColMaxMerge =   TableUtil.getFirstColumnMaxMerge(tableData);
     }
 
     public int getFirstColMaxMerge() {
@@ -749,7 +764,7 @@ public class TableConfig<T> {
         return this;
     }
 
-   public int getTextRightOffset() {
+    public int getTextRightOffset() {
         return (int) (textRightOffset*zoom);
     }
 
