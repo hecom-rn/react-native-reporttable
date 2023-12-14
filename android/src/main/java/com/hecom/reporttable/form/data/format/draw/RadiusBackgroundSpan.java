@@ -32,25 +32,31 @@ public class RadiusBackgroundSpan  extends ReplacementSpan {
       return this.width;
    }
 
-   @Override
-   public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) {
-      // 保存原始画笔颜色和样式
-      int originalColor = paint.getColor();
-      Paint.Style originalStyle = paint.getStyle();
+    @Override
+    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top,
+                     int y, int bottom, Paint paint) {
+        // 保存原始画笔颜色和样式
+        int originalColor = paint.getColor();
+        Paint.Style originalStyle = paint.getStyle();
+        Paint.Align originAlign = paint.getTextAlign();
 
-      // 绘制圆角矩形背景
-      paint.setColor(backgroundColor);
-      paint.setStyle(Paint.Style.FILL);
-//      RectF rect = new RectF(x, top, x + paint.measureText(text, start, end), bottom);
-      RectF rect = new RectF(x, top, x + this.width, bottom);
-      canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
+        // 绘制圆角矩形背景
+        paint.setColor(backgroundColor);
+        paint.setStyle(Paint.Style.FILL);
+        int height = bottom - top;
+        RectF rect = new RectF(x, top + (height - this.height) / 2f, x + this.width,
+                top + (height + this.height) / 2f);
+        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
 
-      // 绘制文字
-      paint.setColor(foregroundColor);
-      paint.setTextSize(10);
-      canvas.drawText(text, start, end, x, y, paint);
+        // 绘制文字
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(foregroundColor);
+        paint.setTextSize(fontSize);
 
-      paint.setColor(originalColor);
-      paint.setStyle(originalStyle);
-   }
+        canvas.drawText(text, start, end, rect.centerX(), rect.centerY() + paint.getFontMetrics().bottom, paint);
+
+        paint.setColor(originalColor);
+        paint.setStyle(originalStyle);
+        paint.setTextAlign(originAlign);
+    }
 }

@@ -14,6 +14,7 @@ import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
+import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.ExtraTextConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
@@ -248,31 +249,20 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             DrawUtils.drawSingleText(c, paint, rect, result.text);
             return DrawUtils.getMultiTextWidth(paint, values);
         } else {
-            if (rect.width() - result.lastLineWidth < config.getSp2Px(extraText.backgroundStyle.width)) {
-                SpannableString span = new SpannableString(result.text + "\n" + extraText.text);
-                span.setSpan(new RadiusBackgroundSpan(
-                                Color.parseColor(extraText.backgroundStyle.color),
-                                Color.parseColor(extraText.style.color),
-                                2,
-                                config.getSp2Px(config.getSp2Px(extraText.backgroundStyle.width)),
-                                config.getSp2Px(config.getSp2Px(extraText.backgroundStyle.width)),
-                                config.getSp2Px(config.getSp2Px(extraText.style.fontSize))),
-                        result.text.length(), result.text.length() + extraText.text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                DrawUtils.drawMultiText(c, paint, rect, span);
-                return DrawUtils.getMultiTextWidth(paint, values);
-            } else {
-                SpannableString span = new SpannableString(result.text + extraText.text);
-                span.setSpan(new RadiusBackgroundSpan(
-                                Color.parseColor(extraText.backgroundStyle.color),
-                                Color.parseColor(extraText.style.color),
-                                2,
-                                config.getSp2Px(config.getSp2Px(extraText.backgroundStyle.width)),
-                                config.getSp2Px(config.getSp2Px(extraText.backgroundStyle.width)),
-                                config.getSp2Px(config.getSp2Px(extraText.style.fontSize))),
-                        result.text.length(), result.text.length() + extraText.text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                DrawUtils.drawMultiText(c, paint, rect, span);
-                return Math.max(DrawUtils.getMultiTextWidth(paint, values), result.lastLineWidth + config.getSp2Px(extraText.backgroundStyle.width));
-            }
+            SpannableString span = new SpannableString(result.text + extraText.text);
+            span.setSpan(new RadiusBackgroundSpan(
+                            Color.parseColor(extraText.backgroundStyle.color),
+                            Color.parseColor(extraText.style.color),
+                            DensityUtils.dp2px(config.getContext(), 4),
+                            DensityUtils.dp2px(config.getContext(),
+                                    extraText.backgroundStyle.width),
+                            DensityUtils.dp2px(config.getContext(),
+                                    extraText.backgroundStyle.height),
+                            DensityUtils.dp2px(config.getContext(), extraText.style.fontSize)),
+                    result.text.length(), result.text.length() + extraText.text.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            DrawUtils.drawMultiText(c, paint, rect, span);
+            return DrawUtils.getMultiTextWidth(paint, values);
         }
     }
 
