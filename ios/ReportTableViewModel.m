@@ -202,6 +202,12 @@
     [self reloadCheck];
 }
 
+- (void)setOnContentSize:(RCTDirectEventBlock)onContentSize {
+    self.reportTableModel.onContentSize = onContentSize;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)setSize:(CGSize)size {
     self.reportTableModel.tableRect = CGRectMake(0, 0, size.width, size.height);
     if (self.dataHeight) {
@@ -331,7 +337,7 @@
 }
 
 - (void)reloadCheck {
-    if (self.propertyCount >= 18) {
+    if (self.propertyCount >= 19) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
@@ -528,6 +534,12 @@
         tableHeight += [cloumsHight[i] floatValue] + 1; // speHeight
     }
     self.dataHeight = tableHeight;
+
+    if (self.reportTableModel.onContentSize != nil) {
+        NSNumber *width = [rowsWidth valueForKeyPath:@"@sum.self"];
+        NSNumber *height = [cloumsHight valueForKeyPath:@"@sum.self"];
+        self.reportTableModel.onContentSize(@{@"width": @([width floatValue] + (rowsWidth.count + 1) * 1), @"height": @([height floatValue] + (cloumsHight.count + 1) * 1)});
+    }
     
     self.reportTableView.frame = self.reportTableModel.tableRect;
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableModel.tableRect.size.width, self.headerScrollView.frame.size.height);

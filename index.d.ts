@@ -16,6 +16,7 @@ declare module "@hecom/react-native-report-table" {
         onClickEvent?: (item: ItemClick) => void;
         onScrollEnd?: (isEnd: boolean) => void;
         onScroll?: (pro: ScrollPro) => void;
+        onContentSize?: ({ width, height }) => void; // 返回表格内容的宽高
         lineColor?: Color;
 
         disableZoom?: boolean; // 是否禁止缩放 default: false

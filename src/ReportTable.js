@@ -44,6 +44,7 @@ export default class ReportTable extends React.Component{
         onClickEvent: () => {},
         onScrollEnd: () => {},
         onScroll: () => {},
+        onContentSize: () => {},
         frozenCount: 0,
         frozenPoint: 0,
         columnsWidthMap: {},

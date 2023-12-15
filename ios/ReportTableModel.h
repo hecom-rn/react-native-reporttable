@@ -92,6 +92,7 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, copy) RCTDirectEventBlock onClickEvent;
 @property (nonatomic, copy) RCTDirectEventBlock onScrollEnd;
 @property (nonatomic, copy) RCTDirectEventBlock onScroll;
+@property (nonatomic, copy) RCTDirectEventBlock onContentSize;
 @property (nonatomic, strong) UIColor *lineColor;
 @property (nonatomic, assign) CGRect tableRect;
 @property (nonatomic, assign) NSInteger frozenCount;
