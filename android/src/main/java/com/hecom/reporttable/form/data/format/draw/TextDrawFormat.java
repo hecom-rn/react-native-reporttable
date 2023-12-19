@@ -249,20 +249,22 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             DrawUtils.drawSingleText(c, paint, rect, result.text);
             return DrawUtils.getMultiTextWidth(paint, values);
         } else {
+            int width = (int) (DensityUtils.dp2px(config.getContext(),
+                    extraText.backgroundStyle.width) * config.getZoom());
             SpannableString span = new SpannableString(result.text + extraText.text);
             span.setSpan(new RadiusBackgroundSpan(
                             Color.parseColor(extraText.backgroundStyle.color),
                             Color.parseColor(extraText.style.color),
-                            DensityUtils.dp2px(config.getContext(), 4),
-                            DensityUtils.dp2px(config.getContext(),
-                                    extraText.backgroundStyle.width),
-                            DensityUtils.dp2px(config.getContext(),
-                                    extraText.backgroundStyle.height),
-                            DensityUtils.dp2px(config.getContext(), extraText.style.fontSize)),
+                            (int) (DensityUtils.dp2px(config.getContext(), 4) * config.getZoom()),
+                            width,
+                            (int) (DensityUtils.dp2px(config.getContext(),
+                                    extraText.backgroundStyle.height) * config.getZoom()),
+                            (int) (DensityUtils.dp2px(config.getContext(),
+                                    extraText.style.fontSize) * config.getZoom())),
                     result.text.length(), result.text.length() + extraText.text.length(),
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             DrawUtils.drawMultiText(c, paint, rect, span);
-            return DrawUtils.getMultiTextWidth(paint, values);
+            return DrawUtils.getMultiTextWidth(paint, values) + width;
         }
     }
 
