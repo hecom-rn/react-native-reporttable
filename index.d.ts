@@ -23,7 +23,7 @@ declare module "@hecom/react-native-report-table" {
 
         /*
          *  是否是可排列的，仅支持不包含合并单元格的表
-         *  开启后，每列表头显示锁定按钮🔒，锁定后可冻结指定列
+         *  开启后，每列表头显示锁定按钮🔓(初始不锁定)，锁定后可冻结指定列，可取消，解锁后按原顺序排列
          *  开启后 frozenColumns生效，frozenPoint和 frozenCount 失效
          *  frozenColumns 不显示锁定按钮，始终冻结
          *  default: false
