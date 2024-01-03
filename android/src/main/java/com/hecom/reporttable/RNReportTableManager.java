@@ -20,7 +20,7 @@ import com.hecom.JacksonUtil;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.format.grid.IGridFormat;
-import com.hecom.reporttable.form.data.table.TableData;
+import com.hecom.reporttable.form.listener.OnContentSizeChangeListener;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomGridFormat;
@@ -70,7 +70,24 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                         .receiveEvent(table.getId(), "onScroll", map);
             }
         });
+        table.getMeasurer().setOnContentSizeChangeListener(new OnContentSizeChangeListener() {
+            @Override
+            public void onContentSizeChanged(float width, float height) {
+                float widthDp =  DensityUtils.px2dp(table.getConfig().getContext(), width);
+                float heightDp =  DensityUtils.px2dp(table.getConfig().getContext(), height);
+                WritableMap map = Arguments.createMap();
+                map.putDouble("width", widthDp);
+                map.putDouble("height", heightDp);
+                ((ReactContext) reactContext).getJSModule(RCTEventEmitter.class)
+                        .receiveEvent(table.getId(), "onContentSize", map);
+            }
+        });
         return table;
+    }
+
+    @ReactProp(name = "disableZoom")
+    public void setDisableZoom(SmartTable<String> view, boolean disableZoom){
+        view.setZoom(!disableZoom);
     }
 
     @ReactProp(name = "data")
@@ -241,6 +258,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                 .put("onClickEvent", MapBuilder.of("registrationName", "onClickEvent"))
                 .put("onScrollEnd", MapBuilder.of("registrationName", "onScrollEnd"))
                 .put("onScroll", MapBuilder.of("registrationName", "onScroll"))
+                .put("onContentSize", MapBuilder.of("registrationName", "onContentSize"))
                 .build();
     }
 

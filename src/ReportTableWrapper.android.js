@@ -76,6 +76,8 @@ export default class ReportTableWrapper extends React.Component {
                     ref={'AndroidReportTableView'}
                     onScrollEnd={this.props.onScrollEnd}
                     onScroll={this.props.onScroll}
+                    onContentSize={this.props.onContentSize}
+                    disableZoom={this.props.disableZoom}
                     onClickEvent={({nativeEvent: data}) => {
                         if (data) {
                             const {keyIndex, rowIndex, columnIndex, textColor} = data;

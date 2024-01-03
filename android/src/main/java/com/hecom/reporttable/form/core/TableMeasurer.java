@@ -1,11 +1,10 @@
 package com.hecom.reporttable.form.core;
 
-import android.content.Context;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
-
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.uimanager.ThemedReactContext;
 import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.component.IComponent;
 import com.hecom.reporttable.form.component.ITableTitle;
@@ -15,10 +14,10 @@ import com.hecom.reporttable.form.data.column.ArrayColumn;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.column.ColumnInfo;
 import com.hecom.reporttable.form.data.table.TableData;
+import com.hecom.reporttable.form.listener.OnContentSizeChangeListener;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
-import com.facebook.react.uimanager.ThemedReactContext;
 
 import java.util.List;
 
@@ -33,6 +32,8 @@ public class TableMeasurer<T> {
 
     private JsonTableBean[][] tabArr;
     private ThemedReactContext context;
+
+    private OnContentSizeChangeListener listener;
 
     public void setAddTableHeight(int addTableHeight) {
         this.addTableHeight = addTableHeight;
@@ -61,12 +62,28 @@ public class TableMeasurer<T> {
 //        if (height > limitTableHeight) {
 //              height = height + addTableHeight;
 //        }
+        this.onMeasure(tableInfo, width, height);
         tableInfo.setTableRect(new Rect(0, 0, width, height));
         measureColumnSize(tableData);
         if (this.context != null) {
             this.context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("tableDidLayout", "tableDidLayout");
         }
         return tableInfo;
+    }
+
+    private void onMeasure(TableInfo tableInfo, int width, int height){
+        if (this.listener != null){
+            Rect tableRect = tableInfo.getTableRect();
+            if (tableRect == null){
+                this.listener.onContentSizeChanged(width, height);
+            } else {
+                int oldWidth = tableInfo.getTableRect().width();
+                int oldHeight = tableInfo.getTableRect().height();
+                if (oldHeight != height || oldWidth != width){
+                    this.listener.onContentSizeChanged(width, height);
+                }
+            }
+        }
     }
 
 
@@ -487,5 +504,13 @@ public class TableMeasurer<T> {
 
     public void setContext(ThemedReactContext context) {
         this.context = context;
+    }
+
+    public OnContentSizeChangeListener getOnContentSizeChangeListener() {
+        return listener;
+    }
+
+    public void setOnContentSizeChangeListener(OnContentSizeChangeListener listener) {
+        this.listener = listener;
     }
 }
