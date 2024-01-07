@@ -35,11 +35,11 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.facebook.react.uimanager.ThemedReactContext;
 
 /**
- * Created by huang on 2017/10/30.
- * 表格
+ * Created by huang on 2017/10/30. 表格
  */
 
 public class SmartTable<T> extends View implements OnTableChangeListener, MainThreadExecuteHandle {
@@ -65,7 +65,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     private boolean isExactly = true; //是否是测量精准模式
     private AtomicBoolean isNotifying = new AtomicBoolean(false); //是否正在更新数据
     private boolean isYSequenceRight;
-    private ReportTableStore mReportTableStore;
 
     private ThreadPoolExecutor mExecutor = new ThreadPoolExecutor(0, 1, 3, TimeUnit.MINUTES,
             new LinkedBlockingDeque<Runnable>());
@@ -93,7 +92,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     public SmartTable(ThemedReactContext context) {
         super(context);
         init(context);
-        this.mReportTableStore = new ReportTableStore(context,this);
     }
 
     public SmartTable(ThemedReactContext context, AttributeSet attrs) {
@@ -144,20 +142,15 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         config.dp10 = DensityUtils.dp2px(getContext(), 10);
         config.dp8 = DensityUtils.dp2px(getContext(), 8);
         config.dp4 = DensityUtils.dp2px(getContext(), 4);
-        config.setHorizontalPadding(0).setVerticalPadding( this.config.dp4)
-                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false).setShowYSequence(false);
+        config.setHorizontalPadding(0).setVerticalPadding(this.config.dp4)
+                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false)
+                .setShowYSequence(false);
 
     }
 
     /**
-     * 绘制
-     * 首先通过计算的table大小，计算table title大小
-     * 再通过 matrixHelper getZoomProviderRect计算实现缩放和位移的Rect
-     * 再绘制背景
-     * 绘制XY序号列
-     * 最后绘制内容
-     *
-     * @param canvas
+     * 绘制 首先通过计算的table大小，计算table title大小 再通过 matrixHelper getZoomProviderRect计算实现缩放和位移的Rect 再绘制背景
+     * 绘制XY序号列 最后绘制内容
      */
     @Override
     protected void onDraw(Canvas canvas) {
@@ -223,8 +216,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
 
     /**
      * 绘制表格边框背景
-     *
-     * @param canvas
      */
     private void drawGridBackground(Canvas canvas, Rect showRect, Rect scaleRect) {
         config.getContentGridStyle().fillPaint(paint);
@@ -238,8 +229,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     }
 
     /**
-     * 获取表格配置
-     * 可以使用TableConfig进行样式的配置，包括颜色，是否固定，开启统计行等
+     * 获取表格配置 可以使用TableConfig进行样式的配置，包括颜色，是否固定，开启统计行等
      *
      * @return 表格配置
      */
@@ -266,8 +256,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
 
     /**
      * 设置表格数据
-     *
-     * @param tableData
      */
     public synchronized void setTableData(TableData<T> tableData) {
         if (tableData != null) {
@@ -340,8 +328,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
 
 
     /**
-     * 通知重绘
-     * 增加锁机制，避免闪屏和数据更新异常
+     * 通知重绘 增加锁机制，避免闪屏和数据更新异常
      */
     @Override
     public void invalidate() {
@@ -370,12 +357,14 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
                 int maxHeight = screenHeight - realSize[1];
                 defaultHeight = Math.min(defaultHeight, maxHeight);
                 defaultWidth = Math.min(defaultWidth, maxWidth);
-                //Log.e("SmartTable","old defaultHeight"+this.defaultHeight+"defaultWidth"+this.defaultWidth);
+                //Log.e("SmartTable","old defaultHeight"+this.defaultHeight+"defaultWidth"+this
+                // .defaultWidth);
                 if (this.defaultHeight != defaultHeight
                         || this.defaultWidth != defaultWidth) {
                     this.defaultHeight = defaultHeight;
                     this.defaultWidth = defaultWidth;
-                    // Log.e("SmartTable","new defaultHeight"+defaultHeight+"defaultWidth"+defaultWidth);
+                    // Log.e("SmartTable","new defaultHeight"+defaultHeight+"defaultWidth
+                    // "+defaultWidth);
                     post(new Runnable() {
                         @Override
                         public void run() {
@@ -444,12 +433,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     }
 
     /**
-     * 分发事件
-     * 在这里会去调用MatrixHelper onDisallowInterceptEvent方法
-     * 判断是否阻止parent拦截自己的事件
-     *
-     * @param event
-     * @return
+     * 分发事件 在这里会去调用MatrixHelper onDisallowInterceptEvent方法 判断是否阻止parent拦截自己的事件
      */
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
@@ -491,8 +475,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     }
 
     /**
-     * 列排序
-     * 你可以调用这个方法，对所有数据进行排序，排序根据设置的column排序
+     * 列排序 你可以调用这个方法，对所有数据进行排序，排序根据设置的column排序
      *
      * @param column    列
      * @param isReverse 是否反序
@@ -521,8 +504,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
 
 
     /**
-     * 获取表格数据
-     * TableData是解析数据之后对数据的封装对象，包含table column,rect等信息
+     * 获取表格数据 TableData是解析数据之后对数据的封装对象，包含table column,rect等信息
      *
      * @return 表格数据
      */
@@ -565,8 +547,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     }
 
     /**
-     * 获取缩放移动辅助类
-     * 如果你需要更多的移动功能，可以使用它
+     * 获取缩放移动辅助类 如果你需要更多的移动功能，可以使用它
      *
      * @return 缩放移动辅助类
      */
@@ -667,7 +648,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    while (isNotifying.get()){
+                    while (isNotifying.get()) {
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException e) {
@@ -706,14 +687,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         isYSequenceRight = YSequenceRight;
     }
 
-    public ReportTableStore getReportTableConfig() {
-        return mReportTableStore;
-    }
-
-    public void setReportTableConfig(ReportTableStore mReportTableStore) {
-        this.mReportTableStore = mReportTableStore;
-    }
-
     @Override
     public void updateFlingFlage(final MatrixHelper matrixHelper, final boolean value) {
         postDelayed(new Runnable() {
@@ -721,7 +694,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
             public void run() {
                 matrixHelper.setAutoFling(value);
             }
-        },500);
+        }, 500);
     }
 }
 

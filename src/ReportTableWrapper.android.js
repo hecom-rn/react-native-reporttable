@@ -78,6 +78,10 @@ export default class ReportTableWrapper extends React.Component {
                     onScroll={this.props.onScroll}
                     onContentSize={this.props.onContentSize}
                     disableZoom={this.props.disableZoom}
+                    frozenRows={this.props.frozenRows}
+                    frozenPoint={this.props.frozenPoint}
+                    frozenCount={this.props.frozenCount}
+                    permutable={this.props.permutable}
                     onClickEvent={({nativeEvent: data}) => {
                         if (data) {
                             const {keyIndex, rowIndex, columnIndex, textColor} = data;
@@ -114,7 +118,7 @@ export default class ReportTableWrapper extends React.Component {
         // let {headerHeight} = this.state;
         const {
             data, minWidth, minHeight, textPaddingHorizontal,
-            lineColor, maxWidth, frozenColumns, frozenRows, frozenCount, frozenPoint, size,
+            lineColor, maxWidth, frozenColumns,  size,
             itemConfig, columnsWidthMap, doubleClickZoom = true
         } = props;
         return {
@@ -125,10 +129,8 @@ export default class ReportTableWrapper extends React.Component {
             maxWidth: maxWidth,
             textPaddingHorizontal: textPaddingHorizontal,
             lineColor: lineColor,
-            frozenRows: frozenRows,
             frozenColumns: frozenColumns,
-            frozenPoint: frozenPoint,
-            frozenCount: frozenCount,
+
             limitTableHeight: size.height,
             headerHeight: headerHeight,
             itemConfig: JSON.stringify(itemConfig),

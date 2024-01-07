@@ -23,15 +23,13 @@ import java.util.Map;
 
 
 /**
- * Created by huang on 2017/11/1.
- * 表格配置
- * 表格90%配置都在这里
+ * Created by huang on 2017/11/1. 表格配置 表格90%配置都在这里
  */
 
 
 public class TableConfig<T> {
-    public  static String ASTERISK  = "*";
-    public  static String[] ASTERISK_ARRAY  = new String[]{ASTERISK};
+    public static String ASTERISK = "*";
+    public static String[] ASTERISK_ARRAY = new String[]{ASTERISK};
     /**
      * 默认字体样式
      */
@@ -47,7 +45,7 @@ public class TableConfig<T> {
 
     private final Context context;
 
-    public Map<Integer,Integer> sp2PxMap;
+    public Map<Integer, Integer> sp2PxMap;
     public int dp10;
 
     public int dp4;
@@ -104,7 +102,7 @@ public class TableConfig<T> {
     /**
      * 增加列序列上下padding
      */
-    private int sequenceVerticalPadding =10;
+    private int sequenceVerticalPadding = 10;
     /**
      * 文字左边偏移
      */
@@ -112,20 +110,20 @@ public class TableConfig<T> {
     /**
      * 增加列序列左右padding
      */
-    private int sequenceHorizontalPadding =40;
+    private int sequenceHorizontalPadding = 40;
 
     /**
      * 增加列标题上下padding
      */
-    private int columnTitleVerticalPadding =10;
+    private int columnTitleVerticalPadding = 10;
     /**
      * 增加列标题左右padding
      */
-    private int columnTitleHorizontalPadding =40;
+    private int columnTitleHorizontalPadding = 40;
     /**
      * 左右padding(为了表格的美观，暂只支持统一的padding)
      */
-    private int horizontalPadding= 40;
+    private int horizontalPadding = 40;
 
     /**
      * 组标题背景
@@ -140,9 +138,7 @@ public class TableConfig<T> {
      */
     private IBackgroundFormat countBackground;
     /**
-     *
      * 左侧序号列背景
-     *
      */
     private IBackgroundFormat YSequenceBackground;
     /**
@@ -154,7 +150,6 @@ public class TableConfig<T> {
      * 网格格式化
      */
     private IGridFormat tableGridFormat = new SimpleGridFormat();
-
 
 
     /**
@@ -195,22 +190,18 @@ public class TableConfig<T> {
     private ICellBackgroundFormat<Column> countBgCellFormat;
     /**
      * 是否固定左侧
-     *
      */
     private boolean fixedYSequence = false;
     /**
      * 固定顶部
-     *
      */
     private boolean fixedXSequence = false;
     /**
      * 固定标题
-     *
      */
     private boolean fixedTitle = true;
     /**
      * 固定第一列 （作废）
-     *
      */
     private boolean fixedFirstColumn = true;
     /**
@@ -227,8 +218,7 @@ public class TableConfig<T> {
     private LeftTopDrawFormat leftTopDrawFormat;
 
 
-
-    private int minTableWidth =-1;
+    private int minTableWidth = -1;
     /**
      * 画笔
      */
@@ -238,7 +228,7 @@ public class TableConfig<T> {
     /**
      * 缩放值
      */
-    private  float zoom = 1;
+    private float zoom = 1;
     /**
      * 固定的行数
      */
@@ -264,11 +254,11 @@ public class TableConfig<T> {
         this.sp2PxMap = new HashMap<>();
     }
 
-    public int getSp2Px( int sp){
+    public int getSp2Px(int sp) {
         Integer px = sp2PxMap.get(sp);
-        if(px==null){
+        if (px == null) {
             px = DensityUtils.sp2px(getContext(), sp);
-            sp2PxMap.put(sp,px);
+            sp2PxMap.put(sp, px);
         }
         return px;
     }
@@ -281,16 +271,8 @@ public class TableConfig<T> {
         this.itemCommonStyleConfig = itemCommonStyleConfig;
     }
 
-    public int getFrozenCount() {
-        return frozenCount;
-    }
-
     public void setFrozenCount(int frozenCount) {
         this.frozenCount = frozenCount;
-    }
-
-    public int getFrozenPoint() {
-        return frozenPoint;
     }
 
     public void setFrozenPoint(int frozenPoint) {
@@ -305,9 +287,9 @@ public class TableConfig<T> {
         return tabArr;
     }
 
-    public  void setTableData(TableData<T> tableData) {
+    public void setTableData(TableData<T> tableData) {
         this.tableData = tableData;
-        this.firstColMaxMerge =   TableUtil.getFirstColumnMaxMerge(tableData);
+        this.firstColMaxMerge = TableUtil.getFirstColumnMaxMerge(tableData);
     }
 
     public int getFirstColMaxMerge() {
@@ -327,7 +309,7 @@ public class TableConfig<T> {
     }
 
     public FontStyle getContentStyle() {
-        if(contentStyle == null){
+        if (contentStyle == null) {
             return defaultFontStyle;
         }
         return contentStyle;
@@ -339,7 +321,7 @@ public class TableConfig<T> {
     }
 
     public FontStyle getYSequenceStyle() {
-        if(YSequenceStyle == null){
+        if (YSequenceStyle == null) {
             return defaultFontStyle;
         }
         return YSequenceStyle;
@@ -351,7 +333,7 @@ public class TableConfig<T> {
     }
 
     public FontStyle getXSequenceStyle() {
-        if(XSequenceStyle == null){
+        if (XSequenceStyle == null) {
             return defaultFontStyle;
         }
         return XSequenceStyle;
@@ -363,7 +345,7 @@ public class TableConfig<T> {
     }
 
     public FontStyle getColumnTitleStyle() {
-        if(columnTitleStyle == null){
+        if (columnTitleStyle == null) {
             return defaultFontStyle;
         }
         return columnTitleStyle;
@@ -375,7 +357,7 @@ public class TableConfig<T> {
     }
 
     public int getVerticalPadding() {
-        return (int) (verticalPadding*getZoom());
+        return (int) (verticalPadding * getZoom());
     }
 
     public TableConfig setVerticalPadding(int verticalPadding) {
@@ -409,20 +391,20 @@ public class TableConfig<T> {
     }
 
     public LineStyle getContentGridStyle() {
-        if(contentGridStyle == null){
+        if (contentGridStyle == null) {
             return defaultGridStyle;
         }
         return contentGridStyle;
     }
 
     public LineStyle getColumnTitleGridStyle() {
-        if(columnTitleGridStyle == null){
+        if (columnTitleGridStyle == null) {
             return defaultGridStyle;
         }
         return columnTitleGridStyle;
     }
 
-    public  TableConfig setColumnTitleGridStyle(LineStyle columnTitleGridStyle) {
+    public TableConfig setColumnTitleGridStyle(LineStyle columnTitleGridStyle) {
         this.columnTitleGridStyle = columnTitleGridStyle;
         return this;
     }
@@ -459,10 +441,8 @@ public class TableConfig<T> {
         return fixedFirstColumn;
     }
 
-    /**你可以使用Column.setFixed(boolean isFixed) 来固定任何一列
-     * 此方法作废
-     * @param fixedFirstColumn
-     * @return
+    /**
+     * 你可以使用Column.setFixed(boolean isFixed) 来固定任何一列 此方法作废
      */
     @Deprecated
     public TableConfig setFixedFirstColumn(boolean fixedFirstColumn) {
@@ -471,12 +451,11 @@ public class TableConfig<T> {
     }
 
     public FontStyle getCountStyle() {
-        if(contentStyle == null){
+        if (contentStyle == null) {
             return defaultFontStyle;
         }
         return countStyle;
     }
-
 
 
     public TableConfig setCountStyle(FontStyle countStyle) {
@@ -490,7 +469,6 @@ public class TableConfig<T> {
     }
 
 
-
     public boolean isFixedCountRow() {
         return fixedCountRow;
     }
@@ -501,7 +479,7 @@ public class TableConfig<T> {
     }
 
     public FontStyle getTableTitleStyle() {
-        if(tableTitleStyle == null){
+        if (tableTitleStyle == null) {
             return defaultFontStyle;
         }
         return tableTitleStyle;
@@ -651,7 +629,7 @@ public class TableConfig<T> {
     }
 
     public LineStyle getSequenceGridStyle() {
-        if(SequenceGridStyle == null){
+        if (SequenceGridStyle == null) {
             return defaultGridStyle;
         }
         return SequenceGridStyle;
@@ -661,7 +639,6 @@ public class TableConfig<T> {
         SequenceGridStyle = sequenceGridStyle;
         return this;
     }
-
 
 
     public TableConfig setMinTableWidth(int minTableWidth) {
@@ -683,7 +660,7 @@ public class TableConfig<T> {
     }
 
     public int getColumnTitleVerticalPadding() {
-        return (int) (columnTitleVerticalPadding*getZoom());
+        return (int) (columnTitleVerticalPadding * getZoom());
     }
 
     public TableConfig setColumnTitleVerticalPadding(int columnTitleVerticalPadding) {
@@ -738,7 +715,7 @@ public class TableConfig<T> {
     }
 
     public int getSequenceVerticalPadding() {
-        return (int) (sequenceVerticalPadding*getZoom());
+        return (int) (sequenceVerticalPadding * getZoom());
     }
 
     public TableConfig setSequenceVerticalPadding(int sequenceVerticalPadding) {
@@ -747,7 +724,7 @@ public class TableConfig<T> {
     }
 
     public int getSequenceHorizontalPadding() {
-        return (int) (sequenceHorizontalPadding*getZoom());
+        return (int) (sequenceHorizontalPadding * getZoom());
     }
 
     public TableConfig setSequenceHorizontalPadding(int sequenceHorizontalPadding) {
@@ -756,7 +733,7 @@ public class TableConfig<T> {
     }
 
     public int getTextLeftOffset() {
-        return (int) (textLeftOffset*zoom);
+        return (int) (textLeftOffset * zoom);
     }
 
     public TableConfig setTextLeftOffset(int textLeftOffset) {
@@ -765,7 +742,7 @@ public class TableConfig<T> {
     }
 
     public int getTextRightOffset() {
-        return (int) (textRightOffset*zoom);
+        return (int) (textRightOffset * zoom);
     }
 
     public TableConfig setTextRightOffset(int textRightOffset) {
@@ -779,22 +756,24 @@ public class TableConfig<T> {
 
     private int textRightOffset = 0;
 
-//     public int getMinCellWidth() {
-//            return minCellWidth;
-//        }
-//
-//        public void setMinCellWidth(int minCellWidth) {
-//            this.minCellWidth = minCellWidth;
-//        }
-//
-//        public int getMaxCellWidth() {
-//            return maxCellWidth;
-//        }
-//
-//        public void setMaxCellWidth(int maxCellWidth) {
-//            this.maxCellWidth = maxCellWidth;
-//        }
-//
-//        private int minCellWidth;
-//        private int maxCellWidth;
+    public boolean isLockItem(int col, int row) {
+        boolean isLockItem;
+        if (row == 0) {
+            int firstColumnMaxMerge = firstColMaxMerge;
+            if (frozenPoint > 0) {
+                if (col == 0 && firstColumnMaxMerge > 0) {
+                    col = firstColumnMaxMerge;
+                }
+                isLockItem = col == frozenPoint - 1;
+            } else if (frozenCount > 0) {
+                isLockItem = col < frozenCount;
+            } else {
+                isLockItem = false;
+            }
+        } else {
+            isLockItem = false;
+        }
+        return isLockItem;
+    }
+
 }

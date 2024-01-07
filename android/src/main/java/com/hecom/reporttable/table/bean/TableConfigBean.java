@@ -4,9 +4,6 @@ import java.util.Map;
 
 public class TableConfigBean {
     private int minWidth;
-    private int frozenRows;
-    private int frozenCount = 0;
-    private int frozenPoint = 0;
     private ItemCommonStyleConfig itemCommonStyleConfig;
     private Map<Integer, CellConfig> columnConfigMap;
 
@@ -18,23 +15,6 @@ public class TableConfigBean {
         this.itemCommonStyleConfig = itemCommonStyleConfig;
     }
 
-    public int getFrozenRows() {
-        return frozenRows;
-    }
-
-    public void setFrozenRows(int frozenRows) {
-        this.frozenRows = frozenRows;
-    }
-
-    public int getFrozenColumns() {
-        return frozenColumns;
-    }
-
-    public void setFrozenColumns(int frozenColumns) {
-        this.frozenColumns = frozenColumns;
-    }
-
-    private int frozenColumns;
 
     public int getMinWidth() {
         return minWidth;
@@ -114,22 +94,6 @@ public class TableConfigBean {
     }
 
     private int limitTableHeight;
-
-    public int getFrozenPoint() {
-        return frozenPoint;
-    }
-
-    public void setFrozenPoint(int frozenPoint) {
-        this.frozenPoint = frozenPoint;
-    }
-
-    public int getFrozenCount() {
-        return frozenCount;
-    }
-
-    public void setFrozenCount(int frozenCount) {
-        this.frozenCount = frozenCount;
-    }
 
     public void setColumnConfigMap(Map<Integer, CellConfig> columnConfigMap) {
         this.columnConfigMap = columnConfigMap;

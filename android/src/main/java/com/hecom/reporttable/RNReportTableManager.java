@@ -29,6 +29,7 @@ import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.deserializer.ItemCommonStyleConfigDeserializer;
+import com.hecom.reporttable.table.lock.CommonLock;
 
 import java.util.Map;
 
@@ -38,6 +39,7 @@ import androidx.annotation.Nullable;
 
 public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> {
     private ThemedReactContext mReactContext;
+    private ReportTableStore store;
     private Gson mGson = new GsonBuilder()
             .registerTypeAdapter(ItemCommonStyleConfig.class, new ItemCommonStyleConfigDeserializer())
             .create();
@@ -51,6 +53,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
     protected SmartTable<String> createViewInstance(final ThemedReactContext reactContext) {
         mReactContext = reactContext;
         final SmartTable<String> table = new SmartTable(reactContext);
+        this.store = new ReportTableStore(reactContext, table);
         IGridFormat gridFormat = new HecomGridFormat(table);
         table.getConfig().setTableGridFormat(gridFormat);
 
@@ -90,23 +93,48 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
         view.setZoom(!disableZoom);
     }
 
+    @ReactProp(name="frozenRows")
+    public void setFrozenRows(SmartTable<String> view, int frozenRows){
+        view.getConfig().setFixedLines(frozenRows, store);
+    }
+
+    @ReactProp(name="frozenColumns")
+    public void setFrozenColumns(SmartTable<String> view, int frozenColumns){
+        this.store.mClickHandler.getLocker().setFrozenColumns(frozenColumns);
+    }
+
+
+    @ReactProp(name="frozenPoint")
+    public void setFrozenPoint(SmartTable<String> view, int frozenPoint){
+        view.getConfig().setFrozenPoint(frozenPoint);
+    }
+
+
+    @ReactProp(name="frozenCount")
+    public void setFrozenCount(SmartTable<String> view, int frozenCount){
+        view.getConfig().setFrozenCount(frozenCount);
+    }
+
+    @ReactProp(name="permutable")
+    public void setPermutable(SmartTable<String> view, boolean permutable){
+        if (permutable){
+
+        } else {
+            this.store.mClickHandler.setLocker(new CommonLock(view));
+        }
+    }
+
+
     @ReactProp(name = "data")
     public void setData(SmartTable<String> view, ReadableMap dataSource) {
-        ReportTableStore reportTableStore = view.getReportTableConfig();
-        if (reportTableStore == null) {
-            return;
-        }
+        ReportTableStore reportTableStore = this.store;
 
         String jsonData = "";
         int minHeight = 40;
         int minWidth = 50;
         int maxWidth = 120;
-        int frozenRows = -1;
-        int frozenColumns = -1;
         int textPaddingHorizontal = 12;
         String lineColor = "#000000";
-        int frozenCount = 0;
-        int frozenPoint = 0;
         int headerHeight = 0;
         int limitTableHeight = 0;
         String itemConfig = null;
@@ -116,13 +144,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                 itemConfig = dataSource.getString("itemConfig");
             }
 
-            if (dataSource.hasKey("frozenCount")) {
-                frozenCount = dataSource.getInt("frozenCount");
-            }
 
-            if (dataSource.hasKey("frozenPoint")) {
-                frozenPoint = dataSource.getInt("frozenPoint");
-            }
 
             if (dataSource.hasKey("data")) {
                 jsonData = dataSource.getString("data");
@@ -136,12 +158,6 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
             }
             if (dataSource.hasKey("maxWidth")) {
                 maxWidth = transformDataType(dataSource.getDouble("maxWidth"));
-            }
-            if (dataSource.hasKey("frozenRows")) {
-                frozenRows = dataSource.getInt("frozenRows");
-            }
-            if (dataSource.hasKey("frozenColumns")) {
-                frozenColumns = dataSource.getInt("frozenColumns");
             }
 
             if (dataSource.hasKey("headerHeight")) {
@@ -161,12 +177,6 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
             configBean.setHeaderHeight(headerHeight);
             int tableHeight = dip2px(mReactContext, limitTableHeight);
             configBean.setLimitTableHeight(tableHeight);
-            if (frozenColumns != -1) {
-                configBean.setFrozenColumns(frozenColumns);
-            }
-            if (frozenRows != -1) {
-                configBean.setFrozenRows(frozenRows);
-            }
 
             if (dataSource.hasKey("textPaddingHorizontal")) {
                 textPaddingHorizontal = dataSource.getInt("textPaddingHorizontal");
@@ -193,8 +203,6 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                 configBean.setItemCommonStyleConfig(itemCommonStyleConfig);
                 view.getConfig().setItemCommonStyleConfig(itemCommonStyleConfig);
             }
-            configBean.setFrozenCount(frozenCount);
-            configBean.setFrozenPoint(frozenPoint);
 
             configBean.setTextPaddingHorizontal(DensityUtils.dp2px(mReactContext, textPaddingHorizontal));
             configBean.setLineColor(lineColor);

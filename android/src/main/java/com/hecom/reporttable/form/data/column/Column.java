@@ -48,12 +48,12 @@ public class Column<T> implements Comparable<Column> {
     private int computeWidth;
     private int level;
     private Comparator<T> comparator;
-    private ICountFormat<T,? extends Number> countFormat;
+    private ICountFormat<T, ? extends Number> countFormat;
     private boolean isReverseSort;
     private OnColumnItemClickListener<T> onColumnItemClickListener;
     private Paint.Align textAlign;
     private Paint.Align titleAlign;
-    private boolean isAutoCount =false;
+    private boolean isAutoCount = false;
     private boolean isAutoMerge = false; //是否自动合并单元格
     private int maxMergeCount = Integer.MAX_VALUE;
     private int id;
@@ -78,71 +78,81 @@ public class Column<T> implements Comparable<Column> {
         return column;
     }
 
-    /**列构造方法
-     * 用于构造组合列
+    /**
+     * 列构造方法 用于构造组合列
+     *
      * @param columnName 列名
-     * @param children 子列
+     * @param children   子列
      */
     public Column(String columnName, List<Column> children) {
         this.columnName = columnName;
         this.children = children;
         isParent = true;
     }
-    /**列构造方法
-     * 用于构造组合列
+
+    /**
+     * 列构造方法 用于构造组合列
+     *
      * @param columnName 列名
-     * @param children 子列
+     * @param children   子列
      */
     public Column(String columnName, Column... children) {
         this(columnName, Arrays.asList(children));
     }
-    /**列构造方法
-     * 用于构造子列
+
+    /**
+     * 列构造方法 用于构造子列
+     *
      * @param columnName 列名
-     * @param fieldName 需要解析的反射字段
+     * @param fieldName  需要解析的反射字段
      */
     public Column(String columnName, String fieldName) {
         this(columnName, fieldName, null, null);
     }
 
-    /**列构造方法
-     * 用于构造子列
+    /**
+     * 列构造方法 用于构造子列
+     *
      * @param columnName 列名
-     * @param fieldName 需要解析的反射字段
-     * @param format 文字格式化
+     * @param fieldName  需要解析的反射字段
+     * @param format     文字格式化
      */
     public Column(String columnName, String fieldName, IFormat<T> format) {
         this(columnName, fieldName, format, null);
     }
-    /**列构造方法
-     * 用于构造子列
+
+    /**
+     * 列构造方法 用于构造子列
+     *
      * @param columnName 列名
-     * @param fieldName 需要解析的反射字段
+     * @param fieldName  需要解析的反射字段
      * @param drawFormat 绘制格式化
      */
     public Column(String columnName, String fieldName, IDrawFormat<T> drawFormat) {
         this(columnName, fieldName, null, drawFormat);
     }
 
-    /**列构造方法
-     * 用于构造子列
+    /**
+     * 列构造方法 用于构造子列
+     *
      * @param columnName 列名
-     * @param fieldName 需要解析的反射字段
-     * @param format 文字格式化
+     * @param fieldName  需要解析的反射字段
+     * @param format     文字格式化
      * @param drawFormat 绘制格式化
      */
-    public Column(String columnName, String fieldName, IFormat<T> format, IDrawFormat<T> drawFormat) {
+    public Column(String columnName, String fieldName, IFormat<T> format,
+                  IDrawFormat<T> drawFormat) {
         this.columnName = columnName;
         this.format = format;
         this.fieldName = fieldName;
-        this.drawFormat =drawFormat;
+        this.drawFormat = drawFormat;
         datas = new ArrayList<>();
     }
 
 
-
     /**
      * 获取列名
+     *
      * @return 列名
      */
     public String getColumnName() {
@@ -151,6 +161,7 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 设置列名
+     *
      * @param columnName 列名
      */
     public void setColumnName(String columnName) {
@@ -159,29 +170,34 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取文字格式化
+     *
      * @return 文字格式化
      */
     public IFormat<T> getFormat() {
         return format;
     }
+
     /**
      * 设置文字格式化
      */
     public void setFormat(IFormat<T> format) {
         this.format = format;
     }
+
     /**
      * 获取反射name
      */
     public String getFieldName() {
         return fieldName;
     }
+
     /**
      * 设置反射name
      */
     public void setFieldName(String fieldName) {
         this.fieldName = fieldName;
     }
+
     /**
      * 设置子列
      */
@@ -191,26 +207,30 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取绘制格式化
+     *
      * @return 绘制格式化
      */
     public IDrawFormat<T> getDrawFormat() {
-        if(drawFormat== null){
+        if (drawFormat == null) {
             drawFormat = isFast ? new FastTextDrawFormat<T>() : new TextDrawFormat<T>();
         }
         return drawFormat;
     }
+
     /**
      * 设置绘制格式化
      */
     public void setDrawFormat(IDrawFormat<T> drawFormat) {
         this.drawFormat = drawFormat;
     }
+
     /**
      * 是否是父列 组合列
      */
     public boolean isParent() {
         return isParent;
     }
+
     /**
      * 设置是否是父列 组合列
      */
@@ -220,39 +240,34 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取需要解析的数据
+     *
      * @return 数据
      */
     public List<T> getDatas() {
         return datas;
     }
+
     /**
-     * 设置需要解析的数据
-     * 直接设置数据，不需要反射获取值
+     * 设置需要解析的数据 直接设置数据，不需要反射获取值
      */
     public void setDatas(List<T> datas) {
         this.datas = datas;
-        if(null!=datas){
+        if (null != datas) {
             int size = datas.size();
             this.formatDatas = new ArrayList<>(size);
-            for (int i = 0; i <size ; i++) {
+            for (int i = 0; i < size; i++) {
                 this.formatDatas.add(null);
             }
         }
     }
 
 
-
-
-
     /**
      * 获取数据
-     *
-     * @throws NoSuchFieldException
-     * @throws IllegalAccessException
      */
     public T getData(Object o) throws NoSuchFieldException, IllegalAccessException {
         String[] fieldNames = fieldName.split("\\.");
-        if (fieldNames.length >0) {
+        if (fieldNames.length > 0) {
             Object child = o;
             for (int i = 0; i < fieldNames.length; i++) {
                 if (child == null) {
@@ -273,45 +288,44 @@ public class Column<T> implements Comparable<Column> {
             }
 
         }
-        return  null;
+        return null;
     }
 
     /**
      * 填充数据
+     *
      * @param objects 对象列表
      * @return 返回需要合并的单元
-     * @throws NoSuchFieldException
-     * @throws IllegalAccessException
      */
 
     public void fillData(List<Object> objects) throws NoSuchFieldException, IllegalAccessException {
-        if(countFormat != null){
+        if (countFormat != null) {
             countFormat.clearCount();
         }
         if (objects.size() > 0) {
             String[] fieldNames = fieldName.split("\\.");
-            if (fieldNames.length>  0) {
+            if (fieldNames.length > 0) {
                 Field[] fields = new Field[fieldNames.length];
                 int size = objects.size();
                 for (int k = 0; k < size; k++) {
-                    Object child= objects.get(k);
+                    Object child = objects.get(k);
                     for (int i = 0; i < fieldNames.length; i++) {
                         if (child == null) {
-                            addData(null,true);
+                            addData(null, true);
                             countColumnValue(null);
                             break;
                         }
                         Field childField;
-                        if(fields[i] != null){
+                        if (fields[i] != null) {
                             childField = fields[i];
-                        }else {
+                        } else {
                             Class childClazz = child.getClass();
                             childField = childClazz.getDeclaredField(fieldNames[i]);
                             childField.setAccessible(true);
                             fields[i] = childField;
                         }
                         if (childField == null) {
-                            addData(null,true);
+                            addData(null, true);
                             countColumnValue(null);
                             break;
                         }
@@ -333,31 +347,30 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 填充数据
+     *
      * @param objects 对象列表
-     * @throws NoSuchFieldException
-     * @throws IllegalAccessException
      */
 
-    public void addData(List<Object> objects, int startPosition,boolean isFoot) throws NoSuchFieldException, IllegalAccessException {
-        if(objects.size()+ startPosition == datas.size()){
+    public void addData(List<Object> objects, int startPosition, boolean isFoot) throws NoSuchFieldException, IllegalAccessException {
+        if (objects.size() + startPosition == datas.size()) {
             return;
         }
         if (objects.size() > 0) {
             String[] fieldNames = fieldName.split("\\.");
-            if (fieldNames.length >0) {
+            if (fieldNames.length > 0) {
                 int size = objects.size();
                 for (int k = 0; k < size; k++) {
-                    Object child= objects.get(isFoot ? k:(size-1-k));
+                    Object child = objects.get(isFoot ? k : (size - 1 - k));
                     for (int i = 0; i < fieldNames.length; i++) {
                         if (child == null) {
-                            addData(null,isFoot);
+                            addData(null, isFoot);
                             countColumnValue(null);
                             break;
                         }
                         Class childClazz = child.getClass();
                         Field childField = childClazz.getDeclaredField(fieldNames[i]);
                         if (childField == null) {
-                            addData(null,isFoot);
+                            addData(null, isFoot);
                             countColumnValue(null);
                             break;
                         }
@@ -377,63 +390,62 @@ public class Column<T> implements Comparable<Column> {
     }
 
 
-    public void setFormatData(int position, WrapTextResult value){
-        if(position >=0 && position< datas.size()){
-            formatDatas.set(position,value);
+    public void setFormatData(int position, WrapTextResult value) {
+        if (position >= 0 && position < datas.size()) {
+            formatDatas.set(position, value);
         }
     }
 
-    public String format(int position){
-       if(position >=0 && position< datas.size()){
-           if(formatDatas.get(position)!=null){
-               return formatDatas.get(position).text;
-           }
-          return format(datas.get(position));
-       }
-       return INVAL_VALUE;
+    public String format(int position) {
+        if (position >= 0 && position < datas.size()) {
+            if (formatDatas.get(position) != null) {
+                return formatDatas.get(position).text;
+            }
+            return format(datas.get(position));
+        }
+        return INVAL_VALUE;
     }
 
-    public WrapTextResult getCacheWrapText(int position){
-        if(position >=0 && position< datas.size()){
-            if(formatDatas.get(position)!=null){
+    public WrapTextResult getCacheWrapText(int position) {
+        if (position >= 0 && position < datas.size()) {
+            if (formatDatas.get(position) != null) {
                 return formatDatas.get(position);
             }
         }
         return null;
     }
 
-    public List<int[]> parseRanges(){
-        if(isAutoMerge && maxMergeCount> 1 &&datas != null) {
-            if(ranges != null){
+    public List<int[]> parseRanges() {
+        if (isAutoMerge && maxMergeCount > 1 && datas != null) {
+            if (ranges != null) {
                 ranges.clear();
-            }else{
+            } else {
                 ranges = new ArrayList<>();
             }
             int size = datas.size();
             String perVal = null;
-            int rangeStartPosition= -1;
+            int rangeStartPosition = -1;
             int rangeCount = 1;
             for (int i = 0; i < size; i++) {
                 String val = format(datas.get(i));
-                if(rangeCount < maxMergeCount && perVal !=null && val !=null
-                        && val.length() != 0 && val.equals(perVal)){
-                    if(rangeStartPosition ==-1){
-                        rangeStartPosition = i-1;
+                if (rangeCount < maxMergeCount && perVal != null && val != null && val.length() != 0 && val.equals(perVal)) {
+                    if (rangeStartPosition == -1) {
+                        rangeStartPosition = i - 1;
                     }
                     rangeCount++;
                     //修复最后一列没有合并
-                    if(i == size-1){
+                    if (i == size - 1) {
                         int[] range = {rangeStartPosition, i};
                         ranges.add(range);
-                        rangeStartPosition =-1;
-                        rangeCount =1;
+                        rangeStartPosition = -1;
+                        rangeCount = 1;
                     }
-                }else{
-                    if(rangeStartPosition !=-1){
-                        int[] range = {rangeStartPosition, i-1};
+                } else {
+                    if (rangeStartPosition != -1) {
+                        int[] range = {rangeStartPosition, i - 1};
                         ranges.add(range);
-                        rangeStartPosition =-1;
-                        rangeCount =1;
+                        rangeStartPosition = -1;
+                        rangeCount = 1;
                     }
                 }
                 perVal = val;
@@ -442,7 +454,7 @@ public class Column<T> implements Comparable<Column> {
         return ranges;
     }
 
-    public String format(T t){
+    public String format(T t) {
         String value;
         if (format != null) {
             value = format.format(t);
@@ -454,21 +466,20 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 统计数据
-     *
      */
     protected void countColumnValue(T t) {
-        if(t != null && isAutoCount && countFormat ==null){
-            if(LetterUtils.isBasicType(t)){
-                if(LetterUtils.isNumber(t)) {
+        if (t != null && isAutoCount && countFormat == null) {
+            if (LetterUtils.isBasicType(t)) {
+                if (LetterUtils.isNumber(t)) {
                     countFormat = new NumberCountFormat<>();
-                }else{
+                } else {
                     countFormat = new DecimalCountFormat<>();
                 }
-            }else{
+            } else {
                 countFormat = new StringCountFormat<>(this);
             }
         }
-        if(countFormat != null){
+        if (countFormat != null) {
             countFormat.count(t);
         }
     }
@@ -476,21 +487,21 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 动态添加数据
-     * @param t 数据
+     *
+     * @param t      数据
      * @param isFoot 是否添加到尾部
      */
-    protected void addData(T t,boolean isFoot){
-        if(isFoot) {
+    protected void addData(T t, boolean isFoot) {
+        if (isFoot) {
             datas.add(t);
-        }else {
-            datas.add(0,t);
+        } else {
+            datas.add(0, t);
         }
 
     }
 
     /**
      * 获取等级 如果上面没有parent 则为1，否则等于parent 递归+1
-     * @return
      */
     public int getLevel() {
         return level;
@@ -502,11 +513,13 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取列的计算的宽度
+     *
      * @return 宽度
      */
     public int getComputeWidth() {
         return computeWidth;
     }
+
     /**
      * 设置列的计算宽度
      */
@@ -519,11 +532,11 @@ public class Column<T> implements Comparable<Column> {
      * 设置列的计算宽度
      */
     public int setComputeWidthMax(int computeWidth) {
-        if(totalColumn < 3){
+        if (totalColumn < 3) {
             this.computeWidth = computeWidth;
             return computeWidth;
         }
-        if(computeWidth > maxWidth){
+        if (computeWidth > maxWidth) {
             computeWidth = maxWidth;
         }
         this.computeWidth = computeWidth;
@@ -533,14 +546,16 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 统计总数
+     *
      * @return 最长值
      */
-    public  String getTotalNumString(){
-        if(countFormat != null){
+    public String getTotalNumString() {
+        if (countFormat != null) {
             return countFormat.getCountString();
         }
         return "";
     }
+
     /**
      * 获取子列列表
      */
@@ -550,7 +565,6 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 添加子列
-     * @param column
      */
     public void addChildren(Column column) {
         children.add(column);
@@ -558,11 +572,13 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取用于排序比较器
+     *
      * @return 排序比较器
      */
     public Comparator<T> getComparator() {
         return comparator;
     }
+
     /**
      * 设置用于排序比较器
      */
@@ -572,11 +588,13 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取统计格式化
+     *
      * @return 统计格式化
      */
     public ICountFormat<T, ? extends Number> getCountFormat() {
         return countFormat;
     }
+
     /**
      * 设置统计格式化
      */
@@ -587,32 +605,37 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取列ID
+     *
      * @return ID
      */
     public int getId() {
         return id;
     }
+
     /**
      * 设置列ID
      */
     public void setId(int id) {
         this.id = id;
     }
+
     /**
      * 比较
      */
     @Override
     public int compareTo(Column o) {
-        return  this.id - o.getId();
+        return this.id - o.getId();
     }
 
     /**
      * 判断是否开启自动统计
+     *
      * @return 是否开启自动统计
      */
     public boolean isAutoCount() {
         return isAutoCount;
     }
+
     /**
      * 设置开启自动统计
      */
@@ -622,11 +645,13 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 判断是否反序
+     *
      * @return 是否反序
      */
     public boolean isReverseSort() {
         return isReverseSort;
     }
+
     /**
      * 设置是否反序
      */
@@ -636,11 +661,13 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取点击列监听
+     *
      * @return 点击列监听
      */
     public OnColumnItemClickListener<T> getOnColumnItemClickListener() {
         return onColumnItemClickListener;
     }
+
     /**
      * 设置点击列监听
      */
@@ -651,6 +678,7 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 判断是否固定
+     *
      * @return 是否固定
      */
     public boolean isFixed() {
@@ -666,11 +694,13 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取字体位置
+     *
      * @return Align
      */
     public Paint.Align getTextAlign() {
         return textAlign;
     }
+
     /**
      * 设置字体位置
      */
@@ -684,19 +714,21 @@ public class Column<T> implements Comparable<Column> {
     public boolean isAutoMerge() {
         return isAutoMerge;
     }
+
     /**
      * 设置是否自动合并
-     *
      */
     public void setAutoMerge(boolean autoMerge) {
         isAutoMerge = autoMerge;
     }
+
     /**
      * 是否最大合并数量
      */
     public int getMaxMergeCount() {
         return maxMergeCount;
     }
+
     /**
      * 设置是否最大合并数量
      */
@@ -705,8 +737,8 @@ public class Column<T> implements Comparable<Column> {
     }
 
     /**
-     * 是否快速显示
-     * 当所显示为单行，且列字体大小不变，可以使用isFast来更快加载
+     * 是否快速显示 当所显示为单行，且列字体大小不变，可以使用isFast来更快加载
+     *
      * @return 是否快速显示
      */
     public boolean isFast() {
@@ -714,8 +746,7 @@ public class Column<T> implements Comparable<Column> {
     }
 
     /**
-     * 设置是否快速显示
-     * 当所显示为单行，且列字体大小不变，可以使用isFast来更快加载
+     * 设置是否快速显示 当所显示为单行，且列字体大小不变，可以使用isFast来更快加载
      */
     public void setFast(boolean fast) {
         isFast = fast;
@@ -724,9 +755,10 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取Position所占格子
+     *
      * @return 格子数
      */
-    public int getSeizeCellSize(TableInfo tableInfo, int position){
+    public int getSeizeCellSize(TableInfo tableInfo, int position) {
         return tableInfo.getArrayLineSize()[position];
     }
 
@@ -755,14 +787,12 @@ public class Column<T> implements Comparable<Column> {
     }
 
 
-
     public Paint.Align getTitleAlign() {
         return titleAlign;
     }
 
     /**
      * 设置标题对齐方式
-     * @param titleAlign
      */
     public void setTitleAlign(Paint.Align titleAlign) {
         this.titleAlign = titleAlign;
@@ -770,10 +800,9 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 设置列的宽度
-     * @param width
      */
     public void setWidth(int width) {
-        if(width >0) {
+        if (width > 0) {
             this.width = width;
             this.setDrawFormat(new MultiLineDrawFormat<T>(width));
         }
@@ -781,10 +810,9 @@ public class Column<T> implements Comparable<Column> {
 
     /**
      * 获取列的宽度
-     * @param
      */
     public int getWidth() {
-        if(width == 0){
+        if (width == 0) {
             return computeWidth;
         }
         return width;
@@ -796,44 +824,5 @@ public class Column<T> implements Comparable<Column> {
 
     public void setRanges(List<int[]> ranges) {
         this.ranges = ranges;
-    }
-
-
-     public String format(int position, int frozenCount,int frozenPoint){
-            if(position >=0 && position< datas.size()){
-                if(formatDatas.get(position)!=null){
-                     return formatDatas.get(position).text;
-                }
-                return format(datas.get(position), position, frozenCount, frozenPoint);
-            }
-            return INVAL_VALUE;
-        }
-
-    public String format(T t, int row,int frozenCount,int frozenPoint){
-        String value;
-        if (format != null) {
-            value = format.format(t);
-        } else {
-            value = t == null ? INVAL_VALUE : t.toString();
-        }
-        return value;
-    }
-
-
-
-    public String formatHeight(int position){
-        if(position >=0 && position< datas.size()){
-            return format(datas.get(position),1,0,0);
-        }
-        return INVAL_VALUE;
-    }
-
-
-    public void setMargin4Icon(int margin4Icon) {
-        this.margin4Icon = margin4Icon;
-    }
-
-    public int getMargin4Icon() {
-        return margin4Icon;
     }
 }

@@ -1,6 +1,5 @@
 package com.hecom.reporttable;
 
-import android.content.Context;
 import android.graphics.Paint;
 import android.text.TextUtils;
 
@@ -13,11 +12,10 @@ import com.hecom.reporttable.table.bean.JsonTableBean;
 import java.util.List;
 
 /**
- * Description :
- * Created on 2023/5/12.
+ * Description : Created on 2023/5/12.
  */
 public class TableUtil {
-  public   static int parseIconName2ResourceId(String name) {
+    public static int parseIconName2ResourceId(String name) {
         switch (name) {
             case "normal":
                 return R.mipmap.normal;
@@ -51,13 +49,13 @@ public class TableUtil {
         }
     }
 
-    public static int getFirstColumnMaxMerge(  TableData tableData){
+    public static int getFirstColumnMaxMerge(TableData tableData) {
         int maxColumn = -1;
-        List<CellRange> list =  tableData.getUserCellRange();
+        List<CellRange> list = tableData.getUserCellRange();
         for (int i = 0; i < list.size(); i++) {
             CellRange cellRange = list.get(i);
-            if(cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0){
-                if(maxColumn < cellRange.getLastCol()){
+            if (cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0) {
+                if (maxColumn < cellRange.getLastCol()) {
                     maxColumn = cellRange.getLastCol();
                 }
             }
@@ -65,24 +63,14 @@ public class TableUtil {
         return maxColumn;
     }
 
-    public static int calculateIconWidth(TableConfig config, int col, int row ){
+    public static int calculateIconWidth(TableConfig config, int col, int row) {
         JsonTableBean.Icon icon = config.getTabArr()[row][col].getIcon();
-        int id = icon!=null?parseIconName2ResourceId(icon.name):0;
-        if(id!=0){
-           return config.getContext().getDrawable(id).getIntrinsicWidth() ;
-        }else if(row==0) {
-            if(config.getFrozenPoint() > 0){
-                if(col == 0 && config.firstColMaxMerge > 0){
-                    col = config.firstColMaxMerge;
-                }
-                if(col == config.getFrozenPoint() - 1 ){
-                    return config.getContext().getDrawable(R.mipmap.icon_lock).getIntrinsicWidth() ;
-                }
-            }else{
-                if(config.getFrozenCount() > 0 && col < config.getFrozenCount()){
-                    return config.getContext().getDrawable(R.mipmap.icon_lock).getIntrinsicWidth() ;
-                }
-            }
+        int id = icon != null ? parseIconName2ResourceId(icon.name) : 0;
+        if (id != 0) {
+            return config.getContext().getDrawable(id).getIntrinsicWidth();
+        } else if (config.isLockItem(col, row)) {
+            return config.getContext().getDrawable(R.mipmap.icon_lock)
+                    .getIntrinsicWidth();
         }
         return 0;
     }
@@ -94,7 +82,9 @@ public class TableUtil {
             return 0;
         } else {
             Paint asteriskPaint = config.getAsteriskPaint();
-            asteriskPaint.setTextSize((jsonTableBean.getFontSize() != null && jsonTableBean.getFontSize().compareTo(0) > 0) ? jsonTableBean.getFontSize() : config.getContentStyle().getTextSize());
+            asteriskPaint.setTextSize((jsonTableBean.getFontSize() != null && jsonTableBean.getFontSize()
+                    .compareTo(0) > 0) ? jsonTableBean.getFontSize() : config.getContentStyle()
+                    .getTextSize());
             return asteriskPaint.measureText(config.ASTERISK);
         }
     }
@@ -104,7 +94,8 @@ public class TableUtil {
         ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
         Integer innerAlign = tableBean == null ? null : tableBean.getTextAlignment();
         return innerAlign != null
-                ? (innerAlign == 1 ? Paint.Align.CENTER : innerAlign == 2 ? Paint.Align.RIGHT : Paint.Align.LEFT)
+                ? (innerAlign == 1 ? Paint.Align.CENTER : innerAlign == 2 ? Paint.Align.RIGHT :
+                Paint.Align.LEFT)
                 : (itemCommonStyleConfig.getTextAlignment() == 1
                 ? Paint.Align.CENTER
                 : itemCommonStyleConfig.getTextAlignment() == 2

@@ -120,6 +120,8 @@ public  class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
     @Override
     public float draw(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
 
+        update(cellInfo, config);
+
         if (getBitmap(cellInfo.data, cellInfo.value, cellInfo.row) == null) {
             textDrawFormat.draw(c, rect, cellInfo, config);
             return 0;
@@ -204,22 +206,7 @@ public  class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
         return 0;
     }
 
-      /**
-         * 计算中英文字符串的字节长度 <br/>
-         * 一个中文占3个字节
-         *
-         * @param str
-         * @return int 字符串的字节长度
-         */
-        public static int getLength(String str) {
-            if (str == null || str.length() == 0) {
-                return 0;
-            }
-            try {
-                return str.getBytes("UTF-8").length;
-            } catch (Exception e) {
-                System.out.println("计算中英文字符串的字节长度失败");
-            }
-            return 0;
-        }
+    private void update(CellInfo<T> cellInfo, TableConfig<T> config){
+        
+    }
 }

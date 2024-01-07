@@ -6,15 +6,15 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.util.Log;
 
+import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
-import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.column.ColumnInfo;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
+import com.hecom.reporttable.form.data.format.draw.TextImageDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.WrapTextResult;
 import com.hecom.reporttable.form.data.format.selected.IDrawOver;
 import com.hecom.reporttable.form.data.format.selected.ISelectFormat;
@@ -23,22 +23,16 @@ import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.TableClickObserver;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
-import com.hecom.reporttable.form.utils.DrawUtils;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import com.hecom.reporttable.R;
-import com.hecom.reporttable.form.data.format.draw.TextImageDrawFormat;
 import com.hecom.reporttable.form.utils.DensityUtils;
+import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.JsonTableBean.Icon;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Created by huang on 2017/11/1.
- * 表格内容绘制
+ * Created by huang on 2017/11/1. 表格内容绘制
  */
 public class TableProvider<T> implements TableClickObserver {
 
@@ -67,21 +61,16 @@ public class TableProvider<T> implements TableClickObserver {
     private boolean isFirstDraw = true;  //是否首次绘制
     private boolean isShowUnFixedArea;  //非固定区域是否已全部可见
     private boolean isScrollToBottom;  //是否滚动至底部
-    //    private List<Integer> fixedTops = new ArrayList<>();  //固定行的top列表
-//    private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
     private List<ArrayList<Integer>> fixedTopLists = new ArrayList<>();  //固定行的topSet
     private List<ArrayList<Integer>> fixedBottomLists = new ArrayList<>();  //固定行的bottomSet
     private TextImageDrawFormat rightTextImageDrawFormat;
     private TextImageDrawFormat leftTextImageDrawFormat;
     private MatrixHelper mMatrixHelper;
-    private int mFixedReactLeft =0;
-    private int mFixedReactRight =0;
-    private int mMinFixedWidth =0;
-    private int mTotalFixedWidth =0;
+    private int mFixedReactLeft = 0;
+    private int mFixedReactRight = 0;
+    private int mMinFixedWidth = 0;
+    private int mTotalFixedWidth = 0;
 
-
-
-    //private static final String TAG = "TableProvider";
 
     public JsonTableBean[][] getTabArr() {
         return tabArr;
@@ -93,43 +82,43 @@ public class TableProvider<T> implements TableClickObserver {
 
     private JsonTableBean[][] tabArr;
 
-//    private int firstColMaxMerge = -1;
     private boolean singleClickItem = false;
+
     public TableProvider(Context context) {
         this.context = context;
         clickPoint = new PointF(-1, -1);
         clipRect = new Rect();
-        tempRect  = new Rect();
+        tempRect = new Rect();
         operation = new SelectionOperation();
-        gridDrawer  = new GridDrawer<>();
-//        int size = DensityUtils.dp2px(context,15);
-        rightTextImageDrawFormat = new TextImageDrawFormat(1, 1, TextImageDrawFormat.RIGHT,  DensityUtils.dp2px(context,4));
-        leftTextImageDrawFormat = new TextImageDrawFormat(1, 1, TextImageDrawFormat.LEFT,  DensityUtils.dp2px(context,4));
+        gridDrawer = new GridDrawer<>();
+        rightTextImageDrawFormat = new TextImageDrawFormat(1, 1, TextImageDrawFormat.RIGHT,
+                DensityUtils.dp2px(context, 4));
+        leftTextImageDrawFormat = new TextImageDrawFormat(1, 1, TextImageDrawFormat.LEFT,
+                DensityUtils.dp2px(context, 4));
         leftTextImageDrawFormat.setContext(context);
         rightTextImageDrawFormat.setContext(context);
     }
 
     /**
      * 绘制
-     * @param canvas 画布
+     *
+     * @param canvas    画布
      * @param scaleRect 缩放Rect
-     * @param showRect 显示Rect
+     * @param showRect  显示Rect
      * @param tableData 表格数据
-     * @param config 配置
+     * @param config    配置
      */
     public void onDraw(Canvas canvas, Rect scaleRect, Rect showRect,
                        TableData<T> tableData, TableConfig config) {
         setData(scaleRect, showRect, tableData, config);
         canvas.save();
         canvas.clipRect(this.showRect);
-//        drawColumnTitle(canvas, config);
         drawCount(canvas);
-//        firstColMaxMerge = getFirstColumnMaxMerge();
         drawContent(canvas, false);
         drawContent(canvas, true);
-        operation.draw(canvas,showRect,config);
-        if(drawOver !=null)
-            drawOver.draw(canvas,scaleRect,showRect,config);
+        operation.draw(canvas, showRect, config);
+        if (drawOver != null)
+            drawOver.draw(canvas, scaleRect, showRect, config);
         canvas.restore();
         if (isClickPoint && clickColumnInfo != null) {
             onColumnClickListener.onClick(clickColumnInfo);
@@ -141,12 +130,14 @@ public class TableProvider<T> implements TableClickObserver {
 
     /**
      * 设置基本信息和清除数据
+     *
      * @param scaleRect 缩放Rect
-     * @param showRect 显示Rect
+     * @param showRect  显示Rect
      * @param tableData 表格数据
-     * @param config 配置
+     * @param config    配置
      */
-    private void setData(Rect scaleRect, Rect showRect, TableData<T> tableData, TableConfig config) {
+    private void setData(Rect scaleRect, Rect showRect, TableData<T> tableData,
+                         TableConfig config) {
         isClickPoint = false;
         clickColumnInfo = null;
         tipColumn = null;
@@ -160,7 +151,7 @@ public class TableProvider<T> implements TableClickObserver {
 
 
     private void drawColumnTitle(Canvas canvas, TableConfig config) {
-        if(config.isShowColumnTitle()) {
+        if (config.isShowColumnTitle()) {
             if (config.isFixedTitle()) {
                 drawTitle(canvas);
                 canvas.restore();
@@ -174,20 +165,22 @@ public class TableProvider<T> implements TableClickObserver {
 
     /**
      * 绘制统计行
+     *
      * @param canvas 画布
      */
     private void drawCount(Canvas canvas) {
         if (tableData.isShowCount()) {
             float left = scaleRect.left;
-            float bottom = config.isFixedCountRow() ? Math.min(scaleRect.bottom,showRect.bottom) : scaleRect.bottom;
+            float bottom = config.isFixedCountRow() ?
+                    Math.min(scaleRect.bottom, showRect.bottom) : scaleRect.bottom;
             int countHeight = tableData.getTableInfo().getCountHeight();
             float top = bottom - countHeight;
-            if(config.getCountBackground() != null){
-                tempRect.set((int)left, (int)top, showRect.right,(int)bottom);
-                config.getCountBackground().drawBackground(canvas,tempRect,config.getPaint());
+            if (config.getCountBackground() != null) {
+                tempRect.set((int) left, (int) top, showRect.right, (int) bottom);
+                config.getCountBackground().drawBackground(canvas, tempRect, config.getPaint());
             }
             List<ColumnInfo> childColumnInfos = tableData.getChildColumnInfos();
-            if (DrawUtils.isVerticalMixRect(showRect, (int)top, (int)bottom)) {
+            if (DrawUtils.isVerticalMixRect(showRect, (int) top, (int) bottom)) {
                 List<Column> columns = tableData.getChildColumns();
                 int columnSize = columns.size();
                 boolean isPerColumnFixed = false;
@@ -196,25 +189,25 @@ public class TableProvider<T> implements TableClickObserver {
                 for (int i = 0; i < columnSize; i++) {
                     Column column = columns.get(i);
                     float tempLeft = left;
-                    float width = column.getComputeWidth()*config.getZoom();
-                    if(childColumnInfos.get(i).getTopParent().column.isFixed()){
-                        if(left < clipRect.left) {
+                    float width = column.getComputeWidth() * config.getZoom();
+                    if (childColumnInfos.get(i).getTopParent().column.isFixed()) {
+                        if (left < clipRect.left) {
                             left = clipRect.left;
                             clipRect.left += width;
                             isPerColumnFixed = true;
                         }
-                    }else if(isPerColumnFixed){
+                    } else if (isPerColumnFixed) {
                         canvas.save();
                         clipCount++;
                         canvas.clipRect(clipRect.left, showRect.bottom - countHeight,
                                 showRect.right, showRect.bottom);
                     }
-                    tempRect.set((int)left, (int)top, (int)(left+width), (int)bottom);
-                    drawCountText(canvas, column,i,tempRect, column.getTotalNumString(), config);
+                    tempRect.set((int) left, (int) top, (int) (left + width), (int) bottom);
+                    drawCountText(canvas, column, i, tempRect, column.getTotalNumString(), config);
                     left = tempLeft;
-                    left +=width;
+                    left += width;
                 }
-                for(int i = 0;i < clipCount;i++){
+                for (int i = 0; i < clipCount; i++) {
                     canvas.restore();
                 }
             }
@@ -223,6 +216,7 @@ public class TableProvider<T> implements TableClickObserver {
 
     /**
      * 绘制列标题
+     *
      * @param canvas 画布
      */
     private void drawTitle(Canvas canvas) {
@@ -230,10 +224,10 @@ public class TableProvider<T> implements TableClickObserver {
         TableInfo tableInfo = tableData.getTableInfo();
         int titleHeight = tableInfo.getTitleHeight() * tableInfo.getMaxLevel();
         int clipHeight = config.isFixedTitle() ? titleHeight : Math.max(0, titleHeight - dis);
-        if(config.getColumnTitleBackground() !=null){
+        if (config.getColumnTitleBackground() != null) {
             tempRect.set(showRect.left, showRect.top, showRect.right,
                     showRect.top + clipHeight);
-            config.getColumnTitleBackground().drawBackground(canvas,tempRect,config.getPaint());
+            config.getColumnTitleBackground().drawBackground(canvas, tempRect, config.getPaint());
         }
         clipRect.set(showRect);
         List<ColumnInfo> columnInfoList = tableData.getColumnInfos();
@@ -242,7 +236,7 @@ public class TableProvider<T> implements TableClickObserver {
         int clipCount = 0;
         ColumnInfo parentColumnInfo = null;
         for (ColumnInfo info : columnInfoList) {
-            int left = (int) (info.left*zoom + scaleRect.left);
+            int left = (int) (info.left * zoom + scaleRect.left);
             //根据top ==0是根部，根据最根部的Title判断是否需要固定
             if (info.top == 0 && info.column.isFixed()) {
                 if (left < clipRect.left) {
@@ -254,10 +248,10 @@ public class TableProvider<T> implements TableClickObserver {
                     continue;
                 }
                 //根部需要固定，同时固定所有子类
-            }else if(isPerColumnFixed && info.top != 0){
+            } else if (isPerColumnFixed && info.top != 0) {
                 left = (int) (clipRect.left - info.width * zoom);
-                left += (info.left -parentColumnInfo.left);
-            }else if(isPerColumnFixed){
+                left += (info.left - parentColumnInfo.left);
+            } else if (isPerColumnFixed) {
                 canvas.save();
                 canvas.clipRect(clipRect.left, showRect.top, showRect.right,
                         showRect.top + clipHeight);
@@ -266,7 +260,7 @@ public class TableProvider<T> implements TableClickObserver {
             }
             fillColumnTitle(canvas, info, left);
         }
-        for(int i = 0;i < clipCount;i++){
+        for (int i = 0; i < clipCount; i++) {
             canvas.restore();
         }
         if (config.isFixedTitle()) {
@@ -281,16 +275,17 @@ public class TableProvider<T> implements TableClickObserver {
 
     /**
      * 填充列标题
+     *
      * @param canvas 画布
-     * @param info 列信息
-     * @param left 左边
+     * @param info   列信息
+     * @param left   左边
      */
     private void fillColumnTitle(Canvas canvas, ColumnInfo info, int left) {
 
-        int top = (int)(info.top*config.getZoom())
+        int top = (int) (info.top * config.getZoom())
                 + (config.isFixedTitle() ? showRect.top : scaleRect.top);
-        int right = (int) (left + info.width *config.getZoom());
-        int bottom = (int) (top + info.height*config.getZoom());
+        int right = (int) (left + info.width * config.getZoom());
+        int bottom = (int) (top + info.height * config.getZoom());
         if (DrawUtils.isMixRect(showRect, left, top, right, bottom)) {
             if (!isClickPoint && onColumnClickListener != null) {
                 if (DrawUtils.isClick(left, top, right, bottom, clickPoint)) {
@@ -300,11 +295,12 @@ public class TableProvider<T> implements TableClickObserver {
                 }
             }
             Paint paint = config.getPaint();
-            tempRect.set(left,top,right,bottom);
-            if(config.getTableGridFormat() !=null) {
+            tempRect.set(left, top, right, bottom);
+            if (config.getTableGridFormat() != null) {
                 config.getColumnTitleGridStyle().fillPaint(paint);
                 int position = tableData.getChildColumns().indexOf(info.column);
-                config.getTableGridFormat().drawColumnTitleGrid(canvas,tempRect,info.column,position,paint);
+                config.getTableGridFormat()
+                        .drawColumnTitleGrid(canvas, tempRect, info.column, position, paint);
             }
             tableData.getTitleDrawFormat().draw(canvas, info.column, tempRect, config);
 
@@ -318,6 +314,7 @@ public class TableProvider<T> implements TableClickObserver {
             this.fixedBottomLists.clear();
         }
     }
+
     public void clearFixedTopLists() {
         if (this.fixedTopLists == null) {
             this.fixedTopLists = new ArrayList<>();
@@ -328,6 +325,7 @@ public class TableProvider<T> implements TableClickObserver {
 
     /**
      * 绘制内容
+     *
      * @param canvas 画布
      */
     private void drawContent(Canvas canvas, boolean onlyDrawFrozenRows) {
@@ -336,7 +334,8 @@ public class TableProvider<T> implements TableClickObserver {
         boolean hasDrawed = false;
         List<Column> columns = tableData.getChildColumns();
 
-        Rect showRect = new Rect(this.showRect.left, this.showRect.top, this.showRect.right, this.showRect.bottom);
+        Rect showRect = new Rect(this.showRect.left, this.showRect.top, this.showRect.right,
+                this.showRect.bottom);
         if (isFirstDraw) {
             showRect.right = Integer.MAX_VALUE / 2; // 第一次渲染全部，因为需要计算 fixTopLists 和 fixBottomLists
         }
@@ -352,7 +351,8 @@ public class TableProvider<T> implements TableClickObserver {
         }
         if (config.isFixedCountRow()) {
             canvas.save();
-            canvas.clipRect(showRect.left, showRect.top, showRect.right, showRect.bottom - info.getCountHeight());
+            canvas.clipRect(showRect.left, showRect.top, showRect.right,
+                    showRect.bottom - info.getCountHeight());
         }
         List<ColumnInfo> childColumnInfo = tableData.getChildColumnInfos();
         boolean isPerFixed = false;
@@ -365,22 +365,22 @@ public class TableProvider<T> implements TableClickObserver {
             if (column.isFixed()) {
                 mMinFixedWidth = (int) (column.getComputeWidth() * config.getZoom());
                 mTotalFixedWidth += mMinFixedWidth;
-            }else {
+            } else {
                 break;
             }
         }
         boolean fixedReactLeftInit = false;
         int mFixedTranslateX = mMatrixHelper.mFixedTranslateX;
-        if(mFixedTranslateX> mTotalFixedWidth- mMinFixedWidth){
-            mFixedTranslateX = mTotalFixedWidth- mMinFixedWidth;
+        if (mFixedTranslateX > mTotalFixedWidth - mMinFixedWidth) {
+            mFixedTranslateX = mTotalFixedWidth - mMinFixedWidth;
             mMatrixHelper.mFixedTranslateX = mFixedTranslateX;
         }
-        if(mFixedTranslateX<0){
+        if (mFixedTranslateX < 0) {
             mFixedTranslateX = 0;
             mMatrixHelper.mFixedTranslateX = mFixedTranslateX;
         }
-        boolean isFixedTranslateX = mFixedTranslateX >0;
-        if(isFixedTranslateX){
+        boolean isFixedTranslateX = mFixedTranslateX > 0;
+        if (isFixedTranslateX) {
             clipRect.left -= mFixedTranslateX;
         }
         for (int columnIndex = 0; columnIndex < columnSize; columnIndex++) {
@@ -409,18 +409,18 @@ public class TableProvider<T> implements TableClickObserver {
             if (left < showRect.right) {
                 int size = column.getDatas().size();
                 int realPosition = 0;
-                if(column.isFixed()){
-                    if(!fixedReactLeftInit){
+                if (column.isFixed()) {
+                    if (!fixedReactLeftInit) {
                         this.mFixedReactLeft = (int) left;
-                        fixedReactLeftInit=true;
+                        fixedReactLeftInit = true;
                     }
                     this.mFixedReactRight = (int) right;
                 }
                 for (int rowIndex = 0; rowIndex < size; rowIndex++) {
                     //遍历行
-                    boolean isDrawLock = (rowIndex == 0 && column.isFixed());
                     WrapTextResult cacheWrapText = column.getCacheWrapText(rowIndex);
-                    String value = null == cacheWrapText ? column.format(rowIndex, config.getFrozenCount(), config.getFrozenPoint()) : cacheWrapText.text;
+                    String value = null == cacheWrapText ? column.format(rowIndex) :
+                            cacheWrapText.text;
                     int skip = tableInfo.getSeizeCellSize(column, rowIndex);
                     int totalLineHeight = 0;
                     for (int k = realPosition; k < realPosition + skip; k++) {
@@ -429,7 +429,8 @@ public class TableProvider<T> implements TableClickObserver {
                     realPosition += skip;
                     float bottom = top + totalLineHeight * config.getZoom();
                     tempRect.set((int) left, (int) top, (int) right, (int) bottom);
-                    correctCellRect = gridDrawer.correctCellRect(rowIndex, columnIndex, tempRect, config.getZoom()); //矫正格子的大小
+                    correctCellRect = gridDrawer.correctCellRect(rowIndex, columnIndex, tempRect,
+                            config.getZoom()); //矫正格子的大小
                     if (correctCellRect != null) {
                         if (rowIndex < config.getFixedLines()) {
 //                            if(isFirstDraw) {
@@ -462,7 +463,8 @@ public class TableProvider<T> implements TableClickObserver {
 
                             Integer b = fixedBottomLists.get(columnIndex).get(rowIndex);
                             if (b == null) {
-                                fixedBottomLists.get(columnIndex).set(rowIndex, correctCellRect.bottom);
+                                fixedBottomLists.get(columnIndex)
+                                        .set(rowIndex, correctCellRect.bottom);
                             } else {
                                 correctCellRect.bottom = (int) (b * config.getZoom());
                             }
@@ -470,8 +472,10 @@ public class TableProvider<T> implements TableClickObserver {
                         if (correctCellRect.top < showRect.bottom) {
                             if (correctCellRect.left < showRect.right && correctCellRect.right > showRect.left && correctCellRect.bottom > showRect.top) {
                                 Object data = column.getDatas().get(rowIndex);
-                                if (singleClickItem && DrawUtils.isClick(correctCellRect, clickPoint)) {
-                                    operation.setSelectionRect(columnIndex, rowIndex, correctCellRect);
+                                if (singleClickItem && DrawUtils.isClick(correctCellRect,
+                                        clickPoint)) {
+                                    operation.setSelectionRect(columnIndex, rowIndex,
+                                            correctCellRect);
                                     tipPoint.x = (left + right) / 2;
                                     tipPoint.y = (top + bottom) / 2;
                                     tipColumn = column;
@@ -481,15 +485,18 @@ public class TableProvider<T> implements TableClickObserver {
                                     clickPoint.set(-Integer.MAX_VALUE, -Integer.MAX_VALUE);
                                     singleClickItem = false;
                                 }
-                                operation.checkSelectedPoint(columnIndex, rowIndex, correctCellRect);
-                                cellInfo.set(column, data, value, columnIndex, rowIndex, cacheWrapText != null);
+                                operation.checkSelectedPoint(columnIndex, rowIndex,
+                                        correctCellRect);
+                                cellInfo.set(column, data, value, columnIndex, rowIndex,
+                                        cacheWrapText != null);
                                 config.setPartlyCellZoom(1);
                                 if (config.getFixedLines() == 0) {
-                                    drawContentCell(canvas, cellInfo, correctCellRect, config, isDrawLock);
+                                    drawContentCell(canvas, cellInfo, correctCellRect, config);
                                 } else if (isFirstDraw || rowIndex < config.getFixedLines()) {
                                     finalRect.set(correctCellRect);
-                                    finalRect.bottom = tempRect.bottom!=correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
-                                    drawContentCell(canvas, cellInfo, finalRect, config, isDrawLock);
+                                    finalRect.bottom =
+                                            tempRect.bottom != correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
+                                    drawContentCell(canvas, cellInfo, finalRect, config);
                                 } else if (!isFirstDraw && rowIndex >= config.getFixedLines()) {
                                     if (onlyDrawFrozenRows && rowIndex >= config.getFixedLines()) {
                                         break;
@@ -499,7 +506,8 @@ public class TableProvider<T> implements TableClickObserver {
                                     while (tmp >= 0) {
                                         int inSize = fixedBottomLists.get(tmp).size();
                                         if (inSize > 0) {
-                                            tmpBottom = (int) (fixedBottomLists.get(tmp).get(inSize - 1) * config.getZoom());
+                                            tmpBottom = (int) (fixedBottomLists.get(tmp)
+                                                    .get(inSize - 1) * config.getZoom());
                                             break;
                                         }
                                         tmp--;
@@ -508,8 +516,9 @@ public class TableProvider<T> implements TableClickObserver {
                                     if (correctCellRect.top >= tmpBottom) {
                                         //绘制完整单元格
                                         finalRect.set(correctCellRect);
-                                        finalRect.bottom = tempRect.bottom!=correctCellRect.bottom &&  correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
-                                        drawContentCell(canvas, cellInfo, finalRect, config, isDrawLock);
+                                        finalRect.bottom =
+                                                tempRect.bottom != correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
+                                        drawContentCell(canvas, cellInfo, finalRect, config);
                                         if (rowIndex == config.getFixedLines() && config.getScrollChangeListener() != null && !isShowUnFixedArea) {
                                             //非固定区域可见
                                             isShowUnFixedArea = true;
@@ -520,14 +529,20 @@ public class TableProvider<T> implements TableClickObserver {
                                             //非固定区域不可见
                                             isShowUnFixedArea = false;
                                         }
-                                        if (correctCellRect.bottom > tmpBottom + dip2px(context, 5)) {
-                                            //float partlyCellZoom = (correctCellRect.bottom - fixedBottoms.get(config.getFixedLines() - 1)) / (float) correctCellRect.height();
+                                        if (correctCellRect.bottom > tmpBottom + dip2px(context,
+                                                5)) {
+                                            //float partlyCellZoom = (correctCellRect.bottom -
+                                            // fixedBottoms.get(config.getFixedLines() - 1)) /
+                                            // (float) correctCellRect.height();
                                             //绘制部分单元格
                                             //config.setPartlyCellZoom(partlyCellZoom);
                                             finalRect.set(correctCellRect);
-                                            finalRect.top  = tempRect.bottom!=correctCellRect.bottom ? tmpBottom : finalRect.top ;
-                                            finalRect.bottom = tempRect.bottom!=correctCellRect.bottom &&  correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
-                                            drawContentCell(canvas, cellInfo, finalRect, config, isDrawLock);
+                                            finalRect.top =
+                                                    tempRect.bottom != correctCellRect.bottom ?
+                                                            tmpBottom : finalRect.top;
+                                            finalRect.bottom =
+                                                    tempRect.bottom != correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
+                                            drawContentCell(canvas, cellInfo, finalRect, config);
                                         }
                                     }
                                 }
@@ -567,172 +582,132 @@ public class TableProvider<T> implements TableClickObserver {
     }
 
     /**
-     *绘制内容格子
-     * @param c 画布
+     * 绘制内容格子
+     *
+     * @param c        画布
      * @param cellInfo 格子信息
-     * @param rect 方位
-     * @param config 表格配置
-     * @param isDrawLock 是否绘制锁标志
+     * @param rect     方位
+     * @param config   表格配置
      */
-    protected void drawContentCell(Canvas c, CellInfo<T> cellInfo, Rect rect,TableConfig config, boolean isDrawLock) {
-        if(config.getContentCellBackgroundFormat()!= null){
-            config.getContentCellBackgroundFormat().drawBackground(c,rect,cellInfo,config.getPaint());
+    protected void drawContentCell(Canvas c, CellInfo<T> cellInfo, Rect rect, TableConfig config) {
+        if (config.getContentCellBackgroundFormat() != null) {
+            config.getContentCellBackgroundFormat()
+                    .drawBackground(c, rect, cellInfo, config.getPaint());
         }
-        if(config.getTableGridFormat() !=null){
+        if (config.getTableGridFormat() != null) {
             config.getContentGridStyle().fillPaint(config.getPaint());
-            config.getTableGridFormat().drawContentGrid(c,cellInfo.col,cellInfo.row,rect,cellInfo,config.getPaint());
+            config.getTableGridFormat()
+                    .drawContentGrid(c, cellInfo.col, cellInfo.row, rect, cellInfo,
+                            config.getPaint());
         }
 
         rect.left += config.getTextLeftOffset();
         rect.right = rect.right - config.getTextRightOffset();
+        selectDrawFormat(c, rect, cellInfo, config);
+    }
 
-        if(cellInfo.row == 0 ){
-            if(config.getFrozenPoint() > 0){
-                int col = cellInfo.col;
-                if(col == 0 && config.firstColMaxMerge > 0){
-                    col =  config.firstColMaxMerge;
-                }
-                if(col == config.getFrozenPoint() - 1 ){
-                    if(isDrawLock){
-                        rightTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
-                    }else{
-                        rightTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
-                    }
+    private void selectDrawFormat(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+        if (config.isLockItem(cellInfo.col, cellInfo.row)) {
+            if (cellInfo.column.isFixed()) {
+                rightTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
+            } else {
+                rightTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
+            }
+            rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+        } else {
+            Icon icon = getTabArr()[cellInfo.row][cellInfo.col].getIcon();
+            if (icon != null) {
+                String name = icon.getName();
+                if ("normal".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.normal);
                     rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                }else{
-                    selectDrawFormat(c, rect, cellInfo, config);
+                } else if ("up".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.up);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("down".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.down);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("dot_new".equals(name)) {
+                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_new);
+                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("dot_edit".equals(name)) {
+                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_edit);
+                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("dot_delete".equals(name)) {
+                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_delete);
+                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("dot_readonly".equals(name)) {
+                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_readonly);
+                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("dot_white".equals(name)) {
+                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_white);
+                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("dot_select".equals(name)) {
+                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_select);
+                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("portal_icon".equals(name)) {
+                    leftTextImageDrawFormat.setResourceId(R.mipmap.portal_icon);
+                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("trash".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.trash);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("revert".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.revert);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("copy".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.copy);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("edit".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("selected".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("unselected".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("unselected_disable".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("copy_disable".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.copy_disable);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("edit_disable".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit_disable);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("trash_disable".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.trash_disable);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("unSelectIcon".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.checkbox);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else if ("selectedIcon".equals(name)) {
+                    rightTextImageDrawFormat.setResourceId(R.mipmap.checkbox_hl);
+                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
+                } else {
+                    cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
                 }
-            }else{
-                if(config.getFrozenCount() > 0){
-                    if(cellInfo.col < config.getFrozenCount()){
-                        if(isDrawLock){
-                            rightTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
-                        }else{
-                            rightTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
-                        }
-                        rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                    }else{
-                        selectDrawFormat(c, rect, cellInfo, config);
-                    }
-                }else{
-                    selectDrawFormat(c, rect, cellInfo, config);
-                }
-            }
-        }else{
-            selectDrawFormat(c, rect, cellInfo, config);
-        }
-    }
-
-    private int getFirstColumnMaxMerge(){
-        int maxColumn = -1;
-        List<CellRange> list =  tableData.getUserCellRange();
-        for (int i = 0; i < list.size(); i++) {
-            CellRange cellRange = list.get(i);
-            if(cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0){
-                if(maxColumn < cellRange.getLastCol()){
-                    maxColumn = cellRange.getLastCol();
-                }
-            }
-        }
-        return maxColumn;
-    }
-
-
-    private void selectDrawFormat(Canvas c,Rect rect,CellInfo<T> cellInfo,TableConfig config){
-        Icon icon = getTabArr()[cellInfo.row][cellInfo.col].getIcon();
-        if(icon != null){
-            String name = icon.getName();
-            if("normal".equals(name)){
-                rightTextImageDrawFormat.setResourceId(R.mipmap.normal);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if("up".equals(name)){
-                rightTextImageDrawFormat.setResourceId(R.mipmap.up);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if("down".equals(name)){
-                rightTextImageDrawFormat.setResourceId(R.mipmap.down);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("dot_new".equals(name)) {
-                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_new);
-                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("dot_edit".equals(name)) {
-                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_edit);
-                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("dot_delete".equals(name)) {
-                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_delete);
-                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("dot_readonly".equals(name)) {
-                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_readonly);
-                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("dot_white".equals(name)) {
-                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_white);
-                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("dot_select".equals(name)) {
-                leftTextImageDrawFormat.setResourceId(R.mipmap.dot_select);
-                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("portal_icon".equals(name)) {
-                leftTextImageDrawFormat.setResourceId(R.mipmap.portal_icon);
-                leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("trash".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.trash);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("revert".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.revert);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("copy".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.copy);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("edit".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("selected".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("unselected".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("unselected_disable".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("copy_disable".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.copy_disable);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("edit_disable".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.edit_disable);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("trash_disable".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.trash_disable);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("unSelectIcon".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.checkbox);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else if ("selectedIcon".equals(name)) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.checkbox_hl);
-                rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-            } else{
+            } else {
                 cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
             }
-        }else{
-            cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
         }
+
     }
-
-
-
 
 
     /**
      * 点击格子
-     * @param column 列
+     *
+     * @param column   列
      * @param position 位置
-     * @param value 值
-     * @param data 数据
+     * @param value    值
+     * @param data     数据
      */
     private void clickColumn(Column column, int position, String value, Object data) {
         if (!isClickPoint && column.getOnColumnItemClickListener() != null) {
             column.getOnColumnItemClickListener().onClick(column, value, data, position);
         }
     }
-
 
 
     /**
@@ -744,29 +719,31 @@ public class TableProvider<T> implements TableClickObserver {
         }
     }
 
-    private void drawCountText(Canvas canvas,Column column,int position, Rect rect, String text, TableConfig config) {
+    private void drawCountText(Canvas canvas, Column column, int position, Rect rect, String text
+            , TableConfig config) {
         Paint paint = config.getPaint();
         //绘制背景
         ICellBackgroundFormat<Column> backgroundFormat = config.getCountBgCellFormat();
-        if(backgroundFormat != null){
-            backgroundFormat.drawBackground(canvas,rect,column,config.getPaint());
+        if (backgroundFormat != null) {
+            backgroundFormat.drawBackground(canvas, rect, column, config.getPaint());
         }
         //绘制网格
-        if(config.getTableGridFormat() !=null){
+        if (config.getTableGridFormat() != null) {
             config.getContentGridStyle().fillPaint(paint);
-            config.getTableGridFormat().drawCountGrid(canvas,position,rect,column,paint);
+            config.getTableGridFormat().drawCountGrid(canvas, position, rect, column, paint);
         }
         config.getCountStyle().fillPaint(paint);
         //字体颜色跟随背景变化
-        if(backgroundFormat != null&& backgroundFormat.getTextColor(column) != TableConfig.INVALID_COLOR){
+        if (backgroundFormat != null && backgroundFormat.getTextColor(column) != TableConfig.INVALID_COLOR) {
             paint.setColor(backgroundFormat.getTextColor(column));
         }
         //绘制字体
-        paint.setTextSize(paint.getTextSize()*config.getZoom());
-        if(column.getTextAlign() !=null) {
+        paint.setTextSize(paint.getTextSize() * config.getZoom());
+        if (column.getTextAlign() != null) {
             paint.setTextAlign(column.getTextAlign());
         }
-        canvas.drawText(text, DrawUtils.getTextCenterX(rect.left,rect.right,paint), DrawUtils.getTextCenterY(rect.centerY(), paint), paint);
+        canvas.drawText(text, DrawUtils.getTextCenterX(rect.left, rect.right, paint),
+                DrawUtils.getTextCenterY(rect.centerY(), paint), paint);
     }
 
 
@@ -801,6 +778,6 @@ public class TableProvider<T> implements TableClickObserver {
     }
 
     public void setMatrixHelper(MatrixHelper matrixHelper) {
-        this.mMatrixHelper= matrixHelper;
+        this.mMatrixHelper = matrixHelper;
     }
 }

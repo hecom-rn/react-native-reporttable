@@ -12,7 +12,6 @@ import com.hecom.reporttable.form.data.format.sequence.NumberSequenceFormat;
 import com.hecom.reporttable.form.data.format.title.ITitleDrawFormat;
 import com.hecom.reporttable.form.data.format.title.TitleDrawFormat;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
-import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.ArrayList;
@@ -44,15 +43,6 @@ public class TableData<T> {
     private OnItemClickListener onItemClickListener;
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
-    private TableConfigBean tableConfigBean;
-
-    public TableConfigBean getTableConfigBean() {
-        return tableConfigBean;
-    }
-
-    public void setTableConfigBean(TableConfigBean tableConfigBean) {
-        this.tableConfigBean = tableConfigBean;
-    }
 
     public TypicalCell[][] getMaxValues4Column() {
         return maxValues4Column;
@@ -69,17 +59,6 @@ public class TableData<T> {
     public void setMaxValues4Row(TypicalCell[][] maxValues4Row) {
         this.maxValues4Row = maxValues4Row;
     }
-
-    public int getCurFixedColumnIndex() {
-        return curFixedColumnIndex;
-    }
-
-    public void setCurFixedColumnIndex(int curFixedColumnIndex) {
-        this.curFixedColumnIndex = curFixedColumnIndex;
-    }
-
-    private int curFixedColumnIndex = -1;  //当前锁定的列号
-    private OnResponseItemClickListener onResponseItemClickListener;
 
     /**
      * @param tableName 表名
@@ -492,60 +471,7 @@ public class TableData<T> {
                     public void onClick(Column column, String value, Object t, int position) {
                         if (onItemClickListener != null) {
                             int index = childColumns.indexOf(column);
-                            boolean isResponseOnClick = true;
-                            if (onResponseItemClickListener != null) {
-                                isResponseOnClick = onResponseItemClickListener.responseOnClick(column, value, t, index, position);
-                            }
-                            TableData.this.onItemClickListener.onClick(column, value, t, index, position, TableData.this);
-                            if (!isResponseOnClick) return;
-                            if (position == 0) {
-                                int firstColumnMaxMerge = getFirstColumnMaxMerge();
-                                int frozenIndex = 0;
-                                if (tableConfigBean != null) {
-                                    frozenIndex = tableConfigBean.getFrozenColumns();
-                                }
-                                if (firstColumnMaxMerge > 0){
-                                    if(curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
-                                        //前面列全部锁定
-                                        for (int i = 0; i <= firstColumnMaxMerge; i++) {
-                                            columns.get(i).setFixed(true);
-                                        }
-                                        curFixedColumnIndex = index;
-                                    } else if (index < curFixedColumnIndex) {
-                                        //后面列取消锁定
-                                        for (int i = index + 1; i <= firstColumnMaxMerge; i++) {
-                                            columns.get(i).setFixed(false);
-                                        }
-                                        curFixedColumnIndex = index;
-                                    } else {
-                                        //全部列取消锁定
-                                        for (int i = frozenIndex; i <= firstColumnMaxMerge; i++) {
-                                            columns.get(i).setFixed(false);
-                                        }
-                                        curFixedColumnIndex = -1;
-                                    }
-                                    return;
-                                }
-                                if (curFixedColumnIndex == -1 || index > curFixedColumnIndex) {
-                                    //前面列全部锁定
-                                    for (int i = 0; i <= index; i++) {
-                                        columns.get(i).setFixed(true);
-                                    }
-                                    curFixedColumnIndex = index;
-                                } else if (index < curFixedColumnIndex) {
-                                    //后面列取消锁定
-                                    for (int i = index + 1; i <= curFixedColumnIndex; i++) {
-                                        columns.get(i).setFixed(false);
-                                    }
-                                    curFixedColumnIndex = index;
-                                } else {
-                                    //全部列取消锁定
-                                    for (int i = frozenIndex; i <= index; i++) {
-                                        columns.get(i).setFixed(false);
-                                    }
-                                    curFixedColumnIndex = -1;
-                                }
-                            }
+                            TableData.this.onItemClickListener.onClick(column, value, t, index, position);
                         }
                     }
                 });
@@ -553,9 +479,6 @@ public class TableData<T> {
         }
     }
 
-    public void setOnResponseItemClickListener(final OnResponseItemClickListener onResponseItemClickListener) {
-        this.onResponseItemClickListener = onResponseItemClickListener;
-    }
 
     /**
      * 设置表格行点击事件
@@ -567,7 +490,7 @@ public class TableData<T> {
         if (this.onRowClickListener != null) {
             setOnItemClickListener(new OnItemClickListener() {
                 @Override
-                public void onClick(Column column, String value, Object o, int col, int row, TableData tableData) {
+                public void onClick(Column column, String value, Object o, int col, int row) {
                     TableData.this.onRowClickListener.onClick(column, t.get(row), col, row);
                 }
             });
@@ -584,7 +507,7 @@ public class TableData<T> {
         if (this.onRowClickListener != null) {
             setOnItemClickListener(new OnItemClickListener() {
                 @Override
-                public void onClick(Column column, String value, Object o, int col, int row, TableData tableData) {
+                public void onClick(Column column, String value, Object o, int col, int row) {
                     TableData.this.onColumnClickListener.onClick(column, column.getDatas(), col, row);
                 }
             });
@@ -600,7 +523,7 @@ public class TableData<T> {
      * 表格单元格Cell点击事件接口
      */
     public interface OnItemClickListener<T> {
-        void onClick(Column<T> column, String value, T t, int col, int row, TableData tableData);
+        void onClick(Column<T> column, String value, T t, int col, int row);
     }
 
     /**
@@ -613,27 +536,4 @@ public class TableData<T> {
     public interface OnColumnClickListener<T> {
         void onClick(Column column, List<T> t, int col, int row);
     }
-
-    /**
-     * 是否响应表格单元格Cell点击事件接口
-     */
-    public interface OnResponseItemClickListener<T> {
-        boolean responseOnClick(Column<T> column, String value, T t, int col, int row);
-    }
-
-
-    public int getFirstColumnMaxMerge() {
-        int maxColumn = -1;
-        List<CellRange> list = getUserCellRange();
-        for (int i = 0; i < list.size(); i++) {
-            CellRange cellRange = list.get(i);
-            if (cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0) {
-                if (maxColumn < cellRange.getLastCol()) {
-                    maxColumn = cellRange.getLastCol();
-                }
-            }
-        }
-        return maxColumn;
-    }
-
 }
