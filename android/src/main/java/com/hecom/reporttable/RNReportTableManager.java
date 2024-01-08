@@ -76,8 +76,8 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
         table.getMeasurer().setOnContentSizeChangeListener(new OnContentSizeChangeListener() {
             @Override
             public void onContentSizeChanged(float width, float height) {
-                float widthDp = DensityUtils.px2dp(table.getConfig().getContext(), width);
-                float heightDp = DensityUtils.px2dp(table.getConfig().getContext(), height);
+                float widthDp = DensityUtils.px2dp(table.getContext(), width);
+                float heightDp = DensityUtils.px2dp(table.getContext(), height);
                 WritableMap map = Arguments.createMap();
                 map.putDouble("width", widthDp);
                 map.putDouble("height", heightDp);
@@ -106,13 +106,13 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
 
     @ReactProp(name = "frozenPoint")
     public void setFrozenPoint(SmartTable<String> view, int frozenPoint) {
-        view.getConfig().setFrozenPoint(frozenPoint);
+        store.mLockHelper.setPoint(frozenPoint);
     }
 
 
     @ReactProp(name = "frozenCount")
     public void setFrozenCount(SmartTable<String> view, int frozenCount) {
-        view.getConfig().setFrozenCount(frozenCount);
+        store.mLockHelper.setCount(frozenCount);
     }
 
     @ReactProp(name = "permutable")

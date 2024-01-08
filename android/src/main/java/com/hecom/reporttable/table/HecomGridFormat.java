@@ -3,7 +3,6 @@ package com.hecom.reporttable.table;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.text.TextUtils;
@@ -11,7 +10,6 @@ import android.text.TextUtils;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.format.grid.BaseGridFormat;
-import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 
 /**
@@ -99,7 +97,7 @@ public class HecomGridFormat extends BaseGridFormat {
     }
 
     private void fillGridType(int col, int row) {
-        JsonTableBean bean = this.table.getConfig().getTabArr()[row][col];
+        JsonTableBean bean = this.table.getConfig().getCell(row,col);
         int position = bean.getClassificationLinePosition();
         mTrianglePosition = bean.getTrianglePosition();
         mForbidden = bean.getForbidden();

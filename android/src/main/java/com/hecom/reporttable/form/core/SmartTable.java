@@ -70,13 +70,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
             new LinkedBlockingDeque<Runnable>());
 
 
-    public void setTabArr(JsonTableBean[][] tabArr) {
-        provider.setTabArr(tabArr);
-        measurer.setTabArr(tabArr);
-        config.setTabArr(tabArr);
-    }
-
-
     public TableMeasurer<T> getMeasurer() {
         return measurer;
     }
@@ -264,7 +257,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
                 this.provider.clearFixedBottomLists();
             }
             this.tableData = tableData;
-            this.config.setTableData(tableData);
             notifyDataChanged();
         }
     }

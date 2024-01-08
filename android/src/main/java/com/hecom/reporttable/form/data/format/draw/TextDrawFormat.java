@@ -110,7 +110,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureWidth(Column<T> column, int position, TableConfig config, boolean onlyCalculate, int specWidth) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        JsonTableBean jsonTableBean = config.getTabArr()[position][column.getColumn()];
+        JsonTableBean jsonTableBean = config.getCell(position, column.getColumn());
         ExtraTextConfig extraText = jsonTableBean.extraText;
         WrapTextResult result = column.getCacheWrapText(position);
         float asteriskWidth = 0;
@@ -151,7 +151,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
     public int measureHeight(Column<T> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
-        JsonTableBean jsonTableBean = config.getTabArr()[position][column.getColumn()];
+        JsonTableBean jsonTableBean = config.getCell(position, column.getColumn());
         ExtraTextConfig extraText = jsonTableBean.extraText;
         WrapTextResult result = column.getCacheWrapText(position);
         float asteriskWidth = 0;
@@ -228,7 +228,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
     private void drawAsterisk(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
         Paint asteriskPaint = config.getAsteriskPaint();
-        JsonTableBean jsonTableBean = config.getTabArr()[cellInfo.row][cellInfo.col];
+        JsonTableBean jsonTableBean = config.getCell(cellInfo.row, cellInfo.col);
         String asteriskColor = jsonTableBean.getAsteriskColor();
         int textSize = (jsonTableBean.getFontSize() != null && jsonTableBean.getFontSize().compareTo(0) > 0) ? jsonTableBean.getFontSize() : config.getContentStyle().getTextSize();
         asteriskPaint.setTextSize(textSize * config.getZoom());
@@ -244,7 +244,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
             result = getWrapText(cellInfo.value, paint, config, marginRight, rect);
         }
         String[] values = getSplitString(result.text);
-        ExtraTextConfig extraText = config.getTabArr()[cellInfo.row][cellInfo.col].extraText;
+        ExtraTextConfig extraText = config.getCell(cellInfo.row, cellInfo.col).extraText;
         if (extraText == null) {
             DrawUtils.drawSingleText(c, paint, rect, result.text);
             return DrawUtils.getMultiTextWidth(paint, values);
@@ -270,14 +270,14 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
 
     public void setTextPaint(TableConfig config, CellInfo<T> cellInfo, Paint paint) {
-        JsonTableBean jsonTableBean = config.getTabArr()[cellInfo.row][cellInfo.col];
+        JsonTableBean jsonTableBean = config.getCell(cellInfo.row, cellInfo.col);
         config.getContentStyle().fillPaint(paint);
         ICellBackgroundFormat<CellInfo> backgroundFormat = config.getContentCellBackgroundFormat();
         if (backgroundFormat != null && backgroundFormat.getTextColor(cellInfo) != TableConfig.INVALID_COLOR) {
             paint.setColor(backgroundFormat.getTextColor(cellInfo));
         }
         paint.setTextSize(paint.getTextSize() * config.getZoom() * config.getPartlyCellZoom());
-        paint.setFakeBoldText(config.getTabArr()[cellInfo.row][cellInfo.col].isOverstriking);
+        paint.setFakeBoldText(jsonTableBean.isOverstriking);
         paint.setTextAlign(TableUtil.getAlignConfig(config, cellInfo.row, cellInfo.col));
         paint.setStrikeThruText(null == jsonTableBean.strikethrough ? false : jsonTableBean.strikethrough);
     }

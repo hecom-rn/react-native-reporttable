@@ -27,17 +27,13 @@ public class ClickHandler implements TableData.OnItemClickListener<String> {
 
     }
 
-    public Locker getLocker() {
-        return locker;
-    }
-
-    public void setLocker(Locker locker){
+    public void setLocker(Locker locker) {
         this.locker = locker;
     }
 
     @Override
     public void onClick(Column column, String value, String o, int col, int row) {
-        boolean isLockItem = table.getConfig().isLockItem(col, row);
+        boolean isLockItem = locker.needShowLock(row, col);
         if (isLockItem) {
             table.postDelayed(new Runnable() {
                 @Override
@@ -52,13 +48,13 @@ public class ClickHandler implements TableData.OnItemClickListener<String> {
         }
         try {
             Context context = table.getContext();
-            JsonTableBean tableBean = table.getConfig().getTabArr()[row][col];
+            JsonTableBean tableBean = table.getConfig().getCell(row,col);
             int keyIndex = tableBean.getKeyIndex();
             if (context != null) {
                 WritableMap map = Arguments.createMap();
                 map.putInt("keyIndex", keyIndex);
                 map.putInt("rowIndex", row);
-                map.putInt("columnIndex", col);
+                map.putInt("columnIndex",locker.getRawCol(col));
                 ((ReactContext) context).getJSModule(RCTEventEmitter.class)
                         .receiveEvent(table.getId(), "onClickEvent", map);
             }

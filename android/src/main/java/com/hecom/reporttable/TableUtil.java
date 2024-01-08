@@ -64,11 +64,11 @@ public class TableUtil {
     }
 
     public static int calculateIconWidth(TableConfig config, int col, int row) {
-        JsonTableBean.Icon icon = config.getTabArr()[row][col].getIcon();
+        JsonTableBean.Icon icon = config.getCell(row, col).getIcon();
         int id = icon != null ? parseIconName2ResourceId(icon.name) : 0;
         if (id != 0) {
             return config.getContext().getDrawable(id).getIntrinsicWidth();
-        } else if (config.isLockItem(col, row)) {
+        } else if (config.mLocker.needShowLock(row, col)) {
             return config.getContext().getDrawable(R.mipmap.icon_lock)
                     .getIntrinsicWidth();
         }
@@ -76,7 +76,7 @@ public class TableUtil {
     }
 
     public static float calculateAsteriskWidth(TableConfig config, int col, int row) {
-        JsonTableBean jsonTableBean = config.getTabArr()[row][col];
+        JsonTableBean jsonTableBean = config.getCell(row,col);
         String asteriskColor = jsonTableBean.getAsteriskColor();
         if (TextUtils.isEmpty(asteriskColor)) {
             return 0;
@@ -90,7 +90,7 @@ public class TableUtil {
     }
 
     public static Paint.Align getAlignConfig(TableConfig config, int row, int col) {
-        JsonTableBean tableBean = config.getTabArr()[row][col];
+        JsonTableBean tableBean = config.getCell(row, col);
         ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
         Integer innerAlign = tableBean == null ? null : tableBean.getTextAlignment();
         return innerAlign != null

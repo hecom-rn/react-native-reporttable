@@ -16,6 +16,7 @@ import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
+import com.hecom.reporttable.table.lock.Locker;
 
 
 /**
@@ -35,18 +36,17 @@ public class CellDrawFormat extends ImageResDrawFormat<String> {
     private int resourceId;
     private Context context;
 
-    private JsonTableBean[][] tabArr;
+    private Locker locker;
 
 
-    public CellDrawFormat(Context context, final JsonTableBean[][] tabArr,
-                          final TableConfigBean configBean) {
+    public CellDrawFormat(Context context, final TableConfigBean configBean, Locker locker) {
         super(1, 1);
         textDrawFormat = new TextDrawFormat<String>() {
             @Override
             public void setTextPaint(TableConfig config, CellInfo<String> cellInfo,
                                      Paint paint) {
                 super.setTextPaint(config, cellInfo, paint);
-                JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
+                JsonTableBean tableBean = config.getCell(cellInfo.row, cellInfo.col);
                 Integer textAlignment = tableBean.getTextAlignment();
                 if (null == textAlignment) {
                     textAlignment = configBean.getItemCommonStyleConfig().getTextAlignment();
@@ -65,10 +65,10 @@ public class CellDrawFormat extends ImageResDrawFormat<String> {
                 }
             }
         };
-        this.tabArr = tabArr;
         this.rect = new Rect();
         this.context = context;
         this.drawPadding = DensityUtils.dp2px(context, 4);
+        this.locker = locker;
     }
 
     @Override
@@ -238,7 +238,7 @@ public class CellDrawFormat extends ImageResDrawFormat<String> {
 
     private void update(CellInfo<String> cellInfo, TableConfig<String> config) {
         this.resourceId = 0;
-        if (config.isLockItem(cellInfo.col, cellInfo.row)) {
+        if (locker.needShowLock(cellInfo.row, cellInfo.col)) {
             if (cellInfo.column.isFixed()) {
                 this.resourceId = R.mipmap.icon_lock;
             } else {
@@ -246,7 +246,7 @@ public class CellDrawFormat extends ImageResDrawFormat<String> {
             }
             this.direction = RIGHT;
         } else {
-            JsonTableBean.Icon icon = tabArr[cellInfo.row][cellInfo.col].getIcon();
+            JsonTableBean.Icon icon = config.getCell(cellInfo.row, cellInfo.col).getIcon();
             if (icon != null) {
                 String name = icon.getName();
                 if ("normal".equals(name)) {

@@ -49,6 +49,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
         this.mClickHandler = new ClickHandler(this.table);
         this.mLockHelper = new LockHelper(this.table);
         this.mClickHandler.setLocker(this.mLockHelper);
+        table.getConfig().mLocker = this.mLockHelper;
     }
 
     public void setReportTableDataInMainThread(final SmartTable table, MergeResult mergeResult,
@@ -59,9 +60,9 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
         int minHeight = configBean.getMinHeight();
         try {
             final JsonTableBean[][] tabArr = reportTableData.getTabArr();
-            table.setTabArr(tabArr);
+            table.getConfig().setTabArr(tabArr);
             final ArrayTableData<String> tableData = ArrayTableData.create("", null,
-                    mergeResult.data, new CellDrawFormat(table.getContext(), tabArr, configBean));
+                    mergeResult.data, new CellDrawFormat(table.getContext(), configBean, mLockHelper));
 
             tableData.setMaxValues4Column(mergeResult.maxValues4Column);
             tableData.setMaxValues4Row(mergeResult.maxValues4Row);
@@ -73,7 +74,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
                 @Override
                 public void drawBackground(Canvas canvas, Rect rect, CellInfo cellInfo,
                                            Paint paint) {
-                    JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
+                    JsonTableBean tableBean = table.getConfig().getCell(cellInfo.row,cellInfo.col);
                     String color = ItemCommonStyleConfig.DEFAULT_BACKGROUND_COLOR;
                     if (tableBean != null) {
                         String backgroundColor = tableBean.getBackgroundColor();
@@ -86,7 +87,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
 
                 @Override
                 public int getTextColor(CellInfo cellInfo) {
-                    JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
+                    JsonTableBean tableBean = table.getConfig().getCell(cellInfo.row,cellInfo.col);
                     if (tableBean != null) {
                         String textColor = tableBean.getTextColor();
                         return Color.parseColor(textColor);

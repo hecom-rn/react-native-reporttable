@@ -22,7 +22,6 @@ import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.TableClickObserver;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DrawUtils;
-import com.hecom.reporttable.table.bean.JsonTableBean;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,17 +65,6 @@ public class TableProvider<T> implements TableClickObserver {
     private int mFixedReactRight = 0;
     private int mMinFixedWidth = 0;
     private int mTotalFixedWidth = 0;
-
-
-    public JsonTableBean[][] getTabArr() {
-        return tabArr;
-    }
-
-    public void setTabArr(JsonTableBean[][] tabArr) {
-        this.tabArr = tabArr;
-    }
-
-    private JsonTableBean[][] tabArr;
 
     private boolean singleClickItem = false;
 

@@ -3,7 +3,6 @@ package com.hecom.reporttable.form.core;
 import android.content.Context;
 import android.graphics.Paint;
 
-import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.bg.IBackgroundFormat;
@@ -13,10 +12,10 @@ import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.data.format.grid.SimpleGridFormat;
 import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.style.LineStyle;
-import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.lock.Locker;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,8 +58,6 @@ public class TableConfig<T> {
      * 左侧序号列字体样式
      */
     private FontStyle YSequenceStyle;
-    private TableData<T> tableData;
-    public int firstColMaxMerge = -1;
 
     public Context getContext() {
         return context;
@@ -242,9 +239,7 @@ public class TableConfig<T> {
      */
     private OnScrollChangeListener scrollChangeListener;
 
-    private int frozenCount = 0;
-
-    private int frozenPoint = 0;
+    public Locker mLocker;
 
     private ItemCommonStyleConfig itemCommonStyleConfig = new ItemCommonStyleConfig();
     private JsonTableBean[][] tabArr;
@@ -271,33 +266,12 @@ public class TableConfig<T> {
         this.itemCommonStyleConfig = itemCommonStyleConfig;
     }
 
-    public void setFrozenCount(int frozenCount) {
-        this.frozenCount = frozenCount;
-    }
-
-    public void setFrozenPoint(int frozenPoint) {
-        this.frozenPoint = frozenPoint;
-    }
-
     public void setTabArr(JsonTableBean[][] tabArr) {
         this.tabArr = tabArr;
     }
 
-    public JsonTableBean[][] getTabArr() {
-        return tabArr;
-    }
-
-    public void setTableData(TableData<T> tableData) {
-        this.tableData = tableData;
-        this.firstColMaxMerge = TableUtil.getFirstColumnMaxMerge(tableData);
-    }
-
-    public int getFirstColMaxMerge() {
-        return firstColMaxMerge;
-    }
-
-    public TableData<T> getTableData() {
-        return tableData;
+    public JsonTableBean getCell(int row, int col){
+        return tabArr[row][mLocker.getRawCol(col)];
     }
 
     public interface OnScrollChangeListener {
@@ -755,25 +729,5 @@ public class TableConfig<T> {
      */
 
     private int textRightOffset = 0;
-
-    public boolean isLockItem(int col, int row) {
-        boolean isLockItem;
-        if (row == 0) {
-            int firstColumnMaxMerge = firstColMaxMerge;
-            if (frozenPoint > 0) {
-                if (col == 0 && firstColumnMaxMerge > 0) {
-                    col = firstColumnMaxMerge;
-                }
-                isLockItem = col == frozenPoint - 1;
-            } else if (frozenCount > 0) {
-                isLockItem = col < frozenCount;
-            } else {
-                isLockItem = false;
-            }
-        } else {
-            isLockItem = false;
-        }
-        return isLockItem;
-    }
 
 }
