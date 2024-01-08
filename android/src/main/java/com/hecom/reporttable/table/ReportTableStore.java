@@ -14,7 +14,6 @@ import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
-import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
 import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.data.table.ArrayTableData;
 import com.hecom.reporttable.form.utils.DensityUtils;
@@ -61,32 +60,8 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
         try {
             final JsonTableBean[][] tabArr = reportTableData.getTabArr();
             table.setTabArr(tabArr);
-            TextDrawFormat<String> mTextDrawFormat = new TextDrawFormat<String>() {
-                @Override
-                public void setTextPaint(TableConfig config, CellInfo<String> cellInfo,
-                                         Paint paint) {
-                    super.setTextPaint(config, cellInfo, paint);
-                    JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
-                    Integer textAlignment = tableBean.getTextAlignment();
-                    if (null == textAlignment) {
-                        textAlignment = configBean.getItemCommonStyleConfig().getTextAlignment();
-                    }
-                    switch (textAlignment) {
-                        case 1:
-                            paint.setTextAlign(Paint.Align.CENTER);
-                            break;
-                        case 2:
-                            paint.setTextAlign(Paint.Align.RIGHT);
-                            break;
-                        default:
-                            paint.setTextAlign(Paint.Align.LEFT);
-                            break;
-
-                    }
-                }
-            };
             final ArrayTableData<String> tableData = ArrayTableData.create("", null,
-                    mergeResult.data, mTextDrawFormat);
+                    mergeResult.data, new CellDrawFormat(table.getContext(), tabArr, configBean));
 
             tableData.setMaxValues4Column(mergeResult.maxValues4Column);
             tableData.setMaxValues4Row(mergeResult.maxValues4Row);

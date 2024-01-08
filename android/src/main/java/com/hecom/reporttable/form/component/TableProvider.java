@@ -7,14 +7,12 @@ import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
-import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.column.ColumnInfo;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
-import com.hecom.reporttable.form.data.format.draw.TextImageDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.WrapTextResult;
 import com.hecom.reporttable.form.data.format.selected.IDrawOver;
 import com.hecom.reporttable.form.data.format.selected.ISelectFormat;
@@ -23,13 +21,13 @@ import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.TableClickObserver;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
-import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
-import com.hecom.reporttable.table.bean.JsonTableBean.Icon;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.hecom.reporttable.form.utils.DensityUtils.dp2px;
 
 /**
  * Created by huang on 2017/11/1. 表格内容绘制
@@ -63,8 +61,6 @@ public class TableProvider<T> implements TableClickObserver {
     private boolean isScrollToBottom;  //是否滚动至底部
     private List<ArrayList<Integer>> fixedTopLists = new ArrayList<>();  //固定行的topSet
     private List<ArrayList<Integer>> fixedBottomLists = new ArrayList<>();  //固定行的bottomSet
-    private TextImageDrawFormat rightTextImageDrawFormat;
-    private TextImageDrawFormat leftTextImageDrawFormat;
     private MatrixHelper mMatrixHelper;
     private int mFixedReactLeft = 0;
     private int mFixedReactRight = 0;
@@ -91,12 +87,6 @@ public class TableProvider<T> implements TableClickObserver {
         tempRect = new Rect();
         operation = new SelectionOperation();
         gridDrawer = new GridDrawer<>();
-        rightTextImageDrawFormat = new TextImageDrawFormat(1, 1, TextImageDrawFormat.RIGHT,
-                DensityUtils.dp2px(context, 4));
-        leftTextImageDrawFormat = new TextImageDrawFormat(1, 1, TextImageDrawFormat.LEFT,
-                DensityUtils.dp2px(context, 4));
-        leftTextImageDrawFormat.setContext(context);
-        rightTextImageDrawFormat.setContext(context);
     }
 
     /**
@@ -529,7 +519,7 @@ public class TableProvider<T> implements TableClickObserver {
                                             //非固定区域不可见
                                             isShowUnFixedArea = false;
                                         }
-                                        if (correctCellRect.bottom > tmpBottom + dip2px(context,
+                                        if (correctCellRect.bottom > tmpBottom + dp2px(context,
                                                 5)) {
                                             //float partlyCellZoom = (correctCellRect.bottom -
                                             // fixedBottoms.get(config.getFixedLines() - 1)) /
@@ -603,95 +593,7 @@ public class TableProvider<T> implements TableClickObserver {
 
         rect.left += config.getTextLeftOffset();
         rect.right = rect.right - config.getTextRightOffset();
-        selectDrawFormat(c, rect, cellInfo, config);
-    }
-
-    private void selectDrawFormat(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
-        if (config.isLockItem(cellInfo.col, cellInfo.row)) {
-            if (cellInfo.column.isFixed()) {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.icon_lock);
-            } else {
-                rightTextImageDrawFormat.setResourceId(R.mipmap.icon_unlock);
-            }
-            rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-        } else {
-            Icon icon = getTabArr()[cellInfo.row][cellInfo.col].getIcon();
-            if (icon != null) {
-                String name = icon.getName();
-                if ("normal".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.normal);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("up".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.up);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("down".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.down);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("dot_new".equals(name)) {
-                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_new);
-                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("dot_edit".equals(name)) {
-                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_edit);
-                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("dot_delete".equals(name)) {
-                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_delete);
-                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("dot_readonly".equals(name)) {
-                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_readonly);
-                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("dot_white".equals(name)) {
-                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_white);
-                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("dot_select".equals(name)) {
-                    leftTextImageDrawFormat.setResourceId(R.mipmap.dot_select);
-                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("portal_icon".equals(name)) {
-                    leftTextImageDrawFormat.setResourceId(R.mipmap.portal_icon);
-                    leftTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("trash".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.trash);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("revert".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.revert);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("copy".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.copy);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("edit".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("selected".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("unselected".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("unselected_disable".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("copy_disable".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.copy_disable);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("edit_disable".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.edit_disable);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("trash_disable".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.trash_disable);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("unSelectIcon".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.checkbox);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else if ("selectedIcon".equals(name)) {
-                    rightTextImageDrawFormat.setResourceId(R.mipmap.checkbox_hl);
-                    rightTextImageDrawFormat.draw(c, rect, cellInfo, config);
-                } else {
-                    cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
-                }
-            } else {
-                cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
-            }
-        }
-
+        cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
     }
 
 
@@ -770,11 +672,6 @@ public class TableProvider<T> implements TableClickObserver {
 
     public SelectionOperation getOperation() {
         return operation;
-    }
-
-    private int dip2px(Context context, float dpValue) {
-        final float scale = context.getResources().getDisplayMetrics().density;
-        return (int) (dpValue * scale + 0.5f);
     }
 
     public void setMatrixHelper(MatrixHelper matrixHelper) {

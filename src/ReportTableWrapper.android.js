@@ -22,7 +22,7 @@ export default class ReportTableWrapper extends React.Component {
                 if (this.state.headerHeight == 0) return;
                 if (gs.dy < 0 && this.showHeader) {
                     this.scrollView &&
-                    this.scrollView.scrollTo({x: 0, y: -gs.dy+this.scrollY, animated: true}, 1);
+                    this.scrollView.scrollTo({x: 0, y: -gs.dy + this.scrollY, animated: true}, 1);
                 }
             },
             onPanResponderRelease: (evt, gs) => {
@@ -57,7 +57,7 @@ export default class ReportTableWrapper extends React.Component {
                 }}
             >
                 <ScrollView
-                    horizontal={ headerViewOrientation != 'vertical' }
+                    horizontal={headerViewOrientation != 'vertical'}
                     showsHorizontalScrollIndicator={false}
                     onLayout={(event) => {
                         const {
@@ -81,6 +81,7 @@ export default class ReportTableWrapper extends React.Component {
                     frozenRows={this.props.frozenRows}
                     frozenPoint={this.props.frozenPoint}
                     frozenCount={this.props.frozenCount}
+                    frozenColumns={this.props.frozenColumns}
                     permutable={this.props.permutable}
                     onClickEvent={({nativeEvent: data}) => {
                         if (data) {
@@ -118,7 +119,7 @@ export default class ReportTableWrapper extends React.Component {
         // let {headerHeight} = this.state;
         const {
             data, minWidth, minHeight, textPaddingHorizontal,
-            lineColor, maxWidth, frozenColumns,  size,
+            lineColor, maxWidth, size,
             itemConfig, columnsWidthMap, doubleClickZoom = true
         } = props;
         return {
@@ -129,8 +130,6 @@ export default class ReportTableWrapper extends React.Component {
             maxWidth: maxWidth,
             textPaddingHorizontal: textPaddingHorizontal,
             lineColor: lineColor,
-            frozenColumns: frozenColumns,
-
             limitTableHeight: size.height,
             headerHeight: headerHeight,
             itemConfig: JSON.stringify(itemConfig),

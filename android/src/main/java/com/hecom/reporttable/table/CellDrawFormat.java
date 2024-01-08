@@ -1,58 +1,74 @@
-package com.hecom.reporttable.form.data.format.draw;
+package com.hecom.reporttable.table;
 
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
+import com.hecom.reporttable.R;
 import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
-import com.hecom.reporttable.form.exception.TableException;
+import com.hecom.reporttable.form.data.format.draw.ImageResDrawFormat;
+import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
+import com.hecom.reporttable.form.utils.DensityUtils;
+import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
 
-/**
- * Created by huang on 2017/10/30.
- */
 
-public class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
+/**
+ * 绘制单元格
+ */
+public class CellDrawFormat extends ImageResDrawFormat<String> {
 
     public static final int LEFT = 0;
     public static final int TOP = 1;
     public static final int RIGHT = 2;
     public static final int BOTTOM = 3;
 
-    private TextDrawFormat<T> textDrawFormat;
+    private TextDrawFormat<String> textDrawFormat;
     private int drawPadding;
     private int direction;
     private Rect rect;
     private int resourceId;
     private Context context;
 
-    public TextImageDrawFormat(int imageWidth, int imageHeight, int drawPadding) {
-        this(imageWidth, imageHeight, LEFT, drawPadding);
+    private JsonTableBean[][] tabArr;
 
-    }
 
-    public TextImageDrawFormat(int imageWidth, int imageHeight, int direction, int drawPadding) {
-        super(imageWidth, imageHeight);
-        textDrawFormat = new TextDrawFormat<>();
+    public CellDrawFormat(Context context, final JsonTableBean[][] tabArr,
+                          final TableConfigBean configBean) {
+        super(1, 1);
+        textDrawFormat = new TextDrawFormat<String>() {
+            @Override
+            public void setTextPaint(TableConfig config, CellInfo<String> cellInfo,
+                                     Paint paint) {
+                super.setTextPaint(config, cellInfo, paint);
+                JsonTableBean tableBean = tabArr[cellInfo.row][cellInfo.col];
+                Integer textAlignment = tableBean.getTextAlignment();
+                if (null == textAlignment) {
+                    textAlignment = configBean.getItemCommonStyleConfig().getTextAlignment();
+                }
+                switch (textAlignment) {
+                    case 1:
+                        paint.setTextAlign(Paint.Align.CENTER);
+                        break;
+                    case 2:
+                        paint.setTextAlign(Paint.Align.RIGHT);
+                        break;
+                    default:
+                        paint.setTextAlign(Paint.Align.LEFT);
+                        break;
+
+                }
+            }
+        };
+        this.tabArr = tabArr;
         this.rect = new Rect();
-        this.direction = direction;
-        this.drawPadding = drawPadding;
-        if (direction > BOTTOM || direction < LEFT) {
-            throw new TableException("Please set the direction less than 3 greater than 0");
-        }
-
-    }
-
-    public int getResourceId() {
-        return resourceId;
-    }
-
-    public void setResourceId(int resourceId) {
-        this.resourceId = resourceId;
+        this.context = context;
+        this.drawPadding = DensityUtils.dp2px(context, 4);
     }
 
     @Override
@@ -65,12 +81,12 @@ public class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
     }
 
     @Override
-    protected int getResourceID(T object, String value, int position) {
-        return getResourceId();
+    protected int getResourceID(String object, String value, int position) {
+        return resourceId;
     }
 
     @Override
-    public int measureWidth(Column<T> column, TypicalCell cell, TableConfig config) {
+    public int measureWidth(Column<String> column, TypicalCell cell, TableConfig config) {
         return textDrawFormat.measureWidth(column, cell, config);
 //        if(direction == LEFT || direction == RIGHT) {
 //            return getImageWidth() + textWidth+drawPadding;
@@ -81,7 +97,7 @@ public class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
 
 
     @Override
-    public int measureWidth(Column<T> column, int position, TableConfig config,
+    public int measureWidth(Column<String> column, int position, TableConfig config,
                             boolean onlyCalculate, int sepcWidth) {
         int textWidth = textDrawFormat.measureWidth(column, position, config, false, -1);
         return textWidth;
@@ -93,7 +109,7 @@ public class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
     }
 
     @Override
-    public int measureHeight(Column<T> column, TypicalCell cell, TableConfig config,
+    public int measureHeight(Column<String> column, TypicalCell cell, TableConfig config,
                              int sepcWidth) {
         int imgHeight = this.imageHeight;
         int textHeight = textDrawFormat.measureHeight(column, cell, config, -1);
@@ -103,10 +119,11 @@ public class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
         } else {
             return Math.max(imgHeight, textHeight);
         }
+
     }
 
     @Override
-    public int measureHeight(Column<T> column, int position, TableConfig config) {
+    public int measureHeight(Column<String> column, int position, TableConfig config) {
         int imgHeight = super.measureHeight(column, position, config);
         int textHeight = textDrawFormat.measureHeight(column, position, config);
 
@@ -118,7 +135,9 @@ public class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
     }
 
     @Override
-    public float draw(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
+    public float draw(Canvas c, Rect rect, CellInfo<String> cellInfo, TableConfig config) {
+
+        update(cellInfo, config);
 
         if (getBitmap(cellInfo.data, cellInfo.value, cellInfo.row) == null) {
             textDrawFormat.draw(c, rect, cellInfo, config);
@@ -215,5 +234,89 @@ public class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
 
         }
         return 0;
+    }
+
+    private void update(CellInfo<String> cellInfo, TableConfig<String> config) {
+        this.resourceId = 0;
+        if (config.isLockItem(cellInfo.col, cellInfo.row)) {
+            if (cellInfo.column.isFixed()) {
+                this.resourceId = R.mipmap.icon_lock;
+            } else {
+                this.resourceId = R.mipmap.icon_unlock;
+            }
+            this.direction = RIGHT;
+        } else {
+            JsonTableBean.Icon icon = tabArr[cellInfo.row][cellInfo.col].getIcon();
+            if (icon != null) {
+                String name = icon.getName();
+                if ("normal".equals(name)) {
+                    this.resourceId = R.mipmap.normal;
+                    this.direction = RIGHT;
+                } else if ("up".equals(name)) {
+                    this.resourceId = R.mipmap.up;
+                    this.direction = RIGHT;
+                } else if ("down".equals(name)) {
+                    this.resourceId = R.mipmap.down;
+                    this.direction = RIGHT;
+                } else if ("dot_new".equals(name)) {
+                    this.resourceId = R.mipmap.dot_new;
+                    this.direction = LEFT;
+                } else if ("dot_edit".equals(name)) {
+                    this.resourceId = R.mipmap.dot_edit;
+                    this.direction = LEFT;
+                } else if ("dot_delete".equals(name)) {
+                    this.resourceId = R.mipmap.dot_delete;
+                    this.direction = LEFT;
+                } else if ("dot_readonly".equals(name)) {
+                    this.resourceId = R.mipmap.dot_readonly;
+                    this.direction = LEFT;
+                } else if ("dot_white".equals(name)) {
+                    this.resourceId = R.mipmap.dot_white;
+                    this.direction = LEFT;
+                } else if ("dot_select".equals(name)) {
+                    this.resourceId = R.mipmap.dot_select;
+                    this.direction = LEFT;
+                } else if ("portal_icon".equals(name)) {
+                    this.resourceId = R.mipmap.portal_icon;
+                    this.direction = LEFT;
+                } else if ("trash".equals(name)) {
+                    this.resourceId = R.mipmap.trash;
+                    this.direction = RIGHT;
+                } else if ("revert".equals(name)) {
+                    this.resourceId = R.mipmap.revert;
+                    this.direction = RIGHT;
+                } else if ("copy".equals(name)) {
+                    this.resourceId = R.mipmap.copy;
+                    this.direction = RIGHT;
+                } else if ("edit".equals(name)) {
+                    this.resourceId = R.mipmap.edit;
+                    this.direction = RIGHT;
+                } else if ("selected".equals(name)) {
+                    this.resourceId = R.mipmap.edit;
+                    this.direction = RIGHT;
+                } else if ("unselected".equals(name)) {
+                    this.resourceId = R.mipmap.edit;
+                    this.direction = RIGHT;
+                } else if ("unselected_disable".equals(name)) {
+                    this.resourceId = R.mipmap.edit;
+                    this.direction = RIGHT;
+                } else if ("copy_disable".equals(name)) {
+                    this.resourceId = R.mipmap.copy_disable;
+                    this.direction = RIGHT;
+                } else if ("edit_disable".equals(name)) {
+                    this.resourceId = R.mipmap.edit_disable;
+                    this.direction = RIGHT;
+                } else if ("trash_disable".equals(name)) {
+                    this.resourceId = R.mipmap.trash_disable;
+                    this.direction = RIGHT;
+                } else if ("unSelectIcon".equals(name)) {
+                    this.resourceId = R.mipmap.checkbox;
+                    this.direction = RIGHT;
+                } else if ("selectedIcon".equals(name)) {
+                    this.resourceId = R.mipmap.checkbox_hl;
+                    this.direction = RIGHT;
+                }
+            }
+        }
     }
 }
