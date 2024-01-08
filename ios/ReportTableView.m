@@ -431,7 +431,7 @@
         self.reportTableModel.onClickEvent(@{
             @"keyIndex": [NSNumber numberWithInteger:model.keyIndex],
             @"rowIndex": [NSNumber numberWithInteger:row],
-            @"columnIndex": [NSNumber numberWithInteger:column],
+            @"columnIndex": [NSNumber numberWithInteger:model.columIndex], // 返回数据源的columnIndex，以为column可能会被permutable改变
             @"verticalCount": [NSNumber numberWithInteger:model.verCount],
             @"horizontalCount": [NSNumber numberWithInteger:model.horCount]
         });
