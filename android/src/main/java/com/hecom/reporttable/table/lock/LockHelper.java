@@ -3,35 +3,23 @@ package com.hecom.reporttable.table.lock;
 import com.hecom.reporttable.form.core.SmartTable;
 
 /**
- *
- * Created by kevin.bai on 2024/1/4.
+ * Created by kevin.bai on 2024/1/7.
  */
-public abstract class LockHelper {
-    SmartTable<String> table;
-
-    protected int frozenColumns;
-
-    public int getFrozenColumns() {
-        return frozenColumns;
-    }
-
-    public void setFrozenColumns(int frozenColumns) {
-        this.frozenColumns = frozenColumns;
-    }
-
-    public int getCurFixedColumnIndex() {
-        return curFixedColumnIndex;
-    }
-
-    public void setCurFixedColumnIndex(int curFixedColumnIndex) {
-        this.curFixedColumnIndex = curFixedColumnIndex;
-    }
-
-    protected int curFixedColumnIndex;
+public class LockHelper extends Locker {
+    Locker locker;
 
     public LockHelper(SmartTable<String> table) {
-        this.table = table;
+        super(table);
     }
 
-    public abstract void updateLock(int column);
+    public void setPermutable(boolean permutable) {
+        locker = permutable ? new PermutableLock(this.table) : new CommonLock(this.table);
+    }
+
+    @Override
+    protected void updateLock(int column) {
+        if( locker != null){
+            locker.updateLock(column);
+        }
+    }
 }

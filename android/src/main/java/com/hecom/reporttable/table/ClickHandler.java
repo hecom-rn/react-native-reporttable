@@ -10,7 +10,7 @@ import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.table.bean.JsonTableBean;
-import com.hecom.reporttable.table.lock.LockHelper;
+import com.hecom.reporttable.table.lock.Locker;
 
 /**
  * 处理表格基础的点击事件，以及点击表头时的列锁定逻辑 Created by kevin.bai on 2024/1/4.
@@ -19,7 +19,7 @@ public class ClickHandler implements TableData.OnItemClickListener<String> {
 
     private SmartTable<String> table;
 
-    private LockHelper locker;
+    private Locker locker;
 
 
     public ClickHandler(SmartTable<String> table) {
@@ -27,11 +27,11 @@ public class ClickHandler implements TableData.OnItemClickListener<String> {
 
     }
 
-    public LockHelper getLocker() {
+    public Locker getLocker() {
         return locker;
     }
 
-    public void setLocker(LockHelper locker){
+    public void setLocker(Locker locker){
         this.locker = locker;
     }
 
@@ -45,8 +45,8 @@ public class ClickHandler implements TableData.OnItemClickListener<String> {
                     table.notifyDataChanged();
                 }
             }, 10);
-            if (this.locker != null && row == 0) {
-                this.locker.updateLock(col);
+            if (this.locker != null) {
+                this.locker.onClick(row, col);
             }
             return;
         }

@@ -3,6 +3,7 @@ package com.hecom.reporttable.table.lock;
 import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.form.data.table.TableData;
 
 import java.util.List;
 
@@ -10,14 +11,25 @@ import java.util.List;
  * 可排列列锁定逻辑，permutable属性为true时使用此策略
  * Created by kevin.bai on 2024/1/4.
  */
-public class PermutableLock extends LockHelper {
+public class PermutableLock extends Locker {
+
+    List<Column> rawColumn;
+
+    TableData<String> lastTableData;
 
     public PermutableLock(SmartTable<String> table) {
         super(table);
+        this.lastTableData = table.getTableData();
     }
 
     @Override
-    public void updateLock(int col) {
+    protected void updateLock(int col) {
+        if (rawColumn == null || lastTableData != table.getTableData()){
+            lastTableData = table.getTableData();
+            rawColumn = lastTableData.getColumns();
+        }
+
+
         List<Column> columns = table.getTableData().getColumns();
 
         int firstColumnMaxMerge = TableUtil.getFirstColumnMaxMerge(table.getTableData());

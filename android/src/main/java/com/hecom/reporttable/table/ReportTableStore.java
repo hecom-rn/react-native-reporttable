@@ -23,11 +23,14 @@ import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.MergeResult;
 import com.hecom.reporttable.table.bean.TableConfigBean;
+import com.hecom.reporttable.table.lock.LockHelper;
 
 public class ReportTableStore implements TableConfig.OnScrollChangeListener {
     private SmartTable<String> table;
 
-    public ClickHandler mClickHandler;
+    private ClickHandler mClickHandler;
+
+    public LockHelper mLockHelper;
     private TableConfigBean configBean;
 
     private ReportTableData reportTableData = new ReportTableData();
@@ -45,6 +48,8 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
         ICON_MARGIN = DensityUtils.dp2px(context, 4);
         this.table = smartTable;
         this.mClickHandler = new ClickHandler(this.table);
+        this.mLockHelper = new LockHelper(this.table);
+        this.mClickHandler.setLocker(this.mLockHelper);
     }
 
     public void setReportTableDataInMainThread(final SmartTable table, MergeResult mergeResult,
@@ -119,7 +124,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
 
 
             int arrayColumnSize = tableData.getColumns().size();
-            for (int i = 0; i < this.mClickHandler.getLocker().getFrozenColumns() && i < arrayColumnSize; i++) {
+            for (int i = 0; i < this.mLockHelper.getFrozenColumns() && i < arrayColumnSize; i++) {
                 tableData.getColumns().get(i).setFixed(true);
             }
 

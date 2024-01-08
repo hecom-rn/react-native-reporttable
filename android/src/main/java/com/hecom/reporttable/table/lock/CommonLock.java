@@ -10,14 +10,14 @@ import java.util.List;
  * 普通列锁定逻辑，受frozenPoint、frozenCount影响
  * Created by kevin.bai on 2024/1/4.
  */
-public class CommonLock extends LockHelper {
+public class CommonLock extends Locker {
 
     public CommonLock(SmartTable<String> table) {
         super(table);
     }
 
     @Override
-    public void updateLock(int col) {
+    protected void updateLock(int col) {
         List<Column> columns = table.getTableData().getColumns();
 
         int firstColumnMaxMerge = TableUtil.getFirstColumnMaxMerge(table.getTableData());
