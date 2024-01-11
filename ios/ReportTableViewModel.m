@@ -488,7 +488,7 @@
             CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
             CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.asteriskColor != nil ? 10 : 0) + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
             CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: MAX(maxWidth, mergeNum * minWidth) - exceptText];
-            CGFloat tolerant = 6; // 额外的容错空间
+            CGFloat tolerant = 8; // 额外的容错空间
             if (textRect.size.width + tolerant + exceptText > mergeNum * minWidth || textRect.size.height > model.fontSize * 1.5) {
                 BOOL useMerge = mergeNum > maxWidth/ minWidth; // 当横向有合并时，使用最小宽度来计算对应的高
                 if (textRect.size.height < model.fontSize * 1.5) {
