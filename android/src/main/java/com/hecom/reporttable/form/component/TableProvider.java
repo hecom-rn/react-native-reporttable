@@ -311,20 +311,20 @@ public class TableProvider<T> implements TableClickObserver {
         }
     }
 
-    public void clearFixedBottomLists() {
-        if (this.fixedBottomLists == null) {
-            this.fixedBottomLists = new ArrayList<>();
-        } else {
-            this.fixedBottomLists.clear();
-        }
-    }
-    public void clearFixedTopLists() {
-        if (this.fixedTopLists == null) {
-            this.fixedTopLists = new ArrayList<>();
-        } else {
-            this.fixedTopLists.clear();
-        }
-    }
+    // public void clearFixedBottomLists() {
+    //     if (this.fixedBottomLists == null) {
+    //         this.fixedBottomLists = new ArrayList<>();
+    //     } else {
+    //         this.fixedBottomLists.clear();
+    //     }
+    // }
+    // public void clearFixedTopLists() {
+    //     if (this.fixedTopLists == null) {
+    //         this.fixedTopLists = new ArrayList<>();
+    //     } else {
+    //         this.fixedTopLists.clear();
+    //     }
+    // }
 
     /**
      * 绘制内容
