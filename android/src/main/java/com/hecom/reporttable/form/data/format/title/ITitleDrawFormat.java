@@ -3,9 +3,8 @@ package com.hecom.reporttable.form.data.format.title;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 
-import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.column.Column;
-
+import com.hecom.reporttable.form.core.TableConfig;
 
 
 /**
@@ -31,6 +30,4 @@ public interface ITitleDrawFormat {
      */
     void draw(Canvas c, Column column, Rect rect, TableConfig config);
 
-
-    void draw(Canvas c, Column column, Rect rect, TableConfig config, int row);
 }

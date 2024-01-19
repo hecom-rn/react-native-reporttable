@@ -5,8 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
-import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
 
 
@@ -20,7 +20,7 @@ public abstract class BitmapTitleDrawFormat implements ITitleDrawFormat {
     private int imageHeight;
     private Rect imgRect;
     private Rect drawRect;
-    private boolean isDrawBackground  = true;
+    private boolean isDrawBackground = true;
 
 
     public BitmapTitleDrawFormat(int imageWidth, int imageHeight) {
@@ -31,10 +31,9 @@ public abstract class BitmapTitleDrawFormat implements ITitleDrawFormat {
     }
 
 
-
     @Override
     public int measureWidth(Column column, TableConfig config) {
-        return  imageWidth ;
+        return imageWidth;
     }
 
     @Override
@@ -45,52 +44,49 @@ public abstract class BitmapTitleDrawFormat implements ITitleDrawFormat {
 
     /**
      * 获取bitmap
+     *
      * @return Bitmap 占位图
      */
     protected abstract Bitmap getBitmap(Column column);
 
     @Override
-    public void draw(Canvas c, Column column, Rect rect,TableConfig config) {
+    public void draw(Canvas c, Column column, Rect rect, TableConfig config) {
         Paint paint = config.getPaint();
-        drawBackground(c,column,rect,config);
+        drawBackground(c, column, rect, config);
         Bitmap bitmap = getBitmap(column);
-        if(bitmap != null) {
+        if (bitmap != null) {
             paint.setStyle(Paint.Style.FILL);
             int width = bitmap.getWidth();
             int height = bitmap.getHeight();
-            imgRect.set(0,0,width,height);
-            float scaleX = (float)width/imageWidth;
-            float scaleY = (float)height/imageHeight;
-            if(scaleX >1 || scaleY >1){
-                if(scaleX > scaleY){
-                    width = (int) (width/scaleX);
+            imgRect.set(0, 0, width, height);
+            float scaleX = (float) width / imageWidth;
+            float scaleY = (float) height / imageHeight;
+            if (scaleX > 1 || scaleY > 1) {
+                if (scaleX > scaleY) {
+                    width = (int) (width / scaleX);
                     height = imageHeight;
-                }else{
-                    height = (int) (height/scaleY);
+                } else {
+                    height = (int) (height / scaleY);
                     width = imageWidth;
                 }
             }
-            width= (int) (width*config.getZoom());
-            height = (int) (height*config.getZoom());
-            int disX= (rect.right-rect.left-width)/2;
-            int disY= (rect.bottom-rect.top-height)/2;
-            drawRect.left = rect.left+disX;
-            drawRect.top = rect.top+ disY;
+            width = (int) (width * config.getZoom());
+            height = (int) (height * config.getZoom());
+            int disX = (rect.right - rect.left - width) / 2;
+            int disY = (rect.bottom - rect.top - height) / 2;
+            drawRect.left = rect.left + disX;
+            drawRect.top = rect.top + disY;
             drawRect.right = rect.right - disX;
             drawRect.bottom = rect.bottom - disY;
             c.drawBitmap(bitmap, imgRect, drawRect, paint);
         }
     }
 
-    @Override
-    public void draw(Canvas c, Column column, Rect rect, TableConfig config, int row) {
-
-    }
 
     public boolean drawBackground(Canvas c, Column column, Rect rect, TableConfig config) {
         ICellBackgroundFormat<Column> backgroundFormat = config.getColumnCellBackgroundFormat();
-        if(isDrawBackground && backgroundFormat != null){
-            backgroundFormat.drawBackground(c,rect,column,config.getPaint());
+        if (isDrawBackground && backgroundFormat != null) {
+            backgroundFormat.drawBackground(c, rect, column, config.getPaint());
             return true;
         }
         return false;

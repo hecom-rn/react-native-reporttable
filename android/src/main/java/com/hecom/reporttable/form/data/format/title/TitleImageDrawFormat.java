@@ -3,8 +3,8 @@ package com.hecom.reporttable.form.data.format.title;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 
-import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.exception.TableException;
 
 

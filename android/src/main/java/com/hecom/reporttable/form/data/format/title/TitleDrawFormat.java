@@ -4,8 +4,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
-import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
 import com.hecom.reporttable.form.utils.DrawUtils;
 
@@ -47,34 +47,12 @@ public class TitleDrawFormat implements ITitleDrawFormat {
         drawText(c, column, rect, paint);
     }
 
-    @Override
-    public void draw(Canvas c, Column column, Rect rect, TableConfig config, int row) {
-        Paint paint = config.getPaint();
-        boolean isDrawBg =drawBackground(c,column,rect,config);
-        config.getColumnTitleStyle().fillPaint(paint);
-        ICellBackgroundFormat<Column> backgroundFormat = config.getColumnCellBackgroundFormat();
-
-        paint.setTextSize(paint.getTextSize()*config.getZoom());
-        if(isDrawBg && backgroundFormat.getTextColor(column) != TableConfig.INVALID_COLOR){
-            paint.setColor(backgroundFormat.getTextColor(column));
-        }
-        drawText(c, column, rect, paint, row);
-    }
-
     private void drawText(Canvas c, Column column, Rect rect, Paint paint) {
         if(column.getTitleAlign() !=null) { //如果列设置Align ，则使用列的Align
             paint.setTextAlign(column.getTitleAlign());
         }
         c.drawText(column.getColumnName(), DrawUtils.getTextCenterX(rect.left,rect.right,paint), DrawUtils.getTextCenterY((rect.bottom+rect.top)/2,paint) ,paint);
     }
-
-    private void drawText(Canvas c, Column column, Rect rect, Paint paint, int row) {
-        if(column.getTitleAlign() !=null) { //如果列设置Align ，则使用列的Align
-            paint.setTextAlign(column.getTitleAlign());
-        }
-        c.drawText(column.getDatas().get(row).toString(), DrawUtils.getTextCenterX(rect.left,rect.right,paint), DrawUtils.getTextCenterY((rect.bottom+rect.top)/2,paint) ,paint);
-    }
-
 
     public boolean drawBackground(Canvas c, Column column, Rect rect,  TableConfig config) {
         ICellBackgroundFormat<Column> backgroundFormat = config.getColumnCellBackgroundFormat();
