@@ -7,9 +7,6 @@ export default class ReportTableWrapper extends React.Component{
     constructor(props) {
         super(props);
         this.headerViewSize = { width: 0, height: 0 };
-        this.onClickEvent = ({nativeEvent: {keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount}}) => {
-            props.onClickEvent && props.onClickEvent({keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount});
-        };
         this.handleData(props);
     }
 
@@ -36,6 +33,10 @@ export default class ReportTableWrapper extends React.Component{
     scrollToBottom = () => {
         this.table.scrollToBottom();
     }
+
+    onClickEvent = ({nativeEvent: {keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount}}) => {
+        this.props.onClickEvent?.({keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount});
+    };
     
     render() {
         return (
