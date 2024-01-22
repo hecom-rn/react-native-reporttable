@@ -252,10 +252,10 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
      */
     public synchronized void setTableData(TableData<T> tableData) {
         if (tableData != null) {
-            if (this.provider != null) {
-                this.provider.clearFixedTopLists();
-                this.provider.clearFixedBottomLists();
-            }
+            // if (this.provider != null) {
+            //     this.provider.clearFixedTopLists();
+            //     this.provider.clearFixedBottomLists();
+            // }
             this.tableData = tableData;
             notifyDataChanged();
         }
