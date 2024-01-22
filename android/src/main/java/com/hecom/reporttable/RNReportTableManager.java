@@ -6,7 +6,6 @@ import com.google.gson.GsonBuilder;
 import android.text.TextUtils;
 
 import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
@@ -22,6 +21,7 @@ import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.listener.OnContentSizeChangeListener;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
+import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomGridFormat;
 import com.hecom.reporttable.table.ReportTableStore;
@@ -69,8 +69,14 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                 map.putDouble("translateX", translateX);
                 map.putDouble("translateY", translateY);
                 map.putDouble("scale", scale);
-                ((ReactContext) reactContext).getJSModule(RCTEventEmitter.class)
+                reactContext.getJSModule(RCTEventEmitter.class)
                         .receiveEvent(table.getId(), "onScroll", map);
+                MatrixHelper mh = table.getMatrixHelper();
+                boolean notBottom = (mh.getZoomRect().bottom - mh.getOriginalRect().bottom) > 0;
+                if (!notBottom) {
+                    (reactContext).getJSModule(RCTEventEmitter.class)
+                            .receiveEvent(table.getId(), "onScrollEnd", null);
+                }
             }
         });
         table.getMeasurer().setOnContentSizeChangeListener(new OnContentSizeChangeListener() {
@@ -81,7 +87,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                 WritableMap map = Arguments.createMap();
                 map.putDouble("width", widthDp);
                 map.putDouble("height", heightDp);
-                ((ReactContext) reactContext).getJSModule(RCTEventEmitter.class)
+                reactContext.getJSModule(RCTEventEmitter.class)
                         .receiveEvent(table.getId(), "onContentSize", map);
             }
         });
@@ -95,7 +101,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
 
     @ReactProp(name = "frozenRows")
     public void setFrozenRows(SmartTable<String> view, int frozenRows) {
-        view.getConfig().setFixedLines(frozenRows, store);
+        view.getConfig().setFixedLines(frozenRows);
     }
 
     @ReactProp(name = "frozenColumns")
@@ -185,7 +191,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                 if (!TextUtils.isEmpty(columnsWidthMap)) {
                     Map<Integer, CellConfig> columnConfigMap = JacksonUtil.decode(columnsWidthMap
                             , new TypeReference<Map<Integer, CellConfig>>() {
-                    });
+                            });
                     for (Map.Entry<Integer, CellConfig> entry : columnConfigMap.entrySet()) {
                         CellConfig value = entry.getValue();
                         value.setMinWidth(DensityUtils.dp2px(mReactContext, value.getMinWidth()));

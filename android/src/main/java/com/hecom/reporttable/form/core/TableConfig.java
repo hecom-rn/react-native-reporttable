@@ -234,10 +234,6 @@ public class TableConfig<T> {
      * 部分大小单元格缩放值
      */
     private float partlyCellZoom = 1;
-    /**
-     * 滚动事件监听器
-     */
-    private OnScrollChangeListener scrollChangeListener;
 
     public Locker mLocker;
 
@@ -272,14 +268,6 @@ public class TableConfig<T> {
 
     public JsonTableBean getCell(int row, int col){
         return tabArr[row][mLocker.getRawCol(col)];
-    }
-
-    public interface OnScrollChangeListener {
-
-        void showUnFixedArea();
-
-        void scrollToBottom();
-
     }
 
     public FontStyle getContentStyle() {
@@ -547,14 +535,9 @@ public class TableConfig<T> {
         return fixedLines;
     }
 
-    public TableConfig setFixedLines(int fixedLines, OnScrollChangeListener scrollChangeListener) {
+    public TableConfig setFixedLines(int fixedLines) {
         this.fixedLines = fixedLines;
-        this.scrollChangeListener = scrollChangeListener;
         return this;
-    }
-
-    public OnScrollChangeListener getScrollChangeListener() {
-        return scrollChangeListener;
     }
 
     public int getColumnTitleHorizontalPadding() {

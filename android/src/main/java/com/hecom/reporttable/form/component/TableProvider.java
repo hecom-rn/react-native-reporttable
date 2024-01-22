@@ -56,8 +56,6 @@ public class TableProvider<T> implements TableClickObserver {
     private IDrawOver drawOver;
     private CellInfo cellInfo = new CellInfo();
     private boolean isFirstDraw = true;  //是否首次绘制
-    private boolean isShowUnFixedArea;  //非固定区域是否已全部可见
-    private boolean isScrollToBottom;  //是否滚动至底部
     private List<ArrayList<Integer>> fixedTopLists = new ArrayList<>();  //固定行的topSet
     private List<ArrayList<Integer>> fixedBottomLists = new ArrayList<>();  //固定行的bottomSet
     private MatrixHelper mMatrixHelper;
@@ -497,16 +495,7 @@ public class TableProvider<T> implements TableClickObserver {
                                         finalRect.bottom =
                                                 tempRect.bottom != correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
                                         drawContentCell(canvas, cellInfo, finalRect, config);
-                                        if (rowIndex == config.getFixedLines() && config.getScrollChangeListener() != null && !isShowUnFixedArea) {
-                                            //非固定区域可见
-                                            isShowUnFixedArea = true;
-                                            config.getScrollChangeListener().showUnFixedArea();
-                                        }
                                     } else {
-                                        if (rowIndex == config.getFixedLines() && isShowUnFixedArea) {
-                                            //非固定区域不可见
-                                            isShowUnFixedArea = false;
-                                        }
                                         if (correctCellRect.bottom > tmpBottom + dp2px(context,
                                                 5)) {
                                             //float partlyCellZoom = (correctCellRect.bottom -
@@ -530,14 +519,6 @@ public class TableProvider<T> implements TableClickObserver {
                         }
                     }
                     top = bottom;
-                }
-                if (top == showRect.bottom && !isScrollToBottom) {
-                    //滚动至底部
-                    isScrollToBottom = true;
-                    config.getScrollChangeListener().scrollToBottom();
-                } else if (top > showRect.bottom && isScrollToBottom) {
-                    //未滚动至底部
-                    isScrollToBottom = false;
                 }
                 left = tempLeft + width;
                 hasDrawed = true;

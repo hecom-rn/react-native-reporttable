@@ -7,10 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.view.View;
 
-import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.core.SmartTable;
-import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
@@ -24,7 +21,7 @@ import com.hecom.reporttable.table.bean.MergeResult;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.lock.LockHelper;
 
-public class ReportTableStore implements TableConfig.OnScrollChangeListener {
+public class ReportTableStore {
     private SmartTable<String> table;
 
     private ClickHandler mClickHandler;
@@ -177,21 +174,6 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void showUnFixedArea() {
-        //Toast.makeText(context, "showUnFixedArea", Toast.LENGTH_SHORT).show();
-        // ((ReactContext)context).getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter
-        // .class).emit("com.hecom
-        // .reporttable.showUnFixedArea",null);
-    }
-
-    @Override
-    public void scrollToBottom() {
-        // Toast.makeText(context, "滑动到底部", Toast.LENGTH_SHORT).show();
-        ((ReactContext) context).getJSModule(RCTEventEmitter.class)
-                .receiveEvent(table.getId(), "onScrollEnd", null);
     }
 }
 
