@@ -22,6 +22,7 @@ import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
+import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomGridFormat;
 import com.hecom.reporttable.table.ReportTableStore;
@@ -66,8 +67,14 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
                 map.putDouble("translateX", translateX);
                 map.putDouble("translateY", translateY);
                 map.putDouble("scale", scale);
-                ((ReactContext) reactContext).getJSModule(RCTEventEmitter.class)
+                reactContext.getJSModule(RCTEventEmitter.class)
                         .receiveEvent(table.getId(), "onScroll", map);
+                MatrixHelper mh = table.getMatrixHelper();
+                boolean notBottom = (mh.getZoomRect().bottom - mh.getOriginalRect().bottom) > 0;
+                if (!notBottom) {
+                    reactContext.getJSModule(RCTEventEmitter.class)
+                            .receiveEvent(table.getId(), "onScrollEnd", null);
+                }
             }
         });
         return table;

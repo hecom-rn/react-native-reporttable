@@ -6,8 +6,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.util.Log;
 
+import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.CellRange;
@@ -15,6 +15,7 @@ import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.column.ColumnInfo;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
+import com.hecom.reporttable.form.data.format.draw.TextImageDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.WrapTextResult;
 import com.hecom.reporttable.form.data.format.selected.IDrawOver;
 import com.hecom.reporttable.form.data.format.selected.ISelectFormat;
@@ -23,18 +24,13 @@ import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.listener.OnColumnClickListener;
 import com.hecom.reporttable.form.listener.TableClickObserver;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
-import com.hecom.reporttable.form.utils.DrawUtils;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import com.hecom.reporttable.R;
-import com.hecom.reporttable.form.data.format.draw.TextImageDrawFormat;
 import com.hecom.reporttable.form.utils.DensityUtils;
+import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.JsonTableBean.Icon;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by huang on 2017/11/1.
@@ -65,8 +61,6 @@ public class TableProvider<T> implements TableClickObserver {
     private IDrawOver drawOver;
     private CellInfo cellInfo = new CellInfo();
     private boolean isFirstDraw = true;  //是否首次绘制
-    private boolean isShowUnFixedArea;  //非固定区域是否已全部可见
-    private boolean isScrollToBottom;  //是否滚动至底部
     //    private List<Integer> fixedTops = new ArrayList<>();  //固定行的top列表
 //    private List<Integer> fixedBottoms = new ArrayList<>();  //固定行的bottom列表
     private List<ArrayList<Integer>> fixedTopLists = new ArrayList<>();  //固定行的topSet
@@ -510,16 +504,7 @@ public class TableProvider<T> implements TableClickObserver {
                                         finalRect.set(correctCellRect);
                                         finalRect.bottom = tempRect.bottom!=correctCellRect.bottom &&  correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
                                         drawContentCell(canvas, cellInfo, finalRect, config, isDrawLock);
-                                        if (rowIndex == config.getFixedLines() && config.getScrollChangeListener() != null && !isShowUnFixedArea) {
-                                            //非固定区域可见
-                                            isShowUnFixedArea = true;
-                                            config.getScrollChangeListener().showUnFixedArea();
-                                        }
                                     } else {
-                                        if (rowIndex == config.getFixedLines() && isShowUnFixedArea) {
-                                            //非固定区域不可见
-                                            isShowUnFixedArea = false;
-                                        }
                                         if (correctCellRect.bottom > tmpBottom + dip2px(context, 5)) {
                                             //float partlyCellZoom = (correctCellRect.bottom - fixedBottoms.get(config.getFixedLines() - 1)) / (float) correctCellRect.height();
                                             //绘制部分单元格
@@ -537,14 +522,6 @@ public class TableProvider<T> implements TableClickObserver {
                         }
                     }
                     top = bottom;
-                }
-                if (top == showRect.bottom && !isScrollToBottom) {
-                    //滚动至底部
-                    isScrollToBottom = true;
-                    config.getScrollChangeListener().scrollToBottom();
-                } else if (top > showRect.bottom && isScrollToBottom) {
-                    //未滚动至底部
-                    isScrollToBottom = false;
                 }
                 left = tempLeft + width;
                 hasDrawed = true;

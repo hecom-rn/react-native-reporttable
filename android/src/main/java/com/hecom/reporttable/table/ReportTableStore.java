@@ -35,7 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ReportTableStore implements TableConfig.OnScrollChangeListener {
+public class ReportTableStore {
     private SmartTable<String> table;
     private TableConfigBean configBean;
 
@@ -220,7 +220,7 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
             lineStyle.setColor(Color.parseColor(configBean.getLineColor()));
             table.getConfig().setContentGridStyle(lineStyle);
 
-            table.getConfig().setFixedLines(configBean.getFrozenRows(), this);
+            table.getConfig().setFixedLines(configBean.getFrozenRows());
             table.getConfig().setTextLeftOffset(configBean.getTextPaddingHorizontal());
             table.getConfig().setTextRightOffset(configBean.getTextPaddingHorizontal());
             table.getMeasurer().setAddTableHeight(configBean.getHeaderHeight());
@@ -292,19 +292,5 @@ public class ReportTableStore implements TableConfig.OnScrollChangeListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void showUnFixedArea() {
-        //Toast.makeText(context, "showUnFixedArea", Toast.LENGTH_SHORT).show();
-        // ((ReactContext)context).getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("com.hecom
-        // .reporttable.showUnFixedArea",null);
-    }
-
-    @Override
-    public void scrollToBottom() {
-        // Toast.makeText(context, "滑动到底部", Toast.LENGTH_SHORT).show();
-        ((ReactContext) context).getJSModule(RCTEventEmitter.class)
-                .receiveEvent(table.getId(), "onScrollEnd", null);
     }
 }

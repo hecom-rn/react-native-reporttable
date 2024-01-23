@@ -247,10 +247,6 @@ public class TableConfig<T> {
      * 部分大小单元格缩放值
      */
     private float partlyCellZoom = 1;
-    /**
-     * 滚动事件监听器
-     */
-    private OnScrollChangeListener scrollChangeListener;
 
     private int frozenCount = 0;
 
@@ -316,14 +312,6 @@ public class TableConfig<T> {
 
     public TableData<T> getTableData() {
         return tableData;
-    }
-
-    public interface OnScrollChangeListener {
-
-        void showUnFixedArea();
-
-        void scrollToBottom();
-
     }
 
     public FontStyle getContentStyle() {
@@ -595,15 +583,11 @@ public class TableConfig<T> {
         return fixedLines;
     }
 
-    public TableConfig setFixedLines(int fixedLines, OnScrollChangeListener scrollChangeListener) {
+    public TableConfig setFixedLines(int fixedLines) {
         this.fixedLines = fixedLines;
-        this.scrollChangeListener = scrollChangeListener;
         return this;
     }
 
-    public OnScrollChangeListener getScrollChangeListener() {
-        return scrollChangeListener;
-    }
 
     public int getColumnTitleHorizontalPadding() {
         return columnTitleHorizontalPadding;
