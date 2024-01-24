@@ -62,13 +62,18 @@ export default class ReportTable extends React.Component{
         this.table.scrollToBottom();
     }
 
+    onContentSize = ({ nativeEvent }) => {
+        this.props?.onContentSize(nativeEvent);
+    }
+
     render() {
         return (
             <View style={{flex: 1}}>
                 <ReportTableWrapper
                     ref={(ref)=> this.table = ref}
                     {...this.props}
-                    itemConfig={{...itemConfig, ...this.props.itemConfig}}
+                    itemConfig={{ ...itemConfig, ...this.props.itemConfig }}
+                    onContentSize={this.onContentSize}
                 />
             </View>
         );
