@@ -16,7 +16,6 @@ import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.hecom.JacksonUtil;
-import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.listener.OnContentSizeChangeListener;
@@ -24,6 +23,7 @@ import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomGridFormat;
+import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.ReportTableStore;
 import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
@@ -36,9 +36,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 
-public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> {
+public class RNReportTableManager extends SimpleViewManager<HecomTable<String>> {
     private ThemedReactContext mReactContext;
-    private ReportTableStore store;
     private Gson mGson = new GsonBuilder()
             .registerTypeAdapter(ItemCommonStyleConfig.class,
                     new ItemCommonStyleConfigDeserializer())
@@ -50,10 +49,10 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
     }
 
     @Override
-    protected SmartTable<String> createViewInstance(final ThemedReactContext reactContext) {
+    protected HecomTable<String> createViewInstance(final ThemedReactContext reactContext) {
         mReactContext = reactContext;
-        final SmartTable<String> table = new SmartTable(reactContext);
-        this.store = new ReportTableStore(reactContext, table);
+        final HecomTable<String> table = new HecomTable<>(reactContext);
+        table.setStore(new ReportTableStore(reactContext, table));
         IGridFormat gridFormat = new HecomGridFormat(table);
         table.getConfig().setTableGridFormat(gridFormat);
 
@@ -95,41 +94,41 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
     }
 
     @ReactProp(name = "disableZoom")
-    public void setDisableZoom(SmartTable<String> view, boolean disableZoom) {
+    public void setDisableZoom(HecomTable<String> view, boolean disableZoom) {
         view.setZoom(!disableZoom);
     }
 
     @ReactProp(name = "frozenRows")
-    public void setFrozenRows(SmartTable<String> view, int frozenRows) {
+    public void setFrozenRows(HecomTable<String> view, int frozenRows) {
         view.getConfig().setFixedLines(frozenRows);
     }
 
     @ReactProp(name = "frozenColumns")
-    public void setFrozenColumns(SmartTable<String> view, int frozenColumns) {
-        this.store.mLockHelper.setFrozenColumns(frozenColumns);
+    public void setFrozenColumns(HecomTable<String> view, int frozenColumns) {
+        view.getStore().mLockHelper.setFrozenColumns(frozenColumns);
     }
 
 
     @ReactProp(name = "frozenPoint")
-    public void setFrozenPoint(SmartTable<String> view, int frozenPoint) {
-        store.mLockHelper.setPoint(frozenPoint);
+    public void setFrozenPoint(HecomTable<String> view, int frozenPoint) {
+        view.getStore().mLockHelper.setPoint(frozenPoint);
     }
 
 
     @ReactProp(name = "frozenCount")
-    public void setFrozenCount(SmartTable<String> view, int frozenCount) {
-        store.mLockHelper.setCount(frozenCount);
+    public void setFrozenCount(HecomTable<String> view, int frozenCount) {
+        view.getStore().mLockHelper.setCount(frozenCount);
     }
 
     @ReactProp(name = "permutable")
-    public void setPermutable(SmartTable<String> view, boolean permutable) {
-        this.store.mLockHelper.setPermutable(permutable);
+    public void setPermutable(HecomTable<String> view, boolean permutable) {
+        view.getStore().mLockHelper.setPermutable(permutable);
     }
 
 
     @ReactProp(name = "data")
-    public void setData(SmartTable<String> view, ReadableMap dataSource) {
-        ReportTableStore reportTableStore = this.store;
+    public void setData(HecomTable<String> view, ReadableMap dataSource) {
+        ReportTableStore reportTableStore = view.getStore();
 
         String jsonData = "";
         int minHeight = 40;
@@ -220,7 +219,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
 
 
     @Override
-    public void receiveCommand(@NonNull SmartTable<String> root, String commandId,
+    public void receiveCommand(@NonNull HecomTable<String> root, String commandId,
                                @Nullable ReadableArray args) {
         super.receiveCommand(root, commandId, args);
         switch (commandId) {
@@ -233,7 +232,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
         }
     }
 
-    private void processScrollTo(SmartTable<String> root, ReadableArray args) {
+    private void processScrollTo(HecomTable<String> root, ReadableArray args) {
         //{ lineX: 0, lineY: 0, offsetX: 0, offsetY: 0, animated : true }
         TableInfo tableInfo = root.getTableData().getTableInfo();
         ReadableMap map = args.getMap(0);
@@ -258,7 +257,7 @@ public class RNReportTableManager extends SimpleViewManager<SmartTable<String>> 
     }
 
 
-    private void processScrollToBottom(SmartTable<String> root, ReadableArray args) {
+    private void processScrollToBottom(HecomTable<String> root, ReadableArray args) {
         root.getMatrixHelper().flingBottom(300);
     }
 
