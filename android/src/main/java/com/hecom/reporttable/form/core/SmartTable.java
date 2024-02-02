@@ -1,5 +1,7 @@
 package com.hecom.reporttable.form.core;
 
+import android.app.Activity;
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -27,8 +29,6 @@ import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
-import com.hecom.reporttable.table.ReportTableStore;
-import com.hecom.reporttable.table.bean.JsonTableBean;
 
 import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -637,19 +637,19 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
             //  if (((Activity) getContext()).isFinishing()) {
             //      release();
             //  }
-            mExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    while (isNotifying.get()) {
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    release();
-                }
-            });
+//            mExecutor.execute(new Runnable() {
+//                @Override
+//                public void run() {
+//                    while (isNotifying.get()) {
+//                        try {
+//                            Thread.sleep(500);
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                    release();
+//                }
+//            });
         }
     }
 
