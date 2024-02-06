@@ -167,5 +167,15 @@ declare module "@hecom/react-native-report-table" {
          * 滚动到底部，x偏移量保持不变
          */
         scrollToBottom();
+
+
+        /**
+         *  更新指定单元格的数据， 从x,y开始，长高为data矩阵的大小
+         *  x, y 默认为0
+         *
+         * @param {{data: DataSource[][], x? : number, y?: number}} param
+         * @memberof ReportTable
+         */
+        updateData(param: { data: DataSource[][], x? : number, y?: number } );
     }
 }

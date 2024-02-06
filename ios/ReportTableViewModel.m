@@ -343,6 +343,27 @@
     }
 }
 
+- (void)updateDataSource:(NSArray<NSArray *> *)data withY:(NSInteger)y withX:(NSInteger)x {
+    if (self.reportTableModel.data.count > 0) {
+        NSMutableArray *arr = self.reportTableModel.data;
+        NSArray *rowArr = (NSArray *)arr[0];
+        for (int i = y; i < arr.count; i++) {
+            if (data.count > i - y) {
+                for (int j = x; j < rowArr.count; j++) {
+                    if (data[i-y].count > j-x) {
+                        arr[i][j] = (NSDictionary *)data[i-y][j-x];
+                    } else {
+                        continue;
+                    }
+                }
+            } else {
+                continue;
+            }
+        }
+        [self integratedDataSource];
+    }
+}
+
 - (void)scrollToLineX:(NSInteger)lineX lineY:(NSInteger)lineY offsetX:(float)offsetX offsetY:(float)offsetY animated:(BOOL)animated {
     [self.reportTableView scrollToLineX: lineX lineY: lineY offsetX: offsetX offsetY: offsetY animated: animated];
 }
@@ -367,11 +388,9 @@
         NSInteger sameLenth = 1;
         for (int j = 0; j < dataSource[i].count; j ++) {
             NSDictionary *dir = dataSource[i][j];
-            ItemModel *model = [[ItemModel alloc] init];
+            ItemModel *model = [self generateItemModel: dir];
             model.columIndex = j;
             model.itemConfig = self.reportTableModel.itemConfig;
-            NSArray *keys = [dir allKeys];
-            model.keyIndex = [RCTConvert NSInteger:[dir objectForKey:@"keyIndex"]];
             if (curKeyIndex != model.keyIndex || j == rowCount - 1) { // 已经到末尾了，处理了本次循环
                 for(int k = 0; k < sameLenth; k++) {
                    [mergeLen addObject:@(sameLenth)];
@@ -385,79 +404,6 @@
                 sameLenth += 1;
             }
             curKeyIndex = model.keyIndex;
-            model.title = [RCTConvert NSString:[dir objectForKey:@"title"]];
-            if ([keys containsObject: @"backgroundColor"]) {
-                model.backgroundColor = [RCTConvert UIColor:[dir objectForKey:@"backgroundColor"]];
-            }
-            if ([keys containsObject: @"fontSize"]) {
-                model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
-            }
-            if ([keys containsObject: @"textColor"]) {
-                model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]] ;
-            }
-            if ([keys containsObject: @"boxLineColor"]) {
-                model.boxLineColor = [RCTConvert UIColor:[dir objectForKey:@"boxLineColor"]] ;
-            }
-            if ([keys containsObject: @"asteriskColor"]) {
-                model.asteriskColor = [RCTConvert UIColor:[dir objectForKey:@"asteriskColor"]] ;
-            }
-            model.textAlignment = model.itemConfig.textAlignment;
-            if ([keys containsObject: @"textAlignment"]) {
-                model.textAlignment = [RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
-            }
-            if ([keys containsObject: @"classificationLinePosition"]) {
-                model.classificationLinePosition = [RCTConvert NSInteger:[dir objectForKey:@"classificationLinePosition"]];
-            }
-            if ([keys containsObject: @"isForbidden"]) {
-                model.isForbidden = [RCTConvert BOOL:[dir objectForKey:@"isForbidden"]];
-            }
-            if ([keys containsObject: @"strikethrough"]) {
-                model.strikethrough = [RCTConvert BOOL:[dir objectForKey:@"strikethrough"]];
-            }
-            model.classificationLineColor = model.itemConfig.classificationLineColor;
-            if ([keys containsObject: @"classificationLineColor"]) {
-                model.classificationLineColor = [RCTConvert UIColor:[dir objectForKey:@"classificationLineColor"]];
-            }
-            if ([keys containsObject: @"textPaddingHorizontal"]) {
-                model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
-            }
-            if ([keys containsObject: @"isOverstriking"]) {
-                model.isOverstriking = [RCTConvert BOOL:[dir objectForKey:@"isOverstriking"]];
-            }
-            NSDictionary *iconDic = [dir objectForKey:@"icon"] ? [RCTConvert NSDictionary:[dir objectForKey:@"icon"]] : nil;
-            if (iconDic != nil) {
-                IconStyle *icon = [[IconStyle alloc] init];
-                icon.size = CGSizeMake([[iconDic objectForKey:@"width"] floatValue], [[iconDic objectForKey:@"height"] floatValue]);
-                icon.path = [iconDic objectForKey:@"path"];
-                icon.imageAlignment = [[iconDic objectForKey:@"imageAlignment"] integerValue];
-                if ([iconDic objectForKey:@"paddingHorizontal"]) {
-                    icon.paddingHorizontal = [[iconDic objectForKey:@"paddingHorizontal"] floatValue];
-                }
-                model.iconStyle = icon;
-            }
-            NSDictionary *extraTextDic = [dir objectForKey:@"extraText"] ? [RCTConvert NSDictionary:[dir objectForKey:@"extraText"]] : nil;
-            if (extraTextDic != nil) {
-                ExtraText *text = [[ExtraText alloc] init];
-                text.text = [extraTextDic objectForKey:@"text"];
-                text.isLeft = [RCTConvert BOOL:[extraTextDic objectForKey:@"isLeft"]];
-                NSDictionary *backgroundStyleDic = [extraTextDic objectForKey:@"backgroundStyle"];
-                if (backgroundStyleDic) {
-                    ExtraTextBackGroundStyle *bgStyle = [[ExtraTextBackGroundStyle alloc] init];
-                    bgStyle.width = [[backgroundStyleDic objectForKey:@"width"] floatValue];
-                    bgStyle.height = [[backgroundStyleDic objectForKey:@"height"] floatValue];
-                    bgStyle.radius = [[backgroundStyleDic objectForKey:@"radius"] floatValue];
-                    bgStyle.color = [RCTConvert UIColor:[backgroundStyleDic objectForKey:@"color"]] ;
-                    text.backgroundStyle = bgStyle;
-                }
-                NSDictionary *styleDic = [extraTextDic objectForKey:@"style"];
-                if (styleDic) {
-                    ExtraTextStyle *style = [[ExtraTextStyle alloc] init];
-                    style.fontSize = [[styleDic objectForKey:@"fontSize"] floatValue];
-                    style.color =  [RCTConvert UIColor:[styleDic objectForKey:@"color"]] ;
-                    text.style = style;
-                }
-                model.extraText = text;
-            }
             [modelArr addObject: model];
         }
         for (int j = 0; j < dataSource[i].count; j ++) {
@@ -493,7 +439,7 @@
                 BOOL useMerge = mergeNum > maxWidth/ minWidth; // 当横向有合并时，使用最小宽度来计算对应的高
                 if (textRect.size.height < model.fontSize * 1.5) {
                    // minWidth < text < maxWidth
-                    rowWith =  useMerge ? maxWidth + tolerant : textRect.size.width + exceptText + tolerant;
+                    rowWith = useMerge ? maxWidth + tolerant : textRect.size.width + exceptText + tolerant;
                 } else {
                    // 多行
                     rowWith = useMerge ? minWidth : maxWidth;
@@ -552,6 +498,87 @@
         self.reportTableModel.permutable = NO;
     }
     self.reportTableView.reportTableModel = self.reportTableModel;
+    
+}
+
+- (ItemModel *)generateItemModel:(NSDictionary *)dir {
+    ItemModel *model = [[ItemModel alloc] init];
+    NSArray *keys = [dir allKeys];
+    model.keyIndex = [RCTConvert NSInteger:[dir objectForKey:@"keyIndex"]];
+    model.title = [RCTConvert NSString:[dir objectForKey:@"title"]];
+    if ([keys containsObject: @"backgroundColor"]) {
+        model.backgroundColor = [RCTConvert UIColor:[dir objectForKey:@"backgroundColor"]];
+    }
+    if ([keys containsObject: @"fontSize"]) {
+        model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
+    }
+    if ([keys containsObject: @"textColor"]) {
+        model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]] ;
+    }
+    if ([keys containsObject: @"boxLineColor"]) {
+        model.boxLineColor = [RCTConvert UIColor:[dir objectForKey:@"boxLineColor"]] ;
+    }
+    if ([keys containsObject: @"asteriskColor"]) {
+        model.asteriskColor = [RCTConvert UIColor:[dir objectForKey:@"asteriskColor"]] ;
+    }
+    model.textAlignment = model.itemConfig.textAlignment;
+    if ([keys containsObject: @"textAlignment"]) {
+        model.textAlignment = [RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
+    }
+    if ([keys containsObject: @"classificationLinePosition"]) {
+        model.classificationLinePosition = [RCTConvert NSInteger:[dir objectForKey:@"classificationLinePosition"]];
+    }
+    if ([keys containsObject: @"isForbidden"]) {
+        model.isForbidden = [RCTConvert BOOL:[dir objectForKey:@"isForbidden"]];
+    }
+    if ([keys containsObject: @"strikethrough"]) {
+        model.strikethrough = [RCTConvert BOOL:[dir objectForKey:@"strikethrough"]];
+    }
+    model.classificationLineColor = model.itemConfig.classificationLineColor;
+    if ([keys containsObject: @"classificationLineColor"]) {
+        model.classificationLineColor = [RCTConvert UIColor:[dir objectForKey:@"classificationLineColor"]];
+    }
+    if ([keys containsObject: @"textPaddingHorizontal"]) {
+        model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
+    }
+    if ([keys containsObject: @"isOverstriking"]) {
+        model.isOverstriking = [RCTConvert BOOL:[dir objectForKey:@"isOverstriking"]];
+    }
+    NSDictionary *iconDic = [dir objectForKey:@"icon"] ? [RCTConvert NSDictionary:[dir objectForKey:@"icon"]] : nil;
+    if (iconDic != nil) {
+        IconStyle *icon = [[IconStyle alloc] init];
+        icon.size = CGSizeMake([[iconDic objectForKey:@"width"] floatValue], [[iconDic objectForKey:@"height"] floatValue]);
+        icon.path = [iconDic objectForKey:@"path"];
+        icon.imageAlignment = [[iconDic objectForKey:@"imageAlignment"] integerValue];
+        if ([iconDic objectForKey:@"paddingHorizontal"]) {
+            icon.paddingHorizontal = [[iconDic objectForKey:@"paddingHorizontal"] floatValue];
+        }
+        model.iconStyle = icon;
+    }
+    NSDictionary *extraTextDic = [dir objectForKey:@"extraText"] ? [RCTConvert NSDictionary:[dir objectForKey:@"extraText"]] : nil;
+    if (extraTextDic != nil) {
+        ExtraText *text = [[ExtraText alloc] init];
+        text.text = [extraTextDic objectForKey:@"text"];
+        text.isLeft = [RCTConvert BOOL:[extraTextDic objectForKey:@"isLeft"]];
+        NSDictionary *backgroundStyleDic = [extraTextDic objectForKey:@"backgroundStyle"];
+        if (backgroundStyleDic) {
+            ExtraTextBackGroundStyle *bgStyle = [[ExtraTextBackGroundStyle alloc] init];
+            bgStyle.width = [[backgroundStyleDic objectForKey:@"width"] floatValue];
+            bgStyle.height = [[backgroundStyleDic objectForKey:@"height"] floatValue];
+            bgStyle.radius = [[backgroundStyleDic objectForKey:@"radius"] floatValue];
+            bgStyle.color = [RCTConvert UIColor:[backgroundStyleDic objectForKey:@"color"]];
+            text.backgroundStyle = bgStyle;
+        }
+        NSDictionary *styleDic = [extraTextDic objectForKey:@"style"];
+        if (styleDic) {
+            ExtraTextStyle *style = [[ExtraTextStyle alloc] init];
+            style.fontSize = [[styleDic objectForKey:@"fontSize"] floatValue];
+            style.color =  [RCTConvert UIColor:[styleDic objectForKey:@"color"]] ;
+            text.style = style;
+        }
+        model.extraText = text;
+    }
+    return  model;
 }
 
 @end
