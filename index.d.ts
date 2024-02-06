@@ -172,6 +172,8 @@ declare module "@hecom/react-native-report-table" {
         /**
          *  更新指定单元格的数据， 从x,y开始，长高为data矩阵的大小
          *  x, y 默认为0
+         *  💡 通过 ReportTableWrapper 的onBackRef来获取表格的ref
+         *  此次更新不会变更本地的js内存中的tableData, 如果有需要可以通过非setState的方式更新本地的tableData数据源
          *
          * @param {{data: DataSource[][], x? : number, y?: number}} param
          * @memberof ReportTable
