@@ -452,9 +452,13 @@
                 } else {
                     NSInteger columIndex = model.columIndex;
                     float frozenWidth = 0;
+                    int frozenColumns = self.reportTableModel.oriFrozenColumns;
+                    for (int j = 0; j < frozenColumns; j++) {
+                        frozenWidth += [self.rowsWidth[j] floatValue];
+                    }
                     NSInteger toColumn = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns;
                     [self changeColumn:column toColumn: toColumn inArray:self.rowsWidth];
-                    for (int i = 0; i < self.reportTableModel.permutedArr.count + 1; i++) {
+                    for (int i = frozenColumns; i < frozenColumns + self.reportTableModel.permutedArr.count + 1; i++) {
                         frozenWidth += [self.rowsWidth[i] floatValue];
                     }
                     if (frozenWidth * self.zoomScale > self.reportTableModel.tableRect.size.width - 40) {
