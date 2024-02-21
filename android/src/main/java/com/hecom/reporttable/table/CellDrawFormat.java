@@ -292,13 +292,13 @@ public class CellDrawFormat extends ImageResDrawFormat<String> {
                     this.resourceId = R.mipmap.edit;
                     this.direction = RIGHT;
                 } else if ("selected".equals(name)) {
-                    this.resourceId = R.mipmap.edit;
+                    this.resourceId = R.mipmap.selected;
                     this.direction = RIGHT;
                 } else if ("unselected".equals(name)) {
-                    this.resourceId = R.mipmap.edit;
+                    this.resourceId = R.mipmap.unselected;
                     this.direction = RIGHT;
                 } else if ("unselected_disable".equals(name)) {
-                    this.resourceId = R.mipmap.edit;
+                    this.resourceId = R.mipmap.unselected_disable;
                     this.direction = RIGHT;
                 } else if ("copy_disable".equals(name)) {
                     this.resourceId = R.mipmap.copy_disable;
