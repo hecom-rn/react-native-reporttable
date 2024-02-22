@@ -35,7 +35,7 @@ export default class ReportTableWrapper extends React.Component{
     }
 
     onClickEvent = ({nativeEvent: {keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount}}) => {
-        this.props.onClickEvent?.({keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount});
+        this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount});
     };
     
     render() {
