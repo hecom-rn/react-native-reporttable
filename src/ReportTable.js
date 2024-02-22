@@ -55,11 +55,11 @@ export default class ReportTable extends React.Component{
 
     scrollTo = (params) => {
         const { lineX = 0, lineY = 0, offsetX =0, offsetY = 0, animated = true } = params || {};
-        this.table.scrollTo({ lineX, lineY, offsetX, offsetY, animated });
+        this.table && this.table.scrollTo({ lineX, lineY, offsetX, offsetY, animated });
     }
 
     scrollToBottom = () => {
-        this.table.scrollToBottom();
+        this.table && this.table.scrollToBottom();
     }
 
     onContentSize = ({ nativeEvent }) => {
