@@ -3,13 +3,12 @@ package com.hecom.reporttable.table;
 import android.text.TextUtils;
 
 import com.hecom.JacksonUtil;
-import com.hecom.reporttable.form.core.SmartTable;
+import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.MergeBean;
 import com.hecom.reporttable.table.bean.MergeResult;
-import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.ArrayList;
@@ -19,13 +18,8 @@ import java.util.Map;
 public class ReportTableData {
     private ArrayList<CellRange> mergeList = new ArrayList<>();
     private Map<Integer, Integer> mergeKeyMap = new HashMap<>();
-    private SmartTable<String> table;
     private MergeBean mergeBean = new MergeBean();
-    private String uniqueKey = "keyIndex";
-    private String valueKey = "title";
     private JsonTableBean[][] tabArr;
-    private int strUnit = 10;
-    public Map<Integer, Integer> columnMapWidth = new HashMap<>();
 
     public ArrayList<CellRange> getMergeList() {
         return new ArrayList<>(mergeList);
@@ -38,13 +32,8 @@ public class ReportTableData {
 
     /**
      * strArr 不再是全量表格内容 被合并的表格内容会缺失
-     *
-     * @param json
-     * @param configBean
-     * @return
      */
-    public MergeResult mergeTable(String json, TableConfigBean configBean) {
-        long start = System.currentTimeMillis();
+    public MergeResult mergeTable(String json, TableConfig config) {
         mergeList.clear();
         mergeKeyMap.clear();
         if (TextUtils.isEmpty(json)) {
@@ -62,9 +51,8 @@ public class ReportTableData {
             int rowLength = tabArr.length;
             int colLength = tabArr[0].length;
 
-            TypicalCell preMaxContentCloumn,preMaxIconCloumn,preMaxIconRow,preMaxMergeRow,preMaxContentRow;
-            String preMaxRow;
-            ItemCommonStyleConfig commonStyleConfig = configBean.getItemCommonStyleConfig();
+            TypicalCell preMaxContentCloumn, preMaxIconCloumn, preMaxMergeRow;
+            ItemCommonStyleConfig commonStyleConfig = config.getItemCommonStyleConfig();
             for (int rowIndex = 0; rowIndex < rowLength; rowIndex++) {
                 //1、合并列（从左往右找）；2、合并行（从上往下找）
                 JsonTableBean[] columnArr = tabArr[rowIndex];
@@ -77,10 +65,10 @@ public class ReportTableData {
                     mergeBean.setStartRow(rowIndex);
                     mergeRow(uniqueKeyValue, rowIndex, columnIndex, tabArr);
 
-                    if(rowObj.isForbidden!=null && rowObj.isForbidden){
+                    if (rowObj.isForbidden != null && rowObj.isForbidden) {
                         strArr[columnIndex][rowIndex] = "";
                         rowObj.setTitle("");
-                    }else if (TextUtils.isEmpty(rowObj.title)) {
+                    } else if (TextUtils.isEmpty(rowObj.title)) {
                         strArr[columnIndex][rowIndex] = "-";
                         rowObj.setTitle("-");
                     } else {
@@ -104,45 +92,50 @@ public class ReportTableData {
                     if (mergeBean.isMergeColumn()) {
                         columnIndex = mergeBean.getEndColum();
                     } else {
-                        if(maxValues4Column[columnIndex][0] ==null){
-                            maxValues4Column[columnIndex][0]= new TypicalCell(rowObj,columnIndex,rowIndex);
+                        if (maxValues4Column[columnIndex][0] == null) {
+                            maxValues4Column[columnIndex][0] = new TypicalCell(rowObj,
+                                    columnIndex, rowIndex);
                         }
 
                         preMaxContentCloumn = maxValues4Column[columnIndex][1];
-                        if (null == preMaxContentCloumn){
-                            maxValues4Column[columnIndex][1] =new TypicalCell(rowObj,columnIndex,rowIndex);
-                        }else if(  preMaxContentCloumn.jsonTableBean.title.length() < rowObj.title.length()) {
-                            preMaxContentCloumn.rowIndex=rowIndex;
-                            preMaxContentCloumn.jsonTableBean=rowObj;
+                        if (null == preMaxContentCloumn) {
+                            maxValues4Column[columnIndex][1] = new TypicalCell(rowObj,
+                                    columnIndex, rowIndex);
+                        } else if (preMaxContentCloumn.jsonTableBean.title.length() < rowObj.title.length()) {
+                            preMaxContentCloumn.rowIndex = rowIndex;
+                            preMaxContentCloumn.jsonTableBean = rowObj;
                         }
-                        if(rowObj.icon!=null){
+                        if (rowObj.icon != null) {
                             preMaxIconCloumn = maxValues4Column[columnIndex][2];
-                            if (null == preMaxIconCloumn){
-                                maxValues4Column[columnIndex][2] =new TypicalCell(rowObj,columnIndex,rowIndex);
-                            }else if(  preMaxIconCloumn.jsonTableBean.title.length() < rowObj.title.length()) {
-                                preMaxIconCloumn.rowIndex=rowIndex;
-                                preMaxIconCloumn.jsonTableBean=rowObj;
+                            if (null == preMaxIconCloumn) {
+                                maxValues4Column[columnIndex][2] = new TypicalCell(rowObj,
+                                        columnIndex, rowIndex);
+                            } else if (preMaxIconCloumn.jsonTableBean.title.length() < rowObj.title.length()) {
+                                preMaxIconCloumn.rowIndex = rowIndex;
+                                preMaxIconCloumn.jsonTableBean = rowObj;
                             }
                         }
                     }
                     if (!mergeBean.isMergeRow()) {
-                        if(mergeBean.isMergeColumn()){
-                             // 合并列中的最大值
+                        if (mergeBean.isMergeColumn()) {
+                            // 合并列中的最大值
                             preMaxMergeRow = maxValues4Row[rowIndex][0];
-                            if(preMaxMergeRow == null){
-                                maxValues4Row[rowIndex][0]= new TypicalCell(rowObj,mergeBean.getStartColum(),rowIndex);
-                            }else if(  preMaxMergeRow.jsonTableBean.title.length() < rowObj.title.length()) {
-                                preMaxMergeRow.columnIndex=mergeBean.getStartColum();
-                                preMaxMergeRow.jsonTableBean=rowObj;
+                            if (preMaxMergeRow == null) {
+                                maxValues4Row[rowIndex][0] = new TypicalCell(rowObj,
+                                        mergeBean.getStartColum(), rowIndex);
+                            } else if (preMaxMergeRow.jsonTableBean.title.length() < rowObj.title.length()) {
+                                preMaxMergeRow.columnIndex = mergeBean.getStartColum();
+                                preMaxMergeRow.jsonTableBean = rowObj;
                             }
-                        }else {
+                        } else {
                             //非合并列的最大值
                             preMaxMergeRow = maxValues4Row[rowIndex][1];
-                            if(preMaxMergeRow == null){
-                                maxValues4Row[rowIndex][1]= new TypicalCell(rowObj,columnIndex ,rowIndex);
-                            }else if(  preMaxMergeRow.jsonTableBean.title.length() < rowObj.title.length()) {
-                                preMaxMergeRow.columnIndex=mergeBean.getStartColum();
-                                preMaxMergeRow.jsonTableBean=rowObj;
+                            if (preMaxMergeRow == null) {
+                                maxValues4Row[rowIndex][1] = new TypicalCell(rowObj, columnIndex,
+                                        rowIndex);
+                            } else if (preMaxMergeRow.jsonTableBean.title.length() < rowObj.title.length()) {
+                                preMaxMergeRow.columnIndex = mergeBean.getStartColum();
+                                preMaxMergeRow.jsonTableBean = rowObj;
                             }
                         }
                     }
@@ -180,8 +173,8 @@ public class ReportTableData {
         }
     }
 
-    public void mergeRow(int uniqueKeyValue, int searchRowIndex, int searchColumnIndex, JsonTableBean[][] array) {
-        long start = System.currentTimeMillis();
+    private void mergeRow(int uniqueKeyValue, int searchRowIndex, int searchColumnIndex,
+                          JsonTableBean[][] array) {
         if (array == null) return;
         int index = searchRowIndex + 1;
         int length = array.length;
@@ -213,8 +206,7 @@ public class ReportTableData {
 
 
     //合并列（从左往右找）
-    public void mergeColumn(int uniqueKeyValue, int searchColumnIndex, JsonTableBean[] columnArr) {
-        long start = System.currentTimeMillis();
+    private void mergeColumn(int uniqueKeyValue, int searchColumnIndex, JsonTableBean[] columnArr) {
         if (columnArr == null) return;
         int index = searchColumnIndex + 1;
         int length = columnArr.length;
@@ -243,7 +235,10 @@ public class ReportTableData {
         }
     }
 
-    public String[][] creatArr(JsonTableBean[][] jsonArray) {
+    /**
+     * 创建同样大小的字符串数组
+     */
+    private String[][] creatArr(JsonTableBean[][] jsonArray) {
         String[][] arr = null;
         if (jsonArray == null) return arr;
         try {

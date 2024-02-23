@@ -26,7 +26,7 @@ import java.util.Map;
  */
 
 
-public class TableConfig<T> {
+public class TableConfig {
     public static String ASTERISK = "*";
     public static String[] ASTERISK_ARRAY = new String[]{ASTERISK};
     /**
@@ -230,10 +230,6 @@ public class TableConfig<T> {
      * 固定的行数
      */
     private int fixedLines = 0;
-    /**
-     * 部分大小单元格缩放值
-     */
-    private float partlyCellZoom = 1;
 
     public Locker mLocker;
 
@@ -260,13 +256,17 @@ public class TableConfig<T> {
 
     public void setItemCommonStyleConfig(ItemCommonStyleConfig itemCommonStyleConfig) {
         this.itemCommonStyleConfig = itemCommonStyleConfig;
+        setTextLeftOffset(DensityUtils.dp2px(this.context,
+                itemCommonStyleConfig.getTextPaddingHorizontal()));
+        setTextRightOffset(DensityUtils.dp2px(this.context,
+                itemCommonStyleConfig.getTextPaddingHorizontal()));
     }
 
     public void setTabArr(JsonTableBean[][] tabArr) {
         this.tabArr = tabArr;
     }
 
-    public JsonTableBean getCell(int row, int col){
+    public JsonTableBean getCell(int row, int col) {
         return tabArr[row][mLocker.getRawCol(col)];
     }
 
@@ -521,14 +521,6 @@ public class TableConfig<T> {
 
     public void setZoom(float zoom) {
         this.zoom = zoom;
-    }
-
-    public void setPartlyCellZoom(float partlyCellZoom) {
-        this.partlyCellZoom = partlyCellZoom;
-    }
-
-    public float getPartlyCellZoom() {
-        return partlyCellZoom;
     }
 
     public int getFixedLines() {

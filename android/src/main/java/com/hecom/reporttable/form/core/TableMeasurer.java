@@ -32,18 +32,6 @@ public class TableMeasurer<T> {
 
     private OnContentSizeChangeListener listener;
 
-    public void setAddTableHeight(int addTableHeight) {
-        this.addTableHeight = addTableHeight;
-    }
-
-    private int addTableHeight = 0;
-
-    public void setLimitTableHeight(int limitTableHeight) {
-        this.limitTableHeight = limitTableHeight;
-    }
-
-    private int limitTableHeight = 0;
-
     public TableInfo measure(TableData<T> tableData, TableConfig config) {
         isReMeasure = true;
         TableInfo tableInfo = tableData.getTableInfo();
@@ -52,9 +40,6 @@ public class TableMeasurer<T> {
         boolean fastModel = columnLen * rowLen > 10000;
         int width = getTableWidth(tableData, config, fastModel);
         int height = getTableHeight(tableData, config, fastModel);
-//        if (height > limitTableHeight) {
-//              height = height + addTableHeight;
-//        }
         this.onMeasure(tableInfo, width, height);
         tableInfo.setTableRect(new Rect(0, 0, width, height));
         measureColumnSize(tableData);

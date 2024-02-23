@@ -50,7 +50,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     private TableProvider<T> provider;
     private Rect showRect;
     private Rect tableRect;
-    private TableConfig<T> config;
+    private TableConfig config;
     private TableParser<T> parser;
     private TableData<T> tableData;
     private int defaultHeight = 300;

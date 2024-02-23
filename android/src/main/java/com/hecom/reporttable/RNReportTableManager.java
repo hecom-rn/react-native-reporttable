@@ -3,28 +3,21 @@ package com.hecom.reporttable;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import android.graphics.Color;
 import android.text.TextUtils;
 
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
-import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.hecom.JacksonUtil;
 import com.hecom.reporttable.form.data.TableInfo;
-import com.hecom.reporttable.form.data.format.grid.IGridFormat;
-import com.hecom.reporttable.form.listener.OnContentSizeChangeListener;
-import com.hecom.reporttable.form.listener.OnTableChangeListener;
-import com.hecom.reporttable.form.matrix.MatrixHelper;
+import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.utils.DensityUtils;
-import com.hecom.reporttable.table.HecomGridFormat;
 import com.hecom.reporttable.table.HecomTable;
-import com.hecom.reporttable.table.ReportTableStore;
 import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
@@ -36,116 +29,85 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 
-public class RNReportTableManager extends SimpleViewManager<HecomTable<String>> {
+public class RNReportTableManager extends SimpleViewManager<HecomTable> {
     private ThemedReactContext mReactContext;
-    private Gson mGson = new GsonBuilder()
+    private final Gson mGson = new GsonBuilder()
             .registerTypeAdapter(ItemCommonStyleConfig.class,
                     new ItemCommonStyleConfigDeserializer())
             .create();
 
+    @NonNull
     @Override
     public String getName() {
         return "ReportTable";
     }
 
+    @NonNull
     @Override
-    protected HecomTable<String> createViewInstance(final ThemedReactContext reactContext) {
+    protected HecomTable createViewInstance(@NonNull final ThemedReactContext reactContext) {
         mReactContext = reactContext;
-        final HecomTable<String> table = new HecomTable<>(reactContext);
-        table.setStore(new ReportTableStore(reactContext, table));
-        IGridFormat gridFormat = new HecomGridFormat(table);
-        table.getConfig().setTableGridFormat(gridFormat);
-
-        table.setZoom(true, 2, 0.5f);
-
-        final OnTableChangeListener listener = table.getMatrixHelper().getOnTableChangeListener();
-
-        table.getMatrixHelper().setOnTableChangeListener(new OnTableChangeListener() {
-            @Override
-            public void onTableChanged(float scale, float translateX, float translateY) {
-                listener.onTableChanged(scale, translateX, translateY);
-                WritableMap map = Arguments.createMap();
-                map.putDouble("translateX", translateX);
-                map.putDouble("translateY", translateY);
-                map.putDouble("scale", scale);
-                reactContext.getJSModule(RCTEventEmitter.class)
-                        .receiveEvent(table.getId(), "onScroll", map);
-                MatrixHelper mh = table.getMatrixHelper();
-                boolean notBottom = (mh.getZoomRect().bottom - mh.getOriginalRect().bottom) > 0;
-                if (!notBottom) {
-                    (reactContext).getJSModule(RCTEventEmitter.class)
-                            .receiveEvent(table.getId(), "onScrollEnd", null);
-                }
-            }
-        });
-        table.getMeasurer().setOnContentSizeChangeListener(new OnContentSizeChangeListener() {
-            @Override
-            public void onContentSizeChanged(float width, float height) {
-                float widthDp = DensityUtils.px2dp(table.getContext(), width);
-                float heightDp = DensityUtils.px2dp(table.getContext(), height);
-                WritableMap map = Arguments.createMap();
-                map.putDouble("width", widthDp);
-                map.putDouble("height", heightDp);
-                reactContext.getJSModule(RCTEventEmitter.class)
-                        .receiveEvent(table.getId(), "onContentSize", map);
-            }
-        });
-        return table;
+        return new HecomTable(reactContext);
     }
 
     @ReactProp(name = "disableZoom")
-    public void setDisableZoom(HecomTable<String> view, boolean disableZoom) {
+    public void setDisableZoom(HecomTable view, boolean disableZoom) {
         view.setZoom(!disableZoom);
     }
 
     @ReactProp(name = "frozenRows")
-    public void setFrozenRows(HecomTable<String> view, int frozenRows) {
+    public void setFrozenRows(HecomTable view, int frozenRows) {
         view.getConfig().setFixedLines(frozenRows);
     }
 
     @ReactProp(name = "frozenColumns")
-    public void setFrozenColumns(HecomTable<String> view, int frozenColumns) {
-        view.getStore().mLockHelper.setFrozenColumns(frozenColumns);
+    public void setFrozenColumns(HecomTable view, int frozenColumns) {
+        view.getLockHelper().setFrozenColumns(frozenColumns);
     }
 
 
     @ReactProp(name = "frozenPoint")
-    public void setFrozenPoint(HecomTable<String> view, int frozenPoint) {
-        view.getStore().mLockHelper.setPoint(frozenPoint);
+    public void setFrozenPoint(HecomTable view, int frozenPoint) {
+        view.getLockHelper().setPoint(frozenPoint);
     }
 
 
     @ReactProp(name = "frozenCount")
-    public void setFrozenCount(HecomTable<String> view, int frozenCount) {
-        view.getStore().mLockHelper.setCount(frozenCount);
+    public void setFrozenCount(HecomTable view, int frozenCount) {
+        view.getLockHelper().setCount(frozenCount);
     }
 
     @ReactProp(name = "permutable")
-    public void setPermutable(HecomTable<String> view, boolean permutable) {
-        view.getStore().mLockHelper.setPermutable(permutable);
+    public void setPermutable(HecomTable view, boolean permutable) {
+        view.getLockHelper().setPermutable(permutable);
+    }
+
+    @ReactProp(name = "doubleClickZoom")
+    public void setDoubleClickZoom(HecomTable view, boolean doubleClickZoom) {
+        view.setDoubleClickZoom(doubleClickZoom);
+    }
+
+    @ReactProp(name = "lineColor")
+    public void setLineColor(HecomTable view, String lineColor) {
+        LineStyle lineStyle = new LineStyle();
+        lineStyle.setColor(Color.parseColor(lineColor));
+        view.getConfig().setContentGridStyle(lineStyle);
+
     }
 
 
     @ReactProp(name = "data")
-    public void setData(HecomTable<String> view, ReadableMap dataSource) {
-        ReportTableStore reportTableStore = view.getStore();
+    public void setData(HecomTable view, ReadableMap dataSource) {
 
         String jsonData = "";
         int minHeight = 40;
         int minWidth = 50;
         int maxWidth = 120;
-        int textPaddingHorizontal = 12;
-        String lineColor = "#000000";
-        int headerHeight = 0;
-        int limitTableHeight = 0;
         String itemConfig = null;
         try {
 
             if (dataSource.hasKey("itemConfig")) {
                 itemConfig = dataSource.getString("itemConfig");
             }
-
-
             if (dataSource.hasKey("data")) {
                 jsonData = dataSource.getString("data");
             }
@@ -159,32 +121,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable<String>> 
             if (dataSource.hasKey("maxWidth")) {
                 maxWidth = transformDataType(dataSource.getDouble("maxWidth"));
             }
-
-            if (dataSource.hasKey("headerHeight")) {
-                headerHeight = transformDataType(dataSource.getDouble("headerHeight"));
-            }
-
-            if (dataSource.hasKey("limitTableHeight")) {
-                limitTableHeight = transformDataType(dataSource.getDouble("limitTableHeight"));
-            }
-
-            if (dataSource.hasKey("doubleClickZoom")) {
-                view.setDoubleClickZoom(dataSource.getBoolean("doubleClickZoom"));
-            }
-
             TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
-            headerHeight = dip2px(mReactContext, headerHeight);
-            configBean.setHeaderHeight(headerHeight);
-            int tableHeight = dip2px(mReactContext, limitTableHeight);
-            configBean.setLimitTableHeight(tableHeight);
-
-            if (dataSource.hasKey("textPaddingHorizontal")) {
-                textPaddingHorizontal = dataSource.getInt("textPaddingHorizontal");
-            }
-
-            if (dataSource.hasKey("lineColor")) {
-                lineColor = dataSource.getString("lineColor");
-            }
             if (dataSource.hasKey("columnsWidthMap")) {
                 String columnsWidthMap = dataSource.getString("columnsWidthMap");
                 if (!TextUtils.isEmpty(columnsWidthMap)) {
@@ -202,15 +139,10 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable<String>> 
             if (!TextUtils.isEmpty(itemConfig)) {
                 ItemCommonStyleConfig itemCommonStyleConfig = mGson.fromJson(itemConfig,
                         ItemCommonStyleConfig.class);
-                configBean.setItemCommonStyleConfig(itemCommonStyleConfig);
                 view.getConfig().setItemCommonStyleConfig(itemCommonStyleConfig);
             }
 
-            configBean.setTextPaddingHorizontal(DensityUtils.dp2px(mReactContext,
-                    textPaddingHorizontal));
-            configBean.setLineColor(lineColor);
-
-            reportTableStore.setReportTableData(view, jsonData, configBean);
+            view.setData(jsonData, configBean);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -219,7 +151,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable<String>> 
 
 
     @Override
-    public void receiveCommand(@NonNull HecomTable<String> root, String commandId,
+    public void receiveCommand(@NonNull HecomTable root, String commandId,
                                @Nullable ReadableArray args) {
         super.receiveCommand(root, commandId, args);
         switch (commandId) {
@@ -232,7 +164,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable<String>> 
         }
     }
 
-    private void processScrollTo(HecomTable<String> root, ReadableArray args) {
+    private void processScrollTo(HecomTable root, ReadableArray args) {
         //{ lineX: 0, lineY: 0, offsetX: 0, offsetY: 0, animated : true }
         TableInfo tableInfo = root.getTableData().getTableInfo();
         ReadableMap map = args.getMap(0);
@@ -257,7 +189,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable<String>> 
     }
 
 
-    private void processScrollToBottom(HecomTable<String> root, ReadableArray args) {
+    private void processScrollToBottom(HecomTable root, ReadableArray args) {
         root.getMatrixHelper().flingBottom(300);
     }
 
@@ -283,11 +215,5 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable<String>> 
             result = (int) data;
         }
         return result;
-    }
-
-    public static int dip2px(ThemedReactContext context, float dpValue) {
-        final float scale = context.getResources().getDisplayMetrics().density;
-        int pxResult = (int) (dpValue * scale + 0.5f);
-        return (int) (dpValue * scale + 0.5f);
     }
 }

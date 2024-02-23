@@ -14,7 +14,6 @@ import com.hecom.reporttable.form.data.format.draw.ImageResDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.JsonTableBean;
-import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
 import com.hecom.reporttable.table.lock.Locker;
 
@@ -39,7 +38,7 @@ public class CellDrawFormat extends ImageResDrawFormat<String> {
     private Locker locker;
 
 
-    public CellDrawFormat(Context context, final TableConfigBean configBean, Locker locker) {
+    public CellDrawFormat(Context context, Locker locker) {
         super(1, 1);
         textDrawFormat = new TextDrawFormat<String>() {
             @Override
@@ -49,7 +48,7 @@ public class CellDrawFormat extends ImageResDrawFormat<String> {
                 JsonTableBean tableBean = config.getCell(cellInfo.row, cellInfo.col);
                 Integer textAlignment = tableBean.getTextAlignment();
                 if (null == textAlignment) {
-                    textAlignment = configBean.getItemCommonStyleConfig().getTextAlignment();
+                    textAlignment = config.getItemCommonStyleConfig().getTextAlignment();
                 }
                 switch (textAlignment) {
                     case 1:
@@ -236,7 +235,7 @@ public class CellDrawFormat extends ImageResDrawFormat<String> {
         return 0;
     }
 
-    private void update(CellInfo<String> cellInfo, TableConfig<String> config) {
+    private void update(CellInfo<String> cellInfo, TableConfig config) {
         this.resourceId = 0;
         if (locker.needShowLock(cellInfo.row, cellInfo.col)) {
             if (cellInfo.column.isFixed()) {

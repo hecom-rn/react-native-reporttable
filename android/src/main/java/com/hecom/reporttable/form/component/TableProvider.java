@@ -89,6 +89,7 @@ public class TableProvider<T> implements TableClickObserver {
         setData(scaleRect, showRect, tableData, config);
         canvas.save();
         canvas.clipRect(this.showRect);
+        drawColumnTitle(canvas, config);
         drawCount(canvas);
         drawContent(canvas, false);
         drawContent(canvas, true);
@@ -283,21 +284,6 @@ public class TableProvider<T> implements TableClickObserver {
         }
     }
 
-    // public void clearFixedBottomLists() {
-    //     if (this.fixedBottomLists == null) {
-    //         this.fixedBottomLists = new ArrayList<>();
-    //     } else {
-    //         this.fixedBottomLists.clear();
-    //     }
-    // }
-    // public void clearFixedTopLists() {
-    //     if (this.fixedTopLists == null) {
-    //         this.fixedTopLists = new ArrayList<>();
-    //     } else {
-    //         this.fixedTopLists.clear();
-    //     }
-    // }
-
     /**
      * 绘制内容
      *
@@ -464,7 +450,6 @@ public class TableProvider<T> implements TableClickObserver {
                                         correctCellRect);
                                 cellInfo.set(column, data, value, columnIndex, rowIndex,
                                         cacheWrapText != null);
-                                config.setPartlyCellZoom(1);
                                 if (config.getFixedLines() == 0) {
                                     drawContentCell(canvas, cellInfo, correctCellRect, config);
                                 } else if (isFirstDraw || rowIndex < config.getFixedLines()) {
