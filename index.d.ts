@@ -21,6 +21,9 @@ declare module "@hecom/react-native-report-table" {
 
         disableZoom?: boolean; // 是否禁止缩放 default: false
 
+        /* Android only */
+        doubleClickZoom?: boolean; // 是否开启双击缩放 default: true
+
         /*
          *  是否是可排列的，仅支持不包含合并单元格的表
          *  开启后，每列表头显示锁定按钮🔓(初始不锁定)，锁定后可冻结指定列，可取消，解锁后按原顺序排列
@@ -29,8 +32,8 @@ declare module "@hecom/react-native-report-table" {
          *  default: false
          */
         permutable?: boolean;
-        
-        /* 
+
+        /*
          *  首行 指定列支持冻结  第一优先  使用指定列后显示带🔓的icon  默认不锁定
          *  frozenColumns 与 frozenPoint 相等时，可显示🔒
          *  取消锁定后冻结frozenColumns生效的列
@@ -38,7 +41,7 @@ declare module "@hecom/react-native-report-table" {
         frozenPoint?: number; // 均从1开始算
 
         /*
-         *  首行前几列支持冻结  第二优先  使用前几列均显示带🔓的icon  
+         *  首行前几列支持冻结  第二优先  使用前几列均显示带🔓的icon
          *  使用frozenColumns比frozenCount小时，可使🔒
          *  功能：锁定后冻结会点击列的之前所有的列
         */
@@ -141,7 +144,7 @@ declare module "@hecom/react-native-report-table" {
             style: {
                 color: Color;
                 fontSize: number;
-            }, 
+            },
             text: string;
             isLeft: boolean; // 在原本文本左边 default false
         }; // 在原本文本内容中额外追加的文本

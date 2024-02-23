@@ -2,7 +2,7 @@
   "name": "@hecom/react-native-report-table",
   "version": "1.0.3",
   "description": "report Table Component",
-  "main": "index.ts",
+  "main": "index.js",
   "private": false,
   "types": "./index.d.ts",
   "scripts": {
