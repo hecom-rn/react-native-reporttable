@@ -361,28 +361,6 @@
         }
         cell.label.attributedText = attributedText;
         
-    } else if (model.asteriskColor != nil) {
-        NSMutableAttributedString *attributedText;
-        NSRange range;
-        NSRange nonRequiredRange;
-        if (model.textAlignment == NSTextAlignmentLeft) {
-            // 必填符在右侧
-            attributedText = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@%@", model.title, @"*"]];
-            range = NSMakeRange(model.title.length, 1);
-            nonRequiredRange = NSMakeRange(0, model.title.length);
-        } else {
-            attributedText = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@%@", @"*", model.title]];
-            range = NSMakeRange(0, 1);
-            nonRequiredRange = NSMakeRange(1, model.title.length);
-        }
-        [attributedText addAttribute:NSForegroundColorAttributeName value:model.asteriskColor range:range];
-        [attributedText addAttribute:NSFontAttributeName value:font range:range];
-        
-        [attributedText addAttribute:NSBaselineOffsetAttributeName value:@(-model.fontSize/7) range:range];
-        
-        [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:nonRequiredRange];
-        [attributedText addAttribute:NSFontAttributeName value:font range:nonRequiredRange];
-        cell.label.attributedText = attributedText;
     }  else {
         cell.label.text = model.title;
         cell.label.textColor = model.textColor;

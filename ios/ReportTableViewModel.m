@@ -435,7 +435,7 @@
                 }
             }
             CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
-            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.asteriskColor != nil ? 10 : 0) + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
+            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
             CGFloat boundWidth = MAX(maxWidth, mergeNum * minWidth) - exceptText;
             CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : model.richText != nil ? [self getAttTextWidth:model.richText withMaxWith: boundWidth] : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: boundWidth];
             CGFloat tolerant = 8; // 额外的容错空间
@@ -522,9 +522,6 @@
     }
     if ([keys containsObject: @"boxLineColor"]) {
         model.boxLineColor = [RCTConvert UIColor:[dir objectForKey:@"boxLineColor"]] ;
-    }
-    if ([keys containsObject: @"asteriskColor"]) {
-        model.asteriskColor = [RCTConvert UIColor:[dir objectForKey:@"asteriskColor"]] ;
     }
     model.textAlignment = model.itemConfig.textAlignment;
     if ([keys containsObject: @"textAlignment"]) {
