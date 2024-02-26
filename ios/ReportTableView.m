@@ -77,6 +77,10 @@
     self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
     self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: reportTableModel.lineColor];
     
+    self.spreadsheetView.layer.masksToBounds = YES;
+    self.spreadsheetView.layer.borderColor = reportTableModel.lineColor.CGColor;
+    self.spreadsheetView.layer.borderWidth = hairline;
+
     [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
     [self setMergedCellsLabelOffset];
