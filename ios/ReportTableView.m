@@ -339,15 +339,13 @@
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
 
     UIFont *font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
-    if (model.extraText) {
+    if (model.richText) {
+        cell.label.attributedText = model.richText;
+    } else if (model.extraText) {
         NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString: model.title];
         NSRange range = NSMakeRange(0, model.title.length);
         [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:range];
         [attributedText addAttribute:NSFontAttributeName value:font range:range];
-        if (model.strikethrough) {
-            // 添加删除线
-            [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
-        }
         NSTextAttachment *attachment = [[NSTextAttachment alloc] init];
         UIImage *image = [UIImage imageWithExtra:model.extraText];
         attachment.image = image;
@@ -384,23 +382,8 @@
         
         [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:nonRequiredRange];
         [attributedText addAttribute:NSFontAttributeName value:font range:nonRequiredRange];
-        if (model.strikethrough) {
-            // 添加删除线
-            [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
-
-        }
         cell.label.attributedText = attributedText;
-    } else if (model.strikethrough) {
-        NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString:model.title];
-
-        [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:NSMakeRange(0, attributedText.length)];
-
-        // 添加删除线
-        [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
-
-        cell.label.font = font;
-        cell.label.attributedText = attributedText;
-    } else {
+    }  else {
         cell.label.text = model.title;
         cell.label.textColor = model.textColor;
         cell.label.font = font;

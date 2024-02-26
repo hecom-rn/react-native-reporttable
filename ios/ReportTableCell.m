@@ -110,7 +110,7 @@
                 if ([self isSetupImageView] ) {
                     make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-w);
                 } else {
-                    make.right.equalTo(self.contentView.mas_right).offset(-marginHor);
+                    make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-marginHor);
                 }
                 make.left.equalTo(self.contentView.mas_left).offset(textPaddingHorizontal);
             }

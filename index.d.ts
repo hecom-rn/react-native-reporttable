@@ -1,6 +1,6 @@
 declare module "@hecom/react-native-report-table" {
     import * as React from 'react';
-    import { ProcessedColorValue } from 'react-native';
+    import { ProcessedColorValue, TextStyle, ImageResolvedAssetSource } from 'react-native';
     export interface ReportTableProps {
         size: {
             width: number;
@@ -105,18 +105,31 @@ declare module "@hecom/react-native-report-table" {
         horizontalCount: number;
     }
 
-    export interface DataSource {
+    interface ItemTextStyle {
+        fontSize?: number;  // default 14
+        textColor?: Color;
+        isOverstriking?: boolean; // 文本是否加粗。 default false
+    }
+
+    export interface DataSource extends ItemTextStyle {
         [key: string]: any;
 
         title: string;
         keyIndex: number;
 
         backgroundColor?: Color;
+        textPaddingHorizontal?: number; // default 12， 左右两边留白，同比js中的margin
+        textAlignment?: 0 | 1 | 2; // default 0 左中右
 
-        fontSize?: number;  // default 14
-        textColor?: Color;
-        textPaddingHorizontal?: number; // default 12
-        textAlignment?: 0 | 1 | 2; // default 0
+        /*
+         * 设定后title失效
+         * style的优先级比同级的ItemTextStyle高，未设置时取richText同级的ItemTextStyle的值
+         * 注意：未Pick的属性不支持
+        */
+        richText?: {
+            text: string,
+            style?: ItemTextStyle & { strikethrough?: boolean } & Pick<TextStyle, 'borderRadius' | 'borderColor' | 'borderWidth'>
+        }[];
 
         /* Android only */
         trianglePosition?: TrianglePosition; // 三角标位置
@@ -129,12 +142,17 @@ declare module "@hecom/react-native-report-table" {
         classificationLineColor?: Color; // 分割线颜色，优先级比ItemConfig中的高，可选
 
         isForbidden?: boolean; // 显示禁用线
+
+        /**
+         * @deprecated use richText
+         */
         asteriskColor?: Color; // 显示一个必填标识符 *， 显示位置与textAlignment相关，0显示在右侧，1，2是显示在左侧
+         /**
+         * @deprecated use richText
+         */
         strikethrough?: boolean; // 文本显示删除线
 
-        isOverstriking?: boolean; // 文本是否加粗。 default false
         icon?: IconStyle;
-
         extraText?: {
             backgroundStyle: {
                 color: Color;
@@ -151,11 +169,12 @@ declare module "@hecom/react-native-report-table" {
     }
 
     export interface IconStyle {
-        path: string; // bundle的 绝对路径
+        path: ImageResolvedAssetSource; // ios only
+        name: string; // android only
         width: number,
         height: number,
-        imageAlignment: number; // 1左  2中  3右(默认)
-        paddingHorizontal: number; // default 4
+        imageAlignment?: number; // 1左  2中  3右(默认)
+        paddingHorizontal?: number; // default 4
     }
 
     export default class ReportTable extends React.Component<ReportTableProps>{

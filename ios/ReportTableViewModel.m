@@ -10,6 +10,7 @@
 #import "ReportTableView.h"
 #import <React/RCTConvert.h>
 #import "ReportTableHeaderView.h"
+#import "UIImage+ImageTag.h"
 
 @class SpreadsheetView;
 @interface ReportTableViewModel();
@@ -136,8 +137,11 @@
 }
 
 - (CGRect)getTextWidth:(NSString *)text withTextSize:(CGFloat)fontSize withMaxWith: (CGFloat)maxWidth{
-    CGRect rect = [text boundingRectWithSize:CGSizeMake(maxWidth, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:fontSize]} context:nil];
-    return rect;
+    return [text boundingRectWithSize:CGSizeMake(maxWidth, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:fontSize]} context:nil];
+}
+
+- (CGRect)getAttTextWidth:(NSAttributedString *)text withMaxWith: (CGFloat)maxWidth{
+    return [text boundingRectWithSize:CGSizeMake(maxWidth, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin context: nil];
 }
 
 - (void)setData:(NSArray *)data {
@@ -390,7 +394,6 @@
             NSDictionary *dir = dataSource[i][j];
             ItemModel *model = [self generateItemModel: dir];
             model.columIndex = j;
-            model.itemConfig = self.reportTableModel.itemConfig;
             if (curKeyIndex != model.keyIndex || j == rowCount - 1) { // 已经到末尾了，处理了本次循环
                 for(int k = 0; k < sameLenth; k++) {
                    [mergeLen addObject:@(sameLenth)];
@@ -433,11 +436,12 @@
             }
             CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
             CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.asteriskColor != nil ? 10 : 0) + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
-            CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: MAX(maxWidth, mergeNum * minWidth) - exceptText];
+            CGFloat boundWidth = MAX(maxWidth, mergeNum * minWidth) - exceptText;
+            CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : model.richText != nil ? [self getAttTextWidth:model.richText withMaxWith: boundWidth] : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: boundWidth];
             CGFloat tolerant = 8; // 额外的容错空间
             if (textRect.size.width + tolerant + exceptText > mergeNum * minWidth || textRect.size.height > model.fontSize * 1.5) {
                 BOOL useMerge = mergeNum > maxWidth/ minWidth; // 当横向有合并时，使用最小宽度来计算对应的高
-                if (textRect.size.height < model.fontSize * 1.5) {
+                if (textRect.size.height < model.fontSize * 1.9) {
                    // minWidth < text < maxWidth
                     rowWith = useMerge ? maxWidth + tolerant : textRect.size.width + exceptText + tolerant;
                 } else {
@@ -503,6 +507,7 @@
 
 - (ItemModel *)generateItemModel:(NSDictionary *)dir {
     ItemModel *model = [[ItemModel alloc] init];
+    model.itemConfig = self.reportTableModel.itemConfig;
     NSArray *keys = [dir allKeys];
     model.keyIndex = [RCTConvert NSInteger:[dir objectForKey:@"keyIndex"]];
     model.title = [RCTConvert NSString:[dir objectForKey:@"title"]];
@@ -531,9 +536,7 @@
     if ([keys containsObject: @"isForbidden"]) {
         model.isForbidden = [RCTConvert BOOL:[dir objectForKey:@"isForbidden"]];
     }
-    if ([keys containsObject: @"strikethrough"]) {
-        model.strikethrough = [RCTConvert BOOL:[dir objectForKey:@"strikethrough"]];
-    }
+
     model.classificationLineColor = model.itemConfig.classificationLineColor;
     if ([keys containsObject: @"classificationLineColor"]) {
         model.classificationLineColor = [RCTConvert UIColor:[dir objectForKey:@"classificationLineColor"]];
@@ -577,6 +580,57 @@
             text.style = style;
         }
         model.extraText = text;
+    }
+    NSArray *richTextArr = [dir objectForKey:@"richText"] ? [RCTConvert NSArray:[dir objectForKey:@"richText"]] : nil;
+    if (richTextArr && richTextArr.count > 0) {
+        NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] init];
+        for (NSDictionary *richTextDic in richTextArr) {
+            NSDictionary *style = [richTextDic objectForKey:@"style"];
+            NSString *text = [RCTConvert NSString: [richTextDic objectForKey:@"text"]];
+            NSRange range = NSMakeRange(attributedText.length, text.length);
+            [attributedText appendAttributedString: [[NSMutableAttributedString alloc] initWithString:text]];
+            NSArray *textStyleKeys = style != nil ? [style allKeys] : @[];
+            // basic
+            BOOL isOverstriking = [textStyleKeys containsObject:@"isOverstriking"] ? [RCTConvert BOOL:[style objectForKey:@"isOverstriking"]] : model.isOverstriking;
+            CGFloat fontSize = [textStyleKeys containsObject:@"fontSize"] ? [RCTConvert CGFloat:[style objectForKey:@"fontSize"]] : model.fontSize;
+            UIFont *font = isOverstriking ? [UIFont boldSystemFontOfSize:fontSize] : [UIFont systemFontOfSize:fontSize];
+            UIColor *textColor = [textStyleKeys containsObject:@"textColor"] ? [RCTConvert UIColor:[style objectForKey:@"textColor"]] : model.textColor;
+            // append
+            CGFloat borderRadius = [textStyleKeys containsObject:@"borderRadius"] ? [RCTConvert CGFloat:[style objectForKey:@"borderRadius"]] : 0;
+            CGFloat borderWidth = [textStyleKeys containsObject:@"borderWidth"] ? [RCTConvert CGFloat:[style objectForKey:@"borderWidth"]] : 0;
+            UIColor *borderColor = [textStyleKeys containsObject:@"borderColor"] ? [RCTConvert UIColor:[style objectForKey:@"borderColor"]] : nil;
+            BOOL strikethrough = [textStyleKeys containsObject:@"strikethrough"] ? [RCTConvert BOOL:[style objectForKey:@"strikethrough"]] : false;
+            if (borderColor != nil) {
+                // 支持border
+                TextBoderModel *labelStyle = [[TextBoderModel alloc] init];
+                labelStyle.borderColor = borderColor;
+                labelStyle.borderWidth = borderWidth;
+                labelStyle.borderRadius = borderRadius;
+                
+                labelStyle.isOverstriking = isOverstriking;
+                labelStyle.font = font;
+                labelStyle.textColor = textColor;
+                labelStyle.text = text;
+                
+                NSTextAttachment *attachment = [[NSTextAttachment alloc] init];
+                UIImage *image = [UIImage imageWithBorder:labelStyle];
+                attachment.image = image;
+                // 不知道什么原因，导致显示的attachment底部有留白。 先往上偏移一下吧
+                attachment.bounds = CGRectMake(0, -font.pointSize * 0.4, image.size.width, image.size.height);
+                NSAttributedString *tagString = [NSAttributedString attributedStringWithAttachment:attachment];
+                attributedText = [[NSMutableAttributedString alloc] initWithAttributedString:tagString];
+            } else {
+                NSMutableDictionary *att = [NSMutableDictionary dictionaryWithDictionary:@{
+                    NSForegroundColorAttributeName: textColor,
+                    NSFontAttributeName: font
+                }];
+                if (strikethrough) {
+                    att[NSStrikethroughStyleAttributeName] = @(NSUnderlineStyleSingle);
+                }
+                [attributedText addAttributes:att range:range];
+            }
+        }
+        model.richText = attributedText;
     }
     return  model;
 }
