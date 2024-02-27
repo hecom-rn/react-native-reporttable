@@ -44,6 +44,8 @@ declare module "@hecom/react-native-report-table" {
         */
         frozenCount?: number;
 
+        showBorder?: boolean; // 是否显示表格边框  ios only default:false 使用的颜色同lineColor
+
         headerView?: () => React.ReactElement;
 
         itemConfig?: ItemConfig; // 优先级比 DataSource中的属性低

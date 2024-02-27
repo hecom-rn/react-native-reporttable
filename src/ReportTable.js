@@ -50,6 +50,7 @@ export default class ReportTable extends React.Component{
         columnsWidthMap: {},
         itemConfig: itemConfig,
         permutable: false,
+        showBorder: false,
         disableZoom: false,
     };
 

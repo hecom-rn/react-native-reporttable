@@ -177,6 +177,12 @@
     [self reloadCheck];
 }
 
+- (void)setShowBorder:(BOOL)showBorder {
+    self.reportTableModel.showBorder = showBorder;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)setFrozenColumns:(NSInteger)frozenColumns {
     self.reportTableModel.frozenColumns = frozenColumns;
     self.reportTableModel.oriFrozenColumns = frozenColumns;
@@ -337,7 +343,7 @@
 }
 
 - (void)reloadCheck {
-    if (self.propertyCount >= 19) {
+    if (self.propertyCount >= 20) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
