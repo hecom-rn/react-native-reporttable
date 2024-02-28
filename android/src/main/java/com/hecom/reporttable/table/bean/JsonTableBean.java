@@ -1,9 +1,12 @@
 package com.hecom.reporttable.table.bean;
 
+import java.util.ArrayList;
+
 public class JsonTableBean {
     /*非优化场景 通过getter setter访问*/
     public int keyIndex;
     public String title;
+    public ArrayList<RichText> richText;
     public String backgroundColor;
     public Integer fontSize = 0;
     public String textColor;
@@ -161,6 +164,98 @@ public class JsonTableBean {
 
     public void setOverstriking(Boolean overstriking) {
         isOverstriking = overstriking;
+    }
+
+    public static class RichText {
+        private String text;
+        private RichTextStyle style;
+
+        public String getText() {
+            return text;
+        }
+
+        public void setText(String text) {
+            this.text = text;
+        }
+
+        public RichTextStyle getStyle() {
+            return style;
+        }
+
+        public void setStyle(RichTextStyle style) {
+            this.style = style;
+        }
+    }
+
+    public static class RichTextStyle {
+        private String textColor;
+        private String backgroundColor;
+
+        private float fontSize = -1;
+
+        private float borderRadius;
+
+        private String borderColor;
+
+        private float borderWidth = -1;
+
+        public Boolean isOverstriking = null;
+
+        public Boolean getOverstriking() {
+            return isOverstriking;
+        }
+
+        public void setOverstriking(Boolean overstriking) {
+            isOverstriking = overstriking;
+        }
+
+        public String getTextColor() {
+            return textColor;
+        }
+
+        public void setTextColor(String textColor) {
+            this.textColor = textColor;
+        }
+
+        public String getBackgroundColor() {
+            return backgroundColor;
+        }
+
+        public void setBackgroundColor(String backgroundColor) {
+            this.backgroundColor = backgroundColor;
+        }
+
+        public float getFontSize() {
+            return fontSize;
+        }
+
+        public void setFontSize(float fontSize) {
+            this.fontSize = fontSize;
+        }
+
+        public float getBorderRadius() {
+            return borderRadius;
+        }
+
+        public void setBorderRadius(float borderRadius) {
+            this.borderRadius = borderRadius;
+        }
+
+        public String getBorderColor() {
+            return borderColor;
+        }
+
+        public void setBorderColor(String borderColor) {
+            this.borderColor = borderColor;
+        }
+
+        public float getBorderWidth() {
+            return borderWidth;
+        }
+
+        public void setBorderWidth(float borderWidth) {
+            this.borderWidth = borderWidth;
+        }
     }
 
     public static class Icon {
