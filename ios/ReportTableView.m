@@ -77,7 +77,9 @@
     self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
     self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: reportTableModel.lineColor];
     
-    if (reportTableModel.showBorder) {
+    // 且在横向显示范围内显示完全的时候再显示，确保数据少时不显示border （业务要求
+    NSNumber *width = [reportTableModel.rowsWidth valueForKeyPath:@"@sum.self"];
+    if (reportTableModel.showBorder && [width floatValue] >= reportTableModel.tableRect.size.width * self.zoomScale) {
         self.spreadsheetView.layer.masksToBounds = YES;
         self.spreadsheetView.layer.borderColor = reportTableModel.lineColor.CGColor;
         self.spreadsheetView.layer.borderWidth = hairline;
