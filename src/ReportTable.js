@@ -50,12 +50,13 @@ export default class ReportTable extends React.Component{
         columnsWidthMap: {},
         itemConfig: itemConfig,
         permutable: false,
+        showBorder: false,
         disableZoom: false,
     };
 
     scrollTo = (params) => {
-        const { lineX = 0, lineY = 0, offsetX = 0, offsetY = 0, animated = true } = params || {};
-        this.table.scrollTo({ lineX, lineY, offsetX, offsetY, animated });
+        const { lineX = 0, lineY = 0, offsetX =0, offsetY = 0, animated = true } = params || {};
+        this.table && this.table.scrollTo({ lineX, lineY, offsetX, offsetY, animated });
     }
 
     updateData = (params) => {
@@ -64,7 +65,7 @@ export default class ReportTable extends React.Component{
     }
 
     scrollToBottom = () => {
-        this.table.scrollToBottom();
+        this.table && this.table.scrollToBottom();
     }
 
     onContentSize = ({ nativeEvent }) => {

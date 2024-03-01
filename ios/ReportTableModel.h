@@ -100,6 +100,7 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, assign) float minWidth;
 @property (nonatomic, assign) float maxWidth;
 @property (nonatomic, assign) float minHeight;
+@property (nonatomic, assign) BOOL showBorder;
 @property (nonatomic, copy) RCTDirectEventBlock onClickEvent;
 @property (nonatomic, copy) RCTDirectEventBlock onScrollEnd;
 @property (nonatomic, copy) RCTDirectEventBlock onScroll;

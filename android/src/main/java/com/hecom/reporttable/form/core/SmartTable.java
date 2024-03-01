@@ -165,7 +165,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
                         tableTitle.onMeasure(scaleRect, showRect, config);
                         tableTitle.onDraw(canvas, showRect, tableData.getTableName(), config);
                     }
-                    drawGridBackground(canvas, showRect, scaleRect);
                     if (config.isShowYSequence()) {
                         yAxis.onMeasure(scaleRect, showRect, config);
                         if (isYSequenceRight) {
@@ -193,6 +192,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
                             e.printStackTrace();
                         }
                     }
+                    drawGridBackground(canvas, showRect, scaleRect);
                 }
             }
         } else {
@@ -204,7 +204,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     }
 
     private void drawLoadingText(Canvas canvas, Rect rect) {
-        DrawUtils.drawSingleText(canvas, textPaint, rect, "正在更新数据，请稍后。");
+        DrawUtils.drawSingleText(canvas, textPaint, rect, "正在更新数据，请稍候。");
     }
 
     /**
