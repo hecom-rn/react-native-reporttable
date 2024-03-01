@@ -14,7 +14,6 @@ import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
-import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.lock.Locker;
 
 import java.util.HashMap;
@@ -234,7 +233,6 @@ public class TableConfig {
     public Locker mLocker;
 
     private ItemCommonStyleConfig itemCommonStyleConfig = new ItemCommonStyleConfig();
-    private JsonTableBean[][] tabArr;
 
     public TableConfig(Context context) {
         this.context = context;
@@ -260,14 +258,6 @@ public class TableConfig {
                 itemCommonStyleConfig.getTextPaddingHorizontal()));
         setTextRightOffset(DensityUtils.dp2px(this.context,
                 itemCommonStyleConfig.getTextPaddingHorizontal()));
-    }
-
-    public void setTabArr(JsonTableBean[][] tabArr) {
-        this.tabArr = tabArr;
-    }
-
-    public JsonTableBean getCell(int row, int col) {
-        return tabArr[row][mLocker.getRawCol(col)];
     }
 
     public FontStyle getContentStyle() {

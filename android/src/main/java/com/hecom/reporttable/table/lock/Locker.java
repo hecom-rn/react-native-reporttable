@@ -1,12 +1,12 @@
 package com.hecom.reporttable.table.lock;
 
-import com.hecom.reporttable.form.core.SmartTable;
+import com.hecom.reporttable.table.HecomTable;
 
 /**
  * Created by kevin.bai on 2024/1/4.
  */
 public abstract class Locker {
-    SmartTable<String> table;
+    HecomTable table;
 
     protected int frozenColumns;
 
@@ -19,7 +19,7 @@ public abstract class Locker {
     }
 
 
-    public Locker(SmartTable<String> table) {
+    public Locker(HecomTable table) {
         this.table = table;
     }
 

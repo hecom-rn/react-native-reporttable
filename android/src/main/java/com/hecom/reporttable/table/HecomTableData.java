@@ -1,58 +1,55 @@
 package com.hecom.reporttable.table;
 
+
 import android.text.TextUtils;
 
 import com.hecom.JacksonUtil;
-import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellRange;
+import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
+import com.hecom.reporttable.form.data.table.ArrayTableData;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.MergeBean;
-import com.hecom.reporttable.table.bean.MergeResult;
 import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class ReportTableData {
-    private ArrayList<CellRange> mergeList = new ArrayList<>();
-    private Map<Integer, Integer> mergeKeyMap = new HashMap<>();
-    private MergeBean mergeBean = new MergeBean();
-    private JsonTableBean[][] tabArr;
-
-    public ArrayList<CellRange> getMergeList() {
-        return new ArrayList<>(mergeList);
-    }
-
-    public JsonTableBean[][] getTabArr() {
-        return tabArr;
+public class HecomTableData extends ArrayTableData<JsonTableBean> {
+    public static JsonTableBean[][] initData(String json) {
+        if (TextUtils.isEmpty(json)) {
+            return new JsonTableBean[][]{};
+        }
+        try {
+            JsonTableBean[][] tabArr = JacksonUtil.decode(json, JsonTableBean[][].class);
+            if (tabArr == null || tabArr.length == 0 || tabArr[0].length == 0) {
+                return new JsonTableBean[][]{};
+            }
+            return tabArr;
+        } catch (Exception e) {
+            return new JsonTableBean[][]{};
+        }
     }
 
 
     /**
      * strArr 不再是全量表格内容 被合并的表格内容会缺失
      */
-    public MergeResult mergeTable(String json, TableConfig config) {
-        mergeList.clear();
-        mergeKeyMap.clear();
-        if (TextUtils.isEmpty(json)) {
-            tabArr = new JsonTableBean[][]{};
-            return new MergeResult(new String[][]{}, new TypicalCell[][]{}, new TypicalCell[][]{});
-        }
+    public static void mergeTable(JsonTableBean[][] tabArr,
+                                  ItemCommonStyleConfig commonStyleConfig,
+                                  ArrayList<CellRange> mergeList,
+                                  TypicalCell[][] maxValues4Column, TypicalCell[][] maxValues4Row) {
+        Map<Integer, Integer> mergeKeyMap = new HashMap<>();
         try {
-            tabArr = JacksonUtil.decode(json, JsonTableBean[][].class);
-            String[][] strArr = creatArr(tabArr);
-            TypicalCell[][] maxValues4Column = new TypicalCell[strArr.length][3];
-            TypicalCell[][] maxValues4Row = new TypicalCell[strArr[0].length][2];
-            if (strArr == null) {
-                return null;
-            }
+
             int rowLength = tabArr.length;
             int colLength = tabArr[0].length;
-
+            MergeBean mergeBean = new MergeBean();
             TypicalCell preMaxContentCloumn, preMaxIconCloumn, preMaxMergeRow;
-            ItemCommonStyleConfig commonStyleConfig = config.getItemCommonStyleConfig();
             for (int rowIndex = 0; rowIndex < rowLength; rowIndex++) {
                 //1、合并列（从左往右找）；2、合并行（从上往下找）
                 JsonTableBean[] columnArr = tabArr[rowIndex];
@@ -61,18 +58,14 @@ public class ReportTableData {
                     int uniqueKeyValue = rowObj.keyIndex;
                     mergeBean.clear();
                     mergeBean.setStartColum(columnIndex);
-                    mergeColumn(uniqueKeyValue, columnIndex, columnArr);
+                    mergeColumn(uniqueKeyValue, columnIndex, columnArr, mergeBean);
                     mergeBean.setStartRow(rowIndex);
-                    mergeRow(uniqueKeyValue, rowIndex, columnIndex, tabArr);
+                    mergeRow(uniqueKeyValue, rowIndex, columnIndex, tabArr, mergeBean);
 
                     if (rowObj.isForbidden != null && rowObj.isForbidden) {
-                        strArr[columnIndex][rowIndex] = "";
                         rowObj.setTitle("");
                     } else if (TextUtils.isEmpty(rowObj.title)) {
-                        strArr[columnIndex][rowIndex] = "-";
                         rowObj.setTitle("-");
-                    } else {
-                        strArr[columnIndex][rowIndex] = rowObj.title;
                     }
                     if (TextUtils.isEmpty(rowObj.backgroundColor)) {
                         rowObj.setBackgroundColor(commonStyleConfig.backgroundColor);
@@ -164,17 +157,14 @@ public class ReportTableData {
                     }
                 }
             }
-            return new MergeResult(strArr, maxValues4Column, maxValues4Row);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("table------合并异常了----------");
-            tabArr = new JsonTableBean[][]{};
-            return new MergeResult(new String[][]{}, new TypicalCell[][]{}, new TypicalCell[][]{});
         }
     }
 
-    private void mergeRow(int uniqueKeyValue, int searchRowIndex, int searchColumnIndex,
-                          JsonTableBean[][] array) {
+    private static void mergeRow(int uniqueKeyValue, int searchRowIndex, int searchColumnIndex,
+                                 JsonTableBean[][] array, MergeBean mergeBean) {
         if (array == null) return;
         int index = searchRowIndex + 1;
         int length = array.length;
@@ -206,7 +196,8 @@ public class ReportTableData {
 
 
     //合并列（从左往右找）
-    private void mergeColumn(int uniqueKeyValue, int searchColumnIndex, JsonTableBean[] columnArr) {
+    private static void mergeColumn(int uniqueKeyValue, int searchColumnIndex,
+                                    JsonTableBean[] columnArr, MergeBean mergeBean) {
         if (columnArr == null) return;
         int index = searchColumnIndex + 1;
         int length = columnArr.length;
@@ -236,20 +227,54 @@ public class ReportTableData {
     }
 
     /**
-     * 创建同样大小的字符串数组
+     * 创建二维数组表格数据 如果数据不是数组[row][col]，可以使用transformColumnArray方法转换
+     *
+     * @param drawFormat 数据格式化
+     * @return 创建的二维数组表格数据
      */
-    private String[][] creatArr(JsonTableBean[][] jsonArray) {
-        String[][] arr = null;
-        if (jsonArray == null) return arr;
-        try {
-            JsonTableBean[] columnArr = jsonArray[0];
-            if (columnArr == null) return arr;
-            arr = new String[columnArr.length][jsonArray.length];
-        } catch (Exception e) {
-            e.printStackTrace();
-            return arr;
+    public static HecomTableData create(String json, ItemCommonStyleConfig config, HecomFormat format,
+                                        IDrawFormat<JsonTableBean> drawFormat) {
+        JsonTableBean[][] rawData = initData(json);
+        ArrayList<CellRange> mergeList = new ArrayList<>();
+        TypicalCell[][] maxValues4Column = new TypicalCell[rawData[0].length][3];
+        TypicalCell[][] maxValues4Row = new TypicalCell[rawData.length][2];
+        mergeTable(rawData, config, mergeList, maxValues4Column, maxValues4Row);
+        JsonTableBean[][] data = ArrayTableData.transformColumnArray(rawData);
+
+
+        List<Column<JsonTableBean>> columns = new ArrayList<>();
+        int dataLength = data.length;
+        for (int i = 0; i < dataLength; i++) {
+            JsonTableBean[] dataArray = data[i];
+            Column<JsonTableBean> column = new Column<>(null,
+                    null, format, drawFormat);
+            column.setColumn(i, dataLength);
+            column.setDatas(Arrays.asList(dataArray));
+            columns.add(column);
         }
-        return arr;
+        List<JsonTableBean> arrayList;
+        if (dataLength > 0) {
+            arrayList = Arrays.asList(data[0]);
+        } else {
+            arrayList = new ArrayList<>();
+        }
+        HecomTableData result = new HecomTableData(arrayList, columns);
+        result.setMaxValues4Column(maxValues4Column);
+        result.setMaxValues4Row(maxValues4Row);
+        result.setUserCellRange(mergeList);
+
+        return result;
     }
 
+
+    /**
+     * 二维数组的构造方法
+     *
+     * @param t       数据
+     * @param columns 列
+     */
+    protected HecomTableData(List<JsonTableBean> t,
+                             List<Column<JsonTableBean>> columns) {
+        super(null, t, columns);
+    }
 }

@@ -1,8 +1,8 @@
 package com.hecom.reporttable.table.lock;
 
 import com.hecom.reporttable.TableUtil;
-import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.table.HecomTable;
 
 import java.util.List;
 
@@ -19,7 +19,7 @@ public class CommonLock extends Locker {
 
     private int curFixedColumnIndex;
 
-    public CommonLock(SmartTable<String> table) {
+    public CommonLock(HecomTable table) {
         super(table);
     }
 

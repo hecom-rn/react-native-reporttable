@@ -7,7 +7,6 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.text.TextUtils;
 
-import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.format.grid.BaseGridFormat;
 import com.hecom.reporttable.table.bean.JsonTableBean;
@@ -27,7 +26,7 @@ public class HecomGridFormat extends BaseGridFormat {
     static final int BOTTOM_LEFT = 4;
     static final int BOTTOM_RIGHT = 8;
 
-    private SmartTable table;
+    private HecomTable table;
 
     /**
      * 特殊边标记，0代表无特殊颜色，非零代表有特殊颜色，四个数值依次代表上、右、下、左。
@@ -39,7 +38,7 @@ public class HecomGridFormat extends BaseGridFormat {
     private Paint mTrianglePaint;
     private Boolean mForbidden;
 
-    public HecomGridFormat(SmartTable table) {
+    public HecomGridFormat(HecomTable table) {
         this.table = table;
         mTrianglePaint = new Paint();
         mTrianglePaint.setAntiAlias(false);
@@ -49,14 +48,14 @@ public class HecomGridFormat extends BaseGridFormat {
     @Override
     public void drawContentGrid(Canvas canvas, int col, int row, Rect rect, CellInfo cellInfo,
                                 Paint paint) {
-        fillGridType(col, row);
+        fillGridType(cellInfo);
         int oriColor = paint.getColor();
         int defColor = paint.getColor();
         if (0 != mClassificationLineColor) {
             defColor = mClassificationLineColor;
             paint.setColor(mClassificationLineColor);
         }
-        if (needDraw(col, row)) {
+        if (needDraw()) {
             int spColor = 0 != mClassificationLineColor ? mClassificationLineColor : getColor();
 
             paint.setColor(mGridType[0] != NORMAL ? spColor : defColor);
@@ -96,8 +95,8 @@ public class HecomGridFormat extends BaseGridFormat {
         return this.table.getConfig().getItemCommonStyleConfig().getClassificationLineColor();
     }
 
-    private void fillGridType(int col, int row) {
-        JsonTableBean bean = this.table.getConfig().getCell(row,col);
+    private void fillGridType(CellInfo cellInfo) {
+        JsonTableBean bean = (JsonTableBean) cellInfo.data;
         int position = bean.getClassificationLinePosition();
         mTrianglePosition = bean.getTrianglePosition();
         mForbidden = bean.getForbidden();
@@ -109,7 +108,7 @@ public class HecomGridFormat extends BaseGridFormat {
         mGridType[3] = position & LEFT;
     }
 
-    private boolean needDraw(int col, int row) {
+    private boolean needDraw() {
         return mGridType[0] != NORMAL || mGridType[1] != NORMAL || mGridType[2] != NORMAL || mGridType[3] != NORMAL;
     }
 }

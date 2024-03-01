@@ -16,6 +16,7 @@ import com.hecom.reporttable.form.data.column.ColumnInfo;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.form.listener.OnContentSizeChangeListener;
 import com.hecom.reporttable.form.utils.DrawUtils;
+import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.List;
@@ -202,10 +203,9 @@ public class TableMeasurer<T> {
                 columnWidth = 0;
                 for (TypicalCell typicalCell : maxValues4Column[columnPos]) {
                     if (typicalCell != null) {
-                        iconWidth = TableUtil.calculateIconWidth(config, typicalCell.columnIndex,
-                                typicalCell.rowIndex);
+                        iconWidth = TableUtil.calculateIconWidth(config, typicalCell);
                         asteriskWidth = TableUtil.calculateAsteriskWidth(config,
-                                typicalCell.columnIndex, typicalCell.rowIndex);
+                                typicalCell.jsonTableBean);
                         textWidth = column.getDrawFormat()
                                 .measureWidth(column, typicalCell, config);
                         iconPadding = textWidth > 0 && iconWidth > 0 ? config.dp4 : 0;
@@ -289,8 +289,10 @@ public class TableMeasurer<T> {
                 Cell[][] rangeCells = tableData.getTableInfo().getRangeCells();
                 boolean hasMergedCell = false;
                 for (int rowIndex = 0; rowIndex < size; rowIndex++) {
-                    iconWidth = TableUtil.calculateIconWidth(config, columnIndex, rowIndex);
-                    asteriskWidth = TableUtil.calculateAsteriskWidth(config, columnIndex, rowIndex);
+                    JsonTableBean bean = (JsonTableBean) column.getDatas()
+                            .get(rowIndex);
+                    iconWidth = TableUtil.calculateIconWidth(config, columnIndex, rowIndex, bean);
+                    asteriskWidth = TableUtil.calculateAsteriskWidth(config, bean);
                     int textWidth;
                     int iconPadding;
                     int width;

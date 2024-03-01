@@ -4,10 +4,12 @@ import android.graphics.Paint;
 import android.text.TextUtils;
 
 import com.hecom.reporttable.form.core.TableConfig;
+import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.List;
 
@@ -63,8 +65,8 @@ public class TableUtil {
         return maxColumn;
     }
 
-    public static int calculateIconWidth(TableConfig config, int col, int row) {
-        JsonTableBean.Icon icon = config.getCell(row, col).getIcon();
+    public static int calculateIconWidth(TableConfig config,int col, int row, JsonTableBean bean){
+        JsonTableBean.Icon icon = bean.getIcon();
         int id = icon != null ? parseIconName2ResourceId(icon.name) : 0;
         if (id != 0) {
             return config.getContext().getDrawable(id).getIntrinsicWidth();
@@ -75,8 +77,11 @@ public class TableUtil {
         return 0;
     }
 
-    public static float calculateAsteriskWidth(TableConfig config, int col, int row) {
-        JsonTableBean jsonTableBean = config.getCell(row,col);
+    public static int calculateIconWidth(TableConfig config, TypicalCell cell) {
+        return calculateIconWidth(config, cell.columnIndex, cell.rowIndex, cell.jsonTableBean);
+    }
+
+    public static float calculateAsteriskWidth(TableConfig config, JsonTableBean jsonTableBean) {
         String asteriskColor = jsonTableBean.getAsteriskColor();
         if (TextUtils.isEmpty(asteriskColor)) {
             return 0;
@@ -89,8 +94,8 @@ public class TableUtil {
         }
     }
 
-    public static Paint.Align getAlignConfig(TableConfig config, int row, int col) {
-        JsonTableBean tableBean = config.getCell(row, col);
+    public static Paint.Align getAlignConfig(TableConfig config, CellInfo cellInfo) {
+        JsonTableBean tableBean = (JsonTableBean) cellInfo.data;
         ItemCommonStyleConfig itemCommonStyleConfig = config.getItemCommonStyleConfig();
         Integer innerAlign = tableBean == null ? null : tableBean.getTextAlignment();
         return innerAlign != null

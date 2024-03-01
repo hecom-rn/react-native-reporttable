@@ -6,7 +6,6 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
-import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.table.bean.JsonTableBean;
@@ -15,14 +14,14 @@ import com.hecom.reporttable.table.lock.Locker;
 /**
  * 处理表格基础的点击事件，以及点击表头时的列锁定逻辑 Created by kevin.bai on 2024/1/4.
  */
-public class ClickHandler implements TableData.OnItemClickListener<String> {
+public class ClickHandler implements TableData.OnItemClickListener<JsonTableBean> {
 
-    private SmartTable<String> table;
+    private HecomTable table;
 
     private Locker locker;
 
 
-    public ClickHandler(SmartTable<String> table) {
+    public ClickHandler(HecomTable table) {
         this.table = table;
 
     }
@@ -32,7 +31,7 @@ public class ClickHandler implements TableData.OnItemClickListener<String> {
     }
 
     @Override
-    public void onClick(Column column, String value, String o, int col, int row) {
+    public void onClick(Column<JsonTableBean> column, String value, JsonTableBean o, int col, int row) {
         boolean isLockItem = locker.needShowLock(row, col);
         if (isLockItem) {
             table.postDelayed(new Runnable() {
@@ -48,8 +47,7 @@ public class ClickHandler implements TableData.OnItemClickListener<String> {
         }
         try {
             Context context = table.getContext();
-            JsonTableBean tableBean = table.getConfig().getCell(row,col);
-            int keyIndex = tableBean.getKeyIndex();
+            int keyIndex = o.getKeyIndex();
             if (context != null) {
                 WritableMap map = Arguments.createMap();
                 map.putInt("keyIndex", keyIndex);

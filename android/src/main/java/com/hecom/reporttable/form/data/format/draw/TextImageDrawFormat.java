@@ -134,7 +134,7 @@ public class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
         rect.bottom -= config.getVerticalPadding();
         float textWidth;
 //        Paint.Align textAlign = cellInfo.column.getTextAlign();
-        Paint.Align textAlign = TableUtil.getAlignConfig(config, cellInfo.row, cellInfo.col);
+        Paint.Align textAlign = TableUtil.getAlignConfig(config, cellInfo);
         if (textAlign == null) textAlign = Paint.Align.CENTER;
         int imgRight = 0, imgLeft = 0;
         switch (direction) {//单元格icon的相对位置
