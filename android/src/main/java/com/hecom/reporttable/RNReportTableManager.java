@@ -137,9 +137,8 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
                 }
             }
             if (!TextUtils.isEmpty(itemConfig)) {
-                ItemCommonStyleConfig itemCommonStyleConfig = mGson.fromJson(itemConfig,
-                        ItemCommonStyleConfig.class);
-                view.getConfig().setItemCommonStyleConfig(itemCommonStyleConfig);
+                view.setItemCommonStyleConfig(mGson.fromJson(itemConfig,
+                        ItemCommonStyleConfig.class));
             }
 
             view.setData(jsonData, configBean);
@@ -161,7 +160,18 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
             case "scrollToBottom":
                 processScrollToBottom(root, args);
                 break;
+            case "updateData":
+                processUpdateData(root, args);
+                break;
         }
+    }
+
+    private void processUpdateData(HecomTable root, ReadableArray args){
+        ReadableMap map = args.getMap(0);
+        String data = map.getString("data");
+        int x = map.getInt("x");
+        int y = map.getInt("y");
+        root.updateData(data, x, y);
     }
 
     private void processScrollTo(HecomTable root, ReadableArray args) {

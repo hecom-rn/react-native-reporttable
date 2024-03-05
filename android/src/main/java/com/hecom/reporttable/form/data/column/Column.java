@@ -2,7 +2,6 @@ package com.hecom.reporttable.form.data.column;
 
 import android.graphics.Paint;
 
-
 import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.format.IFormat;
 import com.hecom.reporttable.form.data.format.count.DecimalCountFormat;
@@ -13,7 +12,6 @@ import com.hecom.reporttable.form.data.format.draw.FastTextDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.MultiLineDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
-import com.hecom.reporttable.form.data.format.draw.WrapTextResult;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
 import com.hecom.reporttable.form.utils.LetterUtils;
 
@@ -43,7 +41,6 @@ public class Column<T> implements Comparable<Column> {
     private IDrawFormat<T> drawFormat;
     private String fieldName;
     private List<T> datas;
-    private List<WrapTextResult> formatDatas;
     private boolean isFixed;
     private int computeWidth;
     private int level;
@@ -252,13 +249,6 @@ public class Column<T> implements Comparable<Column> {
      */
     public void setDatas(List<T> datas) {
         this.datas = datas;
-        if (null != datas) {
-            int size = datas.size();
-            this.formatDatas = new ArrayList<>(size);
-            for (int i = 0; i < size; i++) {
-                this.formatDatas.add(null);
-            }
-        }
     }
 
 
@@ -390,29 +380,11 @@ public class Column<T> implements Comparable<Column> {
     }
 
 
-    public void setFormatData(int position, WrapTextResult value) {
-        if (position >= 0 && position < datas.size()) {
-            formatDatas.set(position, value);
-        }
-    }
-
     public String format(int position) {
         if (position >= 0 && position < datas.size()) {
-            if (formatDatas.get(position) != null) {
-                return formatDatas.get(position).text;
-            }
             return format(datas.get(position));
         }
         return INVAL_VALUE;
-    }
-
-    public WrapTextResult getCacheWrapText(int position) {
-        if (position >= 0 && position < datas.size()) {
-            if (formatDatas.get(position) != null) {
-                return formatDatas.get(position);
-            }
-        }
-        return null;
     }
 
     public List<int[]> parseRanges() {

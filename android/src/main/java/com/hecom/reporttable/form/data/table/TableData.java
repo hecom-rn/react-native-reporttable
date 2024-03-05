@@ -359,7 +359,7 @@ public class TableData<T> {
                             if (i == firstRow && j == firstCol) {
                                 int rowCount = Math.min(lastRow + 1, tableCells.length) - firstRow;
                                 int colCount = Math.min(lastCol + 1, tableCells[i].length) - firstCol;
-                                realCell = new Cell(colCount, rowCount, firstCol, firstRow, Math.min(lastCol, tableCells[i].length - 1), Math.min(lastRow, tableCells.length - 1));
+                                realCell = new Cell(colCount, rowCount);
                                 tableCells[i][j] = realCell;
                                 continue;
                             }

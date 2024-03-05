@@ -1,6 +1,5 @@
 package com.hecom.reporttable.form.core;
 
-import android.content.Context;
 import android.graphics.Paint;
 
 import com.hecom.reporttable.form.data.CellInfo;
@@ -12,12 +11,6 @@ import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.data.format.grid.SimpleGridFormat;
 import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.style.LineStyle;
-import com.hecom.reporttable.form.utils.DensityUtils;
-import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
-import com.hecom.reporttable.table.lock.Locker;
-
-import java.util.HashMap;
-import java.util.Map;
 
 
 /**
@@ -26,8 +19,6 @@ import java.util.Map;
 
 
 public class TableConfig {
-    public static String ASTERISK = "*";
-    public static String[] ASTERISK_ARRAY = new String[]{ASTERISK};
     /**
      * 默认字体样式
      */
@@ -41,9 +32,6 @@ public class TableConfig {
      */
     public static final int INVALID_COLOR = 0;
 
-    private final Context context;
-
-    public Map<Integer, Integer> sp2PxMap;
     public int dp10;
 
     public int dp4;
@@ -57,10 +45,6 @@ public class TableConfig {
      * 左侧序号列字体样式
      */
     private FontStyle YSequenceStyle;
-
-    public Context getContext() {
-        return context;
-    }
 
     /**
      * 顶部序号列字体样式
@@ -220,7 +204,6 @@ public class TableConfig {
      */
     private Paint paint;
 
-    private Paint asteriskPaint;
     /**
      * 缩放值
      */
@@ -229,36 +212,6 @@ public class TableConfig {
      * 固定的行数
      */
     private int fixedLines = 0;
-
-    public Locker mLocker;
-
-    private ItemCommonStyleConfig itemCommonStyleConfig = new ItemCommonStyleConfig();
-
-    public TableConfig(Context context) {
-        this.context = context;
-        this.sp2PxMap = new HashMap<>();
-    }
-
-    public int getSp2Px(int sp) {
-        Integer px = sp2PxMap.get(sp);
-        if (px == null) {
-            px = DensityUtils.sp2px(getContext(), sp);
-            sp2PxMap.put(sp, px);
-        }
-        return px;
-    }
-
-    public ItemCommonStyleConfig getItemCommonStyleConfig() {
-        return itemCommonStyleConfig;
-    }
-
-    public void setItemCommonStyleConfig(ItemCommonStyleConfig itemCommonStyleConfig) {
-        this.itemCommonStyleConfig = itemCommonStyleConfig;
-        setTextLeftOffset(DensityUtils.dp2px(this.context,
-                itemCommonStyleConfig.getTextPaddingHorizontal()));
-        setTextRightOffset(DensityUtils.dp2px(this.context,
-                itemCommonStyleConfig.getTextPaddingHorizontal()));
-    }
 
     public FontStyle getContentStyle() {
         if (contentStyle == null) {
@@ -318,7 +271,7 @@ public class TableConfig {
     }
 
     public int getHorizontalPadding() {
-        return horizontalPadding;
+        return (int) (horizontalPadding * getZoom());
     }
 
     public TableConfig setHorizontalPadding(int horizontalPadding) {
@@ -332,14 +285,6 @@ public class TableConfig {
 
     public void setPaint(Paint paint) {
         this.paint = paint;
-    }
-
-    public Paint getAsteriskPaint() {
-        return asteriskPaint;
-    }
-
-    public void setAsteriskPaint(Paint asteriskPaint) {
-        this.asteriskPaint = asteriskPaint;
     }
 
     public LineStyle getContentGridStyle() {
@@ -679,20 +624,5 @@ public class TableConfig {
         this.textLeftOffset = textLeftOffset;
         return this;
     }
-
-    public int getTextRightOffset() {
-        return (int) (textRightOffset * zoom);
-    }
-
-    public TableConfig setTextRightOffset(int textRightOffset) {
-        this.textRightOffset = textRightOffset;
-        return this;
-    }
-
-    /**
-     * 文字右边偏移
-     */
-
-    private int textRightOffset = 0;
 
 }

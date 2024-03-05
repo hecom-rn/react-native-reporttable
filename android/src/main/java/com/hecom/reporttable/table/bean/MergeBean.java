@@ -23,22 +23,6 @@ public class MergeBean {
     private int startColum;
     private int endColum;
     private int startRow;
-    private int keyValue;
-
-    public int getKeyValue() {
-        return keyValue;
-    }
-
-    public void setKeyValue(int keyValue) {
-        this.keyValue = keyValue;
-    }
-
-    public MergeBean(){
-
-
-    }
-
-
 
     public int getStartColum() {
         return startColum;
@@ -79,7 +63,6 @@ public class MergeBean {
         setEndColum(-1);
         setStartRow(-1);
         setEndRow(-1);
-        setKeyValue(-1);
         setMergeColumn(false);
         setMergeRow(false);
     }

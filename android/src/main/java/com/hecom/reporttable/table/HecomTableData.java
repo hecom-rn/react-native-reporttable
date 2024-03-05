@@ -12,12 +12,13 @@ import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.MergeBean;
 import com.hecom.reporttable.table.bean.TypicalCell;
+import com.hecom.reporttable.table.format.HecomFormat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 public class HecomTableData extends ArrayTableData<JsonTableBean> {
     public static JsonTableBean[][] initData(String json) {
@@ -35,6 +36,27 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
         }
     }
 
+    private static void updateBean(JsonTableBean rowObj, ItemCommonStyleConfig commonStyleConfig) {
+        if (rowObj.isForbidden != null && rowObj.isForbidden) {
+            rowObj.setTitle("");
+        }
+        if (TextUtils.isEmpty(rowObj.backgroundColor)) {
+            rowObj.setBackgroundColor(commonStyleConfig.backgroundColor);
+        }
+        if (TextUtils.isEmpty(rowObj.textColor)) {
+            rowObj.setTextColor(commonStyleConfig.textColor);
+        }
+        if (null == rowObj.textAlignment) {
+            rowObj.setTextAlignment(commonStyleConfig.textAlignment);
+        }
+        if (null == rowObj.fontSize) {
+            rowObj.setFontSize(commonStyleConfig.fontSize);
+        }
+        if (null == rowObj.isOverstriking) {
+            rowObj.setOverstriking(commonStyleConfig.isOverstriking);
+        }
+    }
+
 
     /**
      * strArr 不再是全量表格内容 被合并的表格内容会缺失
@@ -43,7 +65,7 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
                                   ItemCommonStyleConfig commonStyleConfig,
                                   ArrayList<CellRange> mergeList,
                                   TypicalCell[][] maxValues4Column, TypicalCell[][] maxValues4Row) {
-        Map<Integer, Integer> mergeKeyMap = new HashMap<>();
+        Set<Integer> mergeKeyMap = new HashSet<>();
         try {
 
             int rowLength = tabArr.length;
@@ -62,26 +84,8 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
                     mergeBean.setStartRow(rowIndex);
                     mergeRow(uniqueKeyValue, rowIndex, columnIndex, tabArr, mergeBean);
 
-                    if (rowObj.isForbidden != null && rowObj.isForbidden) {
-                        rowObj.setTitle("");
-                    } else if (TextUtils.isEmpty(rowObj.title)) {
-                        rowObj.setTitle("-");
-                    }
-                    if (TextUtils.isEmpty(rowObj.backgroundColor)) {
-                        rowObj.setBackgroundColor(commonStyleConfig.backgroundColor);
-                    }
-                    if (TextUtils.isEmpty(rowObj.textColor)) {
-                        rowObj.setTextColor(commonStyleConfig.textColor);
-                    }
-                    if (null == rowObj.textAlignment) {
-                        rowObj.setTextAlignment(commonStyleConfig.textAlignment);
-                    }
-                    if (null == rowObj.fontSize) {
-                        rowObj.setFontSize(commonStyleConfig.fontSize);
-                    }
-                    if (null == rowObj.isOverstriking) {
-                        rowObj.setOverstriking(commonStyleConfig.isOverstriking);
-                    }
+                    updateBean(rowObj, commonStyleConfig);
+
                     if (mergeBean.isMergeColumn()) {
                         columnIndex = mergeBean.getEndColum();
                     } else {
@@ -133,7 +137,7 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
                         }
                     }
 
-                    if (!mergeKeyMap.containsKey(uniqueKeyValue)) {
+                    if (!mergeKeyMap.contains(uniqueKeyValue)) {
                         CellRange cellRange = new CellRange(-1, -1, -1, -1);
                         boolean isMerge = (mergeBean.isMergeColumn() || mergeBean.isMergeRow());
                         if (isMerge) {
@@ -152,7 +156,7 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
                                 cellRange.setLastRow(mergeBean.getStartRow());
                             }
                             mergeList.add(cellRange);
-                            mergeKeyMap.put(uniqueKeyValue, uniqueKeyValue);
+                            mergeKeyMap.add(uniqueKeyValue);
                         }
                     }
                 }
@@ -182,7 +186,6 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
                 if (needMerge) {
                     mergeBean.setMergeRow(true);
                     mergeBean.setEndRow(index - 1);
-                    mergeBean.setKeyValue(uniqueKeyValue);
                 }
                 break;
             }
@@ -190,7 +193,6 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
         if (needMerge && index == length) {
             mergeBean.setMergeRow(true);
             mergeBean.setEndRow(index - 1);
-            mergeBean.setKeyValue(uniqueKeyValue);
         }
     }
 
@@ -213,7 +215,6 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
                 if (needMerge) {
                     mergeBean.setMergeColumn(true);
                     mergeBean.setEndColum(index - 1);
-                    mergeBean.setKeyValue(uniqueKeyValue);
                 }
                 break;
             }
@@ -222,7 +223,6 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
         if (needMerge && index == length) { //最后一列的处理
             mergeBean.setMergeColumn(true);
             mergeBean.setEndColum(index - 1);
-            mergeBean.setKeyValue(uniqueKeyValue);
         }
     }
 
@@ -246,7 +246,7 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
         int dataLength = data.length;
         for (int i = 0; i < dataLength; i++) {
             JsonTableBean[] dataArray = data[i];
-            Column<JsonTableBean> column = new Column<>(null,
+            Column<JsonTableBean> column = new Column<>("",
                     null, format, drawFormat);
             column.setColumn(i, dataLength);
             column.setDatas(Arrays.asList(dataArray));
@@ -276,5 +276,9 @@ public class HecomTableData extends ArrayTableData<JsonTableBean> {
     protected HecomTableData(List<JsonTableBean> t,
                              List<Column<JsonTableBean>> columns) {
         super(null, t, columns);
+    }
+
+    public void updateData(String json, int x, int y) {
+        JsonTableBean[][] updateData = initData(json);
     }
 }

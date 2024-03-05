@@ -13,7 +13,6 @@ import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.column.ColumnInfo;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
-import com.hecom.reporttable.form.data.format.draw.WrapTextResult;
 import com.hecom.reporttable.form.data.format.selected.IDrawOver;
 import com.hecom.reporttable.form.data.format.selected.ISelectFormat;
 import com.hecom.reporttable.form.data.format.tip.ITip;
@@ -379,9 +378,7 @@ public class TableProvider<T> implements TableClickObserver {
                 }
                 for (int rowIndex = 0; rowIndex < size; rowIndex++) {
                     //遍历行
-                    WrapTextResult cacheWrapText = column.getCacheWrapText(rowIndex);
-                    String value = null == cacheWrapText ? column.format(rowIndex) :
-                            cacheWrapText.text;
+                    String value = column.format(rowIndex);
                     int skip = tableInfo.getSeizeCellSize(column, rowIndex);
                     int totalLineHeight = 0;
                     for (int k = realPosition; k < realPosition + skip; k++) {
@@ -448,8 +445,7 @@ public class TableProvider<T> implements TableClickObserver {
                                 }
                                 operation.checkSelectedPoint(columnIndex, rowIndex,
                                         correctCellRect);
-                                cellInfo.set(column, data, value, columnIndex, rowIndex,
-                                        cacheWrapText != null);
+                                cellInfo.set(column, data, value, columnIndex, rowIndex);
                                 if (config.getFixedLines() == 0) {
                                     drawContentCell(canvas, cellInfo, correctCellRect, config);
                                 } else if (isFirstDraw || rowIndex < config.getFixedLines()) {
@@ -545,7 +541,6 @@ public class TableProvider<T> implements TableClickObserver {
         }
 
         rect.left += config.getTextLeftOffset();
-        rect.right = rect.right - config.getTextRightOffset();
         cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
     }
 

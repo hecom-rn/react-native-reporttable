@@ -1,7 +1,5 @@
 package com.hecom.reporttable.form.core;
 
-import android.app.Activity;
-import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -11,6 +9,7 @@ import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.facebook.react.uimanager.ThemedReactContext;
 import com.hecom.reporttable.form.component.IComponent;
 import com.hecom.reporttable.form.component.ITableTitle;
 import com.hecom.reporttable.form.component.TableProvider;
@@ -36,8 +35,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.facebook.react.uimanager.ThemedReactContext;
-
 /**
  * Created by huang on 2017/10/30. 表格
  */
@@ -59,7 +56,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     private AnnotationParser<T> annotationParser;
     protected Paint paint;
 
-    protected Paint asteriskPaint;
     protected TextPaint textPaint;
     private MatrixHelper matrixHelper;
     private boolean isExactly = true; //是否是测量精准模式
@@ -102,10 +98,11 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
      */
     private void init(ThemedReactContext context) {
         FontStyle.setDefaultTextSpSize(getContext(), 14);
-        initConfig(context);
+        config = new TableConfig();
+        config.dp10 = DensityUtils.dp2px(getContext(), 10);
+        config.dp8 = DensityUtils.dp2px(getContext(), 8);
+        config.dp4 = DensityUtils.dp2px(getContext(), 4);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        asteriskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        asteriskPaint.setTextAlign(Paint.Align.CENTER);
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(new FontStyle().getTextSize());
@@ -116,9 +113,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         parser = new TableParser<>();
         provider = new TableProvider<>(context);
         config.setPaint(paint);
-        config.setAsteriskPaint(asteriskPaint);
         measurer = new TableMeasurer<>();
-        measurer.setContext(context);
         tableTitle = new TableTitle();
         tableTitle.setDirection(IComponent.TOP);
         matrixHelper = new MatrixHelper(getContext());
@@ -127,17 +122,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         matrixHelper.register(provider);
         matrixHelper.setOnInterceptListener(provider.getOperation());
         provider.setMatrixHelper(matrixHelper);
-
-    }
-
-    private void initConfig(ThemedReactContext context) {
-        config = new TableConfig(context);
-        config.dp10 = DensityUtils.dp2px(getContext(), 10);
-        config.dp8 = DensityUtils.dp2px(getContext(), 8);
-        config.dp4 = DensityUtils.dp2px(getContext(), 4);
-        config.setHorizontalPadding(0).setVerticalPadding(this.config.dp4)
-                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false)
-                .setShowYSequence(false);
 
     }
 

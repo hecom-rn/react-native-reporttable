@@ -1,4 +1,4 @@
-package com.hecom.reporttable.form.data.format.draw;
+package com.hecom.reporttable.table.format;
 
 /**
  * Description :
@@ -6,7 +6,7 @@ package com.hecom.reporttable.form.data.format.draw;
  */
 public class WrapTextResult {
    public  String text;
-   float lastLineWidth;
+   public float lastLineWidth;
 
    public WrapTextResult(String text, float lastLineWidth) {
       this.text = text;

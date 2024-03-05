@@ -1,4 +1,4 @@
-package com.hecom.reporttable.table;
+package com.hecom.reporttable.table.format;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -22,7 +22,7 @@ public class RichTextHelper {
         for (JsonTableBean.RichText richText : cell.richText) {
             builder.append(richText.getText());
             if (richText.getStyle() != null) {
-                builder.setSpan(new RichTextSpan(context,cell, richText.getStyle()),
+                builder.setSpan(new RichTextSpan(context, cell, richText.getStyle()),
                         builder.length() - richText.getText()
                                 .length(), builder.length(),
                         SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -42,7 +42,7 @@ class RichTextSpan extends ReplacementSpan {
 
     Context context;
 
-    public RichTextSpan(Context context,JsonTableBean cell, JsonTableBean.RichTextStyle style) {
+    public RichTextSpan(Context context, JsonTableBean cell, JsonTableBean.RichTextStyle style) {
         this.style = style;
         this.context = context;
         this.cell = cell;
@@ -136,8 +136,8 @@ class RichTextSpan extends ReplacementSpan {
         if (this.style.getFontSize() != -1) {
             paint.setTextSize(DensityUtils.dp2px(this.context, this.style.getFontSize()));
         }
-        if (this.style.getOverstriking() != null){
-            paint.setStrikeThruText(this.style.getOverstriking());
+        if (this.style.getOverstriking() != null) {
+            paint.setFakeBoldText(this.style.getOverstriking());
         }
         switch (paint.getTextAlign()) {
             case LEFT:

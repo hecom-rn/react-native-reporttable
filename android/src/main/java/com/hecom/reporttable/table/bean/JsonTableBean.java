@@ -12,9 +12,9 @@ public class JsonTableBean {
     public String textColor;
     public Integer textAlignment;  // 0左 1中 2右  default 0
     public Icon icon;
-    public Boolean isOverstriking = null;
+    public Boolean isOverstriking = false;
 
-    public Boolean isForbidden = null; //斜线
+    public Boolean isForbidden = false; //斜线
     public int textPaddingHorizontal;
     public int classificationLinePosition;
 
@@ -260,8 +260,8 @@ public class JsonTableBean {
 
     public static class Icon {
         private Path path;
-        private String width;
-        private String height;
+        private int width;
+        private int height;
         public String name;
 
         public Path getPath() {
@@ -272,19 +272,19 @@ public class JsonTableBean {
             this.path = path;
         }
 
-        public String getWidth() {
+        public int getWidth() {
             return width;
         }
 
-        public void setWidth(String width) {
+        public void setWidth(int width) {
             this.width = width;
         }
 
-        public String getHeight() {
+        public int getHeight() {
             return height;
         }
 
-        public void setHeight(String height) {
+        public void setHeight(int height) {
             this.height = height;
         }
 

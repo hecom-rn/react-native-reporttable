@@ -1,4 +1,4 @@
-package com.hecom.reporttable.form.data.format.draw;
+package com.hecom.reporttable.table.format;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;

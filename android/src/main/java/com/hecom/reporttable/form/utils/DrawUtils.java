@@ -9,7 +9,6 @@ import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.os.Build;
-import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 
@@ -152,26 +151,25 @@ public class DrawUtils {
         canvas.save();
         StaticLayout.Builder builder = StaticLayout.Builder.obtain(spannableString, 0,
                 spannableString.length(), new TextPaint(paint), rect.width());
-        builder.setAlignment(Layout.Alignment.ALIGN_NORMAL);
 
         int dy = 0; // y 方向偏移量
+        int dx = 0; // x 方向偏移量
 
         // 根据对齐方式计算偏移量
         switch (paint.getTextAlign()) {
             case LEFT: // 左对齐
-                builder.setAlignment(Layout.Alignment.ALIGN_NORMAL);
                 break;
             case CENTER: // 居中对齐
-                builder.setAlignment(Layout.Alignment.ALIGN_CENTER);
+                dx = rect.centerX() - rect.left;
                 break;
             case RIGHT: // 右对齐
-                builder.setAlignment(Layout.Alignment.ALIGN_OPPOSITE);
+                dx = rect.width();
                 break;
         }
         StaticLayout staticLayout = builder.build();
         // 计算垂直居中的偏移量
         dy = (rect.height() - staticLayout.getHeight()) / 2;
-        canvas.translate(rect.left, rect.top + dy);
+        canvas.translate(rect.left + dx, rect.top + dy);
 
         // 绘制文本
         staticLayout.draw(canvas);
@@ -182,36 +180,9 @@ public class DrawUtils {
     /**
      * 绘制单行文字
      */
-    @RequiresApi(api = Build.VERSION_CODES.M)
     public static void drawSingleText(Canvas canvas, Paint paint, Rect rect, String value) {
-        int saveCount = canvas.getSaveCount();
-        canvas.save();
-        StaticLayout.Builder builder = StaticLayout.Builder.obtain(value, 0, value.length(),
-                new TextPaint(paint), rect.width());
-        StaticLayout staticLayout = builder.build();
-        int dx = 0; // x 方向偏移量
-        int dy = 0; // y 方向偏移量
-
-        // 根据对齐方式计算偏移量
-        switch (paint.getTextAlign()) {
-            case LEFT: // 左对齐
-                dx = 0;
-                break;
-            case CENTER: // 居中对齐
-                dx = (rect.width()) / 2;
-                break;
-            case RIGHT: // 右对齐
-                dx = rect.width();
-                break;
-        }
-
-
-        // 计算垂直居中的偏移量
-        dy = (rect.height() - staticLayout.getHeight()) / 2;
-        canvas.translate(rect.left + dx, rect.top + dy);
-        // 绘制文本
-        staticLayout.draw(canvas);
-        canvas.restoreToCount(saveCount);
+        canvas.drawText(value, DrawUtils.getTextCenterX(rect.left, rect.right, paint),
+                DrawUtils.getTextCenterY(rect.centerY(), paint), paint);
     }
 
 }

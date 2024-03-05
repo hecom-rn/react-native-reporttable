@@ -1,9 +1,10 @@
-package com.hecom.reporttable.table;
+package com.hecom.reporttable.table.format;
 
 import android.graphics.Color;
 
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.format.bg.BaseCellBackgroundFormat;
+import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 
 /**
@@ -17,7 +18,7 @@ public class BackgroundFormat extends BaseCellBackgroundFormat<CellInfo> {
     @Override
     public int getBackGroundColor(CellInfo cellInfo) {
         JsonTableBean tableBean = (JsonTableBean) cellInfo.data;
-        String color = this.table.getConfig().getItemCommonStyleConfig().getBackgroundColor();
+        String color = this.table.getItemCommonStyleConfig().getBackgroundColor();
         if (tableBean != null) {
             color = tableBean.getBackgroundColor();
         }
@@ -27,7 +28,7 @@ public class BackgroundFormat extends BaseCellBackgroundFormat<CellInfo> {
     @Override
     public int getTextColor(CellInfo cellInfo) {
         JsonTableBean tableBean =  (JsonTableBean) cellInfo.data;;
-        String textColor = this.table.getConfig().getItemCommonStyleConfig().getTextColor();
+        String textColor = this.table.getItemCommonStyleConfig().getTextColor();
         if (tableBean != null) {
             textColor = tableBean.getTextColor();
         }

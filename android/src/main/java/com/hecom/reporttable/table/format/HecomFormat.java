@@ -1,4 +1,4 @@
-package com.hecom.reporttable.table;
+package com.hecom.reporttable.table.format;
 
 import com.hecom.reporttable.form.data.format.IFormat;
 import com.hecom.reporttable.table.bean.JsonTableBean;

@@ -1,4 +1,4 @@
-package com.hecom.reporttable.table;
+package com.hecom.reporttable.table.format;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -9,6 +9,7 @@ import android.text.TextUtils;
 
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.format.grid.BaseGridFormat;
+import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 
 /**
@@ -92,7 +93,7 @@ public class HecomGridFormat extends BaseGridFormat {
     }
 
     private int getColor() {
-        return this.table.getConfig().getItemCommonStyleConfig().getClassificationLineColor();
+        return this.table.getItemCommonStyleConfig().getClassificationLineColor();
     }
 
     private void fillGridType(CellInfo cellInfo) {

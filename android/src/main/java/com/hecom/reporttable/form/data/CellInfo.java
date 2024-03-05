@@ -31,16 +31,12 @@ public class CellInfo<T> {
      */
     public String value;
 
-    /*是否已经动态截取过*/
-    public boolean wrapFlag;
-
-    public void set(Column<T> column,T t,String value,int col, int row, boolean wrapFlag){
+    public void set(Column<T> column,T t,String value,int col, int row){
         this.column = column;
         this.value= value;
         this.data = t;
         this.row = row;
         this.col = col;
-        this.wrapFlag = wrapFlag;
     }
 
 }

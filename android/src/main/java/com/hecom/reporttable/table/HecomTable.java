@@ -5,16 +5,22 @@ import android.util.AttributeSet;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
-import com.hecom.reporttable.form.listener.OnContentSizeChangeListener;
+import com.hecom.reporttable.form.listener.OnMeasureListener;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
+import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
 import com.hecom.reporttable.table.bean.TableConfigBean;
+import com.hecom.reporttable.table.format.BackgroundFormat;
+import com.hecom.reporttable.table.format.CellDrawFormat;
+import com.hecom.reporttable.table.format.HecomFormat;
+import com.hecom.reporttable.table.format.HecomGridFormat;
 import com.hecom.reporttable.table.lock.LockHelper;
 
 /**
@@ -22,8 +28,7 @@ import com.hecom.reporttable.table.lock.LockHelper;
  * <p>
  * 针对SmartTable的设置代码尽量封装在这里
  * <p>
- * Created by kevin.bai on 2024/2/2.
- * 由于目前很多外挂的数据都保存在ReportTableStore中，而ReportTableStore之前是单例的，
+ * Created by kevin.bai on 2024/2/2. 由于目前很多外挂的数据都保存在ReportTableStore中，而ReportTableStore之前是单例的，
  * 导致如果出现多个表格实例会有串数据的情况，暂时将ReportTableStore放到表格中
  */
 public class HecomTable extends SmartTable<JsonTableBean> {
@@ -49,11 +54,13 @@ public class HecomTable extends SmartTable<JsonTableBean> {
         init(context);
     }
 
-    private void init(final ThemedReactContext context){
+    private void init(final ThemedReactContext context) {
         mClickHandler = new ClickHandler(this);
         mLockHelper = new LockHelper(this);
         mClickHandler.setLocker(mLockHelper);
-        getConfig().mLocker = mLockHelper;
+        getConfig().setVerticalPadding(getConfig().dp4)
+                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false)
+                .setShowYSequence(false);
         getConfig().setTableGridFormat(new HecomGridFormat(this));
         getConfig().setContentCellBackgroundFormat(new BackgroundFormat(this));
 
@@ -79,7 +86,7 @@ public class HecomTable extends SmartTable<JsonTableBean> {
                 }
             }
         });
-       getMeasurer().setOnContentSizeChangeListener(new OnContentSizeChangeListener() {
+        getMeasurer().setOnMeasureListener(new OnMeasureListener() {
             @Override
             public void onContentSizeChanged(float width, float height) {
                 float widthDp = DensityUtils.px2dp(getContext(), width);
@@ -90,7 +97,25 @@ public class HecomTable extends SmartTable<JsonTableBean> {
                 context.getJSModule(RCTEventEmitter.class)
                         .receiveEvent(getId(), "onContentSize", map);
             }
+
+            @Override
+            public void onDidLayout() {
+                context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                            .emit("tableDidLayout", "tableDidLayout");
+            }
         });
+    }
+
+    private ItemCommonStyleConfig itemCommonStyleConfig = new ItemCommonStyleConfig();
+
+    public ItemCommonStyleConfig getItemCommonStyleConfig() {
+        return itemCommonStyleConfig;
+    }
+
+    public void setItemCommonStyleConfig(ItemCommonStyleConfig itemCommonStyleConfig) {
+        this.itemCommonStyleConfig = itemCommonStyleConfig;
+        getConfig().setHorizontalPadding(DensityUtils.dp2px(getContext(),
+                itemCommonStyleConfig.getTextPaddingHorizontal()));
     }
 
 
@@ -104,8 +129,9 @@ public class HecomTable extends SmartTable<JsonTableBean> {
         Context context = getContext();
         try {
 
-            final HecomTableData tableData = HecomTableData.create(json, getConfig().getItemCommonStyleConfig(),
-                    new HecomFormat(), new CellDrawFormat(context, mLockHelper));
+            final HecomTableData tableData = HecomTableData.create(json,
+                    getItemCommonStyleConfig(),
+                    new HecomFormat(), new CellDrawFormat(this, mLockHelper));
 
             tableData.setWidthLimit(DensityUtils.dp2px(context, minWidth),
                     DensityUtils.dp2px(context, maxWidth), configBean.getColumnConfigMap());
@@ -133,6 +159,12 @@ public class HecomTable extends SmartTable<JsonTableBean> {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void updateData(String data, int x, int y) {
+        HecomTableData tableData = (HecomTableData) getTableData();
+        tableData.updateData(data, x, y);
+        setTableData(tableData);
     }
 
     public void setData(final String json,
