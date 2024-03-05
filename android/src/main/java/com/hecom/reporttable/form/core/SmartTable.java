@@ -100,8 +100,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         FontStyle.setDefaultTextSpSize(getContext(), 14);
         config = new TableConfig();
         config.dp10 = DensityUtils.dp2px(getContext(), 10);
-        config.dp8 = DensityUtils.dp2px(getContext(), 8);
-        config.dp4 = DensityUtils.dp2px(getContext(), 4);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);

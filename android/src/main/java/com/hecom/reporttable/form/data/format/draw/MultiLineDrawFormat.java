@@ -13,6 +13,7 @@ import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
+import com.hecom.reporttable.table.format.HecomTextDrawFormat;
 
 
 /**
@@ -20,7 +21,7 @@ import com.hecom.reporttable.form.utils.DrawUtils;
  * 多行文字格式化
  */
 
-public class MultiLineDrawFormat<T> extends TextDrawFormat<T> {
+public class MultiLineDrawFormat<T> extends HecomTextDrawFormat<T> {
 
     private int width;
     private TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);

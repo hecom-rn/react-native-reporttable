@@ -7,6 +7,7 @@ import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.exception.TableException;
+import com.hecom.reporttable.table.format.HecomTextDrawFormat;
 
 /**
  * Created by huang on 2017/10/30.
@@ -19,7 +20,7 @@ public abstract class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
     public static final int RIGHT = 2;
     public static final int BOTTOM = 3;
 
-    private TextDrawFormat<T> textDrawFormat;
+    private HecomTextDrawFormat<T> textDrawFormat;
     private int drawPadding;
     private int direction;
     private Rect rect;
@@ -31,7 +32,7 @@ public abstract class TextImageDrawFormat<T> extends ImageResDrawFormat<T> {
 
     public TextImageDrawFormat(int imageWidth, int imageHeight, int direction, int drawPadding) {
         super(imageWidth, imageHeight);
-        textDrawFormat = new TextDrawFormat<>();
+        textDrawFormat = new HecomTextDrawFormat<>();
         this.rect = new Rect();
         this.direction = direction;
         this.drawPadding = drawPadding;

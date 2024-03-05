@@ -58,7 +58,7 @@ public class HecomTable extends SmartTable<JsonTableBean> {
         mClickHandler = new ClickHandler(this);
         mLockHelper = new LockHelper(this);
         mClickHandler.setLocker(mLockHelper);
-        getConfig().setVerticalPadding(getConfig().dp4)
+        getConfig().setVerticalPadding(DensityUtils.dp2px(getContext(), 4))
                 .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false)
                 .setShowYSequence(false);
         getConfig().setTableGridFormat(new HecomGridFormat(this));

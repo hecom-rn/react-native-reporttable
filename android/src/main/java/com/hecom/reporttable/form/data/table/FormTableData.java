@@ -1,7 +1,6 @@
 package com.hecom.reporttable.form.data.table;
 
 import android.graphics.Paint;
-import android.util.Log;
 
 
 import com.hecom.reporttable.form.core.SmartTable;
@@ -11,7 +10,7 @@ import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.form.IForm;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
-import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
+import com.hecom.reporttable.table.format.HecomTextDrawFormat;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -57,7 +56,7 @@ public class FormTableData<T extends IForm> extends ArrayTableData<T>{
             }
         }
         newArray = ArrayTableData.transformColumnArray(newArray);
-        FormTableData tableData =  createTableData(table,tableName,newArray,new TextDrawFormat<T>(){
+        FormTableData tableData =  createTableData(table,tableName,newArray,new HecomTextDrawFormat<T>(){
             @Override
             public void setTextPaint(TableConfig config, CellInfo<T> cellInfo, Paint paint) {
                 super.setTextPaint(config, cellInfo, paint);

@@ -11,7 +11,7 @@ import com.hecom.reporttable.form.data.format.count.StringCountFormat;
 import com.hecom.reporttable.form.data.format.draw.FastTextDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.MultiLineDrawFormat;
-import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
+import com.hecom.reporttable.table.format.HecomTextDrawFormat;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
 import com.hecom.reporttable.form.utils.LetterUtils;
 
@@ -209,7 +209,7 @@ public class Column<T> implements Comparable<Column> {
      */
     public IDrawFormat<T> getDrawFormat() {
         if (drawFormat == null) {
-            drawFormat = isFast ? new FastTextDrawFormat<T>() : new TextDrawFormat<T>();
+            drawFormat = isFast ? new FastTextDrawFormat<T>() : new HecomTextDrawFormat<T>();
         }
         return drawFormat;
     }
@@ -722,7 +722,7 @@ public class Column<T> implements Comparable<Column> {
      */
     public void setFast(boolean fast) {
         isFast = fast;
-        drawFormat = isFast ? new FastTextDrawFormat<T>() : new TextDrawFormat<T>();
+        drawFormat = isFast ? new FastTextDrawFormat<T>() : new HecomTextDrawFormat<T>();
     }
 
     /**

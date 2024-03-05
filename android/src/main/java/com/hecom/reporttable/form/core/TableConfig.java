@@ -34,9 +34,6 @@ public class TableConfig {
 
     public int dp10;
 
-    public int dp4;
-
-    public int dp8;
     /**
      * 内容字体样式
      */

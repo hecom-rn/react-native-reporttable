@@ -12,7 +12,6 @@ import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.draw.ImageResDrawFormat;
-import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.JsonTableBean;
@@ -29,7 +28,7 @@ public class CellDrawFormat extends ImageResDrawFormat<JsonTableBean> {
     public static final int RIGHT = 2;
     public static final int BOTTOM = 3;
 
-    private final TextDrawFormat<JsonTableBean> textDrawFormat;
+    private final HecomTextDrawFormat<JsonTableBean> textDrawFormat;
     private final int drawPadding;
     private int direction;
     private final Rect rect = new Rect();
@@ -42,7 +41,7 @@ public class CellDrawFormat extends ImageResDrawFormat<JsonTableBean> {
     public CellDrawFormat(final HecomTable table, Locker locker) {
         super(1, 1);
         this.table = table;
-        textDrawFormat = new TextDrawFormat();
+        textDrawFormat = new HecomTextDrawFormat();
         textDrawFormat.setTable(table);
         this.drawPadding = DensityUtils.dp2px(getContext(), 4);
         this.locker = locker;

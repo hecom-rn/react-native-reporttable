@@ -1,4 +1,4 @@
-package com.hecom.reporttable.form.data.format.draw;
+package com.hecom.reporttable.table.format;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -21,9 +21,6 @@ import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.ExtraTextConfig;
 import com.hecom.reporttable.table.bean.JsonTableBean;
-import com.hecom.reporttable.table.format.RadiusBackgroundSpan;
-import com.hecom.reporttable.table.format.RichTextHelper;
-import com.hecom.reporttable.table.format.WrapTextResult;
 
 import java.lang.ref.SoftReference;
 import java.text.BreakIterator;
@@ -34,7 +31,7 @@ import java.util.Map;
  * Created by huang on 2017/10/30.
  */
 
-public class TextDrawFormat<T> implements IDrawFormat<T> {
+public class HecomTextDrawFormat<T> implements IDrawFormat<T> {
     private final Map<String, SoftReference<String[]>> valueMap; //避免产生大量对象
 
     private final Map<Column, Map<Integer, SoftReference<WrapTextResult>>> cacheMap =
@@ -48,7 +45,9 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
     private HecomTable table;
 
-    public TextDrawFormat() {
+    private int dp8;
+
+    public HecomTextDrawFormat() {
         valueMap = new HashMap<>();
         asteriskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         asteriskPaint.setTextAlign(Paint.Align.CENTER);
@@ -56,6 +55,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
 
     public void setTable(HecomTable table) {
         this.table = table;
+        dp8 = DensityUtils.dp2px(table.getContext(), 8);
     }
 
     @Override
@@ -104,7 +104,7 @@ public class TextDrawFormat<T> implements IDrawFormat<T> {
         Paint paint = config.getPaint();
         config.getContentStyle().fillPaint(paint);
         WrapTextResult result = getCacheWrapText(column, position, paint, config);
-        return DrawUtils.getMultiTextHeight(paint, getSplitString(result.text)) + config.dp8 * 2;
+        return DrawUtils.getMultiTextHeight(paint, getSplitString(result.text)) + dp8 * 2;
     }
 
     @Override
