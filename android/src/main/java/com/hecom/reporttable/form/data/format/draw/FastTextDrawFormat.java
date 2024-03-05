@@ -7,7 +7,6 @@ import android.graphics.Rect;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.utils.DrawUtils;
-import com.hecom.reporttable.table.format.HecomTextDrawFormat;
 
 
 /**
@@ -16,7 +15,7 @@ import com.hecom.reporttable.table.format.HecomTextDrawFormat;
  * 当解析数目大，且字体大小和单行时，这个更快可以测量出来，节省加载时间
  */
 
-public class FastTextDrawFormat<T> extends HecomTextDrawFormat<T> {
+public class FastTextDrawFormat<T> extends TextDrawFormat<T> {
 
 
     private int height;
