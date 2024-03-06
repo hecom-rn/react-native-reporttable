@@ -3,7 +3,7 @@ package com.hecom.reporttable.table.lock;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.table.HecomTable;
-import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.Cell;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +17,7 @@ public class PermutableLock extends Locker {
 
     List<Column> fixedColumn = new ArrayList<>();
 
-    TableData<JsonTableBean> lastTableData;
+    TableData<Cell> lastTableData;
 
     public PermutableLock(HecomTable table) {
         super(table);

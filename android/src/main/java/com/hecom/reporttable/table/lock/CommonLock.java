@@ -1,7 +1,8 @@
 package com.hecom.reporttable.table.lock;
 
-import com.hecom.reporttable.TableUtil;
+import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.table.HecomTable;
 
 import java.util.List;
@@ -25,7 +26,18 @@ public class CommonLock extends Locker {
 
     private int getFirstColMaxMerge() {
         if (firstColMaxMerge == -1) {
-            firstColMaxMerge = TableUtil.getFirstColumnMaxMerge(table.getTableData());
+            TableData tableData = table.getTableData();
+            int maxColumn = -1;
+            List<CellRange> list = tableData.getUserCellRange();
+            for (int i = 0; i < list.size(); i++) {
+                CellRange cellRange = list.get(i);
+                if (cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0) {
+                    if (maxColumn < cellRange.getLastCol()) {
+                        maxColumn = cellRange.getLastCol();
+                    }
+                }
+            }
+            firstColMaxMerge = maxColumn;
         }
         return firstColMaxMerge;
     }

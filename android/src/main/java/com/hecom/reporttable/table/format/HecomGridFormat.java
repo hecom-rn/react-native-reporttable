@@ -1,16 +1,14 @@
 package com.hecom.reporttable.table.format;
 
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.text.TextUtils;
 
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.format.grid.BaseGridFormat;
 import com.hecom.reporttable.table.HecomTable;
-import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.Cell;
 
 /**
  * Created by kevin.bai on 2023/5/17.
@@ -22,10 +20,6 @@ public class HecomGridFormat extends BaseGridFormat {
     static final int RIGHT = 2;
     static final int BOTTOM = 4;
     static final int LEFT = 8;
-    static final int TOP_LEFT = 1;
-    static final int TOP_RIGHT = 2;
-    static final int BOTTOM_LEFT = 4;
-    static final int BOTTOM_RIGHT = 8;
 
     private HecomTable table;
 
@@ -34,16 +28,15 @@ public class HecomGridFormat extends BaseGridFormat {
      */
     int[] mGridType = new int[]{NORMAL, NORMAL, NORMAL, NORMAL};
     private int mClassificationLineColor;
-    private int mTriangleColor;
-    private int mTrianglePosition;
-    private Paint mTrianglePaint;
+    private int mBoxLineColor;
+    private Paint mBoxLinePaint;
     private Boolean mForbidden;
 
     public HecomGridFormat(HecomTable table) {
         this.table = table;
-        mTrianglePaint = new Paint();
-        mTrianglePaint.setAntiAlias(false);
-        mTrianglePaint.setStyle(Paint.Style.STROKE);
+        mBoxLinePaint = new Paint();
+        mBoxLinePaint.setAntiAlias(false);
+        mBoxLinePaint.setStyle(Paint.Style.STROKE);
     }
 
     @Override
@@ -80,29 +73,28 @@ public class HecomGridFormat extends BaseGridFormat {
             canvas.drawLine(rect.left, rect.top, rect.right, rect.bottom, paint);
         }
 
-        if (0 != mTriangleColor) {
-            mTrianglePaint.setColor(mTriangleColor);
-            mTrianglePaint.setStrokeWidth(paint.getStrokeWidth()*4);
+        if (0 != mBoxLineColor) {
+            mBoxLinePaint.setColor(mBoxLineColor);
+            mBoxLinePaint.setStrokeWidth(paint.getStrokeWidth()*4);
             float strokeWidth = paint.getStrokeWidth();
             RectF rectF = new RectF(rect.left+ strokeWidth,rect.top+strokeWidth,rect.right-strokeWidth,rect.bottom-strokeWidth);
             canvas.save();
             canvas.clipRect(rectF);
-            canvas.drawRect( new RectF(rect.left+ strokeWidth+1,rect.top+strokeWidth+1,rect.right-strokeWidth-1,rect.bottom-strokeWidth-1), mTrianglePaint);
+            canvas.drawRect( new RectF(rect.left+ strokeWidth+1,rect.top+strokeWidth+1,rect.right-strokeWidth-1,rect.bottom-strokeWidth-1), mBoxLinePaint);
             canvas.restore();
         }
     }
 
     private int getColor() {
-        return this.table.getItemCommonStyleConfig().getClassificationLineColor();
+        return this.table.getHecomStyle().getLineColor();
     }
 
     private void fillGridType(CellInfo cellInfo) {
-        JsonTableBean bean = (JsonTableBean) cellInfo.data;
+        Cell bean = (Cell) cellInfo.data;
         int position = bean.getClassificationLinePosition();
-        mTrianglePosition = bean.getTrianglePosition();
-        mForbidden = bean.getForbidden();
-        mClassificationLineColor = TextUtils.isEmpty(bean.getClassificationLineColor()) ? 0 : Color.parseColor(bean.getClassificationLineColor());
-        mTriangleColor = TextUtils.isEmpty(bean.getTriangleColor()) ? 0 : Color.parseColor(bean.getTriangleColor());
+        mForbidden = bean.isForbidden();
+        mClassificationLineColor = bean.getClassificationLineColor();
+        mBoxLineColor = bean.getBoxLineColor();
         mGridType[0] = position & TOP;
         mGridType[1] = position & RIGHT;
         mGridType[2] = position & BOTTOM;

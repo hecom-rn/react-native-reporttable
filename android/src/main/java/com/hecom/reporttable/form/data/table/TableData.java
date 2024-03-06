@@ -12,7 +12,6 @@ import com.hecom.reporttable.form.data.format.sequence.NumberSequenceFormat;
 import com.hecom.reporttable.form.data.format.title.ITitleDrawFormat;
 import com.hecom.reporttable.form.data.format.title.TitleDrawFormat;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
-import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,10 +23,6 @@ import java.util.List;
 
 public class TableData<T> {
 
-    //每列存3个值，0位置存列标题单元格数据，1位置存字符串最长的单元格，2位置存改列带图标的单元格中字符串最长的单元格数据
-    private TypicalCell[][] maxValues4Column;
-    //2个值 0对应这一行存在合并列的单元格中字符串最长的1对应非合并列对应字符串最长的
-    private TypicalCell[][] maxValues4Row;
     private String tableName;
     private List<Column> columns;
     private List<T> t;
@@ -45,22 +40,6 @@ public class TableData<T> {
     private OnItemClickListener onItemClickListener;
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
-
-    public TypicalCell[][] getMaxValues4Column() {
-        return maxValues4Column;
-    }
-
-    public void setMaxValues4Column(TypicalCell[][] maxValues4Column) {
-        this.maxValues4Column = maxValues4Column;
-    }
-
-    public TypicalCell[][] getMaxValues4Row() {
-        return maxValues4Row;
-    }
-
-    public void setMaxValues4Row(TypicalCell[][] maxValues4Row) {
-        this.maxValues4Row = maxValues4Row;
-    }
 
     /**
      * @param tableName 表名

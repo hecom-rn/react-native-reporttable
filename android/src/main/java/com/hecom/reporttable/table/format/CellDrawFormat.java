@@ -7,28 +7,27 @@ import android.graphics.Rect;
 import android.text.TextUtils;
 
 import com.hecom.reporttable.R;
-import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.draw.ImageResDrawFormat;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomTable;
-import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.lock.Locker;
 
 
 /**
  * 绘制单元格
  */
-public class CellDrawFormat extends ImageResDrawFormat<JsonTableBean> {
+public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
     public static final int LEFT = 0;
     public static final int TOP = 1;
     public static final int RIGHT = 2;
     public static final int BOTTOM = 3;
 
-    private final HecomTextDrawFormat<JsonTableBean> textDrawFormat;
+    private final HecomTextDrawFormat textDrawFormat;
     private final int drawPadding;
     private int direction;
     private final Rect rect = new Rect();
@@ -54,13 +53,13 @@ public class CellDrawFormat extends ImageResDrawFormat<JsonTableBean> {
 
 
     @Override
-    protected int getResourceID(JsonTableBean object, String value, int position) {
+    protected int getResourceID(Cell object, String value, int position) {
         return resourceId;
     }
 
 
     @Override
-    public int measureWidth(Column<JsonTableBean> column, int position, TableConfig config) {
+    public int measureWidth(Column<Cell> column, int position, TableConfig config) {
         update(column, position);
         int textWidth = textDrawFormat.measureWidth(column, position, config);
         if (direction == LEFT || direction == RIGHT) {
@@ -71,7 +70,7 @@ public class CellDrawFormat extends ImageResDrawFormat<JsonTableBean> {
     }
 
     @Override
-    public int measureHeight(Column<JsonTableBean> column, int position, TableConfig config) {
+    public int measureHeight(Column<Cell> column, int position, TableConfig config) {
         int textHeight = textDrawFormat.measureHeight(column, position, config);
         if (direction == TOP || direction == BOTTOM) {
             return getImageHeight() + textHeight + drawPadding;
@@ -81,7 +80,7 @@ public class CellDrawFormat extends ImageResDrawFormat<JsonTableBean> {
     }
 
     @Override
-    public void draw(Canvas c, Rect rect, CellInfo<JsonTableBean> cellInfo, TableConfig config) {
+    public void draw(Canvas c, Rect rect, CellInfo<Cell> cellInfo, TableConfig config) {
 
         update(cellInfo.column, cellInfo.row);
 
@@ -92,18 +91,22 @@ public class CellDrawFormat extends ImageResDrawFormat<JsonTableBean> {
         rect.top += config.getVerticalPadding();
         rect.bottom -= config.getVerticalPadding();
 
-        if (getBitmap(cellInfo.data, cellInfo.value, cellInfo.row) == null) {
+        if (resourceId == -1) {
             textDrawFormat.draw(c, rect, cellInfo, config);
             return;
         }
         int textWidth = 0, drawPadding = 0;
-        if(!TextUtils.isEmpty(cellInfo.value.trim())){
-              textWidth = (int) (textDrawFormat.measureWidth(cellInfo.column, cellInfo.row, config) * config.getZoom());
-              drawPadding = (int) (this.drawPadding * config.getZoom());
+        if (!TextUtils.isEmpty(cellInfo.value.trim())) {
+            textWidth =
+                    (int) (textDrawFormat.measureWidth(cellInfo.column, cellInfo.row, config) * config.getZoom());
+            drawPadding = (int) (this.drawPadding * config.getZoom());
         }
-        Paint.Align textAlign = TableUtil.getAlignConfig(table.getItemCommonStyleConfig(),
-                cellInfo);
-        if (textAlign == null) textAlign = Paint.Align.CENTER;
+        Paint.Align textAlign;
+        if (cellInfo.data.getTextAlignment() != null) {
+            textAlign = cellInfo.data.getTextAlignment();
+        } else {
+            textAlign = table.getHecomStyle().getAlign();
+        }
         int imgRight = 0, imgLeft = 0;
         switch (direction) {//单元格icon的相对位置
             case LEFT:
@@ -166,8 +169,9 @@ public class CellDrawFormat extends ImageResDrawFormat<JsonTableBean> {
         }
     }
 
-    private void update(Column<JsonTableBean> column, int position) {
+    private void update(Column<Cell> column, int position) {
         this.resourceId = -1;
+        this.direction = -1;
         if (locker.needShowLock(position, column.getColumn())) {
             if (column.isFixed()) {
                 this.resourceId = R.mipmap.icon_lock;
@@ -178,7 +182,7 @@ public class CellDrawFormat extends ImageResDrawFormat<JsonTableBean> {
             setImageWidth(DensityUtils.dp2px(getContext(), 15));
             setImageHeight(DensityUtils.dp2px(getContext(), 15));
         } else {
-            JsonTableBean.Icon icon = column.getDatas().get(position).getIcon();
+            Cell.Icon icon = column.getDatas().get(position).getIcon();
             if (icon != null) {
                 String name = icon.getName();
                 setImageWidth(DensityUtils.dp2px(getContext(), icon.getWidth()));

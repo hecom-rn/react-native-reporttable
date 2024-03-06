@@ -1,5 +1,6 @@
 package com.hecom.reporttable.form.core;
 
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -9,7 +10,6 @@ import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.facebook.react.uimanager.ThemedReactContext;
 import com.hecom.reporttable.form.component.IComponent;
 import com.hecom.reporttable.form.component.ITableTitle;
 import com.hecom.reporttable.form.component.TableProvider;
@@ -78,25 +78,25 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         return mExecutor;
     }
 
-    public SmartTable(ThemedReactContext context) {
+    public SmartTable(Context context) {
         super(context);
-        init(context);
+        init();
     }
 
-    public SmartTable(ThemedReactContext context, AttributeSet attrs) {
+    public SmartTable(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init(context);
+        init();
     }
 
-    public SmartTable(ThemedReactContext context, AttributeSet attrs, int defStyleAttr) {
+    public SmartTable(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init(context);
+        init();
     }
 
     /**
      * 初始化
      */
-    private void init(ThemedReactContext context) {
+    private void init() {
         FontStyle.setDefaultTextSpSize(getContext(), 14);
         config = new TableConfig();
         config.dp10 = DensityUtils.dp2px(getContext(), 10);
@@ -109,7 +109,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         xAxis = new XSequence<>();
         yAxis = new YSequence<>();
         parser = new TableParser<>();
-        provider = new TableProvider<>(context);
+        provider = new TableProvider<>();
         config.setPaint(paint);
         measurer = new TableMeasurer<>();
         tableTitle = new TableTitle();
@@ -234,10 +234,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
      */
     public synchronized void setTableData(TableData<T> tableData) {
         if (tableData != null) {
-            // if (this.provider != null) {
-            //     this.provider.clearFixedTopLists();
-            //     this.provider.clearFixedBottomLists();
-            // }
             this.tableData = tableData;
             notifyDataChanged();
         }
@@ -282,23 +278,22 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
      * @param t      新增数据
      * @param isFoot 是否在尾部添加
      */
-//这个方法没有引用
-//    public void addData(final List<T> t, final boolean isFoot) {
-//        if (t != null && t.size() > 0) {
-//            isNotifying.set(true);
-//            mExecutor.execute(new Runnable() {
-//                @Override
-//                public void run() {
-//                    parser.addData(tableData, t, isFoot);
-//                    measurer.measure(tableData, config);
-//                    requestReMeasure();
-//                    isNotifying.set(false);
-//                    postInvalidate();
-//
-//                }
-//            });
-//        }
-//    }
+    public void addData(final List<T> t, final boolean isFoot) {
+        if (t != null && t.size() > 0) {
+            isNotifying.set(true);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    parser.addData(tableData, t, isFoot);
+                    measurer.measure(tableData, config);
+                    requestReMeasure();
+                    postInvalidate();
+                    isNotifying.set(false);
+
+                }
+            }).start();
+        }
+    }
 
 
     /**

@@ -10,17 +10,15 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.hecom.reporttable.TableUtil;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
-import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.ExtraTextConfig;
-import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.Cell;
 
 import java.lang.ref.SoftReference;
 import java.text.BreakIterator;
@@ -31,7 +29,7 @@ import java.util.Map;
  * Created by huang on 2017/10/30.
  */
 
-public class HecomTextDrawFormat<T> implements IDrawFormat<T> {
+public class HecomTextDrawFormat implements IDrawFormat<Cell> {
     private final Map<String, SoftReference<String[]>> valueMap; //避免产生大量对象
 
     private final Map<Column, Map<Integer, SoftReference<WrapTextResult>>> cacheMap =
@@ -59,13 +57,13 @@ public class HecomTextDrawFormat<T> implements IDrawFormat<T> {
     }
 
     @Override
-    public int measureWidth(Column<T> column, int position, TableConfig config) {
+    public int measureWidth(Column<Cell> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
-        config.getContentStyle().fillPaint(paint);
-        JsonTableBean jsonTableBean = (JsonTableBean) column.getDatas().get(position);
-        ExtraTextConfig extraText = jsonTableBean.extraText;
+        Cell cell = column.getDatas().get(position);
+        setTextPaint(config, cell, paint);
+        ExtraTextConfig extraText = cell.getExtraText();
         WrapTextResult result = getCacheWrapText(column, position, paint, config);
-        float asteriskWidth = getAsteriskWidth(config, jsonTableBean);
+        float asteriskWidth = getAsteriskWidth(config, cell);
         int mainTextWidth =
                 DrawUtils.getMultiTextWidth(paint, getSplitString(result.text)) + (int) asteriskWidth;
         if (extraText == null) {
@@ -86,43 +84,44 @@ public class HecomTextDrawFormat<T> implements IDrawFormat<T> {
         }
     }
 
-    private float getAsteriskWidth(TableConfig config, JsonTableBean jsonTableBean) {
-        String asteriskColor = jsonTableBean.getAsteriskColor();
-        if (TextUtils.isEmpty(asteriskColor)) {
+    private float getAsteriskWidth(TableConfig config, Cell cell) {
+        int asteriskColor = cell.getAsteriskColor();
+        if ((asteriskColor) == TableConfig.INVALID_COLOR) {
             return 0;
         } else {
-            asteriskPaint.setTextSize((jsonTableBean.getFontSize() != null && jsonTableBean.getFontSize()
-                    .compareTo(0) > 0) ? jsonTableBean.getFontSize() : config.getContentStyle()
-                    .getTextSize());
+            asteriskPaint.setTextSize(getFontSize(config, cell));
             return asteriskPaint.measureText("*");
         }
     }
 
 
     @Override
-    public int measureHeight(Column<T> column, int position, TableConfig config) {
+    public int measureHeight(Column<Cell> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
-        config.getContentStyle().fillPaint(paint);
+        setTextPaint(config, column.getDatas().get(position), paint);
         WrapTextResult result = getCacheWrapText(column, position, paint, config);
         return DrawUtils.getMultiTextHeight(paint, getSplitString(result.text)) + dp8 * 2;
     }
 
     @Override
-    public void draw(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
-        JsonTableBean cell = (JsonTableBean) cellInfo.data;
-        if (cell.getForbidden()) {
+    public void draw(Canvas c, Rect rect, CellInfo<Cell> cellInfo, TableConfig config) {
+        Cell cell = cellInfo.data;
+        if (cell.isForbidden()) {
             return;
         }
         int asteriskWidth = (int) (getAsteriskWidth(config, cell) * config.getZoom());
         //  表头必填项增加必填符号*;左对齐字段*号放右边，右对产/居中对产字段*方左边
         Paint paint = config.getPaint();
         if (asteriskWidth > 0) {
-            Paint.Align textAlign = TableUtil.getAlignConfig(table.getItemCommonStyleConfig(),
-                    cellInfo);
-            if (textAlign == null) textAlign = Paint.Align.CENTER;
+            Paint.Align textAlign;
+            if (cellInfo.data.getTextAlignment() != null) {
+                textAlign = cellInfo.data.getTextAlignment();
+            } else {
+                textAlign = table.getHecomStyle().getAlign();
+            }
             float textWidth =
                     (measureWidth(cellInfo.column, cellInfo.row, config) * config.getZoom()) - asteriskWidth;
-            setTextPaint(config, cellInfo, paint);
+            setTextPaint(config, cell, paint);
             switch (textAlign) { //单元格内容的对齐方式
                 case CENTER:
                     this.rect.set(rect.left + asteriskWidth, rect.top, rect.right,
@@ -154,34 +153,31 @@ public class HecomTextDrawFormat<T> implements IDrawFormat<T> {
                     break;
             }
         } else {
-            setTextPaint(config, cellInfo, paint);
+            setTextPaint(config, cellInfo.data, paint);
             drawText(c, cellInfo, rect, paint, config);
         }
     }
 
-    private void drawAsterisk(Canvas c, Rect rect, CellInfo<T> cellInfo, TableConfig config) {
-        JsonTableBean jsonTableBean = (JsonTableBean) cellInfo.data;
-        String asteriskColor = jsonTableBean.getAsteriskColor();
-        int textSize = (jsonTableBean.getFontSize() != null && jsonTableBean.getFontSize()
-                .compareTo(0) > 0) ? jsonTableBean.getFontSize() : config.getContentStyle()
-                .getTextSize();
+    private void drawAsterisk(Canvas c, Rect rect, CellInfo<Cell> cellInfo,
+                              TableConfig config) {
+        float textSize = getFontSize(config, cellInfo.data);
         asteriskPaint.setTextSize(textSize * config.getZoom());
-        asteriskPaint.setColor(Color.parseColor(asteriskColor));
+        asteriskPaint.setColor(cellInfo.data.getAsteriskColor());
         DrawUtils.drawSingleText(c, asteriskPaint, rect, "*");
     }
 
-    protected void drawText(Canvas c, CellInfo<T> cellInfo, Rect rect, Paint paint,
+    protected void drawText(Canvas c, CellInfo<Cell> cellInfo, Rect rect, Paint paint,
                             TableConfig config) {
         WrapTextResult result = getCacheWrapText(cellInfo.column, cellInfo.row, paint, config);
-        JsonTableBean bean = (JsonTableBean) cellInfo.data;
-        if (bean.richText != null) {
+        Cell cell = cellInfo.data;
+        if (cell.getRichText() != null) {
             SpannableStringBuilder span = RichTextHelper.buildRichText(this.table.getContext(),
-                    bean);
+                    cell);
             DrawUtils.drawMultiText(c, paint, rect, span);
-        } else if (bean.extraText == null) {
+        } else if (cell.getExtraText() == null) {
             DrawUtils.drawMultiText(c, paint, rect, result.text);
         } else {
-            ExtraTextConfig extraText = bean.extraText;
+            ExtraTextConfig extraText = cell.getExtraText();
             int width = (int) (DensityUtils.dp2px(this.table.getContext(),
                     extraText.backgroundStyle.width) * config.getZoom());
             SpannableString span = new SpannableString(result.text + extraText.text);
@@ -201,18 +197,20 @@ public class HecomTextDrawFormat<T> implements IDrawFormat<T> {
     }
 
 
-    public void setTextPaint(TableConfig config, CellInfo<T> cellInfo, Paint paint) {
-        JsonTableBean jsonTableBean = (JsonTableBean) cellInfo.data;
+    public void setTextPaint(TableConfig config, Cell cell, Paint paint) {
         config.getContentStyle().fillPaint(paint);
-        ICellBackgroundFormat<CellInfo> backgroundFormat = config.getContentCellBackgroundFormat();
-        if (backgroundFormat != null && backgroundFormat.getTextColor(cellInfo) != TableConfig.INVALID_COLOR) {
-            paint.setColor(backgroundFormat.getTextColor(cellInfo));
+        paint.setTextSize(getFontSize(config, cell) * config.getZoom());
+        if (cell.getTextColor() != TableConfig.INVALID_COLOR) {
+            paint.setColor(cell.getTextColor());
         }
-        paint.setTextSize(paint.getTextSize() * config.getZoom());
-        paint.setFakeBoldText(jsonTableBean.isOverstriking);
-        paint.setTextAlign(TableUtil.getAlignConfig(table.getItemCommonStyleConfig(), cellInfo));
-        paint.setStrikeThruText(null == jsonTableBean.strikethrough ? false :
-                jsonTableBean.strikethrough);
+        if (cell.getOverstriking() != null) {
+            paint.setFakeBoldText(cell.getOverstriking());
+        }
+        Paint.Align innerAlign = cell.getTextAlignment();
+        if (innerAlign != null) {
+            paint.setTextAlign(innerAlign);
+        }
+        paint.setStrikeThruText(cell.getStrikethrough());
     }
 
     protected String[] getSplitString(String val) {
@@ -237,7 +235,7 @@ public class HecomTextDrawFormat<T> implements IDrawFormat<T> {
         }
         SoftReference<WrapTextResult> result = positionMap.get(position);
         if (result == null) {
-            float asteriskWidth = getAsteriskWidth(config, (JsonTableBean) column.getDatas()
+            float asteriskWidth = getAsteriskWidth(config, (Cell) column.getDatas()
                     .get(position));
             result = new SoftReference<>(getWrapText(column, column.format(position), paint,
                     config, asteriskWidth));
@@ -250,17 +248,12 @@ public class HecomTextDrawFormat<T> implements IDrawFormat<T> {
     public WrapTextResult getWrapText(Column column, String value, Paint paint,
                                       TableConfig config, float marginRight) {
         int paddingSize = config.getHorizontalPadding();
-        return getWrapText(value, paint, marginRight, paddingSize, paddingSize,
-                column.getMaxWidth());
-    }
-
-    private WrapTextResult getWrapText(String value, Paint paint, float marginRight,
-                                       int paddingLeftSize, int paddingRightSize, int maxWidth) {
+        int maxWidth = column.getMaxWidth();
         if (TextUtils.isEmpty(value) || maxWidth <= 0) {
             return new WrapTextResult(value, 0);
         } else {
             float strLen = paint.measureText(value);
-            float leeway = paddingLeftSize + paddingRightSize + (marginRight > 0 ? marginRight : 0);
+            float leeway = paddingSize + paddingSize + (marginRight > 0 ? marginRight : 0);
             float expect = strLen + leeway;
             float realWidth = expect > maxWidth
                     ? maxWidth - leeway
@@ -312,6 +305,14 @@ public class HecomTextDrawFormat<T> implements IDrawFormat<T> {
             }
             stringBuilder.append(curLineStr);
             return new WrapTextResult(stringBuilder.toString(), curStrLen);
+        }
+    }
+
+    private float getFontSize(TableConfig config, Cell bean) {
+        if (bean.getFontSize() != 0) {
+            return bean.getFontSize();
+        } else {
+            return config.getContentStyle().getTextSize();
         }
     }
 }

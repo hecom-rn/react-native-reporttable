@@ -9,7 +9,7 @@ import android.text.SpannableStringBuilder;
 import android.text.style.ReplacementSpan;
 
 import com.hecom.reporttable.form.utils.DensityUtils;
-import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.Cell;
 
 /**
  * Created by kevin.bai on 2024/2/23.
@@ -17,9 +17,9 @@ import com.hecom.reporttable.table.bean.JsonTableBean;
 public class RichTextHelper {
 
     public static SpannableStringBuilder buildRichText(Context context,
-                                                       JsonTableBean cell) {
+                                                       Cell cell) {
         SpannableStringBuilder builder = new SpannableStringBuilder();
-        for (JsonTableBean.RichText richText : cell.richText) {
+        for (Cell.RichText richText : cell.getRichText()) {
             builder.append(richText.getText());
             if (richText.getStyle() != null) {
                 builder.setSpan(new RichTextSpan(context, cell, richText.getStyle()),
@@ -36,13 +36,13 @@ public class RichTextHelper {
 class RichTextSpan extends ReplacementSpan {
     private static float[] ZERO = new float[]{0, 0, 0, 0};
 
-    JsonTableBean.RichTextStyle style;
+    Cell.RichTextStyle style;
 
-    JsonTableBean cell;
+    Cell cell;
 
     Context context;
 
-    public RichTextSpan(Context context, JsonTableBean cell, JsonTableBean.RichTextStyle style) {
+    public RichTextSpan(Context context, Cell cell, Cell.RichTextStyle style) {
         this.style = style;
         this.context = context;
         this.cell = cell;

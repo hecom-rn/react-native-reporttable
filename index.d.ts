@@ -65,7 +65,6 @@ declare module "@hecom/react-native-report-table" {
         textColor: Color;
         textAlignment: 0 | 1 | 2; // default 0
         textPaddingHorizontal: number; // default 12
-        splitLineColor: Color; // default #e8e8e8
         classificationLineColor: Color; // default #9cb3c8
         isOverstriking: boolean; // 文本是否加粗。 default false
     }
@@ -76,14 +75,6 @@ declare module "@hecom/react-native-report-table" {
         right = 1 << 1,
         bottom = 1 << 2,
         left = 1 << 3,
-    }
-
-    enum TrianglePosition {
-        NONE = 0,
-        TOP_LEFT = 1 << 0,
-        TOP_RIGHT = 1 << 1,
-        BOTTOM_LEFT = 1 << 2,
-        BOTTOM_RIGHT  = 1 << 3,
     }
 
     interface ColumnsWidthMap  {
@@ -133,11 +124,6 @@ declare module "@hecom/react-native-report-table" {
             style?: ItemTextStyle & { strikethrough?: boolean } & Pick<TextStyle, 'borderRadius' | 'borderColor' | 'borderWidth'>
         }[];
 
-        /* Android only */
-        trianglePosition?: TrianglePosition; // 三角标位置
-        triangleColor?: Color; // 三角标颜色
-
-        /* ios only */
         boxLineColor?: Color; // 显示一个内嵌宽度为1的框线
 
         classificationLinePosition?: ClassificationLinePosition; // 特殊分割线颜色的位置

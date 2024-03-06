@@ -1,34 +1,58 @@
 package com.hecom.reporttable.table.bean;
 
+import android.graphics.Paint;
+
+import com.hecom.reporttable.form.core.TableConfig;
+
 import java.util.ArrayList;
 
-public class JsonTableBean {
+/**
+ * 单元格数据
+ */
+public class Cell {
     /*非优化场景 通过getter setter访问*/
-    public int keyIndex;
-    public String title;
-    public ArrayList<RichText> richText;
-    public String backgroundColor;
-    public Integer fontSize = 0;
-    public String textColor;
-    public Integer textAlignment;  // 0左 1中 2右  default 0
-    public Icon icon;
-    public Boolean isOverstriking = false;
+    private int keyIndex;
+    private String title;
+    private ArrayList<RichText> richText;
+    private int backgroundColor = TableConfig.INVALID_COLOR;
+    private float fontSize = 0;
+    private int textColor = TableConfig.INVALID_COLOR;
+    private Paint.Align textAlignment;
+    private Icon icon;
+    private boolean isOverstriking = false;
 
-    public Boolean isForbidden = false; //斜线
-    public int textPaddingHorizontal;
-    public int classificationLinePosition;
+    private boolean isForbidden = false; //斜线
+    private int classificationLinePosition;
 
-    public String classificationLineColor;
+    private int classificationLineColor = TableConfig.INVALID_COLOR;
 
-    public int trianglePosition;
+    private int boxLineColor = TableConfig.INVALID_COLOR;
 
-    public String triangleColor;
+    private int asteriskColor = TableConfig.INVALID_COLOR; //必填
 
-    public String asteriskColor; //必填
+    private boolean strikethrough = false; //删除线
 
-    public Boolean strikethrough = null; //删除线
+    private ExtraTextConfig extraText; // 后缀标签
 
-    public ExtraTextConfig extraText; // 后缀标签
+    public ArrayList<RichText> getRichText() {
+        return richText;
+    }
+
+    public void setRichText(ArrayList<RichText> richText) {
+        this.richText = richText;
+    }
+
+    public void setForbidden(boolean forbidden) {
+        isForbidden = forbidden;
+    }
+
+    public ExtraTextConfig getExtraText() {
+        return extraText;
+    }
+
+    public void setExtraText(ExtraTextConfig extraText) {
+        this.extraText = extraText;
+    }
 
     public Boolean getStrikethrough() {
         return strikethrough;
@@ -38,31 +62,24 @@ public class JsonTableBean {
         this.strikethrough = strikethrough;
     }
 
-    public int getTrianglePosition() {
-        return trianglePosition;
-    }
 
-    public void setTrianglePosition(int trianglePosition) {
-        this.trianglePosition = trianglePosition;
-    }
-
-    public String getAsteriskColor() {
+    public int getAsteriskColor() {
         return asteriskColor;
     }
 
-    public void setAsteriskColor(String asteriskColor) {
+    public void setAsteriskColor(int asteriskColor) {
         this.asteriskColor = asteriskColor;
     }
 
-    public String getTriangleColor() {
-        return triangleColor;
+    public int getBoxLineColor() {
+        return boxLineColor;
     }
 
-    public void setTriangleColor(String triangleColor) {
-        this.triangleColor = triangleColor;
+    public void setBoxLineColor(int boxLineColor) {
+        this.boxLineColor = boxLineColor;
     }
 
-    public Boolean getForbidden() {
+    public boolean isForbidden() {
         return isForbidden;
     }
 
@@ -70,20 +87,12 @@ public class JsonTableBean {
         isForbidden = forbidden;
     }
 
-    public String getClassificationLineColor() {
+    public int getClassificationLineColor() {
         return classificationLineColor;
     }
 
-    public void setClassificationLineColor(String classificationLineColor) {
+    public void setClassificationLineColor(int classificationLineColor) {
         this.classificationLineColor = classificationLineColor;
-    }
-
-    public int getTextPaddingHorizontal() {
-        return textPaddingHorizontal;
-    }
-
-    public void setTextPaddingHorizontal(int textPaddingHorizontal) {
-        this.textPaddingHorizontal = textPaddingHorizontal;
     }
 
     public int getClassificationLinePosition() {
@@ -94,22 +103,19 @@ public class JsonTableBean {
         this.classificationLinePosition = classificationLinePosition;
     }
 
-    public JsonTableBean() {
+    public Cell() {
     }
 
-    public JsonTableBean(String title) {
-        this.title = title;
-    }
 
-    public void setFontSize(Integer fontSize) {
+    public void setFontSize(float fontSize) {
         this.fontSize = fontSize;
     }
 
-    public Integer getFontSize() {
+    public float getFontSize() {
         return fontSize;
     }
 
-    public void setTextAlignment(Integer textAlignment) {
+    public void setTextAlignment(Paint.Align textAlignment) {
         this.textAlignment = textAlignment;
     }
 
@@ -130,19 +136,19 @@ public class JsonTableBean {
         this.title = title;
     }
 
-    public String getBackgroundColor() {
+    public int getBackgroundColor() {
         return backgroundColor;
     }
 
-    public void setBackgroundColor(String backgroundColor) {
+    public void setBackgroundColor(int backgroundColor) {
         this.backgroundColor = backgroundColor;
     }
 
-    public String getTextColor() {
+    public int getTextColor() {
         return textColor;
     }
 
-    public void setTextColor(String textColor) {
+    public void setTextColor(int textColor) {
         this.textColor = textColor;
     }
 
@@ -154,7 +160,7 @@ public class JsonTableBean {
         this.icon = icon;
     }
 
-    public Integer getTextAlignment() {
+    public Paint.Align getTextAlignment() {
         return this.textAlignment;
     }
 

@@ -25,8 +25,6 @@ import androidx.annotation.RequiresApi;
 
 public class DrawUtils {
 
-    private static final String TAG = "DrawUtils";
-
     public static int getTextHeight(FontStyle style, Paint paint) {
         style.fillPaint(paint);
         Paint.FontMetrics fontMetrics = paint.getFontMetrics();

@@ -1,11 +1,10 @@
 package com.hecom.reporttable.table.format;
 
-import android.graphics.Color;
-
+import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.format.bg.BaseCellBackgroundFormat;
 import com.hecom.reporttable.table.HecomTable;
-import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.Cell;
 
 /**
  * Created by kevin.bai on 2024/2/22.
@@ -17,21 +16,21 @@ public class BackgroundFormat extends BaseCellBackgroundFormat<CellInfo> {
     }
     @Override
     public int getBackGroundColor(CellInfo cellInfo) {
-        JsonTableBean tableBean = (JsonTableBean) cellInfo.data;
-        String color = this.table.getItemCommonStyleConfig().getBackgroundColor();
-        if (tableBean != null) {
-            color = tableBean.getBackgroundColor();
+        Cell tableBean = (Cell) cellInfo.data;
+        int color = tableBean.getBackgroundColor();
+        if (color != TableConfig.INVALID_COLOR) {
+            return color;
         }
-        return Color.parseColor(color);
+        return this.table.getHecomStyle().getBackgroundColor();
     }
 
+    /**
+     * 字体颜色在 {@link HecomTextDrawFormat} 中处理
+     * @param cellInfo
+     * @return
+     */
     @Override
     public int getTextColor(CellInfo cellInfo) {
-        JsonTableBean tableBean =  (JsonTableBean) cellInfo.data;;
-        String textColor = this.table.getItemCommonStyleConfig().getTextColor();
-        if (tableBean != null) {
-            textColor = tableBean.getTextColor();
-        }
-        return Color.parseColor(textColor);
+        return TableConfig.INVALID_COLOR;
     }
 }

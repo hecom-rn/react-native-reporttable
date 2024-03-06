@@ -14,10 +14,6 @@ const itemConfig = {
     }),
     textPaddingHorizontal: 12, // 上左下右
     textAlignment: 0,  // 0左 1中 2右  default 0
-    splitLineColor:  Platform.select({
-        ios: processColor('#e8e8e8'),
-        android: '#D1D1D1',
-    }),
     classificationLineColor: Platform.select({
         ios: processColor('#9cb3c8'),
         android: '#9cb3c8',

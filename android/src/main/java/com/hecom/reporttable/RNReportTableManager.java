@@ -1,7 +1,6 @@
 package com.hecom.reporttable;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import android.graphics.Color;
 import android.text.TextUtils;
@@ -12,16 +11,13 @@ import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.hecom.JacksonUtil;
 import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.CellConfig;
-import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
-import com.hecom.reporttable.table.deserializer.ItemCommonStyleConfigDeserializer;
+import com.hecom.reporttable.table.format.HecomStyle;
 
 import java.util.Map;
 
@@ -31,10 +27,7 @@ import androidx.annotation.Nullable;
 
 public class RNReportTableManager extends SimpleViewManager<HecomTable> {
     private ThemedReactContext mReactContext;
-    private final Gson mGson = new GsonBuilder()
-            .registerTypeAdapter(ItemCommonStyleConfig.class,
-                    new ItemCommonStyleConfigDeserializer())
-            .create();
+
 
     @NonNull
     @Override
@@ -45,6 +38,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
     @NonNull
     @Override
     protected HecomTable createViewInstance(@NonNull final ThemedReactContext reactContext) {
+        GsonHelper.initGson(reactContext);
         mReactContext = reactContext;
         return new HecomTable(reactContext);
     }
@@ -121,13 +115,16 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
             if (dataSource.hasKey("maxWidth")) {
                 maxWidth = transformDataType(dataSource.getDouble("maxWidth"));
             }
-            TableConfigBean configBean = new TableConfigBean(minWidth, maxWidth, minHeight);
+            TableConfigBean configBean = new TableConfigBean(DensityUtils.dp2px(mReactContext,
+                    minWidth), DensityUtils.dp2px(mReactContext, maxWidth),
+                    DensityUtils.dp2px(mReactContext, minHeight));
             if (dataSource.hasKey("columnsWidthMap")) {
                 String columnsWidthMap = dataSource.getString("columnsWidthMap");
                 if (!TextUtils.isEmpty(columnsWidthMap)) {
-                    Map<Integer, CellConfig> columnConfigMap = JacksonUtil.decode(columnsWidthMap
-                            , new TypeReference<Map<Integer, CellConfig>>() {
-                            });
+                    Map<Integer, CellConfig> columnConfigMap = GsonHelper.getGson()
+                            .fromJson(columnsWidthMap
+                                    , new TypeToken<Map<Integer, CellConfig>>() {
+                                    }.getType());
                     for (Map.Entry<Integer, CellConfig> entry : columnConfigMap.entrySet()) {
                         CellConfig value = entry.getValue();
                         value.setMinWidth(DensityUtils.dp2px(mReactContext, value.getMinWidth()));
@@ -137,8 +134,8 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
                 }
             }
             if (!TextUtils.isEmpty(itemConfig)) {
-                view.setItemCommonStyleConfig(mGson.fromJson(itemConfig,
-                        ItemCommonStyleConfig.class));
+                view.setHecomStyle(GsonHelper.getGson().fromJson(itemConfig,
+                        HecomStyle.class));
             }
 
             view.setData(jsonData, configBean);
@@ -166,7 +163,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         }
     }
 
-    private void processUpdateData(HecomTable root, ReadableArray args){
+    private void processUpdateData(HecomTable root, ReadableArray args) {
         ReadableMap map = args.getMap(0);
         String data = map.getString("data");
         int x = map.getInt("x");

@@ -111,6 +111,16 @@ export default class ReportTableWrapper extends React.Component {
             undefined
         );
     }
+
+    updateData = (params) => {
+        params.data = JSON.stringify(params.data);
+        UIManager.dispatchViewManagerCommand(
+            this._getTableHandle(),
+            'updateData',
+            [params]
+        );
+    }
+
     _getTableHandle = () => {
         return ReactNative.findNodeHandle(this.refs.AndroidReportTableView);
     };

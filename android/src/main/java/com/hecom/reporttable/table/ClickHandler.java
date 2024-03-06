@@ -8,13 +8,13 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.table.TableData;
-import com.hecom.reporttable.table.bean.JsonTableBean;
+import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.lock.Locker;
 
 /**
  * 处理表格基础的点击事件，以及点击表头时的列锁定逻辑 Created by kevin.bai on 2024/1/4.
  */
-public class ClickHandler implements TableData.OnItemClickListener<JsonTableBean> {
+public class ClickHandler implements TableData.OnItemClickListener<Cell> {
 
     private HecomTable table;
 
@@ -31,7 +31,7 @@ public class ClickHandler implements TableData.OnItemClickListener<JsonTableBean
     }
 
     @Override
-    public void onClick(Column<JsonTableBean> column, String value, JsonTableBean o, int col, int row) {
+    public void onClick(Column<Cell> column, String value, Cell o, int col, int row) {
         boolean isLockItem = locker.needShowLock(row, col);
         if (isLockItem) {
             table.postDelayed(new Runnable() {
