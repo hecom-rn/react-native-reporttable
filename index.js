@@ -8,6 +8,10 @@ export const ClassificationLinePosition = Object.freeze({
     left: 1 << 3,
 });
 
+/**
+ * @deprecated
+ * 暂时保留，完成重构后删除，统一使用boxLineColor
+ */
 export const TrianglePosition = Object.freeze({
     NONE: 0,
     TOP_LEFT: 1 << 0,

@@ -83,6 +83,7 @@ export default class ReportTableWrapper extends React.Component {
                     permutable={this.props.permutable}
                     doubleClickZoom={this.props.doubleClickZoom}
                     lineColor={this.props.lineColor}
+                    itemConfig={this.props.itemConfig}
                     onClickEvent={({nativeEvent: data}) => {
                         if (data) {
                             const {keyIndex, rowIndex, columnIndex, textColor} = data;
@@ -126,17 +127,13 @@ export default class ReportTableWrapper extends React.Component {
     };
 
     _toAndroidData = (props) => {
-        const {
-            data, minWidth, minHeight, maxWidth,
-            itemConfig, columnsWidthMap
-        } = props;
+        const {data, minWidth, minHeight, maxWidth, columnsWidthMap} = props;
         return {
             data: data && JSON.stringify(data),
             columnsWidthMap: columnsWidthMap && JSON.stringify(columnsWidthMap),
             minWidth: minWidth,
             minHeight: minHeight,
             maxWidth: maxWidth,
-            itemConfig: JSON.stringify(itemConfig),
         };
     }
 }

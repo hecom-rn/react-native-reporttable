@@ -3,6 +3,7 @@ package com.hecom.reporttable;
 import com.google.gson.reflect.TypeToken;
 
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.text.TextUtils;
 
 import com.facebook.react.bridge.ReadableArray;
@@ -27,7 +28,6 @@ import androidx.annotation.Nullable;
 
 public class RNReportTableManager extends SimpleViewManager<HecomTable> {
     private ThemedReactContext mReactContext;
-
 
     @NonNull
     @Override
@@ -88,6 +88,39 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
 
     }
 
+    @ReactProp(name="itemConfig")
+    public void setItemConfig(HecomTable view, ReadableMap config) {
+        HecomStyle style = new HecomStyle();
+        // 颜色属性特殊处理，直接将字符串（#ffffff）转为int
+        if (config.hasKey("classificationLineColor")) {
+            style.setLineColor(Color.parseColor(config.getString("classificationLineColor")));
+        }
+        if (config.hasKey("backgroundColor")) {
+            style.setBackgroundColor(Color.parseColor(config.getString("backgroundColor")));
+        }
+        if (config.hasKey("textColor")) {
+            style.setTextColor(Color.parseColor(config.getString("textColor")));
+        }
+
+        if (config.hasKey("fontSize")) {
+            style.setTextSize(DensityUtils.dp2px(view.getContext(), config.getInt("fontSize")));
+        }
+        if (config.hasKey("textPaddingHorizontal")) {
+            style.setPaddingHorizontal(DensityUtils.dp2px(view.getContext(),
+                    config.getInt("textPaddingHorizontal")));
+        }
+        if (config.hasKey("textAlignment")) {
+            int textAlignment = config.getInt("textAlignment");
+            Paint.Align align = textAlignment == 1 ? Paint.Align.CENTER :
+                    textAlignment == 2 ? Paint.Align.RIGHT : Paint.Align.LEFT;
+            style.setAlign(align);
+        }
+        if (config.hasKey("isOverstriking")) {
+            style.setOverstriking(config.getBoolean("isOverstriking"));
+        }
+        view.setHecomStyle(style);
+    }
+
 
     @ReactProp(name = "data")
     public void setData(HecomTable view, ReadableMap dataSource) {
@@ -96,12 +129,8 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         int minHeight = 40;
         int minWidth = 50;
         int maxWidth = 120;
-        String itemConfig = null;
         try {
 
-            if (dataSource.hasKey("itemConfig")) {
-                itemConfig = dataSource.getString("itemConfig");
-            }
             if (dataSource.hasKey("data")) {
                 jsonData = dataSource.getString("data");
             }
@@ -132,10 +161,6 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
                     }
                     configBean.setColumnConfigMap(columnConfigMap);
                 }
-            }
-            if (!TextUtils.isEmpty(itemConfig)) {
-                view.setHecomStyle(GsonHelper.getGson().fromJson(itemConfig,
-                        HecomStyle.class));
             }
 
             view.setData(jsonData, configBean);
