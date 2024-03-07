@@ -336,7 +336,6 @@
     model.textAlignment = [RCTConvert NSInteger:[itemConfig objectForKey:@"textAlignment"]];
     model.textPaddingHorizontal = [RCTConvert NSInteger:[itemConfig objectForKey:@"textPaddingHorizontal"]];
     
-    model.splitLineColor = [RCTConvert UIColor:[itemConfig objectForKey:@"splitLineColor"]];
     model.classificationLineColor = [RCTConvert UIColor:[itemConfig objectForKey:@"classificationLineColor"]];
     model.isOverstriking = [RCTConvert BOOL:[itemConfig objectForKey:@"isOverstriking"]];
     

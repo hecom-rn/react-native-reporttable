@@ -62,7 +62,6 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, assign) NSInteger keyIndex;
 @property (nonatomic, strong) UIColor *backgroundColor;
 @property (nonatomic, strong) UIColor *textColor;
-@property (nonatomic, strong) UIColor *splitLineColor;
 @property (nonatomic, assign) BOOL isOverstriking;
 @property (nonatomic, strong) UIColor *classificationLineColor;
 @property (nonatomic, assign) BOOL used;
