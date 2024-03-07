@@ -84,7 +84,31 @@
         self.spreadsheetView.layer.borderColor = reportTableModel.lineColor.CGColor;
         self.spreadsheetView.layer.borderWidth = hairline;
     }
-   
+    if (self.reportTableModel.permutedArr.count > 0 && reportTableModel.dataSource.count > 0) {
+        NSArray *data = reportTableModel.dataSource[0];
+        NSArray *array = self.reportTableModel.permutedArr;
+        
+        NSArray *sortedArray = [array sortedArrayUsingSelector:@selector(compare:)];
+        if ([[sortedArray lastObject] integerValue] >= data.count) {
+            // 锁定状态会越界, 则清除permutedArr数据，还原锁定状态
+            [self.reportTableModel.permutedArr removeAllObjects];
+            self.reportTableModel.frozenColumns = self.reportTableModel.oriFrozenColumns;
+        } else {
+            // 数据源发生变化时 恢复permutedArr的锁定状态
+            for (int i = 0; i < array.count; i++) {
+                NSNumber *columIndex = array[i];
+                NSUInteger index = [data indexOfObjectPassingTest:^BOOL(ItemModel *obj, NSUInteger idx, BOOL *stop) {
+                    return obj.columIndex == [columIndex integerValue];
+                }];
+                if (index != NSNotFound) {
+                    NSInteger toColumn = i + self.reportTableModel.oriFrozenColumns;
+                    [self changeColumn:index toColumn: toColumn inArray:self.rowsWidth];
+                    [self changeColumn:index toColumn:toColumn inArray:self.dataSource];
+                }
+            }
+        }
+    }
+
     [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
     [self setMergedCellsLabelOffset];
@@ -526,13 +550,23 @@
             if (x < row.count && y < row.count) {
                 id obj = row[x];
                 [row removeObjectAtIndex: x];
-                [row insertObject:obj atIndex:y];
+                if (y >= row.count + 1) {
+                    [row addObject:obj];
+                } else {
+                    [row insertObject:obj atIndex:y];
+                }
+            
             }
         }
     } else {
         id obj = arr[x];
         [arr removeObjectAtIndex: x];
-        [arr insertObject:obj atIndex:y];
+        if (y >= arr.count + 1) {
+            [arr addObject: obj];
+        } else {
+            [arr insertObject:obj atIndex:y];
+        }
+       
     }
  
 }
