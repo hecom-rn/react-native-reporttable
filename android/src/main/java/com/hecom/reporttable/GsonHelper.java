@@ -7,8 +7,6 @@ import android.content.Context;
 
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.deserializer.CellDeserializer;
-import com.hecom.reporttable.table.deserializer.HecomStyleDeserializer;
-import com.hecom.reporttable.table.format.HecomStyle;
 
 /**
  * Description : Created on 2023/5/12.
@@ -22,7 +20,6 @@ public class GsonHelper {
             return;
         }
         mGson = new GsonBuilder()
-                .registerTypeAdapter(HecomStyle.class, new HecomStyleDeserializer(context))
                 .registerTypeAdapter(Cell.class, new CellDeserializer(context))
                 .create();
     }
