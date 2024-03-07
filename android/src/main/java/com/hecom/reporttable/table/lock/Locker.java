@@ -29,6 +29,13 @@ public abstract class Locker {
         }
     }
 
+    /**
+     * 更新数据后调用，根据锁定状态更新列排序
+     */
+    public void update(){
+
+    }
+
     public boolean needShowLock(int row, int col) {
         if (row == 0) {
             return this.needShowLock(col);

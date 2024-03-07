@@ -122,6 +122,7 @@ public class ReportTableStore {
             table.getMeasurer().setAddTableHeight(configBean.getHeaderHeight());
             table.getMeasurer().setLimitTableHeight(configBean.getLimitTableHeight());
             table.setTableData(tableData);
+            mLockHelper.update();
         } catch (Exception e) {
             e.printStackTrace();
         }

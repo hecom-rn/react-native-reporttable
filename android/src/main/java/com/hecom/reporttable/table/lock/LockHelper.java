@@ -21,6 +21,11 @@ public class LockHelper extends Locker {
     }
 
     @Override
+    public void update() {
+        locker.update();
+    }
+
+    @Override
     public void setFrozenColumns(int frozenColumns){
         super.setFrozenColumns(frozenColumns);
         locker.setFrozenColumns(frozenColumns);

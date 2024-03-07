@@ -2,9 +2,10 @@ package com.hecom.reporttable.table.lock;
 
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
-import com.hecom.reporttable.form.data.table.TableData;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -12,53 +13,62 @@ import java.util.List;
  */
 public class PermutableLock extends Locker {
 
-    List<Column> rawColumns;
 
-    List<Column> fixedColumn = new ArrayList<>();
-
-    TableData<String> lastTableData;
+    List<Integer> fixedColumn = new ArrayList<>();
 
     public PermutableLock(SmartTable<String> table) {
         super(table);
-        this.lastTableData = table.getTableData();
     }
 
     @Override
-    public int getRawCol(int col){
-        if(rawColumns == null){
-            return col;
-        } else {
-            Column column = table.getTableData().getColumns().get(col);
-            return rawColumns.indexOf(column);
+    public int getRawCol(int col) {
+        return table.getTableData().getColumns().get(col).getColumn();
+    }
+
+    private Column findColumn(List<Column> list, int col){
+        for (Column column : list) {
+            if (column.getColumn() == col) {
+                return column;
+            }
         }
+        return null;
     }
 
     @Override
-    protected void updateLock(int col) {
-        if (rawColumns == null || lastTableData != table.getTableData()) {
-            lastTableData = table.getTableData();
-            rawColumns = lastTableData.getColumns();
-        }
-
-        Column column = table.getTableData().getColumns().get(col);
-        if (column.isFixed()) {
-            fixedColumn.remove(column);
-        } else {
-            fixedColumn.add(column);
-        }
-        column.setFixed(!column.isFixed());
+    public void update() {
+        List<Column> rawColumns = table.getTableData().getColumns();
         List<Column> newColumns = new ArrayList<>(rawColumns.size());
         for (int i = 0; i < rawColumns.size(); i++) {
             if (i < frozenColumns) {
                 newColumns.add(i, rawColumns.get(i));
             } else if (i < fixedColumn.size() + frozenColumns) {
-                newColumns.add(i, fixedColumn.get(i - frozenColumns));
+                newColumns.add(i, findColumn(rawColumns, fixedColumn.get(i - frozenColumns)));
             }
         }
-        List<Column> other = new ArrayList<>(rawColumns.subList(frozenColumns, rawColumns.size()));
-        other.removeAll(fixedColumn);
+        List<Column> other = rawColumns.subList(frozenColumns, rawColumns.size());
+        Collections.sort(other, new Comparator<Column>() {
+            @Override
+            public int compare(Column o1, Column o2) {
+                return o1.getColumn() - o2.getColumn();
+            }
+        });
+        for (Integer integer : fixedColumn) {
+            other.remove(findColumn(rawColumns, integer));
+        }
         newColumns.addAll(other);
         table.getTableData().setColumns(newColumns);
+    }
+
+    @Override
+    protected void updateLock(int col) {
+        Column column = table.getTableData().getColumns().get(col);
+        if (column.isFixed()) {
+            fixedColumn.remove((Object)column.getColumn());
+        } else {
+            fixedColumn.add(column.getColumn());
+        }
+        column.setFixed(!column.isFixed());
+        update();
     }
 
     @Override
