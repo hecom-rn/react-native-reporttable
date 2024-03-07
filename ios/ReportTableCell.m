@@ -85,6 +85,7 @@
         float paddingHorizontal = _icon ? self.icon.paddingHorizontal : 4;
         float inconWidth = _icon ? self.icon.size.width : 13;
         float w = inconWidth + paddingHorizontal + marginHor;
+        self.label.textAlignment = self.textAlignment;
         if (self.textAlignment == NSTextAlignmentRight) {
             if (self.icon.imageAlignment == 1) {
                 make.right.equalTo(self.contentView.mas_right).offset(-marginHor);
