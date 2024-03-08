@@ -9,6 +9,7 @@ import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.form.data.table.ArrayTableData;
 import com.hecom.reporttable.form.listener.OnMeasureListener;
 import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
@@ -21,6 +22,11 @@ import com.hecom.reporttable.table.format.HecomFormat;
 import com.hecom.reporttable.table.format.HecomGridFormat;
 import com.hecom.reporttable.table.format.HecomStyle;
 import com.hecom.reporttable.table.lock.LockHelper;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * 基于SmartTable定制的表格组件
@@ -131,7 +137,7 @@ public class HecomTable extends SmartTable<Cell> {
 
                     new HecomFormat(), new CellDrawFormat(this, mLockHelper));
 
-            tableData.setWidthLimit(minWidth,maxWidth, configBean.getColumnConfigMap());
+            tableData.setWidthLimit(minWidth, maxWidth, configBean.getColumnConfigMap());
             tableData.setMinHeight(minHeight);
             tableData.setOnItemClickListener(mClickHandler);
 
@@ -160,8 +166,28 @@ public class HecomTable extends SmartTable<Cell> {
 
     public void updateData(String data, int x, int y) {
         HecomTableData tableData = (HecomTableData) getTableData();
-        tableData.updateData(data, x, y);
-        setTableData(tableData);
+        Cell[][] newData = ArrayTableData.transformColumnArray(HecomTableData.initData(data));
+        List<Column> list = new ArrayList<>(tableData.getColumns());
+        Collections.sort(list, new Comparator<Column>() {
+            @Override
+            public int compare(Column o1, Column o2) {
+                return o1.getColumn() - o2.getColumn();
+            }
+        });
+
+        for (int i = 0; i < newData.length; i++) {
+            int col = i + y;
+            for (int j = 0; j < newData[i].length; j++) {
+                int row = j + x;
+                Cell newCell = newData[i][j];
+                Column column = list.get(col);
+                if (row < column.getDatas().size() && col < list.size()) {
+                    Cell cell = (Cell) column.getDatas().get(row);
+                    cell.merge(newCell);
+                }
+            }
+        }
+        notifyDataChanged();
     }
 
     public void setData(final String json,
@@ -189,7 +215,7 @@ public class HecomTable extends SmartTable<Cell> {
             } else if (configChanged) {
                 lastConfigBean = configBean;
                 HecomTableData tableData = (HecomTableData) getTableData();
-                tableData.setWidthLimit(configBean.getMinWidth(),configBean.getMaxWidth(),
+                tableData.setWidthLimit(configBean.getMinWidth(), configBean.getMaxWidth(),
                         configBean.getColumnConfigMap());
                 setTableData(tableData);
             }

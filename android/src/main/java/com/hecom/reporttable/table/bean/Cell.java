@@ -38,6 +38,28 @@ public class Cell {
         return richText;
     }
 
+    public void merge(Cell newCell) {
+        if (newCell == null) {
+            return;
+        }
+        // keyIndex涉及合并单元格，不能合并
+        this.title = newCell.getTitle();
+        this.richText = newCell.getRichText();
+        this.backgroundColor = newCell.getBackgroundColor();
+        this.fontSize = newCell.getFontSize();
+        this.textColor = newCell.getTextColor();
+        this.textAlignment = newCell.getTextAlignment();
+        this.icon = newCell.getIcon();
+        this.isOverstriking = newCell.getOverstriking();
+        this.isForbidden = newCell.isForbidden();
+        this.classificationLinePosition = newCell.getClassificationLinePosition();
+        this.classificationLineColor = newCell.getClassificationLineColor();
+        this.boxLineColor = newCell.getBoxLineColor();
+        this.asteriskColor = newCell.getAsteriskColor();
+        this.strikethrough = newCell.getStrikethrough();
+        this.extraText = newCell.getExtraText();
+    }
+
     public void setRichText(ArrayList<RichText> richText) {
         this.richText = richText;
     }

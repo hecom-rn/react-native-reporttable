@@ -201,10 +201,6 @@ public class HecomTableData extends ArrayTableData<Cell> {
         super(null, t, columns);
     }
 
-    public void updateData(String json, int x, int y) {
-        Cell[][] updateData = initData(json);
-    }
-
     public void setWidthLimit(int minWidth, int maxWidth,
                               Map<Integer, CellConfig> columnConfigMap) {
         for (int i = 0; i < getArrayColumns().size(); i++) {
