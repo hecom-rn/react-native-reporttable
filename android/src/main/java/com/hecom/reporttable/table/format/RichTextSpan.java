@@ -5,35 +5,15 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.text.SpannableStringBuilder;
 import android.text.style.ReplacementSpan;
 
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.Cell;
 
 /**
- * Created by kevin.bai on 2024/2/23.
+ * Created by kevin.bai on 2024/3/8.
  */
-public class RichTextHelper {
-
-    public static SpannableStringBuilder buildRichText(Context context,
-                                                       Cell cell) {
-        SpannableStringBuilder builder = new SpannableStringBuilder();
-        for (Cell.RichText richText : cell.getRichText()) {
-            builder.append(richText.getText());
-            if (richText.getStyle() != null) {
-                builder.setSpan(new RichTextSpan(context, cell, richText.getStyle()),
-                        builder.length() - richText.getText()
-                                .length(), builder.length(),
-                        SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-        }
-        return builder;
-    }
-
-}
-
-class RichTextSpan extends ReplacementSpan {
+public class RichTextSpan extends ReplacementSpan {
     private static float[] ZERO = new float[]{0, 0, 0, 0};
 
     Cell.RichTextStyle style;

@@ -61,7 +61,6 @@ public class Column<T> implements Comparable<Column> {
     private int minHeight;
     private int width;
     private int column = 0;
-    private int maxWidth = 400;
 
     public void setColumn(int column) {
         this.column = column;
@@ -70,15 +69,6 @@ public class Column<T> implements Comparable<Column> {
     public int getColumn() {
         return column;
     }
-
-    public int getMaxWidth() {
-        return maxWidth;
-    }
-
-    public void setMaxWidth(int maxWidth) {
-        this.maxWidth = maxWidth;
-    }
-
 
     /**
      * 列构造方法 用于构造组合列

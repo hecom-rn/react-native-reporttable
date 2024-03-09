@@ -88,7 +88,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
 
     }
 
-    @ReactProp(name="itemConfig")
+    @ReactProp(name = "itemConfig")
     public void setItemConfig(HecomTable view, ReadableMap config) {
         HecomStyle style = new HecomStyle();
         // 颜色属性特殊处理，直接将字符串（#ffffff）转为int
@@ -151,14 +151,8 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
                 String columnsWidthMap = dataSource.getString("columnsWidthMap");
                 if (!TextUtils.isEmpty(columnsWidthMap)) {
                     Map<Integer, CellConfig> columnConfigMap = GsonHelper.getGson()
-                            .fromJson(columnsWidthMap
-                                    , new TypeToken<Map<Integer, CellConfig>>() {
-                                    }.getType());
-                    for (Map.Entry<Integer, CellConfig> entry : columnConfigMap.entrySet()) {
-                        CellConfig value = entry.getValue();
-                        value.setMinWidth(DensityUtils.dp2px(mReactContext, value.getMinWidth()));
-                        value.setMaxWidth(DensityUtils.dp2px(mReactContext, value.getMaxWidth()));
-                    }
+                            .fromJson(columnsWidthMap, new TypeToken<Map<Integer, CellConfig>>() {
+                            }.getType());
                     configBean.setColumnConfigMap(columnConfigMap);
                 }
             }

@@ -15,6 +15,7 @@ import com.hecom.reporttable.form.listener.OnTableChangeListener;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.Cell;
+import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.format.BackgroundFormat;
 import com.hecom.reporttable.table.format.CellDrawFormat;
@@ -33,8 +34,6 @@ import java.util.List;
  * <p>
  * 针对SmartTable的设置代码尽量封装在这里
  * <p>
- * Created by kevin.bai on 2024/2/2. 由于目前很多外挂的数据都保存在ReportTableStore中，而ReportTableStore之前是单例的，
- * 导致如果出现多个表格实例会有串数据的情况，暂时将ReportTableStore放到表格中
  */
 public class HecomTable extends SmartTable<Cell> {
     private ClickHandler mClickHandler;
@@ -123,22 +122,23 @@ public class HecomTable extends SmartTable<Cell> {
         return hecomStyle;
     }
 
+    public int getMaxColumnWidth(Column<Cell> column) {
+        CellConfig config = lastConfigBean.getColumnConfigMap().get(column.getColumn());
+        if (config != null && config.getMaxWidth() > 0) {
+            return config.getMaxWidth();
+        }
+        return lastConfigBean.getMaxWidth();
+    }
+
 
     private void setDataInMainThread(String json,
                                      final TableConfigBean configBean) {
-
-        final HecomTableData rawTableData = (HecomTableData) getTableData();
-        int minWidth = configBean.getMinWidth();
-        int maxWidth = configBean.getMaxWidth();
-        int minHeight = configBean.getMinHeight();
         try {
-
+            final HecomTableData rawTableData = (HecomTableData) getTableData();
             final HecomTableData tableData = HecomTableData.create(json,
 
                     new HecomFormat(), new CellDrawFormat(this, mLockHelper));
-
-            tableData.setWidthLimit(minWidth, maxWidth, configBean.getColumnConfigMap());
-            tableData.setMinHeight(minHeight);
+            tableData.setLimit(configBean);
             tableData.setOnItemClickListener(mClickHandler);
 
 
@@ -197,11 +197,7 @@ public class HecomTable extends SmartTable<Cell> {
         }
         try {
             //横竖屏切换
-            boolean configChanged = lastConfigBean == null
-                    || lastConfigBean.getMinWidth() != configBean.getMinWidth()
-                    || lastConfigBean.getMaxWidth() != configBean.getMaxWidth();
-            boolean contentChanged = !json.equals(lastJson);
-            if (contentChanged) {
+            if (!json.equals(lastJson)) {
                 lastJson = json;
                 lastConfigBean = configBean;
                 Runnable runnable = new Runnable() {
@@ -212,17 +208,22 @@ public class HecomTable extends SmartTable<Cell> {
                 };
                 getIsNotifying().set(true);
                 getmExecutor().execute(runnable);
-            } else if (configChanged) {
+            } else if (configChanged(configBean)) {
                 lastConfigBean = configBean;
                 HecomTableData tableData = (HecomTableData) getTableData();
-                tableData.setWidthLimit(configBean.getMinWidth(), configBean.getMaxWidth(),
-                        configBean.getColumnConfigMap());
+                tableData.setLimit(configBean);
                 setTableData(tableData);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean configChanged(TableConfigBean configBean) {
+        return lastConfigBean == null
+                || lastConfigBean.getMinWidth() != configBean.getMinWidth()
+                || lastConfigBean.getMaxWidth() != configBean.getMaxWidth();
     }
 
     public LockHelper getLockHelper() {

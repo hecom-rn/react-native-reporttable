@@ -256,15 +256,13 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    if (tableData != null) {
-                        parser.parse(tableData);
-                        TableInfo info = measurer.measure(tableData, config);
-                        xAxis.setHeight(info.getTopHeight());
-                        yAxis.setWidth(info.getyAxisWidth());
-                        requestReMeasure();
-                        isNotifying.set(false);
-                        postInvalidate();
-                    }
+                    parser.parse(tableData);
+                    TableInfo info = measurer.measure(tableData, config);
+                    xAxis.setHeight(info.getTopHeight());
+                    yAxis.setWidth(info.getyAxisWidth());
+                    requestReMeasure();
+                    postInvalidate();
+                    isNotifying.set(false);
                 }
 
             });
@@ -273,6 +271,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
 
     /**
      * 添加数据
+     * <p>
      * 通过这个方法可以实现动态添加数据，参数isFoot可以实现首尾添加
      *
      * @param t      新增数据

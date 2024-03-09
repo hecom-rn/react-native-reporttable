@@ -38,6 +38,16 @@ public class Cell {
         return richText;
     }
 
+    private CellCache cache;
+
+    public CellCache getCache() {
+        return cache;
+    }
+
+    public void setCache(CellCache cache) {
+        this.cache = cache;
+    }
+
     public void merge(Cell newCell) {
         if (newCell == null) {
             return;
@@ -50,14 +60,15 @@ public class Cell {
         this.textColor = newCell.getTextColor();
         this.textAlignment = newCell.getTextAlignment();
         this.icon = newCell.getIcon();
-        this.isOverstriking = newCell.getOverstriking();
+        this.isOverstriking = newCell.isOverstriking();
         this.isForbidden = newCell.isForbidden();
         this.classificationLinePosition = newCell.getClassificationLinePosition();
         this.classificationLineColor = newCell.getClassificationLineColor();
         this.boxLineColor = newCell.getBoxLineColor();
         this.asteriskColor = newCell.getAsteriskColor();
-        this.strikethrough = newCell.getStrikethrough();
+        this.strikethrough = newCell.isStrikethrough();
         this.extraText = newCell.getExtraText();
+        cache = null;
     }
 
     public void setRichText(ArrayList<RichText> richText) {
@@ -76,14 +87,13 @@ public class Cell {
         this.extraText = extraText;
     }
 
-    public Boolean getStrikethrough() {
+    public boolean isStrikethrough() {
         return strikethrough;
     }
 
-    public void setStrikethrough(Boolean strikethrough) {
+    public void setStrikethrough(boolean strikethrough) {
         this.strikethrough = strikethrough;
     }
-
 
     public int getAsteriskColor() {
         return asteriskColor;
@@ -125,10 +135,6 @@ public class Cell {
         this.classificationLinePosition = classificationLinePosition;
     }
 
-    public Cell() {
-    }
-
-
     public void setFontSize(float fontSize) {
         this.fontSize = fontSize;
     }
@@ -143,7 +149,6 @@ public class Cell {
 
     public int getKeyIndex() {
         return keyIndex;
-
     }
 
     public void setKeyIndex(int keyIndex) {
@@ -186,11 +191,11 @@ public class Cell {
         return this.textAlignment;
     }
 
-    public Boolean getOverstriking() {
+    public boolean isOverstriking() {
         return isOverstriking;
     }
 
-    public void setOverstriking(Boolean overstriking) {
+    public void setOverstriking(boolean overstriking) {
         isOverstriking = overstriking;
     }
 

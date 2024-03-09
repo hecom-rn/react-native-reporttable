@@ -8,16 +8,16 @@ import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
 import com.hecom.reporttable.form.data.table.ArrayTableData;
-import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.Cell;
+import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.MergeBean;
+import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.format.HecomFormat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class HecomTableData extends ArrayTableData<Cell> {
@@ -201,19 +201,15 @@ public class HecomTableData extends ArrayTableData<Cell> {
         super(null, t, columns);
     }
 
-    public void setWidthLimit(int minWidth, int maxWidth,
-                              Map<Integer, CellConfig> columnConfigMap) {
+    public void setLimit(TableConfigBean config) {
         for (int i = 0; i < getArrayColumns().size(); i++) {
             Column<Cell> column = getArrayColumns().get(i);
-            if (minWidth > 0) column.setMinWidth(minWidth);
-            if (maxWidth > 0) column.setMaxWidth(maxWidth);
-            CellConfig cellConfig = columnConfigMap != null ? columnConfigMap.get(i) : null;
+            if (config.getMinWidth() > 0) column.setMinWidth(config.getMinWidth());
+            if (config.getMinHeight() > 0) column.setMinHeight(config.getMinHeight());
+            CellConfig cellConfig = config.getColumnConfigMap() != null ? config.getColumnConfigMap().get(i) : null;
             if (null != cellConfig) {
                 if (cellConfig.minWidth > 0) {
                     column.setMinWidth(cellConfig.minWidth);
-                }
-                if (cellConfig.maxWidth > 0) {
-                    column.setMaxWidth(cellConfig.maxWidth);
                 }
             }
         }

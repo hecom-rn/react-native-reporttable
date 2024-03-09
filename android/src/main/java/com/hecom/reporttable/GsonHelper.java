@@ -6,6 +6,8 @@ import com.google.gson.GsonBuilder;
 import android.content.Context;
 
 import com.hecom.reporttable.table.bean.Cell;
+import com.hecom.reporttable.table.bean.CellConfig;
+import com.hecom.reporttable.table.deserializer.CellConfigDeserializer;
 import com.hecom.reporttable.table.deserializer.CellDeserializer;
 
 /**
@@ -21,6 +23,7 @@ public class GsonHelper {
         }
         mGson = new GsonBuilder()
                 .registerTypeAdapter(Cell.class, new CellDeserializer(context))
+                .registerTypeAdapter(CellConfig.class, new CellConfigDeserializer(context))
                 .create();
     }
 

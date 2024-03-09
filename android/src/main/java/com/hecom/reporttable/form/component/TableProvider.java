@@ -496,7 +496,6 @@ public class TableProvider<T> implements TableClickObserver {
         }
         mMatrixHelper.setFixedReactLeft(this.mFixedReactLeft);
         mMatrixHelper.setFixedReactRight(this.mFixedReactRight);
-        mMatrixHelper.setMinFixedTranslateX(this.mMinFixedWidth);
     }
 
     /**

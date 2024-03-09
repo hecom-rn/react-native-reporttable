@@ -40,8 +40,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
     public CellDrawFormat(final HecomTable table, Locker locker) {
         super(1, 1);
         this.table = table;
-        textDrawFormat = new HecomTextDrawFormat();
-        textDrawFormat.setTable(table);
+        textDrawFormat = new HecomTextDrawFormat(table, this);
         this.drawPadding = DensityUtils.dp2px(getContext(), 4);
         this.locker = locker;
     }
@@ -86,10 +85,10 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
         int imgWidth = (int) (getImageWidth() * config.getZoom());
         int imgHeight = (int) (getImageHeight() * config.getZoom());
-        rect.left += config.getHorizontalPadding();
-        rect.right -= config.getHorizontalPadding();
-        rect.top += config.getVerticalPadding();
-        rect.bottom -= config.getVerticalPadding();
+        rect.left += config.getHorizontalPadding() * config.getZoom();
+        rect.right -= config.getHorizontalPadding() * config.getZoom();
+        rect.top += config.getVerticalPadding() * config.getZoom();
+        rect.bottom -= config.getVerticalPadding() * config.getZoom();
 
         if (resourceId == -1) {
             textDrawFormat.draw(c, rect, cellInfo, config);
@@ -115,14 +114,14 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 textDrawFormat.draw(c, this.rect, cellInfo, config);
                 switch (textAlign) { //单元格内容的对齐方式
                     case CENTER:
-                        imgRight = (int) Math.min(this.rect.right,
+                        imgRight = Math.min(this.rect.right,
                                 (this.rect.right + this.rect.left - textWidth) / 2) - drawPadding;
                         break;
                     case LEFT:
                         imgRight = this.rect.left - drawPadding;
                         break;
                     case RIGHT:
-                        imgRight = (int) (this.rect.right - textWidth - drawPadding);
+                        imgRight = this.rect.right - textWidth - drawPadding;
                         break;
                 }
                 this.rect.set(imgRight - imgWidth, rect.top, imgRight, rect.bottom);
@@ -134,11 +133,11 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 textDrawFormat.draw(c, this.rect, cellInfo, config);
                 switch (textAlign) { //单元格内容的对齐方式
                     case CENTER:
-                        imgLeft = (int) Math.min(this.rect.right,
+                        imgLeft = Math.min(this.rect.right,
                                 (this.rect.right + this.rect.left + textWidth) / 2) + drawPadding;
                         break;
                     case LEFT:
-                        imgLeft = (int) (this.rect.left + textWidth + drawPadding);
+                        imgLeft = this.rect.left + textWidth + drawPadding;
                         break;
                     case RIGHT:
                         imgLeft = this.rect.right + drawPadding;
