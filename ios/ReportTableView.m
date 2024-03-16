@@ -79,12 +79,14 @@
     
     // 且在横向显示范围内显示完全的时候再显示，确保数据少时不显示border （业务要求
     NSNumber *width = [reportTableModel.rowsWidth valueForKeyPath:@"@sum.self"];
-    if (reportTableModel.showBorder && [width floatValue] >= reportTableModel.tableRect.size.width * self.zoomScale) {
+    BOOL isFullWidth = [width floatValue] >= reportTableModel.tableRect.size.width / self.zoomScale;
+    if (reportTableModel.showBorder && isFullWidth) {
         self.spreadsheetView.layer.masksToBounds = YES;
         self.spreadsheetView.layer.borderColor = reportTableModel.lineColor.CGColor;
         self.spreadsheetView.layer.borderWidth = hairline;
     }
    
+    self.spreadsheetView.showCloumnForzenShadow = isFullWidth; // 设置是否显示阴影
     [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
     [self setMergedCellsLabelOffset];
@@ -119,6 +121,11 @@
     [self sendSubviewToBack: self.headerScrollView];
     self.headerScrollView.isUserScouce = false;
     self.isOnHeader = false;
+    
+    NSNumber *width = [self.reportTableModel.rowsWidth valueForKeyPath:@"@sum.self"];
+    BOOL isFullWidth = [width floatValue] >= self.reportTableModel.tableRect.size.width / scale;
+    self.spreadsheetView.showCloumnForzenShadow = isFullWidth; // 设置是否显示阴影
+    
     [self setMergedCellsLabelOffset];
 }
 
