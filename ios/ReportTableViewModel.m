@@ -403,7 +403,7 @@
                 for(int k = 0; k < sameLenth; k++) {
                    [mergeLen addObject:@(sameLenth)];
                 }
-                if (j == rowCount - 1 && curKeyIndex != model.keyIndex) {
+                if (curKeyIndex != model.keyIndex) {
                     // 但是最后一个不是横向合并的，需要纠正为1
                     mergeLen[mergeLen.count - 1] = @(1);
                 }
