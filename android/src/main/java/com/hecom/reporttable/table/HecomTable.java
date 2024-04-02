@@ -159,6 +159,7 @@ public class HecomTable extends SmartTable<Cell> {
                 }
             }
             setTableData(tableData);
+            mLockHelper.update();
         } catch (Exception e) {
             e.printStackTrace();
         }
