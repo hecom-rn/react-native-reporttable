@@ -28,17 +28,16 @@ export default class ReportTableWrapper extends React.Component {
             onPanResponderRelease: (evt, gs) => {
             }
         });
-        this.data = this._toAndroidData(this.props, this.state.headerHeight);
+        this.data = this._toAndroidData(this.props);
     }
 
     UNSAFE_componentWillReceiveProps(nextProps) {
-        this.data = this._toAndroidData(nextProps, this.state.headerHeight);
+        this.data = this._toAndroidData(nextProps);
     }
 
     render() {
         let {headerHeight} = this.state;
         const {headerView, size, headerViewOrientation} = this.props;
-        // const data = this._toAndroidData();
         return (
             <ScrollView
                 ref={(ref) => (this.scrollView = ref)}
@@ -65,7 +64,6 @@ export default class ReportTableWrapper extends React.Component {
                                 layout: {height},
                             },
                         } = event;
-                        this.data = this._toAndroidData(this.props, height);
                         this.setState({headerHeight: height})
                     }}
                 >
@@ -83,6 +81,9 @@ export default class ReportTableWrapper extends React.Component {
                     frozenCount={this.props.frozenCount}
                     frozenColumns={this.props.frozenColumns}
                     permutable={this.props.permutable}
+                    doubleClickZoom={this.props.doubleClickZoom}
+                    lineColor={this.props.lineColor}
+                    itemConfig={this.props.itemConfig}
                     onClickEvent={({nativeEvent: data}) => {
                         if (data) {
                             const {keyIndex, rowIndex, columnIndex, textColor} = data;
@@ -111,29 +112,28 @@ export default class ReportTableWrapper extends React.Component {
             undefined
         );
     }
+
+    updateData = (params) => {
+        params.data = JSON.stringify(params.data);
+        UIManager.dispatchViewManagerCommand(
+            this._getTableHandle(),
+            'updateData',
+            [params]
+        );
+    }
+
     _getTableHandle = () => {
         return ReactNative.findNodeHandle(this.refs.AndroidReportTableView);
     };
 
-    _toAndroidData = (props, headerHeight) => {
-        // let {headerHeight} = this.state;
-        const {
-            data, minWidth, minHeight, textPaddingHorizontal,
-            lineColor, maxWidth, size,
-            itemConfig, columnsWidthMap, doubleClickZoom = true
-        } = props;
+    _toAndroidData = (props) => {
+        const {data, minWidth, minHeight, maxWidth, columnsWidthMap} = props;
         return {
             data: data && JSON.stringify(data),
             columnsWidthMap: columnsWidthMap && JSON.stringify(columnsWidthMap),
             minWidth: minWidth,
             minHeight: minHeight,
             maxWidth: maxWidth,
-            textPaddingHorizontal: textPaddingHorizontal,
-            lineColor: lineColor,
-            limitTableHeight: size.height,
-            headerHeight: headerHeight,
-            itemConfig: JSON.stringify(itemConfig),
-            doubleClickZoom: doubleClickZoom,
         };
     }
 }

@@ -14,10 +14,6 @@ const itemConfig = {
     }),
     textPaddingHorizontal: 12, // 上左下右
     textAlignment: 0,  // 0左 1中 2右  default 0
-    splitLineColor:  Platform.select({
-        ios: processColor('#e8e8e8'),
-        android: '#D1D1D1',
-    }),
     classificationLineColor: Platform.select({
         ios: processColor('#9cb3c8'),
         android: '#9cb3c8',
@@ -57,6 +53,11 @@ export default class ReportTable extends React.Component{
     scrollTo = (params) => {
         const { lineX = 0, lineY = 0, offsetX =0, offsetY = 0, animated = true } = params || {};
         this.table && this.table.scrollTo({ lineX, lineY, offsetX, offsetY, animated });
+    }
+
+    updateData = (params) => {
+        const { data = [[]], x = 0, y = 0 } = params || {};
+        this.table.updateData({ data, x , y});
     }
 
     scrollToBottom = () => {

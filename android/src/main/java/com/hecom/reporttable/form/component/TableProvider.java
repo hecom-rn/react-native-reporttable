@@ -1,7 +1,6 @@
 package com.hecom.reporttable.form.component;
 
 
-import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
@@ -13,7 +12,6 @@ import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.column.ColumnInfo;
 import com.hecom.reporttable.form.data.format.bg.ICellBackgroundFormat;
-import com.hecom.reporttable.form.data.format.draw.WrapTextResult;
 import com.hecom.reporttable.form.data.format.selected.IDrawOver;
 import com.hecom.reporttable.form.data.format.selected.ISelectFormat;
 import com.hecom.reporttable.form.data.format.tip.ITip;
@@ -26,14 +24,11 @@ import com.hecom.reporttable.form.utils.DrawUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.hecom.reporttable.form.utils.DensityUtils.dp2px;
-
 /**
  * Created by huang on 2017/11/1. 表格内容绘制
  */
 public class TableProvider<T> implements TableClickObserver {
 
-    private Context context;
     private Rect scaleRect;
     private Rect showRect;
     private TableConfig config;
@@ -62,12 +57,9 @@ public class TableProvider<T> implements TableClickObserver {
     private int mFixedReactLeft = 0;
     private int mFixedReactRight = 0;
     private int mMinFixedWidth = 0;
-    private int mTotalFixedWidth = 0;
-
     private boolean singleClickItem = false;
 
-    public TableProvider(Context context) {
-        this.context = context;
+    public TableProvider() {
         clickPoint = new PointF(-1, -1);
         clipRect = new Rect();
         tempRect = new Rect();
@@ -89,6 +81,7 @@ public class TableProvider<T> implements TableClickObserver {
         setData(scaleRect, showRect, tableData, config);
         canvas.save();
         canvas.clipRect(this.showRect);
+        drawColumnTitle(canvas, config);
         drawCount(canvas);
         drawContent(canvas, false);
         drawContent(canvas, true);
@@ -283,21 +276,6 @@ public class TableProvider<T> implements TableClickObserver {
         }
     }
 
-    // public void clearFixedBottomLists() {
-    //     if (this.fixedBottomLists == null) {
-    //         this.fixedBottomLists = new ArrayList<>();
-    //     } else {
-    //         this.fixedBottomLists.clear();
-    //     }
-    // }
-    // public void clearFixedTopLists() {
-    //     if (this.fixedTopLists == null) {
-    //         this.fixedTopLists = new ArrayList<>();
-    //     } else {
-    //         this.fixedTopLists.clear();
-    //     }
-    // }
-
     /**
      * 绘制内容
      *
@@ -334,20 +312,20 @@ public class TableProvider<T> implements TableClickObserver {
         int clipCount = 0;
         Rect correctCellRect, finalRect = new Rect();
         TableInfo tableInfo = tableData.getTableInfo();
-        mTotalFixedWidth = 0;
+        int totalFixedWidth = 0;
         for (int columnIndex = 0; columnIndex < columnSize; columnIndex++) {
             Column column = columns.get(columnIndex);
             if (column.isFixed()) {
                 mMinFixedWidth = (int) (column.getComputeWidth() * config.getZoom());
-                mTotalFixedWidth += mMinFixedWidth;
+                totalFixedWidth += mMinFixedWidth;
             } else {
                 break;
             }
         }
         boolean fixedReactLeftInit = false;
         int mFixedTranslateX = mMatrixHelper.mFixedTranslateX;
-        if (mFixedTranslateX > mTotalFixedWidth - mMinFixedWidth) {
-            mFixedTranslateX = mTotalFixedWidth - mMinFixedWidth;
+        if (mFixedTranslateX > totalFixedWidth - mMinFixedWidth) {
+            mFixedTranslateX = totalFixedWidth - mMinFixedWidth;
             mMatrixHelper.mFixedTranslateX = mFixedTranslateX;
         }
         if (mFixedTranslateX < 0) {
@@ -358,14 +336,14 @@ public class TableProvider<T> implements TableClickObserver {
         if (isFixedTranslateX) {
             clipRect.left -= mFixedTranslateX;
         }
-        for (int columnIndex = 0; columnIndex < columnSize; columnIndex++) {
+        for (int i = 0; i < columnSize; i++) {
             //遍历列
             top = scaleRect.top;
-            Column column = columns.get(columnIndex);
+            Column column = columns.get(i);
             float width = column.getComputeWidth() * config.getZoom();
             float tempLeft = left;
             //根据根部标题是否固定
-            Column topColumn = childColumnInfo.get(columnIndex).getTopParent().column;
+            Column topColumn = childColumnInfo.get(i).getTopParent().column;
             if (topColumn.isFixed()) {
                 isPerFixed = false;
                 if (tempLeft < clipRect.left) {
@@ -391,12 +369,10 @@ public class TableProvider<T> implements TableClickObserver {
                     }
                     this.mFixedReactRight = (int) right;
                 }
-                for (int rowIndex = 0; rowIndex < size; rowIndex++) {
+                for (int j = 0; j < size; j++) {
                     //遍历行
-                    WrapTextResult cacheWrapText = column.getCacheWrapText(rowIndex);
-                    String value = null == cacheWrapText ? column.format(rowIndex) :
-                            cacheWrapText.text;
-                    int skip = tableInfo.getSeizeCellSize(column, rowIndex);
+                    String value = column.format(j);
+                    int skip = tableInfo.getSeizeCellSize(column, j);
                     int totalLineHeight = 0;
                     for (int k = realPosition; k < realPosition + skip; k++) {
                         totalLineHeight += info.getLineHeightArray()[k];
@@ -404,80 +380,69 @@ public class TableProvider<T> implements TableClickObserver {
                     realPosition += skip;
                     float bottom = top + totalLineHeight * config.getZoom();
                     tempRect.set((int) left, (int) top, (int) right, (int) bottom);
-                    correctCellRect = gridDrawer.correctCellRect(rowIndex, columnIndex, tempRect,
+                    correctCellRect = gridDrawer.correctCellRect(j, i, tempRect,
                             config.getZoom()); //矫正格子的大小
                     if (correctCellRect != null) {
-                        if (rowIndex < config.getFixedLines()) {
-//                            if(isFirstDraw) {
-//                                //保存固定行的top、bottom
-//                                fixedTops.add(correctCellRect.top);
-//                                fixedBottoms.add(correctCellRect.bottom);
-//                            } else {
-//                                //使用固定行的top、bottom
-//                                correctCellRect.top = fixedTops.get(j);
-//                                correctCellRect.bottom = fixedBottoms.get(j);
-//                            }
-                            while (fixedTopLists.size() <= columnIndex) {
+                        if (j < config.getFixedLines()) {
+                            while (fixedTopLists.size() <= i) {
                                 fixedTopLists.add(new ArrayList<Integer>());
                             }
-                            while (fixedBottomLists.size() <= columnIndex) {
+                            while (fixedBottomLists.size() <= i) {
                                 fixedBottomLists.add(new ArrayList<Integer>());
                             }
-                            while (fixedTopLists.get(columnIndex).size() <= rowIndex) {
-                                fixedTopLists.get(columnIndex).add(null);
+                            while (fixedTopLists.get(i).size() <= j) {
+                                fixedTopLists.get(i).add(null);
                             }
-                            while (fixedBottomLists.get(columnIndex).size() <= rowIndex) {
-                                fixedBottomLists.get(columnIndex).add(null);
+                            while (fixedBottomLists.get(i).size() <= j) {
+                                fixedBottomLists.get(i).add(null);
                             }
-                            Integer t = fixedTopLists.get(columnIndex).get(rowIndex);
+                            Integer t = fixedTopLists.get(i).get(j);
                             if (t == null) {
-                                fixedTopLists.get(columnIndex).set(rowIndex, correctCellRect.top);
+                                fixedTopLists.get(i).set(j, correctCellRect.top);
                             } else {
                                 correctCellRect.top = (int) (t * config.getZoom());
                             }
 
-                            Integer b = fixedBottomLists.get(columnIndex).get(rowIndex);
+                            Integer b = fixedBottomLists.get(i).get(j);
                             if (b == null) {
-                                fixedBottomLists.get(columnIndex)
-                                        .set(rowIndex, correctCellRect.bottom);
+                                fixedBottomLists.get(i)
+                                        .set(j, correctCellRect.bottom);
                             } else {
                                 correctCellRect.bottom = (int) (b * config.getZoom());
                             }
                         }
                         if (correctCellRect.top < showRect.bottom) {
                             if (correctCellRect.left < showRect.right && correctCellRect.right > showRect.left && correctCellRect.bottom > showRect.top) {
-                                Object data = column.getDatas().get(rowIndex);
+                                Object data = column.getDatas().get(j);
                                 if (singleClickItem && DrawUtils.isClick(correctCellRect,
                                         clickPoint)) {
-                                    operation.setSelectionRect(columnIndex, rowIndex,
+                                    operation.setSelectionRect(i, j,
                                             correctCellRect);
                                     tipPoint.x = (left + right) / 2;
                                     tipPoint.y = (top + bottom) / 2;
                                     tipColumn = column;
-                                    tipPosition = rowIndex;
-                                    clickColumn(column, rowIndex, value, data);
+                                    tipPosition = j;
+                                    clickColumn(column, j, value, data);
                                     isClickPoint = true;
                                     clickPoint.set(-Integer.MAX_VALUE, -Integer.MAX_VALUE);
                                     singleClickItem = false;
                                 }
-                                operation.checkSelectedPoint(columnIndex, rowIndex,
+                                operation.checkSelectedPoint(i, j,
                                         correctCellRect);
-                                cellInfo.set(column, data, value, columnIndex, rowIndex,
-                                        cacheWrapText != null);
-                                config.setPartlyCellZoom(1);
+                                cellInfo.set(column, data, value, i, j);
                                 if (config.getFixedLines() == 0) {
                                     drawContentCell(canvas, cellInfo, correctCellRect, config);
-                                } else if (isFirstDraw || rowIndex < config.getFixedLines()) {
+                                } else if (isFirstDraw || j < config.getFixedLines()) {
                                     finalRect.set(correctCellRect);
                                     finalRect.bottom =
                                             tempRect.bottom != correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
                                     drawContentCell(canvas, cellInfo, finalRect, config);
-                                } else if (!isFirstDraw && rowIndex >= config.getFixedLines()) {
-                                    if (onlyDrawFrozenRows && rowIndex >= config.getFixedLines()) {
+                                } else if (!isFirstDraw && j >= config.getFixedLines()) {
+                                    if (onlyDrawFrozenRows && j >= config.getFixedLines()) {
                                         break;
                                     }
                                     int tmpBottom = 0;
-                                    int tmp = columnIndex;
+                                    int tmp = i;
                                     while (tmp >= 0) {
                                         int inSize = fixedBottomLists.get(tmp).size();
                                         if (inSize > 0) {
@@ -495,13 +460,8 @@ public class TableProvider<T> implements TableClickObserver {
                                                 tempRect.bottom != correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
                                         drawContentCell(canvas, cellInfo, finalRect, config);
                                     } else {
-                                        if (correctCellRect.bottom > tmpBottom + dp2px(context,
-                                                5)) {
-                                            //float partlyCellZoom = (correctCellRect.bottom -
-                                            // fixedBottoms.get(config.getFixedLines() - 1)) /
-                                            // (float) correctCellRect.height();
+                                        if (correctCellRect.bottom > tmpBottom + config.dp10 / 2) {
                                             //绘制部分单元格
-                                            //config.setPartlyCellZoom(partlyCellZoom);
                                             finalRect.set(correctCellRect);
                                             finalRect.top =
                                                     tempRect.bottom != correctCellRect.bottom ?
@@ -536,7 +496,6 @@ public class TableProvider<T> implements TableClickObserver {
         }
         mMatrixHelper.setFixedReactLeft(this.mFixedReactLeft);
         mMatrixHelper.setFixedReactRight(this.mFixedReactRight);
-        mMatrixHelper.setMinFixedTranslateX(this.mMinFixedWidth);
     }
 
     /**
@@ -560,7 +519,6 @@ public class TableProvider<T> implements TableClickObserver {
         }
 
         rect.left += config.getTextLeftOffset();
-        rect.right = rect.right - config.getTextRightOffset();
         cellInfo.column.getDrawFormat().draw(c, rect, cellInfo, config);
     }
 
@@ -632,11 +590,87 @@ public class TableProvider<T> implements TableClickObserver {
         this.onColumnClickListener = onColumnClickListener;
     }
 
+    public ITip<Column, ?> getTip() {
+        return tip;
+    }
+
+    public void setTip(ITip<Column, ?> tip) {
+        this.tip = tip;
+    }
+
 
     public void setSelectFormat(ISelectFormat selectFormat) {
         this.operation.setSelectFormat(selectFormat);
     }
 
+    public GridDrawer<T> getGridDrawer() {
+        return gridDrawer;
+    }
+
+    public void setGridDrawer(GridDrawer<T> gridDrawer) {
+        this.gridDrawer = gridDrawer;
+    }
+
+
+    /**
+     * 计算任何point在View的位置
+     *
+     * @param row 列
+     * @param col 行
+     */
+    public int[] getPointLocation(double row, double col) {
+        List<Column> childColumns = tableData.getChildColumns();
+        int[] lineHeights = tableData.getTableInfo().getLineHeightArray();
+        int x = 0, y = 0;
+        int columnSize = childColumns.size();
+        for (int i = 0; i <= (columnSize > col + 1 ? col + 1 : columnSize - 1); i++) {
+            int w = childColumns.get(i).getComputeWidth();
+            if (i == (int) col + 1) {
+                x += w * (col - (int) col);
+            } else {
+                x += w;
+            }
+        }
+        for (int i = 0; i <= (lineHeights.length > row + 1 ? row + 1 : lineHeights.length - 1); i++) {
+            int h = lineHeights[i];
+            if (i == (int) row + 1) {
+                y += h * (row - (int) row);
+            } else {
+                y += h;
+            }
+        }
+        x *= config.getZoom();
+        y *= config.getZoom();
+        x += scaleRect.left;
+        y += scaleRect.top;
+        return new int[]{x, y};
+
+    }
+
+    /**
+     * 计算任何point在View的大小
+     *
+     * @param row 列
+     * @param col 行
+     */
+    public int[] getPointSize(int row, int col) {
+        List<Column> childColumns = tableData.getChildColumns();
+        int[] lineHeights = tableData.getTableInfo().getLineHeightArray();
+        col = col < childColumns.size() ? col : childColumns.size() - 1;//列
+        row = row < lineHeights.length ? row : lineHeights.length;//行
+        col = col < 0 ? 0 : col;
+        row = row < 0 ? 0 : row;
+        return new int[]{(int) (childColumns.get(col).getComputeWidth() * config.getZoom()),
+                (int) (lineHeights[row] * config.getZoom())};
+
+    }
+
+    /**
+     * 设置表面绘制
+     */
+    public void setDrawOver(IDrawOver drawOver) {
+        this.drawOver = drawOver;
+    }
 
     public SelectionOperation getOperation() {
         return operation;

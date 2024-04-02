@@ -12,5 +12,8 @@
 
 + (UIImage *)imageWithExtra:(ExtraText *)extraText;
 
+
++ (UIImage *)imageWithBorder:(TextBoderModel *)boderModel;
+
 @end
 

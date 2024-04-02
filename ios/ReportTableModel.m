@@ -20,6 +20,9 @@
 
 @end
 
+@implementation TextBoderModel
+@end
+
 @implementation IconStyle
 - (NSInteger)imageAlignment {
     if (!_imageAlignment) {
@@ -139,6 +142,13 @@
         return _itemConfig.textPaddingHorizontal;
     }
     return _textPaddingHorizontal;
+}
+
+- (BOOL)isOverstriking {
+    if (_isOverstriking == nil) {
+        return _itemConfig.isOverstriking;
+    }
+    return _isOverstriking;
 }
 
 @end

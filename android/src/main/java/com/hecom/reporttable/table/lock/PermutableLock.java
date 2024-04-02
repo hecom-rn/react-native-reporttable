@@ -1,7 +1,8 @@
 package com.hecom.reporttable.table.lock;
 
-import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
+import com.hecom.reporttable.table.HecomTable;
+import com.hecom.reporttable.table.bean.Cell;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,7 +17,7 @@ public class PermutableLock extends Locker {
 
     List<Integer> fixedColumn = new ArrayList<>();
 
-    public PermutableLock(SmartTable<String> table) {
+    public PermutableLock(HecomTable table) {
         super(table);
     }
 

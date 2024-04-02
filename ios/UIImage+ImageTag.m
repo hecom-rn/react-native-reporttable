@@ -6,9 +6,62 @@
 //
 
 #import "UIImage+ImageTag.h"
+#import <CoreText/CoreText.h>
 
 @implementation UIImage (ImageTag)
 
+///  带边框的文本
++ (UIImage *)imageWithBorder:(TextBoderModel *)model {
+   NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc] initWithString:model.text];
+   
+   [attributedString addAttribute:NSFontAttributeName value:model.font range:NSMakeRange(0, attributedString.length)];
+   
+   CTFramesetterRef framesetter = CTFramesetterCreateWithAttributedString((CFAttributedStringRef)attributedString);
+   
+   CGSize textSize = CTFramesetterSuggestFrameSizeWithConstraints(framesetter, CFRangeMake(0, [attributedString length]), NULL, CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX), NULL);
+    
+    
+    CGFloat paddingHor = model.font.pointSize * 0.4;
+    CGFloat paddingVer = model.font.pointSize * 0.25;
+   
+   CGSize imageSize = CGSizeMake(textSize.width + paddingHor * 2, textSize.height + paddingVer * 2);
+   
+   UIGraphicsBeginImageContextWithOptions(imageSize, NO, 0.0);
+   CGContextRef context = UIGraphicsGetCurrentContext();
+   
+   // Enable anti-aliasing
+   CGContextSetShouldAntialias(context, YES);
+   CGContextSetAllowsAntialiasing(context, YES);
+   
+   // Flip the coordinate system
+   CGContextTranslateCTM(context, 0, imageSize.height);
+   CGContextScaleCTM(context, 1.0, -1.0);
+   
+   CGRect textRect = CGRectMake(paddingHor, paddingVer, imageSize.width - paddingHor * 2, imageSize.height - paddingVer * 2);
+   
+   [attributedString addAttribute:NSForegroundColorAttributeName value:model.textColor range:NSMakeRange(0, attributedString.length)];
+   
+   CGPathRef path = CGPathCreateWithRect(textRect, NULL);
+   
+   CTFrameRef frame = CTFramesetterCreateFrame(framesetter, CFRangeMake(0, [attributedString length]), path, NULL);
+   CTFrameDraw(frame, context);
+   
+   CGRect borderRect = CGRectMake(model.borderWidth / 2, model.borderWidth / 2, imageSize.width - model.borderWidth, imageSize.height - model.borderWidth);
+   UIBezierPath *borderPath = [UIBezierPath bezierPathWithRoundedRect:borderRect cornerRadius:model.borderRadius];
+   [model.borderColor setStroke];
+   borderPath.lineWidth = model.borderWidth;
+   
+   // Make corners smoother
+   borderPath.lineJoinStyle = kCGLineJoinRound;
+   borderPath.lineCapStyle = kCGLineCapRound;
+   
+   [borderPath stroke];
+   
+   UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+   UIGraphicsEndImageContext();
+   
+   return image;
+}
 
 ///绘制带有文本、颜色、圆角的图片
 + (UIImage *)imageWithExtra:(ExtraText *)extraText{

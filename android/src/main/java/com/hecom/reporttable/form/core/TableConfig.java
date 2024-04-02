@@ -1,6 +1,5 @@
 package com.hecom.reporttable.form.core;
 
-import android.content.Context;
 import android.graphics.Paint;
 
 import com.hecom.reporttable.form.data.CellInfo;
@@ -12,13 +11,6 @@ import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.data.format.grid.SimpleGridFormat;
 import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.style.LineStyle;
-import com.hecom.reporttable.form.utils.DensityUtils;
-import com.hecom.reporttable.table.bean.ItemCommonStyleConfig;
-import com.hecom.reporttable.table.bean.JsonTableBean;
-import com.hecom.reporttable.table.lock.Locker;
-
-import java.util.HashMap;
-import java.util.Map;
 
 
 /**
@@ -26,9 +18,7 @@ import java.util.Map;
  */
 
 
-public class TableConfig<T> {
-    public static String ASTERISK = "*";
-    public static String[] ASTERISK_ARRAY = new String[]{ASTERISK};
+public class TableConfig {
     /**
      * 默认字体样式
      */
@@ -42,14 +32,8 @@ public class TableConfig<T> {
      */
     public static final int INVALID_COLOR = 0;
 
-    private final Context context;
-
-    public Map<Integer, Integer> sp2PxMap;
     public int dp10;
 
-    public int dp4;
-
-    public int dp8;
     /**
      * 内容字体样式
      */
@@ -58,10 +42,6 @@ public class TableConfig<T> {
      * 左侧序号列字体样式
      */
     private FontStyle YSequenceStyle;
-
-    public Context getContext() {
-        return context;
-    }
 
     /**
      * 顶部序号列字体样式
@@ -221,7 +201,6 @@ public class TableConfig<T> {
      */
     private Paint paint;
 
-    private Paint asteriskPaint;
     /**
      * 缩放值
      */
@@ -230,45 +209,6 @@ public class TableConfig<T> {
      * 固定的行数
      */
     private int fixedLines = 0;
-    /**
-     * 部分大小单元格缩放值
-     */
-    private float partlyCellZoom = 1;
-
-    public Locker mLocker;
-
-    private ItemCommonStyleConfig itemCommonStyleConfig = new ItemCommonStyleConfig();
-    private JsonTableBean[][] tabArr;
-
-    public TableConfig(Context context) {
-        this.context = context;
-        this.sp2PxMap = new HashMap<>();
-    }
-
-    public int getSp2Px(int sp) {
-        Integer px = sp2PxMap.get(sp);
-        if (px == null) {
-            px = DensityUtils.sp2px(getContext(), sp);
-            sp2PxMap.put(sp, px);
-        }
-        return px;
-    }
-
-    public ItemCommonStyleConfig getItemCommonStyleConfig() {
-        return itemCommonStyleConfig;
-    }
-
-    public void setItemCommonStyleConfig(ItemCommonStyleConfig itemCommonStyleConfig) {
-        this.itemCommonStyleConfig = itemCommonStyleConfig;
-    }
-
-    public void setTabArr(JsonTableBean[][] tabArr) {
-        this.tabArr = tabArr;
-    }
-
-    public JsonTableBean getCell(int row, int col){
-        return tabArr[row][mLocker.getRawCol(col)];
-    }
 
     public FontStyle getContentStyle() {
         if (contentStyle == null) {
@@ -319,7 +259,7 @@ public class TableConfig<T> {
     }
 
     public int getVerticalPadding() {
-        return (int) (verticalPadding * getZoom());
+        return verticalPadding;
     }
 
     public TableConfig setVerticalPadding(int verticalPadding) {
@@ -342,14 +282,6 @@ public class TableConfig<T> {
 
     public void setPaint(Paint paint) {
         this.paint = paint;
-    }
-
-    public Paint getAsteriskPaint() {
-        return asteriskPaint;
-    }
-
-    public void setAsteriskPaint(Paint asteriskPaint) {
-        this.asteriskPaint = asteriskPaint;
     }
 
     public LineStyle getContentGridStyle() {
@@ -523,14 +455,6 @@ public class TableConfig<T> {
         this.zoom = zoom;
     }
 
-    public void setPartlyCellZoom(float partlyCellZoom) {
-        this.partlyCellZoom = partlyCellZoom;
-    }
-
-    public float getPartlyCellZoom() {
-        return partlyCellZoom;
-    }
-
     public int getFixedLines() {
         return fixedLines;
     }
@@ -617,7 +541,7 @@ public class TableConfig<T> {
     }
 
     public int getColumnTitleVerticalPadding() {
-        return (int) (columnTitleVerticalPadding * getZoom());
+        return columnTitleVerticalPadding;
     }
 
     public TableConfig setColumnTitleVerticalPadding(int columnTitleVerticalPadding) {
@@ -672,7 +596,7 @@ public class TableConfig<T> {
     }
 
     public int getSequenceVerticalPadding() {
-        return (int) (sequenceVerticalPadding * getZoom());
+        return sequenceVerticalPadding;
     }
 
     public TableConfig setSequenceVerticalPadding(int sequenceVerticalPadding) {
@@ -681,7 +605,7 @@ public class TableConfig<T> {
     }
 
     public int getSequenceHorizontalPadding() {
-        return (int) (sequenceHorizontalPadding * getZoom());
+        return sequenceHorizontalPadding;
     }
 
     public TableConfig setSequenceHorizontalPadding(int sequenceHorizontalPadding) {
@@ -690,27 +614,12 @@ public class TableConfig<T> {
     }
 
     public int getTextLeftOffset() {
-        return (int) (textLeftOffset * zoom);
+        return textLeftOffset;
     }
 
     public TableConfig setTextLeftOffset(int textLeftOffset) {
         this.textLeftOffset = textLeftOffset;
         return this;
     }
-
-    public int getTextRightOffset() {
-        return (int) (textRightOffset * zoom);
-    }
-
-    public TableConfig setTextRightOffset(int textRightOffset) {
-        this.textRightOffset = textRightOffset;
-        return this;
-    }
-
-    /**
-     * 文字右边偏移
-     */
-
-    private int textRightOffset = 0;
 
 }

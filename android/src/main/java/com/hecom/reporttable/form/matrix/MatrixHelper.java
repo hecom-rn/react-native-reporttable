@@ -7,7 +7,6 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Point;
 import android.graphics.Rect;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -16,8 +15,6 @@ import android.view.ViewConfiguration;
 import android.view.ViewParent;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Scroller;
-import android.widget.Toast;
-
 
 import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.listener.MainThreadExecuteHandle;
@@ -34,7 +31,6 @@ import java.util.List;
 
 public class MatrixHelper extends Observable<TableClickObserver> implements ITouch, ScaleGestureDetector.OnScaleGestureListener {
 
-    private final Context mContext;
     private  float maxZoom = 5;
     private  float minZoom = 1;
     private float zoom = minZoom; //缩放比例  不得小于1
@@ -43,7 +39,7 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
     private ScaleGestureDetector mScaleGestureDetector;
     private GestureDetector mGestureDetector;
     private boolean isCanZoom = false;
-    private boolean isCanDoubleClickZoom = true;
+    private boolean isCanDoubleClickZoom = false;
     private boolean isScale; //是否正在缩小
     private Rect originalRect; //原始大小
     private Rect zoomRect;
@@ -60,14 +56,11 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
     private boolean isAutoFling = false;
     private OnInterceptListener onInterceptListener;
     int touchSlop; //最小滚动距离
-    private float mFocusX, mFocusY;
     private int fixedReactLeft;
     private int fixedReactRight;
-    private int minFixedTranslateX;
     public int mFixedTranslateX;
     boolean touchFromFixed;
     private Rect originalProviderRect;
-    private int offsetX;
     private int offsetY;
 
     /**
@@ -75,7 +68,6 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
      * @param context 用于获取GestureDetector，scroller ViewConfiguration
      */
     public MatrixHelper(Context context) {
-        this.mContext=context;
         mScaleGestureDetector = new ScaleGestureDetector(context, this);
         mGestureDetector = new GestureDetector(context, new OnTableGestureListener());
         final ViewConfiguration configuration = ViewConfiguration.get(context);
@@ -204,25 +196,10 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         this.fixedReactLeft = fixedReactLeft;
     }
 
-    public int getFixedReactLeft() {
-        return fixedReactLeft;
-    }
-
     public void setFixedReactRight(int fixedReactRight) {
         this.fixedReactRight = fixedReactRight;
     }
 
-    public int getFixedReactRight() {
-        return fixedReactRight;
-    }
-
-    public void setMinFixedTranslateX(int minFixedTranslateX) {
-        this.minFixedTranslateX = minFixedTranslateX;
-    }
-
-    public int getMinFixedTranslateX() {
-        return minFixedTranslateX;
-    }
 
     /**
      * 被观察者通知方法
@@ -300,17 +277,15 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
             final int skipIndex = pointerUp ? ev.getActionIndex() : -1;
 
             // Determine focal point
-            float sumX = 0, sumY = 0;
+            float sumX = 0;
             final int count = ev.getPointerCount();
             for (int i = 0; i < count; i++) {
                 if (skipIndex == i) continue;
                 sumX += ev.getX(i);
-                sumY += ev.getY(i);
             }
             final int div = pointerUp ? count - 1 : count;
-            mFocusX = sumX / div;
-            mFocusY = sumY / div;
-            touchFromFixed = mFocusX > fixedReactLeft && mFocusX < fixedReactRight;
+            float focusX = sumX / div;
+            touchFromFixed = focusX > fixedReactLeft && focusX < fixedReactRight;
             return true;
         }
 
@@ -364,21 +339,6 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
 
     private boolean isScaleMax;
     private boolean isScaleMin;
-    private long lastMaxTipsTime;
-    private long lastMinTipsTime;
-
-    private void showMaxTips(){
-        if(System.currentTimeMillis()-lastMaxTipsTime>1500){
-            Toast.makeText(mContext,"最大值",Toast.LENGTH_SHORT).show();
-            lastMaxTipsTime=System.currentTimeMillis();
-        }
-    }
-    private void showMinTips(){
-        if(System.currentTimeMillis()-lastMinTipsTime>1500){
-            Toast.makeText(mContext,"最小值",Toast.LENGTH_SHORT).show();
-            lastMinTipsTime=System.currentTimeMillis();
-        }
-    }
 
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
@@ -386,23 +346,18 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         boolean isScaleEnd = false;
         float scale = detector.getScaleFactor();
         if(scale >1 && isScaleMax){
-            showMaxTips();
             isScaleMin = false;
             return true;
         }else if(scale <1 && isScaleMin){
-            showMinTips();
             isScaleMax = false;
             return true;
         }
         this.zoom = tempZoom * scale;
         if (zoom >= maxZoom) {
-            if(zoom > maxZoom) showMaxTips();
             isScaleMax = true;
             this.zoom = maxZoom;
             isScaleEnd = true;
-        } else if (zoom<= minZoom) {
-            Log.e("zoom","zoom"+zoom+"***** minZoom"+minZoom);
-            if(zoom < minZoom)showMinTips();
+        } else if (this.zoom<= minZoom) {
             isScaleMin = true;
             this.zoom = minZoom;
             isScaleEnd = true;
@@ -500,7 +455,6 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         int offsetX = (int) (showWidth * (zoom - 1)) / 2;
         int offsetY = (int) (showHeight * (zoom - 1)) / 2;
         this.originalProviderRect = providerRect;
-        this.offsetX =offsetX;
         this.offsetY =offsetY;
         if(!isAutoFling) {
             int oldw = providerRect.width();

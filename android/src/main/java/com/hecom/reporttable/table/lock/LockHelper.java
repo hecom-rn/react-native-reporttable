@@ -1,6 +1,6 @@
 package com.hecom.reporttable.table.lock;
 
-import com.hecom.reporttable.form.core.SmartTable;
+import com.hecom.reporttable.table.HecomTable;
 
 /**
  * Created by kevin.bai on 2024/1/7.
@@ -8,7 +8,7 @@ import com.hecom.reporttable.form.core.SmartTable;
 public class LockHelper extends Locker {
     Locker locker;
 
-    public LockHelper(SmartTable<String> table) {
+    public LockHelper(HecomTable table) {
         super(table);
         locker = new CommonLock(table);
     }

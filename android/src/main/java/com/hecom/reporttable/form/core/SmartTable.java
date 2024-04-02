@@ -1,6 +1,5 @@
 package com.hecom.reporttable.form.core;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -36,8 +35,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.facebook.react.uimanager.ThemedReactContext;
-
 /**
  * Created by huang on 2017/10/30. 表格
  */
@@ -50,7 +47,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     private TableProvider<T> provider;
     private Rect showRect;
     private Rect tableRect;
-    private TableConfig<T> config;
+    private TableConfig config;
     private TableParser<T> parser;
     private TableData<T> tableData;
     private int defaultHeight = 300;
@@ -59,7 +56,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
     private AnnotationParser<T> annotationParser;
     protected Paint paint;
 
-    protected Paint asteriskPaint;
     protected TextPaint textPaint;
     private MatrixHelper matrixHelper;
     private boolean isExactly = true; //是否是测量精准模式
@@ -82,30 +78,29 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         return mExecutor;
     }
 
-    public SmartTable(ThemedReactContext context) {
+    public SmartTable(Context context) {
         super(context);
-        init(context);
+        init();
     }
 
-    public SmartTable(ThemedReactContext context, AttributeSet attrs) {
+    public SmartTable(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init(context);
+        init();
     }
 
-    public SmartTable(ThemedReactContext context, AttributeSet attrs, int defStyleAttr) {
+    public SmartTable(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init(context);
+        init();
     }
 
     /**
      * 初始化
      */
-    private void init(ThemedReactContext context) {
+    private void init() {
         FontStyle.setDefaultTextSpSize(getContext(), 14);
-        initConfig(context);
+        config = new TableConfig();
+        config.dp10 = DensityUtils.dp2px(getContext(), 10);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        asteriskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        asteriskPaint.setTextAlign(Paint.Align.CENTER);
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(new FontStyle().getTextSize());
@@ -114,11 +109,9 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         xAxis = new XSequence<>();
         yAxis = new YSequence<>();
         parser = new TableParser<>();
-        provider = new TableProvider<>(context);
+        provider = new TableProvider<>();
         config.setPaint(paint);
-        config.setAsteriskPaint(asteriskPaint);
         measurer = new TableMeasurer<>();
-        measurer.setContext(context);
         tableTitle = new TableTitle();
         tableTitle.setDirection(IComponent.TOP);
         matrixHelper = new MatrixHelper(getContext());
@@ -127,17 +120,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         matrixHelper.register(provider);
         matrixHelper.setOnInterceptListener(provider.getOperation());
         provider.setMatrixHelper(matrixHelper);
-
-    }
-
-    private void initConfig(ThemedReactContext context) {
-        config = new TableConfig(context);
-        config.dp10 = DensityUtils.dp2px(getContext(), 10);
-        config.dp8 = DensityUtils.dp2px(getContext(), 8);
-        config.dp4 = DensityUtils.dp2px(getContext(), 4);
-        config.setHorizontalPadding(0).setVerticalPadding(this.config.dp4)
-                .setShowTableTitle(false).setShowColumnTitle(false).setShowXSequence(false)
-                .setShowYSequence(false);
 
     }
 
@@ -252,10 +234,6 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
      */
     public synchronized void setTableData(TableData<T> tableData) {
         if (tableData != null) {
-            // if (this.provider != null) {
-            //     this.provider.clearFixedTopLists();
-            //     this.provider.clearFixedBottomLists();
-            // }
             this.tableData = tableData;
             notifyDataChanged();
         }
@@ -278,15 +256,13 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    if (tableData != null) {
-                        parser.parse(tableData);
-                        TableInfo info = measurer.measure(tableData, config);
-                        xAxis.setHeight(info.getTopHeight());
-                        yAxis.setWidth(info.getyAxisWidth());
-                        requestReMeasure();
-                        isNotifying.set(false);
-                        postInvalidate();
-                    }
+                    parser.parse(tableData);
+                    TableInfo info = measurer.measure(tableData, config);
+                    xAxis.setHeight(info.getTopHeight());
+                    yAxis.setWidth(info.getyAxisWidth());
+                    requestReMeasure();
+                    postInvalidate();
+                    isNotifying.set(false);
                 }
 
             });
@@ -295,28 +271,28 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
 
     /**
      * 添加数据
+     * <p>
      * 通过这个方法可以实现动态添加数据，参数isFoot可以实现首尾添加
      *
      * @param t      新增数据
      * @param isFoot 是否在尾部添加
      */
-//这个方法没有引用
-//    public void addData(final List<T> t, final boolean isFoot) {
-//        if (t != null && t.size() > 0) {
-//            isNotifying.set(true);
-//            mExecutor.execute(new Runnable() {
-//                @Override
-//                public void run() {
-//                    parser.addData(tableData, t, isFoot);
-//                    measurer.measure(tableData, config);
-//                    requestReMeasure();
-//                    isNotifying.set(false);
-//                    postInvalidate();
-//
-//                }
-//            });
-//        }
-//    }
+    public void addData(final List<T> t, final boolean isFoot) {
+        if (t != null && t.size() > 0) {
+            isNotifying.set(true);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    parser.addData(tableData, t, isFoot);
+                    measurer.measure(tableData, config);
+                    requestReMeasure();
+                    postInvalidate();
+                    isNotifying.set(false);
+
+                }
+            }).start();
+        }
+    }
 
 
     /**

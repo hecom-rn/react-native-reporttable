@@ -35,6 +35,18 @@
 @end
 
 
+@interface TextBoderModel: NSObject
+@property (nonatomic, strong) UIColor *borderColor;
+@property (nonatomic, assign) CGFloat borderRadius;
+@property (nonatomic, assign) CGFloat borderWidth;
+
+@property (nonatomic, assign) BOOL isOverstriking;
+@property (nonatomic, strong) NSString *text;
+@property (nonatomic, strong) UIFont *font;
+@property (nonatomic, strong) UIColor *textColor;
+@end
+
+
 typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
     ClassificationLinePositionNone = 0,
     ClassificationLinePositionTop = 1 << 0,
@@ -46,17 +58,15 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 
 @interface ItemModel: NSObject
 @property (nonatomic, strong) NSString *title;
+@property (nonatomic, strong) NSAttributedString *richText;
 @property (nonatomic, assign) NSInteger keyIndex;
 @property (nonatomic, strong) UIColor *backgroundColor;
 @property (nonatomic, strong) UIColor *textColor;
-@property (nonatomic, strong) UIColor *splitLineColor;
 @property (nonatomic, assign) BOOL isOverstriking;
 @property (nonatomic, strong) UIColor *classificationLineColor;
 @property (nonatomic, assign) BOOL used;
 @property (nonatomic, assign) BOOL isForbidden;
-@property (nonatomic, assign) BOOL strikethrough;
 @property (nonatomic, strong) UIColor *boxLineColor;
-@property (nonatomic, strong) UIColor *asteriskColor;
 @property (nonatomic, assign) CGFloat fontSize;
 @property (nonatomic, assign) NSTextAlignment textAlignment;
 @property (nonatomic, assign) NSInteger textPaddingHorizontal;

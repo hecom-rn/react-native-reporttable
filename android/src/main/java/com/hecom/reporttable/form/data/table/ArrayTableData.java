@@ -1,19 +1,15 @@
 package com.hecom.reporttable.form.data.table;
 
 
-
-
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.IFormat;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
-import com.hecom.reporttable.table.bean.CellConfig;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by huang on 2018/1/14.
@@ -22,7 +18,7 @@ import java.util.Map;
 
 public class ArrayTableData<T> extends TableData<T> {
 
-    private  T[][] data;
+    private T[][] data;
     private List<Column<T>> arrayColumns;
 
 
@@ -32,23 +28,25 @@ public class ArrayTableData<T> extends TableData<T> {
      * @param rowArray 数组[row][col]
      * @return 数组[col][row]
      */
-    public static<T> T[][]  transformColumnArray(T[][] rowArray){
+    public static <T> T[][] transformColumnArray(T[][] rowArray) {
         T[][] newData = null;
-        T[] row= null;
-        if(rowArray != null){
+        T[] row = null;
+        if (rowArray != null) {
             int maxLength = 0;
-            for(T[] t :rowArray){
-                if(t !=null && t.length > maxLength){
+            for (T[] t : rowArray) {
+                if (t != null && t.length > maxLength) {
                     maxLength = t.length;
-                    row= t;
+                    row = t;
                 }
             }
-            if(row !=null) {
-                newData = (T[][]) Array.newInstance(rowArray.getClass().getComponentType(),maxLength);
+            if (row != null) {
+                newData = (T[][]) Array.newInstance(rowArray.getClass()
+                        .getComponentType(), maxLength);
                 for (int i = 0; i < rowArray.length; i++) { //转换一下
                     for (int j = 0; j < rowArray[i].length; j++) {
-                        if(newData[j] == null) {
-                            newData[j] = (T[]) Array.newInstance(row.getClass().getComponentType(),rowArray.length);
+                        if (newData[j] == null) {
+                            newData[j] = (T[]) Array.newInstance(row.getClass()
+                                    .getComponentType(), rowArray.length);
                         }
                         newData[j][i] = rowArray[i][j];
                     }
@@ -62,29 +60,24 @@ public class ArrayTableData<T> extends TableData<T> {
     /**
      * 创建二维数组表格数据
      * 如果数据不是数组[row][col]，可以使用transformColumnArray方法转换
-     * @param tableName 表名
+     * @param tableName  表名
      * @param titleNames 列名
-     * @param data 数据 数组[row][col]
+     * @param data       数据 数组[row][col]
      * @param drawFormat 数据格式化
      * @return 创建的二维数组表格数据
      */
-    public static<T> ArrayTableData<T> create(String tableName,String[] titleNames, T[][] data, IDrawFormat<T> drawFormat){
+    public static <T> ArrayTableData<T> create(String tableName, String[] titleNames, T[][] data,
+                                               IDrawFormat<T> drawFormat) {
         List<Column<T>> columns = new ArrayList<>();
-        int dataLength = data.length;
-        for(int i = 0; i < dataLength; i++){
+        for (int i = 0; i < data.length; i++) {
             T[] dataArray = data[i];
-            Column<T> column = new Column<>(titleNames == null?"":titleNames[i], null,drawFormat);
-            column.setColumn(i,dataLength);
+            Column<T> column = new Column<>(titleNames == null ? "" : titleNames[i], null,
+                    drawFormat);
             column.setDatas(Arrays.asList(dataArray));
             columns.add(column);
         }
-        ArrayList<T> arrayList;
-        if(dataLength >0){
-            arrayList = new ArrayList(Arrays.asList(data[0]));
-        }else {
-            arrayList = new ArrayList<>();
-        }
-        ArrayTableData<T> tableData =  new ArrayTableData<>(tableName,arrayList,columns);
+        ArrayList<T> arrayList = new ArrayList<>(Arrays.asList(data[0]));
+        ArrayTableData<T> tableData = new ArrayTableData<>(tableName, arrayList, columns);
         tableData.setData(data);
         return tableData;
     }
@@ -92,61 +85,51 @@ public class ArrayTableData<T> extends TableData<T> {
     /**
      * 创建不需要显示列名的二维数组表格数据
      * 如果数据不是数组[row][col]，可以使用transformColumnArray方法转换
-     * @param tableName 表名
-     * @param data 数据 数组[row][col]
+     * @param tableName  表名
+     * @param data       数据 数组[row][col]
      * @param drawFormat 数据格式化
      * @return 创建的二维数组表格数据
      */
-    public static<T> ArrayTableData<T> create(SmartTable table, String tableName, T[][] data, IDrawFormat<T> drawFormat){
+    public static <T> ArrayTableData<T> create(SmartTable table, String tableName, T[][] data,
+                                               IDrawFormat<T> drawFormat) {
         table.getConfig().setShowColumnTitle(false);
-        return create(tableName,null,data,drawFormat);
+        return create(tableName, null, data, drawFormat);
     }
 
     /**
      * 设置默认格式化
-     * @param format
      */
-    public void setFormat(IFormat<T> format){
-        for(Column<T> column:arrayColumns){
+    public void setFormat(IFormat<T> format) {
+        for (Column<T> column : arrayColumns) {
 
 
             column.setFormat(format);
         }
     }
+
     /**
      * 设置绘制格式化
-     * @param format
      */
-    public void setDrawFormat(IDrawFormat<T> format){
-        for(Column<T> column:arrayColumns){
+    public void setDrawFormat(IDrawFormat<T> format) {
+        for (Column<T> column : arrayColumns) {
             column.setDrawFormat(format);
         }
     }
 
-    public void setWidthLimit(int minWidth,int maxWidth, Map<Integer, CellConfig> columnConfigMap){
-        for (int i = 0; i < arrayColumns.size(); i++) {
-            Column<T> column = arrayColumns.get(i);
-            if(minWidth>0) column.setMinWidth(minWidth);
-            if(maxWidth>0) column.setMaxWidth(maxWidth);
-            CellConfig cellConfig = columnConfigMap != null ? columnConfigMap.get(i) : null;
-            if(null!=cellConfig){
-                if(cellConfig.minWidth>0){
-                    column.setMinWidth(cellConfig.minWidth);
-                }
-                if(cellConfig.maxWidth>0){
-                    column.setMaxWidth(cellConfig.maxWidth);
-                }
-            }
+    /**
+     * 设置最小宽度
+     */
+    public void setMinWidth(int minWidth) {
+        for (Column<T> column : arrayColumns) {
+            column.setMinWidth(minWidth);
         }
     }
 
-
     /**
      * 设置最小高度
-     * @param minHeight
      */
-    public void setMinHeight(int minHeight){
-        for(Column<T> column:arrayColumns){
+    public void setMinHeight(int minHeight) {
+        for (Column<T> column : arrayColumns) {
             column.setMinHeight(minHeight);
         }
     }
@@ -154,14 +137,16 @@ public class ArrayTableData<T> extends TableData<T> {
 
     /**
      * 二维数组的构造方法
+     *
      * @param tableName 表名
-     * @param t 数据
-     * @param columns 列
+     * @param t         数据
+     * @param columns   列
      */
     protected ArrayTableData(String tableName, List<T> t, List<Column<T>> columns) {
         super(tableName, t, new ArrayList<Column>(columns));
         this.arrayColumns = columns;
     }
+
     /**
      * 获取当前的列
      */
@@ -179,14 +164,10 @@ public class ArrayTableData<T> extends TableData<T> {
 
     /**
      * 设置二维数组数据
-     * @param data
      */
     public void setData(T[][] data) {
         this.data = data;
     }
-
-
-
 
 
 }

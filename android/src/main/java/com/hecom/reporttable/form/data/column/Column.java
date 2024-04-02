@@ -2,7 +2,6 @@ package com.hecom.reporttable.form.data.column;
 
 import android.graphics.Paint;
 
-
 import com.hecom.reporttable.form.data.TableInfo;
 import com.hecom.reporttable.form.data.format.IFormat;
 import com.hecom.reporttable.form.data.format.count.DecimalCountFormat;
@@ -13,7 +12,6 @@ import com.hecom.reporttable.form.data.format.draw.FastTextDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.MultiLineDrawFormat;
 import com.hecom.reporttable.form.data.format.draw.TextDrawFormat;
-import com.hecom.reporttable.form.data.format.draw.WrapTextResult;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
 import com.hecom.reporttable.form.utils.LetterUtils;
 
@@ -43,7 +41,6 @@ public class Column<T> implements Comparable<Column> {
     private IDrawFormat<T> drawFormat;
     private String fieldName;
     private List<T> datas;
-    private List<WrapTextResult> formatDatas;
     private boolean isFixed;
     private int computeWidth;
     private int level;
@@ -63,15 +60,10 @@ public class Column<T> implements Comparable<Column> {
     private int minWidth;
     private int minHeight;
     private int width;
-    private int maxLineNum = 8;
     private int column = 0;
-    private int maxWidth = 400;
-    private int totalColumn = 0;
-    private int margin4Icon = 0;
 
-    public void setColumn(int column, int totalColumn) {
+    public void setColumn(int column) {
         this.column = column;
-        this.totalColumn = totalColumn;
     }
 
     public int getColumn() {
@@ -252,13 +244,6 @@ public class Column<T> implements Comparable<Column> {
      */
     public void setDatas(List<T> datas) {
         this.datas = datas;
-        if (null != datas) {
-            int size = datas.size();
-            this.formatDatas = new ArrayList<>(size);
-            for (int i = 0; i < size; i++) {
-                this.formatDatas.add(null);
-            }
-        }
     }
 
 
@@ -390,30 +375,13 @@ public class Column<T> implements Comparable<Column> {
     }
 
 
-    public void setFormatData(int position, WrapTextResult value) {
-        if (position >= 0 && position < datas.size()) {
-            formatDatas.set(position, value);
-        }
-    }
-
     public String format(int position) {
         if (position >= 0 && position < datas.size()) {
-            if (formatDatas.get(position) != null) {
-                return formatDatas.get(position).text;
-            }
             return format(datas.get(position));
         }
         return INVAL_VALUE;
     }
 
-    public WrapTextResult getCacheWrapText(int position) {
-        if (position >= 0 && position < datas.size()) {
-            if (formatDatas.get(position) != null) {
-                return formatDatas.get(position);
-            }
-        }
-        return null;
-    }
 
     public List<int[]> parseRanges() {
         if (isAutoMerge && maxMergeCount > 1 && datas != null) {
@@ -428,7 +396,8 @@ public class Column<T> implements Comparable<Column> {
             int rangeCount = 1;
             for (int i = 0; i < size; i++) {
                 String val = format(datas.get(i));
-                if (rangeCount < maxMergeCount && perVal != null && val != null && val.length() != 0 && val.equals(perVal)) {
+                if (rangeCount < maxMergeCount && perVal != null && val != null
+                        && val.length() != 0 && val.equals(perVal)) {
                     if (rangeStartPosition == -1) {
                         rangeStartPosition = i - 1;
                     }
@@ -525,22 +494,6 @@ public class Column<T> implements Comparable<Column> {
      */
     public void setComputeWidth(int computeWidth) {
         this.computeWidth = computeWidth;
-    }
-
-
-    /**
-     * 设置列的计算宽度
-     */
-    public int setComputeWidthMax(int computeWidth) {
-        if (totalColumn < 3) {
-            this.computeWidth = computeWidth;
-            return computeWidth;
-        }
-        if (computeWidth > maxWidth) {
-            computeWidth = maxWidth;
-        }
-        this.computeWidth = computeWidth;
-        return computeWidth;
     }
 
 
@@ -768,14 +721,6 @@ public class Column<T> implements Comparable<Column> {
 
     public void setMinWidth(int minWidth) {
         this.minWidth = minWidth;
-    }
-
-    public int getMaxWidth() {
-        return maxWidth;
-    }
-
-    public void setMaxWidth(int maxWidth) {
-        this.maxWidth = maxWidth;
     }
 
     public int getMinHeight() {

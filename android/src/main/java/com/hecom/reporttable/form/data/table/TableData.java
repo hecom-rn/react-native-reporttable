@@ -12,7 +12,6 @@ import com.hecom.reporttable.form.data.format.sequence.NumberSequenceFormat;
 import com.hecom.reporttable.form.data.format.title.ITitleDrawFormat;
 import com.hecom.reporttable.form.data.format.title.TitleDrawFormat;
 import com.hecom.reporttable.form.listener.OnColumnItemClickListener;
-import com.hecom.reporttable.table.bean.TypicalCell;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,8 +23,6 @@ import java.util.List;
 
 public class TableData<T> {
 
-    private TypicalCell[][] maxValues4Column;
-    private TypicalCell[][] maxValues4Row;
     private String tableName;
     private List<Column> columns;
     private List<T> t;
@@ -43,22 +40,6 @@ public class TableData<T> {
     private OnItemClickListener onItemClickListener;
     private OnRowClickListener<T> onRowClickListener;
     private OnColumnClickListener<?> onColumnClickListener;
-
-    public TypicalCell[][] getMaxValues4Column() {
-        return maxValues4Column;
-    }
-
-    public void setMaxValues4Column(TypicalCell[][] maxValues4Column) {
-        this.maxValues4Column = maxValues4Column;
-    }
-
-    public TypicalCell[][] getMaxValues4Row() {
-        return maxValues4Row;
-    }
-
-    public void setMaxValues4Row(TypicalCell[][] maxValues4Row) {
-        this.maxValues4Row = maxValues4Row;
-    }
 
     /**
      * @param tableName 表名
@@ -357,7 +338,7 @@ public class TableData<T> {
                             if (i == firstRow && j == firstCol) {
                                 int rowCount = Math.min(lastRow + 1, tableCells.length) - firstRow;
                                 int colCount = Math.min(lastCol + 1, tableCells[i].length) - firstCol;
-                                realCell = new Cell(colCount, rowCount, firstCol, firstRow, Math.min(lastCol, tableCells[i].length - 1), Math.min(lastRow, tableCells.length - 1));
+                                realCell = new Cell(colCount, rowCount);
                                 tableCells[i][j] = realCell;
                                 continue;
                             }

@@ -51,14 +51,14 @@
         self.showsVerticalScrollIndicator = false;
         self.showsHorizontalScrollIndicator = false;
         self.backgroundColor = [UIColor whiteColor];
-        
+
         self.containerView = [[UIView alloc] init];
         self.containerView.backgroundColor = [UIColor whiteColor];
         self.containerView.frame = self.bounds;
         self.containerView.userInteractionEnabled = false;
         self.containerView.layer.anchorPoint = CGPointMake(0, 0);
         [self addSubview: self.containerView];
-        
+
         [self.spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier: [ReportTableCell description]];
         [self.spreadsheetView flashScrollIndicators];
     }
@@ -71,15 +71,16 @@
     self.frozenArray = reportTableModel.frozenArray;
     self.cloumsHight = reportTableModel.cloumsHight;
     self.rowsWidth = reportTableModel.rowsWidth;
-    
-  
+
+
     CGFloat hairline = 1;
     self.spreadsheetView.intercellSpacing = CGSizeMake(hairline, hairline);
     self.spreadsheetView.gridStyle = [[GridStyle alloc] initWithStyle:GridStyle_solid width: hairline color: reportTableModel.lineColor];
-    
+
     // 且在横向显示范围内显示完全的时候再显示，确保数据少时不显示border （业务要求
     NSNumber *width = [reportTableModel.rowsWidth valueForKeyPath:@"@sum.self"];
-    if (reportTableModel.showBorder && [width floatValue] >= reportTableModel.tableRect.size.width * self.zoomScale) {
+    BOOL isFullWidth = [width floatValue] >= reportTableModel.tableRect.size.width / self.zoomScale;
+    if (reportTableModel.showBorder && isFullWidth) {
         self.spreadsheetView.layer.masksToBounds = YES;
         self.spreadsheetView.layer.borderColor = reportTableModel.lineColor.CGColor;
         self.spreadsheetView.layer.borderWidth = hairline;
@@ -87,7 +88,7 @@
     if (self.reportTableModel.permutedArr.count > 0 && reportTableModel.dataSource.count > 0) {
         NSArray *data = reportTableModel.dataSource[0];
         NSArray *array = self.reportTableModel.permutedArr;
-        
+
         NSArray *sortedArray = [array sortedArrayUsingSelector:@selector(compare:)];
         if ([[sortedArray lastObject] integerValue] >= data.count) {
             // 锁定状态会越界, 则清除permutedArr数据，还原锁定状态
@@ -109,6 +110,8 @@
         }
     }
 
+
+    self.spreadsheetView.showCloumnForzenShadow = isFullWidth; // 设置是否显示阴影
     [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
     [self setMergedCellsLabelOffset];
@@ -120,15 +123,15 @@
 }
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView {
-  
+
     UIView *contentView = self.spreadsheetView;
-    
+
     CGFloat zoomScale = scrollView.zoomScale;
     contentView.transform = CGAffineTransformMakeScale(zoomScale, zoomScale);
-    
+
     CGSize headerSize = self.headerScrollView.frame.size;
     self.spreadsheetView.tableView.contentInset = UIEdgeInsetsMake(headerSize.height / zoomScale, 0, 0, 0);
-    
+
     // 调整contentView的位置和大小以保持子视图位置不变
     CGRect newFrame = contentView.frame;
     newFrame.origin.x = scrollView.contentInset.left;
@@ -143,6 +146,11 @@
     [self sendSubviewToBack: self.headerScrollView];
     self.headerScrollView.isUserScouce = false;
     self.isOnHeader = false;
+
+    NSNumber *width = [self.reportTableModel.rowsWidth valueForKeyPath:@"@sum.self"];
+    BOOL isFullWidth = [width floatValue] >= self.reportTableModel.tableRect.size.width / scale;
+    self.spreadsheetView.showCloumnForzenShadow = isFullWidth; // 设置是否显示阴影
+
     [self setMergedCellsLabelOffset];
 }
 
@@ -170,7 +178,7 @@
     }
     x += offsetX;
     y += offsetY;
-    
+
     if (_spreadsheetView) {
         [self.spreadsheetView setContentOffset:CGPointMake(x, y) animated: animated];
     }
@@ -240,7 +248,7 @@
     }
     return _spreadsheetView;
 }
-    
+
 - (void)setMergedCellsLabelOffset {
     if (self.frozenArray.count > 0) {
         SpreadsheetView *ssv = self.spreadsheetView;
@@ -262,14 +270,14 @@
                         CGFloat halfH = rect.size.height / 2 - labelH / 2;
                         CGFloat y = offset - rect.origin.y - halfH; // 要偏离的距离
                         y = y >= 0 ? MIN(halfH, y) : MAX(-halfH, y); // 先偏移到两端
-                        
+
                         BOOL isFull = offset >= rect.origin.y && offset <= rect.origin.y + rect.size.height - tableHeight;
                         CGFloat endH = rect.origin.y + rect.size.height - offset > labelH ? (rect.origin.y + rect.size.height - labelH - offset) : 0; //  剩余可见高度
                         BOOL isEnd = rect.size.height + rect.origin.y - offset > 0 && rect.size.height + rect.origin.y - offset < tableHeight;
                         CGFloat startH = MAX(0, tableHeight - rect.origin.y + offset - labelH);
                         CGFloat over = isFull ? (tableHeight - labelH) / 2 : isEnd ? endH / 2 : startH / 2; // 补的距离
                         y = y + over;
-                        
+
                         cell.label.transform = CGAffineTransformMakeTranslation(0, y);
                     }
                 } else {
@@ -371,15 +379,13 @@
     cell.textPaddingHorizontal = model.textPaddingHorizontal;
 
     UIFont *font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
-    if (model.extraText) {
+    if (model.richText) {
+        cell.label.attributedText = model.richText;
+    } else if (model.extraText) {
         NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString: model.title];
         NSRange range = NSMakeRange(0, model.title.length);
         [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:range];
         [attributedText addAttribute:NSFontAttributeName value:font range:range];
-        if (model.strikethrough) {
-            // 添加删除线
-            [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
-        }
         NSTextAttachment *attachment = [[NSTextAttachment alloc] init];
         UIImage *image = [UIImage imageWithExtra:model.extraText];
         attachment.image = image;
@@ -394,45 +400,8 @@
             [attributedText addAttribute:NSBaselineOffsetAttributeName value:@(-3) range:NSMakeRange(model.title.length, 1)];
         }
         cell.label.attributedText = attributedText;
-        
-    } else if (model.asteriskColor != nil) {
-        NSMutableAttributedString *attributedText;
-        NSRange range;
-        NSRange nonRequiredRange;
-        if (model.textAlignment == NSTextAlignmentLeft) {
-            // 必填符在右侧
-            attributedText = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@%@", model.title, @"*"]];
-            range = NSMakeRange(model.title.length, 1);
-            nonRequiredRange = NSMakeRange(0, model.title.length);
-        } else {
-            attributedText = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@%@", @"*", model.title]];
-            range = NSMakeRange(0, 1);
-            nonRequiredRange = NSMakeRange(1, model.title.length);
-        }
-        [attributedText addAttribute:NSForegroundColorAttributeName value:model.asteriskColor range:range];
-        [attributedText addAttribute:NSFontAttributeName value:font range:range];
-        
-        [attributedText addAttribute:NSBaselineOffsetAttributeName value:@(-model.fontSize/7) range:range];
-        
-        [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:nonRequiredRange];
-        [attributedText addAttribute:NSFontAttributeName value:font range:nonRequiredRange];
-        if (model.strikethrough) {
-            // 添加删除线
-            [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
 
-        }
-        cell.label.attributedText = attributedText;
-    } else if (model.strikethrough) {
-        NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString:model.title];
-
-        [attributedText addAttribute:NSForegroundColorAttributeName value:model.textColor range:NSMakeRange(0, attributedText.length)];
-
-        // 添加删除线
-        [attributedText addAttribute:NSStrikethroughStyleAttributeName value:@(NSUnderlineStyleSingle) range:NSMakeRange(0, attributedText.length)];
-
-        cell.label.font = font;
-        cell.label.attributedText = attributedText;
-    } else {
+    }  else {
         cell.label.text = model.title;
         cell.label.textColor = model.textColor;
         cell.label.font = font;
@@ -555,7 +524,7 @@
                 } else {
                     [row insertObject:obj atIndex:y];
                 }
-            
+
             }
         }
     } else {
@@ -566,9 +535,9 @@
         } else {
             [arr insertObject:obj atIndex:y];
         }
-       
+
     }
- 
+
 }
 
 @end
