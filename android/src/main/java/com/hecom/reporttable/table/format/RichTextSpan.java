@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.text.style.ReplacementSpan;
 
+import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.Cell;
 
@@ -22,10 +23,13 @@ public class RichTextSpan extends ReplacementSpan {
 
     Context context;
 
-    public RichTextSpan(Context context, Cell cell, Cell.RichTextStyle style) {
+    TableConfig config;
+
+    public RichTextSpan(Context context, Cell cell, Cell.RichTextStyle style, TableConfig config) {
         this.style = style;
         this.context = context;
         this.cell = cell;
+        this.config = config;
     }
 
     @Override
@@ -52,7 +56,7 @@ public class RichTextSpan extends ReplacementSpan {
         // 绘制背景
         drawBg(canvas, rect, paint);
         // 绘制文字
-        drawText(canvas, text, start, end, rect, padding, y, paint);
+        drawText(canvas, text, start, end, rect, padding, y, paint, textWidth);
         // 绘制边框
         drawBorder(canvas, rect, paint);
 
@@ -70,7 +74,8 @@ public class RichTextSpan extends ReplacementSpan {
         if (this.style.getBorderWidth() > 0) {
             float fontSize = paint.getTextSize();
             if (this.style.getFontSize() != -1) {
-                fontSize = (DensityUtils.dp2px(this.context, this.style.getFontSize()));
+                fontSize =
+                        (DensityUtils.dp2px(this.context, this.style.getFontSize())) * config.getZoom();
             }
             return new float[]{fontSize * 0.4f, fontSize * 0.25f, fontSize * 0.4f,
                     fontSize * 0.25f};
@@ -108,13 +113,13 @@ public class RichTextSpan extends ReplacementSpan {
     }
 
     private void drawText(Canvas canvas, CharSequence text, int start, int end, RectF rect,
-                          float[] padding, int y, Paint paint) {
+                          float[] padding, int y, Paint paint, float textWidth) {
         paint.setStyle(Paint.Style.FILL);
         if (this.style.getTextColor() != null) {
             paint.setColor(Color.parseColor(this.style.getTextColor()));
         }
         if (this.style.getFontSize() != -1) {
-            paint.setTextSize(DensityUtils.dp2px(this.context, this.style.getFontSize()));
+            paint.setTextSize(DensityUtils.dp2px(this.context, this.style.getFontSize()) * config.getZoom());
         }
         if (this.style.getOverstriking() != null) {
             paint.setFakeBoldText(this.style.getOverstriking());
@@ -124,11 +129,12 @@ public class RichTextSpan extends ReplacementSpan {
                 canvas.drawText(text, start, end, rect.left + padding[0], y, paint);
                 break;
             case RIGHT:
-                canvas.drawText(text, start, end, rect.right - padding[2], y, paint);
+                canvas.drawText(text, start, end,
+                        rect.left + padding[0] + rect.width() - textWidth, y, paint);
                 break;
             case CENTER:
             default:
-                canvas.drawText(text, start, end, rect.centerX(), y, paint);
+                canvas.drawText(text, start, end, rect.centerX() - textWidth / 2, y, paint);
                 break;
         }
     }
