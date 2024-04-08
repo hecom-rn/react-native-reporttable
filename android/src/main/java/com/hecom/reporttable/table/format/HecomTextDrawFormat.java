@@ -189,7 +189,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         Cell cell = column.getDatas().get(position);
         float maxWidth =
                 this.table.getMaxColumnWidth(column) - config.getHorizontalPadding() * 2 - getAsteriskWidth(config, cell) - cellDrawFormat.getImageWidth();
-        CharSequence charSequence = getSpan(cell);
+        CharSequence charSequence = getSpan(cell, config);
         mTextPaint.set(paint);
         StaticLayout layout = new StaticLayout(charSequence, mTextPaint, (int) maxWidth,
                 StaticLayout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
@@ -205,14 +205,14 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
                 .getDisplayMetrics().density, layout.getHeight());
     }
 
-    private SpannableStringBuilder getSpan(Cell cell) {
+    private SpannableStringBuilder getSpan(Cell cell, TableConfig config) {
         Context context = this.table.getContext();
         SpannableStringBuilder ssb = new SpannableStringBuilder();
         if (cell.getRichText() != null) {
             for (Cell.RichText richText : cell.getRichText()) {
                 ssb.append(richText.getText());
                 if (richText.getStyle() != null) {
-                    ssb.setSpan(new RichTextSpan(context, cell, richText.getStyle()),
+                    ssb.setSpan(new RichTextSpan(context, cell, richText.getStyle(), config),
                             ssb.length() - richText.getText()
                             .length(), ssb.length(),
                             SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE);
