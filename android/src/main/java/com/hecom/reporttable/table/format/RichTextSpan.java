@@ -124,6 +124,9 @@ public class RichTextSpan extends ReplacementSpan {
         if (this.style.getOverstriking() != null) {
             paint.setFakeBoldText(this.style.getOverstriking());
         }
+        if (this.style.getStrikethrough() != null) {
+            paint.setStrikeThruText(this.style.getStrikethrough());
+        }
         switch (paint.getTextAlign()) {
             case LEFT:
                 canvas.drawText(text, start, end, rect.left + padding[0], y, paint);

@@ -234,6 +234,16 @@ public class Cell {
 
         public Boolean isOverstriking = null;
 
+        private Boolean strikethrough = null;
+
+        public Boolean getStrikethrough() {
+            return strikethrough;
+        }
+
+        public void setStrikethrough(Boolean strikethrough) {
+            this.strikethrough = strikethrough;
+        }
+
         public Boolean getOverstriking() {
             return isOverstriking;
         }
