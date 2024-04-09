@@ -253,6 +253,9 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                     this.resourceId = R.mipmap.checkbox_hl;
                     this.direction = RIGHT;
                 }
+            } else {
+                setImageWidth(0);
+                setImageHeight(0);
             }
         }
     }

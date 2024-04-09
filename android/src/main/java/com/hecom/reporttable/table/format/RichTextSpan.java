@@ -11,11 +11,13 @@ import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.Cell;
 
+import androidx.annotation.NonNull;
+
 /**
  * Created by kevin.bai on 2024/3/8.
  */
 public class RichTextSpan extends ReplacementSpan {
-    private static float[] ZERO = new float[]{0, 0, 0, 0};
+    private static final float[] ZERO = new float[]{0, 0, 0, 0};
 
     Cell.RichTextStyle style;
 
@@ -33,7 +35,7 @@ public class RichTextSpan extends ReplacementSpan {
     }
 
     @Override
-    public int getSize(Paint paint, CharSequence text, int start, int end,
+    public int getSize(@NonNull Paint paint, CharSequence text, int start, int end,
                        Paint.FontMetricsInt fm) {
         float[] padding = getPadding(paint);
         float[] margin = getMargin();
@@ -41,22 +43,22 @@ public class RichTextSpan extends ReplacementSpan {
     }
 
     @Override
-    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top,
+    public void draw(@NonNull Canvas canvas, CharSequence text, int start, int end, float x,
+                     int top,
                      int y, int bottom, Paint paint) {
         // 保存原始画笔颜色和样式
         int originalColor = paint.getColor();
         Paint.Style originalStyle = paint.getStyle();
         float originTextSize = paint.getTextSize();
         boolean isBold = paint.isFakeBoldText();
+        Paint.Align originAlign = paint.getTextAlign();
 
         float textWidth = paint.measureText(text, start, end);
         float[] padding = getPadding(paint);
         float[] margin = getMargin();
         RectF rect = getBgRect(x, y, paint, textWidth, padding, margin);
-        // 绘制背景
-        drawBg(canvas, rect, paint);
         // 绘制文字
-        drawText(canvas, text, start, end, rect, padding, y, paint, textWidth);
+        drawText(canvas, text, start, end, rect, paint);
         // 绘制边框
         drawBorder(canvas, rect, paint);
 
@@ -64,6 +66,7 @@ public class RichTextSpan extends ReplacementSpan {
         paint.setStyle(originalStyle);
         paint.setTextSize(originTextSize);
         paint.setFakeBoldText(isBold);
+        paint.setTextAlign(originAlign);
 
     }
 
@@ -99,9 +102,6 @@ public class RichTextSpan extends ReplacementSpan {
         return new RectF(bgStartX, bgStartY, bgEndX, bgEndY);
     }
 
-    private void drawBg(Canvas canvas, RectF rect, Paint paint) {
-    }
-
     private void drawBorder(Canvas canvas, RectF rect, Paint paint) {
         if (this.style.getBorderColor() != null && this.style.getBorderWidth() != -1) {
             paint.setColor(Color.parseColor(this.style.getBorderColor()));
@@ -113,32 +113,10 @@ public class RichTextSpan extends ReplacementSpan {
     }
 
     private void drawText(Canvas canvas, CharSequence text, int start, int end, RectF rect,
-                          float[] padding, int y, Paint paint, float textWidth) {
+                          Paint paint) {
         paint.setStyle(Paint.Style.FILL);
-        if (this.style.getTextColor() != null) {
-            paint.setColor(Color.parseColor(this.style.getTextColor()));
-        }
-        if (this.style.getFontSize() != -1) {
-            paint.setTextSize(DensityUtils.dp2px(this.context, this.style.getFontSize()) * config.getZoom());
-        }
-        if (this.style.getOverstriking() != null) {
-            paint.setFakeBoldText(this.style.getOverstriking());
-        }
-        if (this.style.getStrikethrough() != null) {
-            paint.setStrikeThruText(this.style.getStrikethrough());
-        }
-        switch (paint.getTextAlign()) {
-            case LEFT:
-                canvas.drawText(text, start, end, rect.left + padding[0], y, paint);
-                break;
-            case RIGHT:
-                canvas.drawText(text, start, end,
-                        rect.left + padding[0] + rect.width() - textWidth, y, paint);
-                break;
-            case CENTER:
-            default:
-                canvas.drawText(text, start, end, rect.centerX() - textWidth / 2, y, paint);
-                break;
-        }
+        paint.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText(text, start, end, rect.centerX(),
+                rect.centerY() + paint.getFontMetrics().bottom, paint);
     }
 }

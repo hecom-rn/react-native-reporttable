@@ -5,10 +5,15 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
@@ -20,6 +25,11 @@ import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.bean.CellCache;
 import com.hecom.reporttable.table.bean.ExtraTextConfig;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import androidx.annotation.NonNull;
 
 /**
  * Created by huang on 2017/10/30.
@@ -189,33 +199,38 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         Cell cell = column.getDatas().get(position);
         float maxWidth =
                 this.table.getMaxColumnWidth(column) - config.getHorizontalPadding() * 2 - getAsteriskWidth(config, cell) - cellDrawFormat.getImageWidth();
-        CharSequence charSequence = getSpan(cell, config);
+        CharSequence charSequence = getSpan(cell, config, paint);
         mTextPaint.set(paint);
         StaticLayout layout = new StaticLayout(charSequence, mTextPaint, (int) maxWidth,
                 StaticLayout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
-        int maxLineWidth = 0;
+        float maxLineWidth = 0;
         for (int i = 0; i < layout.getLineCount(); i++) {
-            if (maxLineWidth == (int) maxWidth) {
+            if (maxLineWidth == maxWidth) {
                 break;
             }
-            maxLineWidth = (int) Math.max(maxLineWidth, layout.getLineWidth(i));
+            maxLineWidth = Math.max(maxLineWidth, layout.getLineWidth(i));
         }
         // 文字最大宽度增加一点冗余，防止缩放过程中文字意外换行
         return new CellCache(charSequence, maxLineWidth + this.table.getContext().getResources()
-                .getDisplayMetrics().density, layout.getHeight());
+                .getDisplayMetrics().density * 2, layout.getHeight());
     }
 
-    private SpannableStringBuilder getSpan(Cell cell, TableConfig config) {
+    private SpannableStringBuilder getSpan(Cell cell, TableConfig config, Paint paint) {
         Context context = this.table.getContext();
         SpannableStringBuilder ssb = new SpannableStringBuilder();
         if (cell.getRichText() != null) {
             for (Cell.RichText richText : cell.getRichText()) {
                 ssb.append(richText.getText());
                 if (richText.getStyle() != null) {
-                    ssb.setSpan(new RichTextSpan(context, cell, richText.getStyle(), config),
-                            ssb.length() - richText.getText()
-                            .length(), ssb.length(),
-                            SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    List<Object> spanList = getSpan(cell, config, context, richText.getStyle(),
+                            paint);
+                    for (int i = 0; i < spanList.size(); i++) {
+                        ssb.setSpan(spanList.get(i),
+                                ssb.length() - richText.getText()
+                                        .length(), ssb.length(),
+                                SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+
                 }
             }
         } else {
@@ -227,6 +242,28 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
             ssb.setSpan(new RadiusBackgroundSpan(Color.parseColor(extraText.backgroundStyle.color), Color.parseColor(extraText.style.color), DensityUtils.dp2px(context, 4), DensityUtils.dp2px(context, extraText.backgroundStyle.width), DensityUtils.dp2px(context, extraText.backgroundStyle.height), DensityUtils.dp2px(context, extraText.style.fontSize)), ssb.length() - extraText.text.length(), ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return ssb;
+    }
+
+    @NonNull
+    private static List<Object> getSpan(Cell cell, TableConfig config, Context context,
+                                        Cell.RichTextStyle style, Paint paint) {
+        List<Object> result = new ArrayList<>();
+        if (style.getTextColor() != null) {
+            result.add(new ForegroundColorSpan(Color.parseColor(style.getTextColor())));
+        }
+        if (style.getFontSize() != -1) {
+            result.add(new RelativeSizeSpan(DensityUtils.dp2px(context, style.getFontSize()) / paint.getTextSize()));
+        }
+        if (style.getOverstriking() != null) {
+            result.add(new StyleSpan(style.getOverstriking() ? Typeface.BOLD : Typeface.NORMAL));
+        }
+        if (style.getStrikethrough() != null && style.getStrikethrough()) {
+            result.add(new StrikethroughSpan());
+        }
+        if (style.getBorderColor() != null && style.getBorderWidth() != -1) {
+            result.add(new RichTextSpan(context, cell, style, config));
+        }
+        return result;
     }
 
     private float getFontSize(TableConfig config, Cell bean) {
