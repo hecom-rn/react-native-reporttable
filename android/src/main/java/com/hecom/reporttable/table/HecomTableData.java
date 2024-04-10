@@ -173,8 +173,15 @@ public class HecomTableData extends ArrayTableData<Cell> {
             Cell[] dataArray = data[i];
             Column<Cell> column = new Column<>("",
                     null, format, drawFormat);
+            List<int[]> ranges = new ArrayList<>();
+            for (CellRange cellRange : mergeList) {
+                if (cellRange.getFirstCol() == i && cellRange.getFirstRow() != cellRange.getLastRow()) {
+                    ranges.add(new int[]{cellRange.getFirstRow(), cellRange.getLastRow()});
+                }
+            }
             column.setColumn(i);
             column.setDatas(Arrays.asList(dataArray));
+            column.setRanges(ranges);
             columns.add(column);
         }
         List<Cell> arrayList;
@@ -206,7 +213,9 @@ public class HecomTableData extends ArrayTableData<Cell> {
             Column<Cell> column = getArrayColumns().get(i);
             if (config.getMinWidth() > 0) column.setMinWidth(config.getMinWidth());
             if (config.getMinHeight() > 0) column.setMinHeight(config.getMinHeight());
-            CellConfig cellConfig = config.getColumnConfigMap() != null ? config.getColumnConfigMap().get(i) : null;
+            CellConfig cellConfig = config.getColumnConfigMap() != null ?
+                    config.getColumnConfigMap()
+                    .get(i) : null;
             if (null != cellConfig) {
                 if (cellConfig.minWidth > 0) {
                     column.setMinWidth(cellConfig.minWidth);
