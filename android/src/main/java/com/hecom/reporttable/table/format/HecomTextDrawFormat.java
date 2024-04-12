@@ -57,7 +57,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
     public int measureWidth(Column<Cell> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
         Cell cell = column.getDatas().get(position);
-        setTextPaint(config, cell, paint);
+        setTextPaint(config, cell, paint, false);
         CellCache result = getCellCache(column, position, paint, config);
         float asteriskWidth = getAsteriskWidth(config, cell);
         return (int) (result.getWidth() + asteriskWidth);
@@ -77,7 +77,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
     @Override
     public int measureHeight(Column<Cell> column, int position, TableConfig config) {
         Paint paint = config.getPaint();
-        setTextPaint(config, column.getDatas().get(position), paint);
+        setTextPaint(config, column.getDatas().get(position), paint, false);
         CellCache result = getCellCache(column, position, paint, config);
         return result.getHeight();
     }
@@ -141,7 +141,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
 
     protected void drawText(Canvas c, CellInfo<Cell> cellInfo, Rect rect, Paint paint,
                             TableConfig config) {
-        setTextPaint(config, cellInfo.data, paint);
+        setTextPaint(config, cellInfo.data, paint, true);
         CellCache result = getCellCache(cellInfo.column, cellInfo.row, paint, config);
         int saveCount = c.getSaveCount();
         c.save();
@@ -169,9 +169,9 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
     }
 
 
-    public void setTextPaint(TableConfig config, Cell cell, Paint paint) {
+    public void setTextPaint(TableConfig config, Cell cell, Paint paint, boolean onDraw) {
         config.getContentStyle().fillPaint(paint);
-        paint.setTextSize(getFontSize(config, cell) * config.getZoom());
+        paint.setTextSize(getFontSize(config, cell) * (onDraw ? config.getZoom() : 1));
         if (cell.getTextColor() != TableConfig.INVALID_COLOR) {
             paint.setColor(cell.getTextColor());
         }

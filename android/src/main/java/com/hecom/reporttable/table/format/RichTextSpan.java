@@ -37,7 +37,7 @@ public class RichTextSpan extends ReplacementSpan {
     @Override
     public int getSize(@NonNull Paint paint, CharSequence text, int start, int end,
                        Paint.FontMetricsInt fm) {
-        float[] padding = getPadding(paint);
+        float[] padding = getPadding(paint, false);
         float[] margin = getMargin();
         return Math.round(paint.measureText(text, start, end) + padding[0] + padding[2] + margin[0] + margin[2]);
     }
@@ -54,7 +54,7 @@ public class RichTextSpan extends ReplacementSpan {
         Paint.Align originAlign = paint.getTextAlign();
 
         float textWidth = paint.measureText(text, start, end);
-        float[] padding = getPadding(paint);
+        float[] padding = getPadding(paint, true);
         float[] margin = getMargin();
         RectF rect = getBgRect(x, y, paint, textWidth, padding, margin);
         // 绘制文字
@@ -73,12 +73,13 @@ public class RichTextSpan extends ReplacementSpan {
     /**
      * 四边的padding，分别为left,top,right,bottom
      */
-    private float[] getPadding(Paint paint) {
+    private float[] getPadding(Paint paint, boolean onDraw) {
         if (this.style.getBorderWidth() > 0) {
             float fontSize = paint.getTextSize();
             if (this.style.getFontSize() != -1) {
                 fontSize =
-                        (DensityUtils.dp2px(this.context, this.style.getFontSize())) * config.getZoom();
+                        (DensityUtils.dp2px(this.context, this.style.getFontSize())) * (onDraw ?
+                                config.getZoom() : 1);
             }
             return new float[]{fontSize * 0.4f, fontSize * 0.25f, fontSize * 0.4f,
                     fontSize * 0.25f};
