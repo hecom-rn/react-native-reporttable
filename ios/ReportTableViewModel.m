@@ -317,12 +317,14 @@
 
 - (void)setFrozenCount:(NSInteger)frozenCount {
     self.reportTableModel.frozenCount = frozenCount;
+    self.reportTableModel.frozenColumns = self.reportTableModel.oriFrozenColumns;
     self.propertyCount += 1;
     [self reloadCheck];
 }
 
 - (void)setFrozenPoint:(NSInteger)frozenPoint {
     self.reportTableModel.frozenPoint = frozenPoint;
+    self.reportTableModel.frozenColumns = self.reportTableModel.oriFrozenColumns;
     self.propertyCount += 1;
     [self reloadCheck];
 }
