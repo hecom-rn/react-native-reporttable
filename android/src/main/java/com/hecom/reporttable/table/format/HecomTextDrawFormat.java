@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.StaticLayout;
@@ -148,23 +149,29 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         int saveCount = c.getSaveCount();
         c.save();
         mTextPaint.set(paint);
-        StaticLayout layout = new StaticLayout(result.getText(), mTextPaint, rect.width(),
-                StaticLayout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
-        int dx = 0; // x 方向偏移量
+        mTextPaint.setTextAlign(Paint.Align.LEFT);
+
+        Layout.Alignment align;
         // 根据对齐方式计算偏移量
         switch (paint.getTextAlign()) {
             case LEFT: // 左对齐
+            default:
+                align = Layout.Alignment.ALIGN_NORMAL;
                 break;
             case CENTER: // 居中对齐
-                dx = rect.centerX() - rect.left;
+                align = Layout.Alignment.ALIGN_CENTER;
                 break;
             case RIGHT: // 右对齐
-                dx = rect.width();
+                align = Layout.Alignment.ALIGN_OPPOSITE;
                 break;
         }
+
+        StaticLayout layout = new StaticLayout(result.getText(), mTextPaint, rect.width(),
+                align, 1.0f, 0.0f, false);
+
         // 计算垂直居中的偏移量
         int dy = (rect.height() - layout.getHeight()) / 2;
-        c.translate(rect.left + dx, rect.top + dy);
+        c.translate(rect.left, rect.top + dy);
         // 绘制文本
         layout.draw(c);
         c.restoreToCount(saveCount);
