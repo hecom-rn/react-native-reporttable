@@ -110,7 +110,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 this.rect.set(rect.left + (imgWidth + drawPadding), rect.top, rect.right,
                         rect.bottom);
                 textDrawFormat.draw(c, this.rect, cellInfo, config);
-                textWidth = getDrawWidth(cellInfo, config);
+                textWidth = getDrawWidth(cellInfo);
                 switch (textAlign) { //单元格内容的对齐方式
                     case CENTER:
                         imgRight = Math.min(this.rect.right,
@@ -130,7 +130,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 this.rect.set(rect.left, rect.top, rect.right - (imgWidth + drawPadding),
                         rect.bottom);
                 textDrawFormat.draw(c, this.rect, cellInfo, config);
-                textWidth = getDrawWidth(cellInfo, config);
+                textWidth = getDrawWidth(cellInfo);
                 switch (textAlign) { //单元格内容的对齐方式
                     case CENTER:
                         imgLeft = Math.min(this.rect.right,
@@ -168,8 +168,8 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         }
     }
 
-    private int getDrawWidth(CellInfo<Cell> cellInfo, TableConfig config) {
-        return (int) (cellInfo.data.getCache().getDrawWidth() * config.getZoom());
+    private int getDrawWidth(CellInfo<Cell> cellInfo) {
+        return (int) (cellInfo.data.getCache().getDrawWidth());
     }
 
     private void update(Column<Cell> column, int position) {
