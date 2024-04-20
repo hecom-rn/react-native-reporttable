@@ -21,7 +21,6 @@ import com.hecom.reporttable.form.listener.TableClickObserver;
 import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DrawUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -50,13 +49,7 @@ public class TableProvider<T> implements TableClickObserver {
     private PointF tipPoint = new PointF();
     private IDrawOver drawOver;
     private CellInfo cellInfo = new CellInfo();
-    private boolean isFirstDraw = true;  //是否首次绘制
-    private List<ArrayList<Integer>> fixedTopLists = new ArrayList<>();  //固定行的topSet
-    private List<ArrayList<Integer>> fixedBottomLists = new ArrayList<>();  //固定行的bottomSet
     private MatrixHelper mMatrixHelper;
-    private int mFixedReactLeft = 0;
-    private int mFixedReactRight = 0;
-    private int mMinFixedWidth = 0;
     private boolean singleClickItem = false;
 
     public TableProvider() {
@@ -76,8 +69,8 @@ public class TableProvider<T> implements TableClickObserver {
      * @param tableData 表格数据
      * @param config    配置
      */
-    public void onDraw(Canvas canvas, Rect scaleRect, Rect showRect,
-                       TableData<T> tableData, TableConfig config) {
+    public void onDraw(Canvas canvas, Rect scaleRect, Rect showRect, TableData<T> tableData,
+                       TableConfig config) {
         setData(scaleRect, showRect, tableData, config);
         canvas.save();
         canvas.clipRect(this.showRect);
@@ -86,8 +79,7 @@ public class TableProvider<T> implements TableClickObserver {
         drawContent(canvas, false);
         drawContent(canvas, true);
         operation.draw(canvas, showRect, config);
-        if (drawOver != null)
-            drawOver.draw(canvas, scaleRect, showRect, config);
+        if (drawOver != null) drawOver.draw(canvas, scaleRect, showRect, config);
         canvas.restore();
         if (isClickPoint && clickColumnInfo != null) {
             onColumnClickListener.onClick(clickColumnInfo);
@@ -194,8 +186,7 @@ public class TableProvider<T> implements TableClickObserver {
         int titleHeight = tableInfo.getTitleHeight() * tableInfo.getMaxLevel();
         int clipHeight = config.isFixedTitle() ? titleHeight : Math.max(0, titleHeight - dis);
         if (config.getColumnTitleBackground() != null) {
-            tempRect.set(showRect.left, showRect.top, showRect.right,
-                    showRect.top + clipHeight);
+            tempRect.set(showRect.left, showRect.top, showRect.right, showRect.top + clipHeight);
             config.getColumnTitleBackground().drawBackground(canvas, tempRect, config.getPaint());
         }
         clipRect.set(showRect);
@@ -251,8 +242,8 @@ public class TableProvider<T> implements TableClickObserver {
      */
     private void fillColumnTitle(Canvas canvas, ColumnInfo info, int left) {
 
-        int top = (int) (info.top * config.getZoom())
-                + (config.isFixedTitle() ? showRect.top : scaleRect.top);
+        int top = (int) (info.top * config.getZoom()) + (config.isFixedTitle() ? showRect.top :
+                scaleRect.top);
         int right = (int) (left + info.width * config.getZoom());
         int bottom = (int) (top + info.height * config.getZoom());
         if (DrawUtils.isMixRect(showRect, left, top, right, bottom)) {
@@ -284,19 +275,13 @@ public class TableProvider<T> implements TableClickObserver {
     private void drawContent(Canvas canvas, boolean onlyDrawFrozenRows) {
         float top;
         float left = scaleRect.left;
-        boolean hasDrawed = false;
         List<Column> columns = tableData.getChildColumns();
 
-        Rect showRect = new Rect(this.showRect.left, this.showRect.top, this.showRect.right,
-                this.showRect.bottom);
-        if (isFirstDraw) {
-            showRect.right = Integer.MAX_VALUE / 2; // 第一次渲染全部，因为需要计算 fixTopLists 和 fixBottomLists
-        }
         clipRect.set(showRect);
         TableInfo info = tableData.getTableInfo();
         int columnSize = columns.size();
-        int dis = config.isFixedCountRow() ? info.getCountHeight()
-                : showRect.bottom + info.getCountHeight() - scaleRect.bottom;
+        int dis = config.isFixedCountRow() ? info.getCountHeight() :
+                showRect.bottom + info.getCountHeight() - scaleRect.bottom;
         int fillBgBottom = showRect.bottom - Math.max(dis, 0);
         if (config.getContentBackground() != null) {
             tempRect.set(showRect.left, showRect.top, showRect.right, fillBgBottom);
@@ -310,8 +295,9 @@ public class TableProvider<T> implements TableClickObserver {
         List<ColumnInfo> childColumnInfo = tableData.getChildColumnInfos();
         boolean isPerFixed = false;
         int clipCount = 0;
-        Rect correctCellRect, finalRect = new Rect();
+        Rect correctCellRect;
         TableInfo tableInfo = tableData.getTableInfo();
+        int mMinFixedWidth = 0;
         int totalFixedWidth = 0;
         for (int columnIndex = 0; columnIndex < columnSize; columnIndex++) {
             Column column = columns.get(columnIndex);
@@ -323,6 +309,7 @@ public class TableProvider<T> implements TableClickObserver {
             }
         }
         boolean fixedReactLeftInit = false;
+        int mFixedReactLeft = 0, mFixedReactRight = 0;
         int mFixedTranslateX = mMatrixHelper.mFixedTranslateX;
         if (mFixedTranslateX > totalFixedWidth - mMinFixedWidth) {
             mFixedTranslateX = totalFixedWidth - mMinFixedWidth;
@@ -336,9 +323,14 @@ public class TableProvider<T> implements TableClickObserver {
         if (isFixedTranslateX) {
             clipRect.left -= mFixedTranslateX;
         }
+        int fixedRowHeight = showRect.top;
+        for (int k = 0; k < config.getFixedLines(); k++) {
+            int lineHeight = info.getLineHeightArray()[k];
+            fixedRowHeight += (int) (lineHeight * config.getZoom());
+        }
         for (int i = 0; i < columnSize; i++) {
             //遍历列
-            top = scaleRect.top;
+            top = onlyDrawFrozenRows ? 0 : scaleRect.top;
             Column column = columns.get(i);
             float width = column.getComputeWidth() * config.getZoom();
             float tempLeft = left;
@@ -364,10 +356,10 @@ public class TableProvider<T> implements TableClickObserver {
                 int realPosition = 0;
                 if (column.isFixed()) {
                     if (!fixedReactLeftInit) {
-                        this.mFixedReactLeft = (int) left;
+                        mFixedReactLeft = (int) left;
                         fixedReactLeftInit = true;
                     }
-                    this.mFixedReactRight = (int) right;
+                    mFixedReactRight = (int) right;
                 }
                 for (int j = 0; j < size; j++) {
                     //遍历行
@@ -383,41 +375,16 @@ public class TableProvider<T> implements TableClickObserver {
                     correctCellRect = gridDrawer.correctCellRect(j, i, tempRect,
                             config.getZoom()); //矫正格子的大小
                     if (correctCellRect != null) {
-                        if (j < config.getFixedLines()) {
-                            while (fixedTopLists.size() <= i) {
-                                fixedTopLists.add(new ArrayList<Integer>());
-                            }
-                            while (fixedBottomLists.size() <= i) {
-                                fixedBottomLists.add(new ArrayList<Integer>());
-                            }
-                            while (fixedTopLists.get(i).size() <= j) {
-                                fixedTopLists.get(i).add(null);
-                            }
-                            while (fixedBottomLists.get(i).size() <= j) {
-                                fixedBottomLists.get(i).add(null);
-                            }
-                            Integer t = fixedTopLists.get(i).get(j);
-                            if (t == null) {
-                                fixedTopLists.get(i).set(j, correctCellRect.top);
-                            } else {
-                                correctCellRect.top = (int) (t * config.getZoom());
-                            }
-
-                            Integer b = fixedBottomLists.get(i).get(j);
-                            if (b == null) {
-                                fixedBottomLists.get(i)
-                                        .set(j, correctCellRect.bottom);
-                            } else {
-                                correctCellRect.bottom = (int) (b * config.getZoom());
-                            }
-                        }
                         if (correctCellRect.top < showRect.bottom) {
-                            if (correctCellRect.left < showRect.right && correctCellRect.right > showRect.left && correctCellRect.bottom > showRect.top) {
+                            if (correctCellRect.left < showRect.right && correctCellRect.right > showRect.left
+                                    && correctCellRect.bottom > showRect.top) {
                                 Object data = column.getDatas().get(j);
-                                if (singleClickItem && DrawUtils.isClick(correctCellRect,
+                                if (singleClickItem &&
+                                        ((onlyDrawFrozenRows && clickPoint.y < fixedRowHeight)
+                                                || (!onlyDrawFrozenRows && clickPoint.y >= fixedRowHeight))
+                                        && DrawUtils.isClick(correctCellRect,
                                         clickPoint)) {
-                                    operation.setSelectionRect(i, j,
-                                            correctCellRect);
+                                    operation.setSelectionRect(i, j, correctCellRect);
                                     tipPoint.x = (left + right) / 2;
                                     tipPoint.y = (top + bottom) / 2;
                                     tipColumn = column;
@@ -427,49 +394,22 @@ public class TableProvider<T> implements TableClickObserver {
                                     clickPoint.set(-Integer.MAX_VALUE, -Integer.MAX_VALUE);
                                     singleClickItem = false;
                                 }
-                                operation.checkSelectedPoint(i, j,
-                                        correctCellRect);
+                                operation.checkSelectedPoint(i, j, correctCellRect);
                                 cellInfo.set(column, data, value, i, j);
-                                if (config.getFixedLines() == 0) {
+                                if (onlyDrawFrozenRows && j < config.getFixedLines()) {
                                     drawContentCell(canvas, cellInfo, correctCellRect, config);
-                                } else if (isFirstDraw || j < config.getFixedLines()) {
-                                    finalRect.set(correctCellRect);
-                                    finalRect.bottom =
-                                            tempRect.bottom != correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
-                                    drawContentCell(canvas, cellInfo, finalRect, config);
-                                } else if (!isFirstDraw && j >= config.getFixedLines()) {
-                                    if (onlyDrawFrozenRows && j >= config.getFixedLines()) {
-                                        break;
-                                    }
-                                    int tmpBottom = 0;
-                                    int tmp = i;
-                                    while (tmp >= 0) {
-                                        int inSize = fixedBottomLists.get(tmp).size();
-                                        if (inSize > 0) {
-                                            tmpBottom = (int) (fixedBottomLists.get(tmp)
-                                                    .get(inSize - 1) * config.getZoom());
-                                            break;
-                                        }
-                                        tmp--;
-                                    }
-
-                                    if (correctCellRect.top >= tmpBottom) {
+                                } else if (!onlyDrawFrozenRows && j >= config.getFixedLines()) {
+                                    if (correctCellRect.top >= fixedRowHeight) {
                                         //绘制完整单元格
-                                        finalRect.set(correctCellRect);
-                                        finalRect.bottom =
-                                                tempRect.bottom != correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
-                                        drawContentCell(canvas, cellInfo, finalRect, config);
-                                    } else {
-                                        if (correctCellRect.bottom > tmpBottom + config.dp10 / 2) {
-                                            //绘制部分单元格
-                                            finalRect.set(correctCellRect);
-                                            finalRect.top =
-                                                    tempRect.bottom != correctCellRect.bottom ?
-                                                            tmpBottom : finalRect.top;
-                                            finalRect.bottom =
-                                                    tempRect.bottom != correctCellRect.bottom && correctCellRect.bottom > showRect.bottom ? showRect.bottom : correctCellRect.bottom;
-                                            drawContentCell(canvas, cellInfo, finalRect, config);
-                                        }
+                                        correctCellRect.bottom = Math.min(correctCellRect.bottom,
+                                                showRect.bottom);
+                                        drawContentCell(canvas, cellInfo, correctCellRect, config);
+                                    } else if (correctCellRect.bottom > fixedRowHeight) {
+                                        //绘制部分单元格
+                                        correctCellRect.top = fixedRowHeight;
+                                        correctCellRect.bottom = Math.min(correctCellRect.bottom,
+                                                showRect.bottom);
+                                        drawContentCell(canvas, cellInfo, correctCellRect, config);
                                     }
                                 }
                             }
@@ -480,7 +420,6 @@ public class TableProvider<T> implements TableClickObserver {
                     top = bottom;
                 }
                 left = tempLeft + width;
-                hasDrawed = true;
             } else {
                 break;
             }
@@ -491,11 +430,8 @@ public class TableProvider<T> implements TableClickObserver {
         if (config.isFixedCountRow()) {
             canvas.restore();
         }
-        if (isFirstDraw && hasDrawed) {
-            isFirstDraw = false;
-        }
-        mMatrixHelper.setFixedReactLeft(this.mFixedReactLeft);
-        mMatrixHelper.setFixedReactRight(this.mFixedReactRight);
+        mMatrixHelper.setFixedReactLeft(mFixedReactLeft);
+        mMatrixHelper.setFixedReactRight(mFixedReactRight);
     }
 
     /**
@@ -660,7 +596,8 @@ public class TableProvider<T> implements TableClickObserver {
         row = row < lineHeights.length ? row : lineHeights.length;//行
         col = col < 0 ? 0 : col;
         row = row < 0 ? 0 : row;
-        return new int[]{(int) (childColumns.get(col).getComputeWidth() * config.getZoom()),
+        return new int[]{(int) (childColumns.get(col)
+                .getComputeWidth() * config.getZoom()),
                 (int) (lineHeights[row] * config.getZoom())};
 
     }
