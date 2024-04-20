@@ -1,6 +1,7 @@
 package com.hecom.reporttable.table.format;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -37,12 +38,20 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
     private final Locker locker;
 
+    private final Rect imgRect;
+    private final Rect drawRect;
+
+    private final Paint imgPaint = new Paint();
+
     public CellDrawFormat(final HecomTable table, Locker locker) {
         super(1, 1);
         this.table = table;
         textDrawFormat = new HecomTextDrawFormat(table, this);
         this.drawPadding = DensityUtils.dp2px(getContext(), 4);
         this.locker = locker;
+        imgRect = new Rect();
+        drawRect = new Rect();
+        imgPaint.setStyle(Paint.Style.FILL);
     }
 
     @Override
@@ -124,7 +133,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                         break;
                 }
                 this.rect.set(imgRight - imgWidth, rect.top, imgRight, rect.bottom);
-                super.draw(c, this.rect, cellInfo, config);
+                this.drawImg(c, this.rect, cellInfo, config);
                 break;
             case RIGHT:
                 this.rect.set(rect.left, rect.top, rect.right - (imgWidth + drawPadding),
@@ -144,7 +153,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                         break;
                 }
                 this.rect.set(imgLeft, rect.top, imgLeft + imgWidth, rect.bottom);
-                super.draw(c, this.rect, cellInfo, config);
+                this.drawImg(c, this.rect, cellInfo, config);
                 break;
             case TOP:
                 this.rect.set(rect.left, rect.top + (imgHeight + drawPadding) / 2, rect.right,
@@ -153,7 +162,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 int imgBottom = (rect.top + rect.bottom) / 2 - textDrawFormat.measureHeight
                         (cellInfo.column, cellInfo.row, config) / 2 + drawPadding;
                 this.rect.set(rect.left, imgBottom - imgHeight, rect.right, imgBottom);
-                super.draw(c, this.rect, cellInfo, config);
+                this.drawImg(c, this.rect, cellInfo, config);
                 break;
             case BOTTOM:
                 this.rect.set(rect.left, rect.top, rect.right, rect.bottom - (imgHeight +
@@ -162,9 +171,40 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 int imgTop = (rect.top + rect.bottom) / 2 + textDrawFormat.measureHeight
                         (cellInfo.column, cellInfo.row, config) / 2 - drawPadding;
                 this.rect.set(rect.left, imgTop, rect.right, imgTop + imgHeight);
-                super.draw(c, this.rect, cellInfo, config);
+                this.drawImg(c, this.rect, cellInfo, config);
                 break;
 
+        }
+    }
+
+    public void drawImg(Canvas c, Rect rect, CellInfo<Cell> cellInfo, TableConfig config) {
+        Bitmap bitmap = (cellInfo == null
+                ? getBitmap(null, null, 0)
+                : getBitmap(cellInfo.data, cellInfo.value, cellInfo.row));
+        if (bitmap != null) {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            imgRect.set(0, 0, width, height);
+            float scaleX = (float) width / getImageWidth();
+            float scaleY = (float) height / getImageHeight();
+            if (scaleX > 1 || scaleY > 1) {
+                if (scaleX > scaleY) {
+                    width = (int) (width / scaleX);
+                    height = getImageHeight();
+                } else {
+                    height = (int) (height / scaleY);
+                    width = getImageWidth();
+                }
+            }
+            width = (int) (width * config.getZoom());
+            height = (int) (height * config.getZoom());
+            int disX = (rect.right - rect.left - width) / 2;
+            int disY = (rect.bottom - rect.top - height) / 2;
+            drawRect.left = rect.left + disX;
+            drawRect.top = rect.top + disY;
+            drawRect.right = rect.right - disX;
+            drawRect.bottom = rect.bottom - disY;
+            c.drawBitmap(bitmap, imgRect, drawRect, imgPaint);
         }
     }
 

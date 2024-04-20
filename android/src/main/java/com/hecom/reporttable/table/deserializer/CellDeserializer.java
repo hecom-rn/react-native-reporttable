@@ -82,9 +82,6 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
         if (json.has("boxLineColor")) {
             cell.setBoxLineColor(Color.parseColor(json.get("boxLineColor").getAsString()));
         }
-        if (json.has("asteriskColor")) {
-            cell.setAsteriskColor(Color.parseColor(json.get("asteriskColor").getAsString()));
-        }
         if (json.has("strikethrough")) {
             cell.setStrikethrough(json.get("strikethrough").getAsBoolean());
         }

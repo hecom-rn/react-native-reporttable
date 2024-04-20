@@ -34,14 +34,9 @@ public class ClickHandler implements TableData.OnItemClickListener<Cell> {
     public void onClick(Column<Cell> column, String value, Cell o, int col, int row) {
         boolean isLockItem = locker.needShowLock(row, col);
         if (isLockItem) {
-            table.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    table.notifyDataChanged();
-                }
-            }, 10);
             if (this.locker != null) {
                 this.locker.onClick(row, col);
+                table.notifyDataChanged();
             }
             return;
         }

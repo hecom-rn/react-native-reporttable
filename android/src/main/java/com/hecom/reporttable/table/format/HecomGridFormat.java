@@ -32,57 +32,69 @@ public class HecomGridFormat extends BaseGridFormat {
     private Paint mBoxLinePaint;
     private Boolean mForbidden;
 
+    private Paint mGridPaint;
+
     public HecomGridFormat(HecomTable table) {
         this.table = table;
         mBoxLinePaint = new Paint();
         mBoxLinePaint.setAntiAlias(false);
         mBoxLinePaint.setStyle(Paint.Style.STROKE);
+        mGridPaint = new Paint();
+        mGridPaint.setAntiAlias(false);
+        mGridPaint.setStyle(Paint.Style.STROKE);
     }
 
     @Override
     public void drawContentGrid(Canvas canvas, int col, int row, Rect rect, CellInfo cellInfo,
                                 Paint paint) {
         fillGridType(cellInfo);
-        int oriColor = paint.getColor();
-        int defColor = paint.getColor();
+        int defColor = mGridPaint.getColor();
         if (0 != mClassificationLineColor) {
             defColor = mClassificationLineColor;
-            paint.setColor(mClassificationLineColor);
+            mGridPaint.setColor(mClassificationLineColor);
         }
         if (needDraw()) {
             int spColor = 0 != mClassificationLineColor ? mClassificationLineColor : getColor();
 
-            paint.setColor(mGridType[0] != NORMAL ? spColor : defColor);
-            canvas.drawLine(rect.left, rect.top, rect.right, rect.top, paint);
+            mGridPaint.setColor(mGridType[0] != NORMAL ? spColor : defColor);
+            canvas.drawLine(rect.left, rect.top, rect.right, rect.top, mGridPaint);
 
-            paint.setColor(mGridType[1] != NORMAL ? spColor : defColor);
-            canvas.drawLine(rect.right, rect.top, rect.right, rect.bottom, paint);
+            mGridPaint.setColor(mGridType[1] != NORMAL ? spColor : defColor);
+            canvas.drawLine(rect.right, rect.top, rect.right, rect.bottom, mGridPaint);
 
-            paint.setColor(mGridType[2] != NORMAL ? spColor : defColor);
-            canvas.drawLine(rect.right, rect.bottom, rect.left, rect.bottom, paint);
+            mGridPaint.setColor(mGridType[2] != NORMAL ? spColor : defColor);
+            canvas.drawLine(rect.right, rect.bottom, rect.left, rect.bottom, mGridPaint);
 
-            paint.setColor(mGridType[3] != NORMAL ? spColor : defColor);
-            canvas.drawLine(rect.left, rect.bottom, rect.left, rect.top, paint);
+            mGridPaint.setColor(mGridType[3] != NORMAL ? spColor : defColor);
+            canvas.drawLine(rect.left, rect.bottom, rect.left, rect.top, mGridPaint);
 
         } else {
-            super.drawContentGrid(canvas, col, row, rect, cellInfo, paint);
+            super.drawContentGrid(canvas, col, row, rect, cellInfo, mGridPaint);
         }
 
-        paint.setColor(oriColor);
         if (mForbidden != null && mForbidden) {
-            canvas.drawLine(rect.left, rect.top, rect.right, rect.bottom, paint);
+            canvas.drawLine(rect.left, rect.top, rect.right, rect.bottom, mGridPaint);
         }
 
         if (0 != mBoxLineColor) {
             mBoxLinePaint.setColor(mBoxLineColor);
-            mBoxLinePaint.setStrokeWidth(paint.getStrokeWidth()*4);
+            mBoxLinePaint.setStrokeWidth(paint.getStrokeWidth() * 4);
             float strokeWidth = paint.getStrokeWidth();
-            RectF rectF = new RectF(rect.left+ strokeWidth,rect.top+strokeWidth,rect.right-strokeWidth,rect.bottom-strokeWidth);
+            RectF rectF = new RectF(rect.left + strokeWidth, rect.top + strokeWidth,
+                    rect.right - strokeWidth, rect.bottom - strokeWidth);
             canvas.save();
             canvas.clipRect(rectF);
-            canvas.drawRect( new RectF(rect.left+ strokeWidth+1,rect.top+strokeWidth+1,rect.right-strokeWidth-1,rect.bottom-strokeWidth-1), mBoxLinePaint);
+            canvas.drawRect(new RectF(rect.left + strokeWidth + 1, rect.top + strokeWidth + 1,
+                    rect.right - strokeWidth - 1, rect.bottom - strokeWidth - 1), mBoxLinePaint);
             canvas.restore();
         }
+    }
+
+    @Override
+    public void drawTableBorderGrid(Canvas canvas, int left, int top, int right, int bottom,
+                                    Paint paint) {
+        mGridPaint.setColor(getColor());
+        super.drawTableBorderGrid(canvas, left, top, right, bottom, mGridPaint);
     }
 
     private int getColor() {

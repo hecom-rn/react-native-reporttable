@@ -57,7 +57,6 @@ public class PermutableLock extends Locker {
         }
         newColumns.addAll(other);
         table.getTableData().setColumns(newColumns);
-        table.notifyDataChanged();
     }
 
     @Override

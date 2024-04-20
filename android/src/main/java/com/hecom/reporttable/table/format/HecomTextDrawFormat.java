@@ -21,7 +21,6 @@ import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.format.draw.IDrawFormat;
 import com.hecom.reporttable.form.utils.DensityUtils;
-import com.hecom.reporttable.form.utils.DrawUtils;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.bean.CellCache;
@@ -38,48 +37,32 @@ import androidx.annotation.NonNull;
 
 public class HecomTextDrawFormat implements IDrawFormat<Cell> {
 
-    private final Rect rect = new Rect();
-
-    private final Rect asteriskRect = new Rect();
-
-    private final Paint asteriskPaint;
-
     private final HecomTable table;
+
+    private final TextPaint mTextPaint = new TextPaint();
+
+    private final TextPaint mMeasurePaint = new TextPaint();
+
     private final CellDrawFormat cellDrawFormat;
 
     public HecomTextDrawFormat(HecomTable table, CellDrawFormat cellDrawFormat) {
         this.table = table;
         this.cellDrawFormat = cellDrawFormat;
-        asteriskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        asteriskPaint.setTextAlign(Paint.Align.CENTER);
     }
 
     @Override
     public int measureWidth(Column<Cell> column, int position, TableConfig config) {
-        Paint paint = config.getPaint();
         Cell cell = column.getDatas().get(position);
-        setTextPaint(config, cell, paint, false);
-        CellCache result = getCellCache(column, position, paint, config);
-        float asteriskWidth = getAsteriskWidth(config, cell);
-        return (int) (result.getWidth() + asteriskWidth);
-    }
-
-    private float getAsteriskWidth(TableConfig config, Cell cell) {
-        int asteriskColor = cell.getAsteriskColor();
-        if ((asteriskColor) == TableConfig.INVALID_COLOR) {
-            return 0;
-        } else {
-            asteriskPaint.setTextSize(getFontSize(config, cell));
-            return asteriskPaint.measureText("*");
-        }
+        setTextPaint(config, cell, mMeasurePaint, false);
+        CellCache result = getCellCache(column, position, mMeasurePaint, config);
+        return (int) result.getWidth();
     }
 
 
     @Override
     public int measureHeight(Column<Cell> column, int position, TableConfig config) {
-        Paint paint = config.getPaint();
-        setTextPaint(config, column.getDatas().get(position), paint, false);
-        CellCache result = getCellCache(column, position, paint, config);
+        setTextPaint(config, column.getDatas().get(position), mMeasurePaint, false);
+        CellCache result = getCellCache(column, position, mMeasurePaint, config);
         return result.getHeight();
     }
 
@@ -89,71 +72,21 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         if (cell.isForbidden()) {
             return;
         }
-        int asteriskWidth = (int) (getAsteriskWidth(config, cell) * config.getZoom());
-        float drawWidth = 0;
-        //  表头必填项增加必填符号*;左对齐字段*号放右边，右对产/居中对产字段*方左边
-        Paint paint = config.getPaint();
-        if (asteriskWidth > 0) {
-            Paint.Align textAlign;
-            if (cellInfo.data.getTextAlignment() != null) {
-                textAlign = cellInfo.data.getTextAlignment();
-            } else {
-                textAlign = table.getHecomStyle().getAlign();
-            }
-            float textWidth =
-                    (measureWidth(cellInfo.column, cellInfo.row, config) * config.getZoom()) - asteriskWidth;
-            switch (textAlign) { //单元格内容的对齐方式
-                case CENTER:
-                    this.rect.set(rect.left + asteriskWidth, rect.top, rect.right, rect.bottom);
-                    drawWidth = drawText(c, cellInfo, this.rect, paint, config);
-                    int asteriskRight = (int) ((this.rect.right + this.rect.left - textWidth) / 2);
-                    this.asteriskRect.set(asteriskRight - asteriskWidth, rect.top, asteriskRight,
-                            rect.bottom);
-                    this.drawAsterisk(c, this.asteriskRect, cellInfo, config);
-                    break;
-                case LEFT:
-                    this.rect.set(rect.left, rect.top, rect.right - asteriskWidth, rect.bottom);
-                    drawWidth = drawText(c, cellInfo, this.rect, paint, config);
-                    int asteriskLeft = (int) (this.rect.left + textWidth);
-                    this.asteriskRect.set(asteriskLeft, rect.top, asteriskLeft + asteriskWidth,
-                            rect.bottom);
-                    this.drawAsterisk(c, this.asteriskRect, cellInfo, config);
-
-                    break;
-                case RIGHT:
-                    this.rect.set(rect.left + asteriskWidth, rect.top, rect.right, rect.bottom);
-                    drawWidth = drawText(c, cellInfo, this.rect, paint, config);
-                    asteriskRight = (int) (this.rect.right - textWidth);
-                    this.asteriskRect.set(asteriskRight - asteriskWidth, rect.top, asteriskRight,
-                            rect.bottom);
-                    this.drawAsterisk(c, this.asteriskRect, cellInfo, config);
-                    break;
-            }
-        } else {
-            drawWidth = drawText(c, cellInfo, rect, paint, config);
-        }
-        cellInfo.data.getCache().setDrawWidth(drawWidth + asteriskWidth);
+        float drawWidth = drawText(c, cellInfo, rect, config);
+        cellInfo.data.getCache().setDrawWidth(drawWidth);
     }
 
-    private void drawAsterisk(Canvas c, Rect rect, CellInfo<Cell> cellInfo, TableConfig config) {
-        float textSize = getFontSize(config, cellInfo.data);
-        asteriskPaint.setTextSize(textSize * config.getZoom());
-        asteriskPaint.setColor(cellInfo.data.getAsteriskColor());
-        DrawUtils.drawSingleText(c, asteriskPaint, rect, "*");
-    }
-
-    protected float drawText(Canvas c, CellInfo<Cell> cellInfo, Rect rect, Paint paint,
-                            TableConfig config) {
-        setTextPaint(config, cellInfo.data, paint, true);
-        CellCache result = getCellCache(cellInfo.column, cellInfo.row, paint, config);
+    protected float drawText(Canvas c, CellInfo<Cell> cellInfo, Rect rect, TableConfig config) {
+        setTextPaint(config, cellInfo.data, mTextPaint, true);
+        CellCache result = getCellCache(cellInfo.column, cellInfo.row, mTextPaint, config);
         int saveCount = c.getSaveCount();
         c.save();
-        mTextPaint.set(paint);
+        Paint.Align textAlign = mTextPaint.getTextAlign();
         mTextPaint.setTextAlign(Paint.Align.LEFT);
 
         Layout.Alignment align;
         // 根据对齐方式计算偏移量
-        switch (paint.getTextAlign()) {
+        switch (textAlign) {
             case LEFT: // 左对齐
             default:
                 align = Layout.Alignment.ALIGN_NORMAL;
@@ -209,13 +142,12 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         return cell.getCache();
     }
 
-    TextPaint mTextPaint = new TextPaint();
 
     private CellCache measureText(Column<Cell> column, int position, Paint paint,
                                   TableConfig config) {
         Cell cell = column.getDatas().get(position);
         float maxWidth =
-                this.table.getMaxColumnWidth(column) - config.getHorizontalPadding() * 2 - getAsteriskWidth(config, cell) - cellDrawFormat.getImageWidth();
+                this.table.getMaxColumnWidth(column) - config.getHorizontalPadding() * 2 - cellDrawFormat.getImageWidth();
         CharSequence charSequence = getSpan(cell, config, paint);
         mTextPaint.set(paint);
         StaticLayout layout = new StaticLayout(charSequence, mTextPaint, (int) maxWidth,

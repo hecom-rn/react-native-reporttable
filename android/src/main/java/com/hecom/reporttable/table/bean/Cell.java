@@ -28,8 +28,6 @@ public class Cell {
 
     private int boxLineColor = TableConfig.INVALID_COLOR;
 
-    private int asteriskColor = TableConfig.INVALID_COLOR; //必填
-
     private boolean strikethrough = false; //删除线
 
     private ExtraTextConfig extraText; // 后缀标签
@@ -65,7 +63,6 @@ public class Cell {
         this.classificationLinePosition = newCell.getClassificationLinePosition();
         this.classificationLineColor = newCell.getClassificationLineColor();
         this.boxLineColor = newCell.getBoxLineColor();
-        this.asteriskColor = newCell.getAsteriskColor();
         this.strikethrough = newCell.isStrikethrough();
         this.extraText = newCell.getExtraText();
         cache = null;
@@ -93,14 +90,6 @@ public class Cell {
 
     public void setStrikethrough(boolean strikethrough) {
         this.strikethrough = strikethrough;
-    }
-
-    public int getAsteriskColor() {
-        return asteriskColor;
-    }
-
-    public void setAsteriskColor(int asteriskColor) {
-        this.asteriskColor = asteriskColor;
     }
 
     public int getBoxLineColor() {
