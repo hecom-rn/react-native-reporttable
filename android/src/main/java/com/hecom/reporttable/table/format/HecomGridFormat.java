@@ -48,7 +48,7 @@ public class HecomGridFormat extends BaseGridFormat {
     public void drawContentGrid(Canvas canvas, int col, int row, Rect rect, CellInfo cellInfo,
                                 Paint paint) {
         fillGridType(cellInfo);
-        int defColor = mGridPaint.getColor();
+        int defColor = paint.getColor();
         if (0 != mClassificationLineColor) {
             defColor = mClassificationLineColor;
             mGridPaint.setColor(mClassificationLineColor);
@@ -93,7 +93,7 @@ public class HecomGridFormat extends BaseGridFormat {
     @Override
     public void drawTableBorderGrid(Canvas canvas, int left, int top, int right, int bottom,
                                     Paint paint) {
-        mGridPaint.setColor(getColor());
+        mGridPaint.setColor(paint.getColor());
         super.drawTableBorderGrid(canvas, left, top, right, bottom, mGridPaint);
     }
 
