@@ -33,7 +33,7 @@ public class BackgroundFormat extends BaseCellBackgroundFormat<CellInfo> {
     @Override
     public void drawBackground(Canvas canvas, Rect rect, CellInfo t, Paint paint) {
         int color = getBackGroundColor(t);
-        if(color != TableConfig.INVALID_COLOR && color != -1) {
+        if(color != TableConfig.INVALID_COLOR) {
             bgPaint.setColor(color);
             canvas.drawRect(rect, bgPaint);
         }

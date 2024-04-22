@@ -51,7 +51,6 @@ public class HecomGridFormat extends BaseGridFormat {
         int defColor = paint.getColor();
         if (0 != mClassificationLineColor) {
             defColor = mClassificationLineColor;
-            mGridPaint.setColor(mClassificationLineColor);
         }
         if (needDraw()) {
             int spColor = 0 != mClassificationLineColor ? mClassificationLineColor : getColor();
@@ -69,6 +68,7 @@ public class HecomGridFormat extends BaseGridFormat {
             canvas.drawLine(rect.left, rect.bottom, rect.left, rect.top, mGridPaint);
 
         } else {
+            mGridPaint.setColor(defColor);
             super.drawContentGrid(canvas, col, row, rect, cellInfo, mGridPaint);
         }
 

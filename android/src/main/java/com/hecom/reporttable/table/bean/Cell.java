@@ -2,6 +2,7 @@ package com.hecom.reporttable.table.bean;
 
 import android.graphics.Paint;
 
+import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
 
 import java.util.ArrayList;
@@ -291,10 +292,34 @@ public class Cell {
     }
 
     public static class Icon {
+        public static final int LEFT = 0;
+        public static final int TOP = 1;
+        public static final int RIGHT = 2;
+        public static final int BOTTOM = 3;
+
         private Path path;
         private int width;
         private int height;
         public String name;
+
+        private int direction = -1;
+        private int resourceId = -1;
+
+        public int getDirection() {
+            return direction;
+        }
+
+        public void setDirection(int direction) {
+            this.direction = direction;
+        }
+
+        public int getResourceId() {
+            return resourceId;
+        }
+
+        public void setResourceId(int resourceId) {
+            this.resourceId = resourceId;
+        }
 
         public Path getPath() {
             return path;
@@ -326,6 +351,78 @@ public class Cell {
 
         public void setName(String name) {
             this.name = name;
+        }
+
+        public void update() {
+            if (resourceId == -1) {
+                if ("normal".equals(name)) {
+                    this.resourceId = R.mipmap.normal;
+                    this.direction = RIGHT;
+                } else if ("up".equals(name)) {
+                    this.resourceId = R.mipmap.up;
+                    this.direction = RIGHT;
+                } else if ("down".equals(name)) {
+                    this.resourceId = R.mipmap.down;
+                    this.direction = RIGHT;
+                } else if ("dot_new".equals(name)) {
+                    this.resourceId = R.mipmap.dot_new;
+                    this.direction = LEFT;
+                } else if ("dot_edit".equals(name)) {
+                    this.resourceId = R.mipmap.dot_edit;
+                    this.direction = LEFT;
+                } else if ("dot_delete".equals(name)) {
+                    this.resourceId = R.mipmap.dot_delete;
+                    this.direction = LEFT;
+                } else if ("dot_readonly".equals(name)) {
+                    this.resourceId = R.mipmap.dot_readonly;
+                    this.direction = LEFT;
+                } else if ("dot_white".equals(name)) {
+                    this.resourceId = R.mipmap.dot_white;
+                    this.direction = LEFT;
+                } else if ("dot_select".equals(name)) {
+                    this.resourceId = R.mipmap.dot_select;
+                    this.direction = LEFT;
+                } else if ("portal_icon".equals(name)) {
+                    this.resourceId = R.mipmap.portal_icon;
+                    this.direction = LEFT;
+                } else if ("trash".equals(name)) {
+                    this.resourceId = R.mipmap.trash;
+                    this.direction = RIGHT;
+                } else if ("revert".equals(name)) {
+                    this.resourceId = R.mipmap.revert;
+                    this.direction = RIGHT;
+                } else if ("copy".equals(name)) {
+                    this.resourceId = R.mipmap.copy;
+                    this.direction = RIGHT;
+                } else if ("edit".equals(name)) {
+                    this.resourceId = R.mipmap.edit;
+                    this.direction = RIGHT;
+                } else if ("selected".equals(name)) {
+                    this.resourceId = R.mipmap.selected;
+                    this.direction = RIGHT;
+                } else if ("unselected".equals(name)) {
+                    this.resourceId = R.mipmap.unselected;
+                    this.direction = RIGHT;
+                } else if ("unselected_disable".equals(name)) {
+                    this.resourceId = R.mipmap.unselected_disable;
+                    this.direction = RIGHT;
+                } else if ("copy_disable".equals(name)) {
+                    this.resourceId = R.mipmap.copy_disable;
+                    this.direction = RIGHT;
+                } else if ("edit_disable".equals(name)) {
+                    this.resourceId = R.mipmap.edit_disable;
+                    this.direction = RIGHT;
+                } else if ("trash_disable".equals(name)) {
+                    this.resourceId = R.mipmap.trash_disable;
+                    this.direction = RIGHT;
+                } else if ("unSelectIcon".equals(name)) {
+                    this.resourceId = R.mipmap.checkbox;
+                    this.direction = RIGHT;
+                } else if ("selectedIcon".equals(name)) {
+                    this.resourceId = R.mipmap.checkbox_hl;
+                    this.direction = RIGHT;
+                }
+            }
         }
     }
 
