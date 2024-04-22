@@ -177,16 +177,7 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
                     drawGridBackground(canvas, showRect, scaleRect);
                 }
             }
-        } else {
-            showRect.set(getPaddingLeft(), getPaddingTop(),
-                    getWidth() - getPaddingRight(),
-                    getHeight() - getPaddingBottom());
-            drawLoadingText(canvas, showRect);
         }
-    }
-
-    private void drawLoadingText(Canvas canvas, Rect rect) {
-        DrawUtils.drawSingleText(canvas, textPaint, rect, "正在更新数据，请稍候。");
     }
 
     /**
@@ -260,9 +251,9 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
                     TableInfo info = measurer.measure(tableData, config);
                     xAxis.setHeight(info.getTopHeight());
                     yAxis.setWidth(info.getyAxisWidth());
+                    isNotifying.set(false);
                     requestReMeasure();
                     postInvalidate();
-                    isNotifying.set(false);
                 }
 
             });
