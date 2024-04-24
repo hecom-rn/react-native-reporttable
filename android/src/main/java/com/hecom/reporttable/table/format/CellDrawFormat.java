@@ -199,37 +199,6 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         super.draw(c, rect, cellInfo, config);
     }
 
-//    public void drawImg(Canvas c, Rect rect, CellInfo<Cell> cellInfo, TableConfig config) {
-//        Bitmap bitmap = (cellInfo == null
-//                ? getBitmap(null, null, 0)
-//                : getBitmap(cellInfo.data, cellInfo.value, cellInfo.row));
-//        if (bitmap != null) {
-//            int width = bitmap.getWidth();
-//            int height = bitmap.getHeight();
-//            imgRect.set(0, 0, width, height);
-//            float scaleX = (float) width / getImageWidth();
-//            float scaleY = (float) height / getImageHeight();
-//            if (scaleX > 1 || scaleY > 1) {
-//                if (scaleX > scaleY) {
-//                    width = (int) (width / scaleX);
-//                    height = getImageHeight();
-//                } else {
-//                    height = (int) (height / scaleY);
-//                    width = getImageWidth();
-//                }
-//            }
-//            width = (int) (width * config.getZoom());
-//            height = (int) (height * config.getZoom());
-//            int disX = (rect.right - rect.left - width) / 2;
-//            int disY = (rect.bottom - rect.top - height) / 2;
-//            drawRect.left = rect.left + disX;
-//            drawRect.top = rect.top + disY;
-//            drawRect.right = rect.right - disX;
-//            drawRect.bottom = rect.bottom - disY;
-//            c.drawBitmap(bitmap, imgRect, drawRect, imgPaint);
-//        }
-//    }
-
     private int getDrawWidth(CellInfo<Cell> cellInfo) {
         return (int) (cellInfo.data.getCache().getDrawWidth());
     }
