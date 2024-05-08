@@ -196,8 +196,16 @@ public class MatrixHelper extends Observable<TableClickObserver> implements ITou
         this.fixedReactLeft = fixedReactLeft;
     }
 
+    public int getFixedReactLeft(){
+        return fixedReactLeft;
+    }
+
     public void setFixedReactRight(int fixedReactRight) {
         this.fixedReactRight = fixedReactRight;
+    }
+
+    public int getFixedReactRight() {
+        return this.fixedReactRight;
     }
 
 

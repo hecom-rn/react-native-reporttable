@@ -22,6 +22,7 @@ import com.hecom.reporttable.table.format.CellDrawFormat;
 import com.hecom.reporttable.table.format.HecomFormat;
 import com.hecom.reporttable.table.format.HecomGridFormat;
 import com.hecom.reporttable.table.format.HecomStyle;
+import com.hecom.reporttable.table.format.ShadowDrawOver;
 import com.hecom.reporttable.table.lock.LockHelper;
 
 import java.util.ArrayList;
@@ -71,6 +72,8 @@ public class HecomTable extends SmartTable<Cell> {
         setZoom(true, 2, 0.5f);
 
         final OnTableChangeListener listener = getMatrixHelper().getOnTableChangeListener();
+
+        getProvider().setDrawOver(new ShadowDrawOver(this));
 
         getMatrixHelper().setOnTableChangeListener(new OnTableChangeListener() {
             @Override
