@@ -41,7 +41,7 @@ public class ShadowDrawOver implements IDrawOver {
 
     private void drawShadow(Canvas canvas, int x, int top, int bottom, Paint paint) {
             int originColor = paint.getColor();
-            paint.setShadowLayer(3, 2, 0, Color.parseColor("#14000000"));
+            paint.setShadowLayer(12, 4, 0, Color.parseColor("#66000000"));
             paint.setColor(Color.TRANSPARENT);
 
             canvas.drawLine(x, top,x, bottom , paint);
