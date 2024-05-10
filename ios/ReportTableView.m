@@ -181,6 +181,15 @@
 
     if (_spreadsheetView) {
         [self.spreadsheetView setContentOffset:CGPointMake(x, y) animated: animated];
+        
+        CGPoint headerViewOffset = self.spreadsheetView.tableHeaderView.contentOffset;
+        CGSize headerSize = self.spreadsheetView.tableHeaderView.frame.size;
+        headerViewOffset.y = y + headerSize.height;
+        
+        self.headerScrollView.isUserScouce = true;
+        self.headerScrollView.offset = self.spreadsheetView.contentOffset.y * self.zoomScale;
+        [self.headerScrollView scrollViewDidScroll: self.headerScrollView];
+        self.headerScrollView.isUserScouce = false;
     }
 }
 
