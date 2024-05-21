@@ -23,6 +23,8 @@ declare module "@hecom/react-native-report-table" {
 
         /* Android only */
         doubleClickZoom?: boolean; // 是否开启双击缩放 default: true
+        /* Android only */
+        HeaderComponent?: React.ComponentType<any>; // 表头组件的类型  default: ScrollView
 
         /*
          *  是否是可排列的，仅支持不包含合并单元格的表
