@@ -405,11 +405,12 @@
             [attributedText addAttribute:NSBaselineOffsetAttributeName value:@(-3) range:NSMakeRange(0, tagString.length)];
         } else {
             [attributedText insertAttributedString:tagString atIndex:model.title.length];
-            [attributedText addAttribute:NSKernAttributeName value:@(2) range:NSMakeRange(MAX(model.title.length - 1, 0), 1)];
-            [attributedText addAttribute:NSBaselineOffsetAttributeName value:@(-3) range:NSMakeRange(model.title.length, 1)];
+            if (model.title.length > 0) {
+                [attributedText addAttribute:NSKernAttributeName value:@(2) range:NSMakeRange(MAX(model.title.length - 1, 0), tagString.length)];
+            }
+            [attributedText addAttribute:NSBaselineOffsetAttributeName value:@(model.title.length > 0 ? -3 : -1) range:NSMakeRange(model.title.length, tagString.length)];
         }
         cell.label.attributedText = attributedText;
-
     }  else {
         cell.label.text = model.title;
         cell.label.textColor = model.textColor;
