@@ -13,7 +13,6 @@
 
 @property (nonatomic, strong) UILabel *label;
 
-@property (nonatomic, assign) NSInteger textPaddingHorizontal;
 @property (nonatomic, assign) NSTextAlignment textAlignment;
 
 @property (nonatomic, assign) BOOL isLocked;
@@ -32,5 +31,7 @@
 
 - (void)drawBoxPoint:(CGPoint)point WithLineColor: (UIColor *)color;
 - (void)hiddenBoxView;
+
+- (void)textStyle:(NSInteger)paddingLeft WithPaddingRight: (NSInteger)paddingRight;
 
 @end

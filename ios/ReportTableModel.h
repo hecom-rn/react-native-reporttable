@@ -70,6 +70,8 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, assign) CGFloat fontSize;
 @property (nonatomic, assign) NSTextAlignment textAlignment;
 @property (nonatomic, assign) NSInteger textPaddingHorizontal;
+@property (nonatomic, assign) NSInteger textPaddingLeft;
+@property (nonatomic, assign) NSInteger textPaddingRight;
 @property (nonatomic, assign) NSInteger horCount;
 @property (nonatomic, assign) ClassificationLinePosition classificationLinePosition;
 @property (nonatomic, assign) NSInteger verCount;

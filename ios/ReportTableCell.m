@@ -78,42 +78,41 @@
 }
 
 
-- (void)setTextPaddingHorizontal:(NSInteger)textPaddingHorizontal {
-    CGFloat marginHor = textPaddingHorizontal;
-    _textPaddingHorizontal = textPaddingHorizontal;
+- (void)textStyle:(NSInteger)paddingLeft WithPaddingRight: (NSInteger)paddingRight {
     [self.label mas_remakeConstraints:^(MASConstraintMaker *make) {
-        float paddingHorizontal = _icon ? self.icon.paddingHorizontal : 4;
+        float iconPaddingHorizontal = _icon ? self.icon.paddingHorizontal : 4;
         float inconWidth = _icon ? self.icon.size.width : 13;
-        float w = inconWidth + paddingHorizontal + marginHor;
+        float textLeft = inconWidth + iconPaddingHorizontal + paddingLeft;
+        float textRight = inconWidth + iconPaddingHorizontal + paddingRight;
         self.label.textAlignment = self.textAlignment;
         if (self.textAlignment == NSTextAlignmentRight) {
             if (self.icon.imageAlignment == 1) {
-                make.right.equalTo(self.contentView.mas_right).offset(-marginHor);
-                make.left.greaterThanOrEqualTo(self.contentView.mas_left).offset([self isSetupImageView] ? w : marginHor);
+                make.right.equalTo(self.contentView.mas_right).offset(-paddingRight);
+                make.left.greaterThanOrEqualTo(self.contentView.mas_left).offset([self isSetupImageView] ? textLeft : paddingLeft);
             } else {
-                make.right.equalTo(self.contentView.mas_right).offset([self isSetupImageView] ? -w : -marginHor);
-                make.left.greaterThanOrEqualTo(self.contentView.mas_left).offset(marginHor);
+                make.right.equalTo(self.contentView.mas_right).offset([self isSetupImageView] ? -textRight : -paddingRight);
+                make.left.greaterThanOrEqualTo(self.contentView.mas_left).offset(paddingLeft);
             }
         } else if (self.textAlignment == NSTextAlignmentCenter) {
             make.centerX.equalTo(self.contentView.mas_centerX);
             if (self.icon.imageAlignment == 1) {
-                make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-textPaddingHorizontal);
-                make.left.mas_greaterThanOrEqualTo(self.contentView.mas_left).offset([self isSetupImageView] ? w : marginHor);
+                make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-paddingRight);
+                make.left.mas_greaterThanOrEqualTo(self.contentView.mas_left).offset([self isSetupImageView] ? textLeft : paddingLeft);
             } else {
-                make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-marginHor);
-                make.left.mas_greaterThanOrEqualTo(self.contentView.mas_left).offset(textPaddingHorizontal);
+                make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-paddingRight);
+                make.left.mas_greaterThanOrEqualTo(self.contentView.mas_left).offset(paddingLeft);
             }
         } else {
             if (self.icon.imageAlignment == 1) {
-                make.right.equalTo(self.contentView.mas_right).offset(-textPaddingHorizontal);
-                make.left.equalTo(self.contentView.mas_left).offset([self isSetupImageView] ? w : marginHor);
+                make.right.equalTo(self.contentView.mas_right).offset(-paddingRight);
+                make.left.equalTo(self.contentView.mas_left).offset([self isSetupImageView] ? textLeft : paddingLeft);
             } else {
                 if ([self isSetupImageView] ) {
-                    make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-w);
+                    make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-textRight);
                 } else {
-                    make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-marginHor);
+                    make.right.mas_lessThanOrEqualTo(self.contentView.mas_right).offset(-paddingRight);
                 }
-                make.left.equalTo(self.contentView.mas_left).offset(textPaddingHorizontal);
+                make.left.equalTo(self.contentView.mas_left).offset(paddingLeft);
             }
         }
          make.centerY.equalTo(self.contentView.mas_centerY);

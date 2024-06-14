@@ -385,8 +385,8 @@
     }
     cell.contentView.backgroundColor = model.backgroundColor;
     cell.textAlignment = model.textAlignment;
-    cell.textPaddingHorizontal = model.textPaddingHorizontal;
-
+    [cell textStyle:model.textPaddingLeft ?: model.textPaddingHorizontal WithPaddingRight:model.textPaddingRight ?: model.textPaddingHorizontal];
+    
     UIFont *font = model.isOverstriking || model.itemConfig.isOverstriking ? [UIFont boldSystemFontOfSize:model.fontSize] : [UIFont systemFontOfSize:model.fontSize];
     if (model.richText) {
         cell.label.attributedText = model.richText;

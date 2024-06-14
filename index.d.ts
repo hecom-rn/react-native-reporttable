@@ -113,8 +113,12 @@ declare module "@hecom/react-native-report-table" {
         keyIndex: number;
 
         backgroundColor?: Color;
-        textPaddingHorizontal?: number; // default 12， 左右两边留白，同比js中的margin
         textAlignment?: 0 | 1 | 2; // default 0 左中右
+
+        textPaddingHorizontal?: number; // default 12， 无icon时，是左右两边留白，有icon时，是icon到分割线的距离
+        // 同于textPaddingHorizontal 但比其优先级高
+        textPaddingLeft?: number; // 无值时使用 textPaddingHorizontal
+        textPaddingRight?: number; // 无值时使用 textPaddingHorizontal
 
         /*
          * 设定后title失效
@@ -148,6 +152,7 @@ declare module "@hecom/react-native-report-table" {
                 color: Color;
                 width: number;
                 height: number;
+                radius: number; // 圆角
             },
             style: {
                 color: Color;
@@ -164,7 +169,7 @@ declare module "@hecom/react-native-report-table" {
         width: number,
         height: number,
         imageAlignment?: number; // 1左  2中  3右(默认)
-        paddingHorizontal?: number; // default 4
+        paddingHorizontal?: number; // default 4  控制icon与文本的距离
     }
 
     export default class ReportTable extends React.Component<ReportTableProps>{

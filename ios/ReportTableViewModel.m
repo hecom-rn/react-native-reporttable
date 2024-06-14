@@ -438,11 +438,11 @@
                         showLock = true;
                     } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
                         showLock = true;
-                    }
+                    } 
                 }
             }
             CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
-            CGFloat exceptText = 2 * model.textPaddingHorizontal + imageIconWidth + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
+            CGFloat exceptText = (model.textPaddingLeft ?: model.textPaddingHorizontal) + (model.textPaddingRight ?: model.textPaddingHorizontal)  + imageIconWidth + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
             CGFloat boundWidth = MAX(maxWidth, mergeNum * minWidth) - exceptText;
             CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : model.richText != nil ? [self getAttTextWidth:model.richText withMaxWith: boundWidth] : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: boundWidth];
             CGFloat tolerant = 8; // 额外的容错空间
@@ -547,6 +547,12 @@
     }
     if ([keys containsObject: @"textPaddingHorizontal"]) {
         model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
+    }
+    if ([keys containsObject: @"textPaddingLeft"]) {
+        model.textPaddingLeft = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingLeft"]];
+    }
+    if ([keys containsObject: @"textPaddingRight"]) {
+        model.textPaddingRight = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingRight"]];
     }
     if ([keys containsObject: @"isOverstriking"]) {
         model.isOverstriking = [RCTConvert BOOL:[dir objectForKey:@"isOverstriking"]];
