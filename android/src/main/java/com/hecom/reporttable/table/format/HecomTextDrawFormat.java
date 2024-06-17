@@ -24,7 +24,7 @@ import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.bean.CellCache;
-import com.hecom.reporttable.table.bean.ExtraTextConfig;
+import com.hecom.reporttable.table.bean.ExtraText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -186,10 +186,21 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         } else {
             ssb.append(cell.getTitle());
         }
-        if (cell.getExtraText() != null) {
-            ExtraTextConfig extraText = cell.getExtraText();
+        if (cell.getExtraText() != null && cell.getExtraText().text != null && !cell.getExtraText().text.isEmpty()) {
+            ExtraText extraText = cell.getExtraText();
+            int start, end;
+            if (extraText.isLeft) {
+                ssb.insert(0, extraText.text);
+                start = 0;
+                end = extraText.text.length();
+            } else {
+                ssb.append(extraText.text);
+                start = ssb.length() - extraText.text.length();
+                end = ssb.length();
+            }
             ssb.append(extraText.text);
-            ssb.setSpan(new RadiusBackgroundSpan(Color.parseColor(extraText.backgroundStyle.color), Color.parseColor(extraText.style.color), DensityUtils.dp2px(context, 4), DensityUtils.dp2px(context, extraText.backgroundStyle.width), DensityUtils.dp2px(context, extraText.backgroundStyle.height), DensityUtils.dp2px(context, extraText.style.fontSize)), ssb.length() - extraText.text.length(), ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ssb.setSpan(new RadiusBackgroundSpan(config, extraText), start, end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return ssb;
     }

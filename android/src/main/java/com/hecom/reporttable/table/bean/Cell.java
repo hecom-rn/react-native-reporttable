@@ -31,7 +31,7 @@ public class Cell {
 
     private boolean strikethrough = false; //删除线
 
-    private ExtraTextConfig extraText; // 后缀标签
+    private ExtraText extraText; // 后缀标签
 
     public ArrayList<RichText> getRichText() {
         return richText;
@@ -77,11 +77,11 @@ public class Cell {
         isForbidden = forbidden;
     }
 
-    public ExtraTextConfig getExtraText() {
+    public ExtraText getExtraText() {
         return extraText;
     }
 
-    public void setExtraText(ExtraTextConfig extraText) {
+    public void setExtraText(ExtraText extraText) {
         this.extraText = extraText;
     }
 
