@@ -198,7 +198,6 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
                 start = ssb.length() - extraText.text.length();
                 end = ssb.length();
             }
-            ssb.append(extraText.text);
             ssb.setSpan(new RadiusBackgroundSpan(config, extraText), start, end,
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
