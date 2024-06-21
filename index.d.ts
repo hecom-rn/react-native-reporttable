@@ -1,6 +1,6 @@
 declare module "@hecom/react-native-report-table" {
     import * as React from 'react';
-    import { ProcessedColorValue, TextStyle, ImageResolvedAssetSource } from 'react-native';
+    import { TextStyle, ImageResolvedAssetSource } from 'react-native';
     export interface ReportTableProps {
         size: {
             width: number;
@@ -58,8 +58,8 @@ declare module "@hecom/react-native-report-table" {
         columnsWidthMap?: ColumnsWidthMap; // index 为指定index的列宽， 未设置则还使用原minWidth， maxWidth
     }
 
-    type Color =  string | ProcessedColorValue; // ios ProcessedColorValue,   android 16进制色值，需6位
-
+    type Color = string ; //16进制色值，需6位   // AARRGGBB | RRGGBB;
+ 
     // 默认值配置
     export interface ItemConfig {
         backgroundColor: Color;

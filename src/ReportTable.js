@@ -1,23 +1,14 @@
 import React from 'react';
-import { View, Platform, processColor } from 'react-native';
+import { View, Platform } from 'react-native';
 import ReportTableWrapper from './ReportTableWrapper';
 
 const itemConfig = {
-    backgroundColor: Platform.select({
-        ios: processColor('#fff'),
-        android: '#FFFFFF',
-    }),
+    backgroundColor: '#FFFFFF',
     fontSize: 14,
-    textColor: Platform.select({
-        ios: processColor('#222'),
-        android: '#222222',
-    }),
+    textColor: '#222222',
     textPaddingHorizontal: 12, // 上左下右
     textAlignment: 0,  // 0左 1中 2右  default 0
-    classificationLineColor: Platform.select({
-        ios: processColor('#9cb3c8'),
-        android: '#9cb3c8',
-    }),
+    classificationLineColor:'#9cb3c8',
     isOverstriking: false,
 };
 
