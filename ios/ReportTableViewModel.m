@@ -642,7 +642,7 @@
 
 - (UIColor *)colorFromHex:(NSString *)hexString {
     NSString *cleanString = [hexString stringByReplacingOccurrencesOfString:@"#" withString:@""];
-    if ([cleanString length] < 6) return [UIColor blackColor];
+    if ([cleanString length] != 6 || [cleanString length] != 8) return nil;
     if (cleanString.length == 6) {
         cleanString = [NSString stringWithFormat:@"FF%@", cleanString];
     }
