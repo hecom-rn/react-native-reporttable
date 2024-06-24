@@ -2,6 +2,7 @@ package com.hecom.reporttable.table;
 
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.hecom.reporttable.GsonHelper;
 import com.hecom.reporttable.form.data.CellRange;
@@ -32,6 +33,7 @@ public class HecomTableData extends ArrayTableData<Cell> {
             }
             return tabArr;
         } catch (Exception e) {
+            Log.e("HecomTableData", e.getMessage(), e);
             return new Cell[][]{};
         }
     }

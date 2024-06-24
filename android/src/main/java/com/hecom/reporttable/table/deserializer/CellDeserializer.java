@@ -13,7 +13,7 @@ import android.graphics.Paint;
 
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.Cell;
-import com.hecom.reporttable.table.bean.ExtraTextConfig;
+import com.hecom.reporttable.table.bean.ExtraText;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -86,8 +86,8 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
             cell.setStrikethrough(json.get("strikethrough").getAsBoolean());
         }
         if (json.has("extraText")) {
-            cell.setExtraText(context.<ExtraTextConfig>deserialize(json.get("extraText"),
-                    ExtraTextConfig.class));
+            cell.setExtraText(context.<ExtraText>deserialize(json.get("extraText"),
+                    ExtraText.class));
         }
         return cell;
     }

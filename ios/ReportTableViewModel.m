@@ -309,8 +309,8 @@
     [self reloadCheck];
 }
 
-- (void)setLineColor:(UIColor *)lineColor {
-    self.reportTableModel.lineColor = lineColor;
+- (void)setLineColor:(NSString *)lineColor {
+    self.reportTableModel.lineColor = [self colorFromHex: lineColor];
     self.propertyCount += 1;
     [self reloadCheck];
 }
@@ -332,13 +332,13 @@
 - (void)setItemConfig:(NSDictionary *)itemConfig {
     ItemModel *model = [[ItemModel alloc] init];
 
-    model.backgroundColor = [RCTConvert UIColor:[itemConfig objectForKey:@"backgroundColor"]];
+    model.backgroundColor = [self colorFromHex:[itemConfig objectForKey:@"backgroundColor"]];
     model.fontSize = [RCTConvert CGFloat:[itemConfig objectForKey:@"fontSize"]];
-    model.textColor = [RCTConvert UIColor:[itemConfig objectForKey:@"textColor"]];
+    model.textColor = [self colorFromHex:[itemConfig objectForKey:@"textColor"]];
     model.textAlignment = [RCTConvert NSInteger:[itemConfig objectForKey:@"textAlignment"]];
     model.textPaddingHorizontal = [RCTConvert NSInteger:[itemConfig objectForKey:@"textPaddingHorizontal"]];
     
-    model.classificationLineColor = [RCTConvert UIColor:[itemConfig objectForKey:@"classificationLineColor"]];
+    model.classificationLineColor = [self colorFromHex:[itemConfig objectForKey:@"classificationLineColor"]];
     model.isOverstriking = [RCTConvert BOOL:[itemConfig objectForKey:@"isOverstriking"]];
     
     self.reportTableModel.itemConfig = model;
@@ -519,16 +519,16 @@
     model.keyIndex = [RCTConvert NSInteger:[dir objectForKey:@"keyIndex"]];
     model.title = [RCTConvert NSString:[dir objectForKey:@"title"]];
     if ([keys containsObject: @"backgroundColor"]) {
-        model.backgroundColor = [RCTConvert UIColor:[dir objectForKey:@"backgroundColor"]];
+        model.backgroundColor = [self colorFromHex:[dir objectForKey:@"backgroundColor"]];
     }
     if ([keys containsObject: @"fontSize"]) {
         model.fontSize = [RCTConvert CGFloat:[dir objectForKey:@"fontSize"]];
     }
     if ([keys containsObject: @"textColor"]) {
-        model.textColor = [RCTConvert UIColor:[dir objectForKey:@"textColor"]] ;
+        model.textColor = [self colorFromHex:[dir objectForKey:@"textColor"]];
     }
     if ([keys containsObject: @"boxLineColor"]) {
-        model.boxLineColor = [RCTConvert UIColor:[dir objectForKey:@"boxLineColor"]] ;
+        model.boxLineColor = [self colorFromHex:[dir objectForKey:@"boxLineColor"]];
     }
     model.textAlignment = model.itemConfig.textAlignment;
     if ([keys containsObject: @"textAlignment"]) {
@@ -543,7 +543,7 @@
 
     model.classificationLineColor = model.itemConfig.classificationLineColor;
     if ([keys containsObject: @"classificationLineColor"]) {
-        model.classificationLineColor = [RCTConvert UIColor:[dir objectForKey:@"classificationLineColor"]];
+        model.classificationLineColor = [self colorFromHex:[dir objectForKey:@"classificationLineColor"]];
     }
     if ([keys containsObject: @"textPaddingHorizontal"]) {
         model.textPaddingHorizontal = [RCTConvert NSInteger:[dir objectForKey:@"textPaddingHorizontal"]];
@@ -579,14 +579,14 @@
             bgStyle.width = [[backgroundStyleDic objectForKey:@"width"] floatValue];
             bgStyle.height = [[backgroundStyleDic objectForKey:@"height"] floatValue];
             bgStyle.radius = [[backgroundStyleDic objectForKey:@"radius"] floatValue];
-            bgStyle.color = [RCTConvert UIColor:[backgroundStyleDic objectForKey:@"color"]];
+            bgStyle.color = [self colorFromHex: [backgroundStyleDic objectForKey:@"color"]];
             text.backgroundStyle = bgStyle;
         }
         NSDictionary *styleDic = [extraTextDic objectForKey:@"style"];
         if (styleDic) {
             ExtraTextStyle *style = [[ExtraTextStyle alloc] init];
             style.fontSize = [[styleDic objectForKey:@"fontSize"] floatValue];
-            style.color =  [RCTConvert UIColor:[styleDic objectForKey:@"color"]] ;
+            style.color = [self colorFromHex: [styleDic objectForKey:@"color"]];
             text.style = style;
         }
         model.extraText = text;
@@ -604,11 +604,12 @@
             BOOL isOverstriking = [textStyleKeys containsObject:@"isOverstriking"] ? [RCTConvert BOOL:[style objectForKey:@"isOverstriking"]] : model.isOverstriking;
             CGFloat fontSize = [textStyleKeys containsObject:@"fontSize"] ? [RCTConvert CGFloat:[style objectForKey:@"fontSize"]] : model.fontSize;
             UIFont *font = isOverstriking ? [UIFont boldSystemFontOfSize:fontSize] : [UIFont systemFontOfSize:fontSize];
-            UIColor *textColor = [textStyleKeys containsObject:@"textColor"] ? [RCTConvert UIColor:[style objectForKey:@"textColor"]] : model.textColor;
+            UIColor *textColor = [textStyleKeys containsObject:@"textColor"] ? [self colorFromHex: [style objectForKey:@"textColor"]] : model.textColor;
+            
             // append
             CGFloat borderRadius = [textStyleKeys containsObject:@"borderRadius"] ? [RCTConvert CGFloat:[style objectForKey:@"borderRadius"]] : 0;
             CGFloat borderWidth = [textStyleKeys containsObject:@"borderWidth"] ? [RCTConvert CGFloat:[style objectForKey:@"borderWidth"]] : 0;
-            UIColor *borderColor = [textStyleKeys containsObject:@"borderColor"] ? [RCTConvert UIColor:[style objectForKey:@"borderColor"]] : nil;
+            UIColor *borderColor = [textStyleKeys containsObject:@"borderColor"] ? [self colorFromHex: [style objectForKey:@"borderColor"]] : nil;
             BOOL strikethrough = [textStyleKeys containsObject:@"strikethrough"] ? [RCTConvert BOOL:[style objectForKey:@"strikethrough"]] : false;
             if (borderColor != nil) {
                 // 支持border
@@ -644,5 +645,32 @@
     }
     return  model;
 }
+
+- (UIColor *)colorFromHex:(NSString *)hexString {
+    NSString *cleanString = [hexString stringByReplacingOccurrencesOfString:@"#" withString:@""];
+    if ([cleanString length] < 6) return [UIColor blackColor];
+    if (cleanString.length == 6) {
+        cleanString = [NSString stringWithFormat:@"FF%@", cleanString];
+    }
+    
+    unsigned int a, r, g, b;
+    NSRange range;
+    range.length = 2;
+    
+    range.location = 0;
+    [[NSScanner scannerWithString:[cleanString substringWithRange:range]] scanHexInt:&a];
+    
+    range.location = 2;
+    [[NSScanner scannerWithString:[cleanString substringWithRange:range]] scanHexInt:&r];
+    
+    range.location = 4;
+    [[NSScanner scannerWithString:[cleanString substringWithRange:range]] scanHexInt:&g];
+    
+    range.location = 6;
+    [[NSScanner scannerWithString:[cleanString substringWithRange:range]] scanHexInt:&b];
+    
+    return [UIColor colorWithRed:r/255.0 green:g/255.0 blue:b/255.0 alpha:a/255.0];
+}
+
 
 @end

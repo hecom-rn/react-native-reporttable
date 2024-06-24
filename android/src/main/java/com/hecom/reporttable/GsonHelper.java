@@ -7,8 +7,10 @@ import android.content.Context;
 
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.bean.CellConfig;
+import com.hecom.reporttable.table.bean.ExtraText;
 import com.hecom.reporttable.table.deserializer.CellConfigDeserializer;
 import com.hecom.reporttable.table.deserializer.CellDeserializer;
+import com.hecom.reporttable.table.deserializer.ExtraTextDeserializer;
 import com.hecom.reporttable.table.deserializer.IconDeserializer;
 
 /**
@@ -26,6 +28,8 @@ public class GsonHelper {
                 .registerTypeAdapter(Cell.Icon.class, new IconDeserializer(context))
                 .registerTypeAdapter(Cell.class, new CellDeserializer(context))
                 .registerTypeAdapter(CellConfig.class, new CellConfigDeserializer(context))
+                .registerTypeAdapter(ExtraText.class, new ExtraTextDeserializer())
+                .registerTypeAdapter(ExtraText.Style.class, new ExtraTextDeserializer.StyleDeserializer(context))
                 .create();
     }
 
