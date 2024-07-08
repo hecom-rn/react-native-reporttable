@@ -26,6 +26,7 @@ import com.hecom.reporttable.table.format.ShadowDrawOver;
 import com.hecom.reporttable.table.lock.LockHelper;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -191,6 +192,49 @@ public class HecomTable extends SmartTable<Cell> {
                 }
             }
         }
+        notifyDataChanged();
+    }
+
+    public void insertData(String data, int y) {
+        HecomTableData tableData = (HecomTableData) getTableData();
+        Cell[][] newData = ArrayTableData.transformColumnArray(HecomTableData.initData(data));
+
+        List<Column> list = new ArrayList<>(tableData.getColumns());
+        Collections.sort(list, new Comparator<Column>() {
+            @Override
+            public int compare(Column o1, Column o2) {
+                return o1.getColumn() - o2.getColumn();
+            }
+        });
+
+        for (int i = 0; i < newData.length; i++) {
+            Column column = list.get(i);
+            ArrayList<Cell> datas = new ArrayList<>(column.getDatas());
+            for (int j = 0; j < newData[i].length; j++) {
+                int row = j + y;
+                Cell newCell = newData[i][j];
+                datas.add(row, newCell);
+            }
+            column.setDatas(Arrays.asList(datas.toArray()));
+        }
+        int l = newData.length > 0 ? newData[0].length : 0;
+        tableData.getTableInfo().setLineSize(tableData.getLineSize() + l);
+        notifyDataChanged();
+    }
+
+    public void deleteData(int y, int l) {
+        HecomTableData tableData = (HecomTableData) getTableData();
+        List<Column> list = new ArrayList<>(tableData.getColumns());
+
+        for (int i = 0; i < list.size(); i++) {
+            Column column = list.get(i);
+            ArrayList<Cell> datas = new ArrayList<>(column.getDatas());
+            for (int j = 0; j < l; j++) {
+                datas.remove(y);
+            }
+            column.setDatas(Arrays.asList(datas.toArray()));
+        }
+        tableData.getTableInfo().setLineSize(tableData.getLineSize() - l);
         notifyDataChanged();
     }
 

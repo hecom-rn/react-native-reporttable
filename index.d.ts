@@ -196,5 +196,27 @@ declare module "@hecom/react-native-report-table" {
          * @memberof ReportTable
          */
         updateData(param: { data: DataSource[][], x? : number, y?: number } );
+
+        /**
+         *  在表格中y位置，插入特定的数据
+         *  y 默认为0
+         *  💡 通过 ReportTableWrapper 的onBackRef来获取表格的ref
+         *  此次更新不会变更本地的js内存中的tableData, 如果有需要可以通过非setState的方式更新本地的tableData数据源
+         *
+         * @param {{data: DataSource[][], y?: number}} param
+         * @memberof ReportTable
+         */
+        insertData(param: { data: DataSource[][], y?: number } )
+
+        /**
+         *  从表格中y位置开始，删除l行的数据
+         *  l, y 默认为0
+         *  💡 通过 ReportTableWrapper 的onBackRef来获取表格的ref
+         *  此次更新不会变更本地的js内存中的tableData, 如果有需要可以通过非setState的方式更新本地的tableData数据源
+         *
+         * @param {{ l? : number, y?: number}} param
+         * @memberof ReportTable
+         */
+        deleteData(param: { l? : number, y?: number } );
     }
 }

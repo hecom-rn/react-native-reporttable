@@ -51,6 +51,16 @@ export default class ReportTable extends React.Component{
         this.table.updateData({ data, x , y});
     }
 
+    insertData = (params) => {
+        const { data = [[]], y = 0 } = params || {};
+        this.table.insertData({ data, y});
+    }
+
+    deleteData = (params) => {
+        const { y = 0, l = 0 } = params || {};
+        this.table.deleteData({ y, l});
+    }
+
     scrollToBottom = () => {
         this.table && this.table.scrollToBottom();
     }
