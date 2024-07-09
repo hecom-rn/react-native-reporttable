@@ -18,6 +18,14 @@ export default class ReportTableView extends React.Component {
         )
     }
 
+    spliceData = (params) => {
+        UIManager.dispatchViewManagerCommand(
+            findNodeHandle(this),
+            UIManager.getViewManagerConfig('ReportTable').Commands.spliceData,
+            params
+        )
+    }
+
     scrollToBottom = () => {
         UIManager.dispatchViewManagerCommand(
             findNodeHandle(this),

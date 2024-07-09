@@ -17,7 +17,10 @@
 
 - (void)updateDataSource:(NSArray *)data withY:(NSInteger)y withX:(NSInteger)x;
 
+- (void)spliceData:(NSArray *)data withY:(NSInteger)y withL:(NSInteger)l;
+
 - (void)scrollToBottom;
+
 
 @end
 

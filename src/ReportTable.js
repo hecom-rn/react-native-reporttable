@@ -48,7 +48,12 @@ export default class ReportTable extends React.Component{
 
     updateData = (params) => {
         const { data = [[]], x = 0, y = 0 } = params || {};
-        this.table.updateData({ data, x , y});
+        this.table.updateData({ data, x , y });
+    }
+
+    spliceData = (params) => {
+        const { data = [], y = 0, l = 0 } = params || {};
+        this.table.spliceData({ data, y, l });
     }
 
     spliceData = (params) => {
