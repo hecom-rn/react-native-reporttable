@@ -375,6 +375,27 @@
     }
 }
 
+- (void)spliceData:(NSArray *)data withY:(NSInteger)y withL:(NSInteger)l {
+    if (self.reportTableModel.data.count > 0) {
+        NSMutableArray *arr = self.reportTableModel.data;
+        // 删除
+        if (l > 0 && y < arr.count) {
+            if (y + l > arr.count) {
+                l = arr.count - y;
+            }
+            NSRange range = NSMakeRange(y, l);
+            [self.reportTableModel.data removeObjectsInRange:range];
+        }
+        // 插入
+        if (data.count > 0 && y <= arr.count) {
+            NSIndexSet *indexes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(y, data.count)];
+            [arr insertObjects:data atIndexes:indexes];
+        }
+        [self integratedDataSource];
+    }
+}
+
+
 - (void)scrollToLineX:(NSInteger)lineX lineY:(NSInteger)lineY offsetX:(float)offsetX offsetY:(float)offsetY animated:(BOOL)animated {
     [self.reportTableView scrollToLineX: lineX lineY: lineY offsetX: offsetX offsetY: offsetY animated: animated];
 }
