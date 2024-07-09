@@ -77,13 +77,14 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
     public int measureWidth(Column<Cell> column, int position, TableConfig config) {
         Cell.Icon icon = getIcon(column, position);
         int textWidth = textDrawFormat.measureWidth(column, position, config);
+        int textPaddingLeft = column.getDatas().get(position).getTextPaddingLeft();
         if (icon == null) {
-            return textWidth;
+            return textWidth + Math.max(textPaddingLeft, 0);
         }
         if (icon.getDirection() == LEFT || icon.getDirection() == RIGHT) {
-            return icon.getWidth() + textWidth + drawPadding;
+            return icon.getWidth() + textWidth + drawPadding + Math.max(textPaddingLeft, 0);
         } else {
-            return Math.max(icon.getWidth(), textWidth);
+            return Math.max(icon.getWidth(), textWidth) + Math.max(textPaddingLeft, 0);
         }
     }
 
@@ -106,8 +107,8 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
         Cell.Icon icon = getIcon(cellInfo.column, cellInfo.row);
 
-        rect.left += config.getHorizontalPadding() * config.getZoom();
-        rect.right -= config.getHorizontalPadding() * config.getZoom();
+        rect.left += (config.getLeftPadding(cellInfo)) * config.getZoom();
+        rect.right -= config.getRightPadding() * config.getZoom();
         rect.top += config.getVerticalPadding() * config.getZoom();
         rect.bottom -= config.getVerticalPadding() * config.getZoom();
 

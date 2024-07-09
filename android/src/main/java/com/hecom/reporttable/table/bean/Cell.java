@@ -31,6 +31,8 @@ public class Cell {
 
     private boolean strikethrough = false; //删除线
 
+    private int textPaddingLeft = -1; // 左侧间距
+
     private ExtraText extraText; // 后缀标签
 
     public ArrayList<RichText> getRichText() {
@@ -66,7 +68,16 @@ public class Cell {
         this.boxLineColor = newCell.getBoxLineColor();
         this.strikethrough = newCell.isStrikethrough();
         this.extraText = newCell.getExtraText();
+        this.textPaddingLeft = newCell.getTextPaddingLeft();
         cache = null;
+    }
+
+    public int getTextPaddingLeft() {
+        return textPaddingLeft;
+    }
+
+    public void setTextPaddingLeft(int textPaddingLeft) {
+        this.textPaddingLeft = textPaddingLeft;
     }
 
     public void setRichText(ArrayList<RichText> richText) {
@@ -421,6 +432,12 @@ public class Cell {
                 } else if ("selectedIcon".equals(name)) {
                     this.resourceId = R.mipmap.checkbox_hl;
                     this.direction = RIGHT;
+                } else if ("expandedIcon".equals(name)) {
+                    this.resourceId = R.mipmap.checkbox;
+                    this.direction = LEFT;
+                } else if ("collapsedIcon".equals(name)) {
+                    this.resourceId = R.mipmap.checkbox_hl;
+                    this.direction = LEFT;
                 }
             }
         }

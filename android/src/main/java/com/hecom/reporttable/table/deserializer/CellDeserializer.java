@@ -85,6 +85,9 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
         if (json.has("strikethrough")) {
             cell.setStrikethrough(json.get("strikethrough").getAsBoolean());
         }
+        if (json.has("textPaddingLeft")) {
+            cell.setTextPaddingLeft(DensityUtils.dp2px(this.context, json.get("textPaddingLeft").getAsInt()));
+        }
         if (json.has("extraText")) {
             cell.setExtraText(context.<ExtraText>deserialize(json.get("extraText"),
                     ExtraText.class));
