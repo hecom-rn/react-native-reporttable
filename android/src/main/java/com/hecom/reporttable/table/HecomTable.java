@@ -195,7 +195,7 @@ public class HecomTable extends SmartTable<Cell> {
         notifyDataChanged();
     }
 
-    public void insertData(String data, int y) {
+    public void spliceData(String data, int y, int l) {
         HecomTableData tableData = (HecomTableData) getTableData();
         Cell[][] newData = ArrayTableData.transformColumnArray(HecomTableData.initData(data));
 
@@ -210,6 +210,9 @@ public class HecomTable extends SmartTable<Cell> {
         for (int i = 0; i < newData.length; i++) {
             Column column = list.get(i);
             ArrayList<Cell> datas = new ArrayList<>(column.getDatas());
+            for (int j = 0; j < l; j++) {
+                datas.remove(y);
+            }
             for (int j = 0; j < newData[i].length; j++) {
                 int row = j + y;
                 Cell newCell = newData[i][j];
@@ -217,24 +220,8 @@ public class HecomTable extends SmartTable<Cell> {
             }
             column.setDatas(Arrays.asList(datas.toArray()));
         }
-        int l = newData.length > 0 ? newData[0].length : 0;
-        tableData.getTableInfo().setLineSize(tableData.getLineSize() + l);
-        notifyDataChanged();
-    }
-
-    public void deleteData(int y, int l) {
-        HecomTableData tableData = (HecomTableData) getTableData();
-        List<Column> list = new ArrayList<>(tableData.getColumns());
-
-        for (int i = 0; i < list.size(); i++) {
-            Column column = list.get(i);
-            ArrayList<Cell> datas = new ArrayList<>(column.getDatas());
-            for (int j = 0; j < l; j++) {
-                datas.remove(y);
-            }
-            column.setDatas(Arrays.asList(datas.toArray()));
-        }
-        tableData.getTableInfo().setLineSize(tableData.getLineSize() - l);
+        int tmpL = newData.length > 0 ? newData[0].length : 0;
+        tableData.getTableInfo().setLineSize(tableData.getLineSize() + tmpL - l);
         notifyDataChanged();
     }
 

@@ -179,11 +179,8 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
             case "updateData":
                 processUpdateData(root, args);
                 break;
-            case "insertData":
-                processInsertData(root, args);
-                break;
-            case "deleteData":
-                processDeleteData(root, args);
+            case "spliceData":
+                processSpliceData(root, args);
                 break;
         }
     }
@@ -196,18 +193,12 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         root.updateData(data, x, y);
     }
 
-    private void processInsertData(HecomTable root, ReadableArray args) {
+    private void processSpliceData(HecomTable root, ReadableArray args) {
         ReadableMap map = args.getMap(0);
         String data = map.getString("data");
         int y = map.getInt("y");
-        root.insertData(data, y);
-    }
-
-    private void processDeleteData(HecomTable root, ReadableArray args) {
-        ReadableMap map = args.getMap(0);
-        int y = map.getInt("y");
         int l = map.getInt("l");
-        root.deleteData(y, l);
+        root.spliceData(data, y, l);
     }
 
     private void processScrollTo(HecomTable root, ReadableArray args) {

@@ -122,20 +122,11 @@ export default class ReportTableWrapper extends React.Component {
         );
     }
 
-    insertData = (params) => {
+    spliceData = (params) => {
         params.data = JSON.stringify(params.data);
         UIManager.dispatchViewManagerCommand(
             this._getTableHandle(),
-            'insertData',
-            [params]
-        );
-    }
-
-    deleteData = (params) => {
-        params.data = JSON.stringify(params.data);
-        UIManager.dispatchViewManagerCommand(
-            this._getTableHandle(),
-            'deleteData',
+            'spliceData',
             [params]
         );
     }
