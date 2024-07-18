@@ -433,10 +433,10 @@ public class Cell {
                     this.resourceId = R.mipmap.checkbox_hl;
                     this.direction = RIGHT;
                 } else if ("expandedIcon".equals(name)) {
-                    this.resourceId = R.mipmap.checkbox;
+                    this.resourceId = R.mipmap.expanded_icon;
                     this.direction = LEFT;
                 } else if ("collapsedIcon".equals(name)) {
-                    this.resourceId = R.mipmap.checkbox_hl;
+                    this.resourceId = R.mipmap.collapsed_icon;
                     this.direction = LEFT;
                 }
             }
