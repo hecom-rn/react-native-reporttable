@@ -60,15 +60,15 @@ declare module "@hecom/react-native-report-table" {
 
     type Color = string ; //16进制色值，需6位   // AARRGGBB | RRGGBB;
  
-    // 默认值配置
+    // 默认值配置， 请勿置空
     export interface ItemConfig {
-        backgroundColor: Color;
-        fontSize: number;  // default 14
-        textColor: Color;
-        textAlignment: 0 | 1 | 2; // default 0
-        textPaddingHorizontal: number; // default 12
-        classificationLineColor: Color; // default #9cb3c8
-        isOverstriking: boolean; // 文本是否加粗。 default false
+        backgroundColor?: Color;
+        fontSize?: number;  // default 14
+        textColor?: Color;
+        textAlignment?: 0 | 1 | 2; // default 0
+        textPaddingHorizontal?: number; // default 12
+        classificationLineColor?: Color; // default #9cb3c8
+        isOverstriking?: boolean; // 文本是否加粗。 default false
     }
 
     enum ClassificationLinePosition {
