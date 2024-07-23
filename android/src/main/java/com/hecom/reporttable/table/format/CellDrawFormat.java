@@ -1,10 +1,13 @@
 package com.hecom.reporttable.table.format;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextUtils;
+import android.util.LruCache;
 
 import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
@@ -16,16 +19,18 @@ import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.lock.Locker;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 
 /**
  * 绘制单元格
  */
 public class CellDrawFormat extends ImageResDrawFormat<Cell> {
-
-    public static final int LEFT = 0;
-    public static final int TOP = 1;
-    public static final int RIGHT = 2;
-    public static final int BOTTOM = 3;
 
     private final HecomTextDrawFormat textDrawFormat;
     private final int drawPadding;
@@ -42,6 +47,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
     private final Cell.Icon lockIcon = new Cell.Icon();
 
+    public LruCache<String,Bitmap> bitmapLruCache;
     public CellDrawFormat(final HecomTable table, Locker locker) {
         super(1, 1);
         this.table = table;
@@ -54,6 +60,15 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         lockIcon.setDirection(Cell.Icon.RIGHT);
         lockIcon.setWidth(DensityUtils.dp2px(getContext(), 15));
         lockIcon.setHeight(DensityUtils.dp2px(getContext(), 15));
+
+        int maxMemory = (int)(Runtime.getRuntime().maxMemory() / 1024);// kB
+        int cacheSize = maxMemory / 16;
+        bitmapLruCache = new LruCache<String,Bitmap>(cacheSize){
+            @Override
+            protected int sizeOf(String key,Bitmap bitmap){
+                return bitmap.getRowBytes() * bitmap.getHeight() / 1024;// KB
+            }
+        };
     }
 
     @Override
@@ -61,6 +76,57 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         return table.getContext();
     }
 
+    @Override
+    protected Bitmap getBitmap(Cell cell, String value, int position) {
+        String sUri = this.getResourceUri(cell,value,position);
+        Bitmap bitmap = bitmapLruCache.get(sUri);
+        if(bitmap == null) {
+            if (String.valueOf(lockIcon.getResourceId()).equals(sUri)) {
+                bitmap = BitmapFactory.decodeResource(getContext().getResources(),Integer.valueOf(sUri));
+                if(bitmap !=null) {
+                    bitmapLruCache.put(sUri, bitmap);
+                }
+            } else {
+                int threadCount = 1; // 假设我们有5个线程
+                CountDownLatch latch = new CountDownLatch(threadCount);
+                ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+                    executor.execute(new Runnable() {
+                        public void run() {
+                            InputStream in = null;
+                            try {
+                                in = new URL(sUri).openStream();
+                                Bitmap innerBitmap = BitmapFactory.decodeStream(in);
+                                if(innerBitmap !=null) {
+                                    bitmapLruCache.put(sUri, innerBitmap);
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            latch.countDown();
+                        }
+                    });
+
+                // 在这里，主线程等待所有线程完成
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                executor.shutdown();
+                return bitmapLruCache.get(sUri);
+            }
+        }
+        return bitmap;
+    }
+
+    private String getResourceUri(Cell cell, String value, int position) {
+        Cell.Icon icon = cell.getIcon();
+        // 调用到getResourceID时，一定是需要绘制icon的，如果icon为空，说明是锁定列
+        if (position == 0 && icon == null) {
+            return String.valueOf(lockIcon.getResourceId());
+        }
+        return icon.getPath().getUri();
+    }
 
     @Override
     protected int getResourceID(Cell cell, String value, int position) {
@@ -81,7 +147,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         if (icon == null) {
             return textWidth + Math.max(textPaddingLeft, 0);
         }
-        if (icon.getDirection() == LEFT || icon.getDirection() == RIGHT) {
+        if (icon.getDirection() == Cell.Icon.LEFT || icon.getDirection() == Cell.Icon.RIGHT) {
             return icon.getWidth() + textWidth + drawPadding + Math.max(textPaddingLeft, 0);
         } else {
             return Math.max(icon.getWidth(), textWidth) + Math.max(textPaddingLeft, 0);
@@ -95,7 +161,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         if (icon == null) {
             return textHeight;
         }
-        if (icon.getDirection() == TOP || icon.getDirection() == BOTTOM) {
+        if (icon.getDirection() == Cell.Icon.TOP || icon.getDirection() == Cell.Icon.BOTTOM) {
             return icon.getHeight() + textHeight + drawPadding;
         } else {
             return Math.max(icon.getHeight(), textHeight);
@@ -134,7 +200,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         }
         int imgRight = 0, imgLeft = 0;
         switch (icon.getDirection()) {//单元格icon的相对位置
-            case LEFT:
+            case Cell.Icon.LEFT:
                 this.rect.set(rect.left + (imgWidth + drawPadding), rect.top, rect.right,
                         rect.bottom);
                 textDrawFormat.draw(c, this.rect, cellInfo, config);
@@ -154,7 +220,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 this.rect.set(imgRight - imgWidth, rect.top, imgRight, rect.bottom);
                 this.drawImg(c, this.rect, cellInfo, config);
                 break;
-            case RIGHT:
+            case Cell.Icon.RIGHT:
                 this.rect.set(rect.left, rect.top, rect.right - (imgWidth + drawPadding),
                         rect.bottom);
                 textDrawFormat.draw(c, this.rect, cellInfo, config);
@@ -174,7 +240,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 this.rect.set(imgLeft, rect.top, imgLeft + imgWidth, rect.bottom);
                 this.drawImg(c, this.rect, cellInfo, config);
                 break;
-            case TOP:
+            case Cell.Icon.TOP:
                 this.rect.set(rect.left, rect.top + (imgHeight + drawPadding) / 2, rect.right,
                         rect.bottom);
                 textDrawFormat.draw(c, this.rect, cellInfo, config);
@@ -183,7 +249,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 this.rect.set(rect.left, imgBottom - imgHeight, rect.right, imgBottom);
                 this.drawImg(c, this.rect, cellInfo, config);
                 break;
-            case BOTTOM:
+            case Cell.Icon.BOTTOM:
                 this.rect.set(rect.left, rect.top, rect.right, rect.bottom - (imgHeight +
                         drawPadding) / 2);
                 textDrawFormat.draw(c, this.rect, cellInfo, config);
