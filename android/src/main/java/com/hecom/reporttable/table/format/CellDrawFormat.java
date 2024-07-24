@@ -87,7 +87,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                     bitmapLruCache.put(sUri, bitmap);
                 }
             } else {
-                int threadCount = 1; // 假设我们有5个线程
+                int threadCount = 1;
                 CountDownLatch latch = new CountDownLatch(threadCount);
                 ExecutorService executor = Executors.newFixedThreadPool(threadCount);
                     executor.execute(new Runnable() {
@@ -96,6 +96,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                             try {
                                 in = new URL(sUri).openStream();
                                 Bitmap innerBitmap = BitmapFactory.decodeStream(in);
+                                innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon().getWidth(), cell.getIcon().getHeight(), true);
                                 if(innerBitmap !=null) {
                                     bitmapLruCache.put(sUri, innerBitmap);
                                 }

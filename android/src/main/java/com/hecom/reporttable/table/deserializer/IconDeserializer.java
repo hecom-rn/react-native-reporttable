@@ -60,8 +60,8 @@ public class IconDeserializer implements JsonDeserializer<Cell.Icon> {
         if (json.has("path")) {
             JsonObject obj = json.get("path").getAsJsonObject();
             boolean __packager_asset = obj.get("__packager_asset").getAsBoolean();
-            String width = obj.get("width").getAsString();
-            String height = obj.get("height").getAsString();
+            int width = obj.get("width").getAsInt();
+            int height = obj.get("height").getAsInt();
             String scale = obj.get("scale").getAsString();
             String uri = obj.get("uri").getAsString();
             Cell.Path path = new Cell.Path();

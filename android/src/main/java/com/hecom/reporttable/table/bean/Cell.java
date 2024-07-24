@@ -313,7 +313,7 @@ public class Cell {
         private int height;
         public String name;
 
-        private int direction = -1;
+        private int direction = RIGHT;
         private int resourceId = -1;
 
         public int getDirection() {
@@ -444,17 +444,17 @@ public class Cell {
     }
 
     public static class Path {
-        private String height;
+        private int height;
         private String scale;
         private String uri;
-        private String width;
+        private int width;
         private boolean __packager_asset;
 
-        public String getHeight() {
+        public int getHeight() {
             return height;
         }
 
-        public void setHeight(String height) {
+        public void setHeight(int height) {
             this.height = height;
         }
 
@@ -474,11 +474,11 @@ public class Cell {
             this.uri = uri;
         }
 
-        public String getWidth() {
+        public int getWidth() {
             return width;
         }
 
-        public void setWidth(String width) {
+        public void setWidth(int width) {
             this.width = width;
         }
 
