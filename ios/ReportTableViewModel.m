@@ -374,25 +374,29 @@
         [self integratedDataSource];
     }
 }
-
-- (void)spliceData:(NSArray *)data withY:(NSInteger)y withL:(NSInteger)l {
-    if (self.reportTableModel.data.count > 0) {
-        NSMutableArray *arr = self.reportTableModel.data;
-        // 删除
-        if (l > 0 && y < arr.count) {
-            if (y + l > arr.count) {
-                l = arr.count - y;
+- (void)spliceData:(NSArray *)config {
+    NSMutableArray *arr = self.reportTableModel.data;
+    for (int i = 0; i < config.count; i++) {
+        NSArray *data = [config[i] objectForKey:@"data"];
+        NSInteger l =  [RCTConvert NSInteger:[config[i] objectForKey:@"l"]];
+        NSInteger y = [RCTConvert NSInteger: [config[i] objectForKey:@"y"]];
+        if (self.reportTableModel.data.count > 0) {
+            // 删除
+            if (l > 0 && y < arr.count) {
+                if (y + l > arr.count) {
+                    l = arr.count - y;
+                }
+                NSRange range = NSMakeRange(y, l);
+                [self.reportTableModel.data removeObjectsInRange:range];
             }
-            NSRange range = NSMakeRange(y, l);
-            [self.reportTableModel.data removeObjectsInRange:range];
+            // 插入
+            if (data.count > 0 && y <= arr.count) {
+                NSIndexSet *indexes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(y, data.count)];
+                [arr insertObjects:data atIndexes:indexes];
+            }
         }
-        // 插入
-        if (data.count > 0 && y <= arr.count) {
-            NSIndexSet *indexes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(y, data.count)];
-            [arr insertObjects:data atIndexes:indexes];
-        }
-        [self integratedDataSource];
     }
+    [self integratedDataSource];
 }
 
 

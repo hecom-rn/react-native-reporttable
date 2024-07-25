@@ -31,10 +31,9 @@ export default class ReportTableWrapper extends React.Component{
     }
 
     spliceData = (params) => {
-        const { data = [], y = 0, l = 0 } = params || {};
-        this.table.spliceData([data, y, l]);
+        this.table.spliceData([params]);
     }
-
+    
     updateData = (params) => {
         this.table.updateData([params.data, params.y, params.x]);
     }

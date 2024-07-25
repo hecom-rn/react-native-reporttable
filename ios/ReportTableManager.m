@@ -62,14 +62,14 @@ RCT_EXPORT_METHOD(updateData:(nonnull NSNumber*)reactTag data:(NSArray *)data wi
     }];
 }
 
-RCT_EXPORT_METHOD(spliceData:(nonnull NSNumber*)reactTag data:(NSArray *)data withY:(NSInteger)y withL:(NSInteger)l) {
+RCT_EXPORT_METHOD(spliceData:(nonnull NSNumber*)reactTag config:(NSArray *)config) {
     [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
         ReportTableViewModel *view = viewRegistry[reactTag];
         if (!view || ![view isKindOfClass:[ReportTableViewModel class]]) {
             RCTLogError(@"Cannot find NativeView with tag #%@", reactTag);
             return;
         }
-        [view spliceData:data withY:y withL:l];
+        [view spliceData:config];
     }];
 }
 
