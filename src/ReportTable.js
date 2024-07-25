@@ -52,7 +52,7 @@ export default class ReportTable extends React.Component{
     }
 
     spliceData = (params) => {
-        const arr = params;
+        let arr = params;
         if (!Array.isArray(arr)) {
             arr = [params];
         }
