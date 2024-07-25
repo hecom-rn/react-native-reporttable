@@ -123,7 +123,9 @@ export default class ReportTableWrapper extends React.Component {
     }
 
     spliceData = (params) => {
-        params.data = JSON.stringify(params.data);
+        params?.forEach((item) => {
+            item.data = JSON.stringify(item.data);
+        })
         UIManager.dispatchViewManagerCommand(
             this._getTableHandle(),
             'spliceData',

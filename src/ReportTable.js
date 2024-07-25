@@ -52,8 +52,16 @@ export default class ReportTable extends React.Component{
     }
 
     spliceData = (params) => {
-        const { data = [], y = 0, l = 0 } = params || {};
-        this.table.spliceData({ data, y, l });
+        const arr = params;
+        if (!Array.isArray(arr)) {
+            arr = [params];
+        }
+
+        this.table.spliceData(arr.map((item) => ({
+            data: item?.data || [],
+            y: item?.y || 0,
+            l: item?.l || 0,
+        })));
     }
 
     scrollToBottom = () => {

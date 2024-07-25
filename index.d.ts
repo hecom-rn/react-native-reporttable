@@ -206,6 +206,6 @@ declare module "@hecom/react-native-report-table" {
          * @param {{ l? : number, y?: number}} param
          * @memberof ReportTable
          */
-        spliceData(param: { data?: DataSource[][], l? : number, y?: number } );
+        spliceData(param: { data?: DataSource[][], l? : number, y?: number } | Array<{ data?: DataSource[][], l? : number, y?: number }>);
     }
 }

@@ -45,6 +45,42 @@ public class HecomTable extends SmartTable<Cell> {
     private TableConfigBean lastConfigBean;
     private String lastJson;
 
+    public static class SpliceItem {
+        private String data;
+        private int y;
+        private int l;
+
+        public SpliceItem(String data, int y, int l) {
+            super();
+            this.data = data;
+            this.y = y;
+            this.l = l;
+        }
+        public String getData() {
+            return data;
+        }
+
+        public void setData(String data) {
+            this.data = data;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public void setY(int y) {
+            this.y = y;
+        }
+
+        public int getL() {
+            return l;
+        }
+
+        public void setL(int l) {
+            this.l = l;
+        }
+    }
+
     public HecomTable(ThemedReactContext context) {
         super(context);
         init(context);
@@ -195,6 +231,14 @@ public class HecomTable extends SmartTable<Cell> {
         notifyDataChanged();
     }
 
+    public void spliceDataArray(SpliceItem[] spliceItems) {
+        for(int i = 0; i < spliceItems.length; ++i) {
+            SpliceItem item = spliceItems[i];
+            this.spliceData(item.getData(), item.getY(), item.getL());
+        }
+        notifyDataChanged();
+    }
+
     public void spliceData(String data, int y, int l) {
         HecomTableData tableData = (HecomTableData) getTableData();
         Cell[][] newData = ArrayTableData.transformColumnArray(HecomTableData.initData(data));
@@ -222,7 +266,6 @@ public class HecomTable extends SmartTable<Cell> {
         }
         int tmpL = newData.length > 0 ? newData[0].length : 0;
         tableData.getTableInfo().setLineSize(tableData.getLineSize() + tmpL - l);
-        notifyDataChanged();
     }
 
     public void setData(final String json,

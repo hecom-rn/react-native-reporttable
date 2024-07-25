@@ -20,6 +20,7 @@ import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.format.HecomStyle;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import androidx.annotation.NonNull;
@@ -194,11 +195,23 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
     }
 
     private void processSpliceData(HecomTable root, ReadableArray args) {
-        ReadableMap map = args.getMap(0);
-        String data = map.getString("data");
-        int y = map.getInt("y");
-        int l = map.getInt("l");
-        root.spliceData(data, y, l);
+        ReadableArray array = args.getArray(0);
+        HecomTable.SpliceItem[] spliceItems = new HecomTable.SpliceItem[array.size()];
+        for(int i = 0; i < array.size(); ++i) {
+            ReadableMap map = array.getMap(i);
+            String data = map.getString("data");
+            int y = map.getInt("y");
+            int l = map.getInt("l");
+            HecomTable.SpliceItem item = new HecomTable.SpliceItem(data, y, l);
+            spliceItems[i] = item;
+        }
+        root.spliceDataArray(spliceItems);
+
+//        ReadableMap map = args.getMap(0);
+//        String data = map.getString("data");
+//        int y = map.getInt("y");
+//        int l = map.getInt("l");
+//        root.spliceData(data, y, l);
     }
 
     private void processScrollTo(HecomTable root, ReadableArray args) {
