@@ -7,9 +7,11 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.LruCache;
 
 import com.hecom.reporttable.R;
+import com.hecom.reporttable.BuildConfig;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
@@ -92,16 +94,22 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 ExecutorService executor = Executors.newFixedThreadPool(threadCount);
                     executor.execute(new Runnable() {
                         public void run() {
-                            InputStream in = null;
-                            try {
-                                in = new URL(sUri).openStream();
-                                Bitmap innerBitmap = BitmapFactory.decodeStream(in);
-                                innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon().getWidth(), cell.getIcon().getHeight(), true);
-                                if(innerBitmap !=null) {
-                                    bitmapLruCache.put(sUri, innerBitmap);
+                            Log.e("RrportTableCell", "BuildConfig.DEBUG = " + BuildConfig.DEBUG);
+                            Bitmap innerBitmap = null;
+                            if (BuildConfig.DEBUG) {
+                                InputStream in = null;
+                                try {
+                                    in = new URL(sUri).openStream();
+                                    innerBitmap = BitmapFactory.decodeStream(in);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
                                 }
-                            } catch (IOException e) {
-                                e.printStackTrace();
+                            } else {
+                                innerBitmap = BitmapFactory.decodeResource(getContext().getResources(), Cell.Path.getResourceDrawableId(getContext(), sUri));
+                            }
+                            innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon().getWidth(), cell.getIcon().getHeight(), true);
+                            if (innerBitmap != null) {
+                                bitmapLruCache.put(sUri, innerBitmap);
                             }
                             latch.countDown();
                         }

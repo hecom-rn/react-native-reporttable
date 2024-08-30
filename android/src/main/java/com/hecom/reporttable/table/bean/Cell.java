@@ -1,11 +1,22 @@
 package com.hecom.reporttable.table.bean;
 
+import android.content.Context;
 import android.graphics.Paint;
 
+import com.hecom.reporttable.BuildConfig;
 import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
+import android.net.Uri;
+import android.util.Log;
+
+import com.facebook.common.util.UriUtil;
+
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 /**
  * 单元格数据
@@ -489,5 +500,24 @@ public class Cell {
         public void set__packager_asset(boolean __packager_asset) {
             this.__packager_asset = __packager_asset;
         }
+
+        private static Map<String, Integer> mResourceDrawableIdMap = new HashMap<>();
+
+        public static int getResourceDrawableId(Context context, @Nullable String name) {
+            if (name == null || name.isEmpty()) {
+                return 0;
+            }
+            name = name.toLowerCase().replace("-", "_");
+            if (mResourceDrawableIdMap.containsKey(name)) {
+                return mResourceDrawableIdMap.get(name);
+            }
+            int id = context.getResources().getIdentifier(
+                    name,
+                    "drawable",
+                    context.getPackageName());
+            mResourceDrawableIdMap.put(name, id);
+            return id;
+        }
+
     }
 }
