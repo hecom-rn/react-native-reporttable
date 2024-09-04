@@ -56,6 +56,7 @@ public class HecomTable extends SmartTable<Cell> {
             this.y = y;
             this.l = l;
         }
+
         public String getData() {
             return data;
         }
@@ -232,11 +233,14 @@ public class HecomTable extends SmartTable<Cell> {
     }
 
     public void spliceDataArray(SpliceItem[] spliceItems) {
-        for(int i = 0; i < spliceItems.length; ++i) {
-            SpliceItem item = spliceItems[i];
-            this.spliceData(item.getData(), item.getY(), item.getL());
+        HecomTableData tableData = (HecomTableData) getTableData();
+        synchronized (tableData) {
+            for (int i = 0; i < spliceItems.length; ++i) {
+                SpliceItem item = spliceItems[i];
+                this.spliceData(item.getData(), item.getY(), item.getL());
+            }
+            notifyDataChanged();
         }
-        notifyDataChanged();
     }
 
     public void spliceData(String data, int y, int l) {
@@ -250,7 +254,12 @@ public class HecomTable extends SmartTable<Cell> {
                 return o1.getColumn() - o2.getColumn();
             }
         });
-
+        if (newData == null) {
+            newData = new Cell[list.size()][];
+            for (int i = 0; i < newData.length; ++i) {
+                newData[i] = new Cell[0];
+            }
+        }
         for (int i = 0; i < newData.length; i++) {
             Column column = list.get(i);
             ArrayList<Cell> datas = new ArrayList<>(column.getDatas());

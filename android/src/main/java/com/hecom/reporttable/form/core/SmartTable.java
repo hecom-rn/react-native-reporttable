@@ -247,10 +247,12 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    parser.parse(tableData);
-                    TableInfo info = measurer.measure(tableData, config);
-                    xAxis.setHeight(info.getTopHeight());
-                    yAxis.setWidth(info.getyAxisWidth());
+                    synchronized (tableData) {
+                        parser.parse(tableData);
+                        TableInfo info = measurer.measure(tableData, config);
+                        xAxis.setHeight(info.getTopHeight());
+                        yAxis.setWidth(info.getyAxisWidth());
+                    }
                     isNotifying.set(false);
                     requestReMeasure();
                     postInvalidate();
