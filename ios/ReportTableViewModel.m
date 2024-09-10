@@ -43,13 +43,6 @@
     return _reportTableView;
 }
 
-- (ReportTableHeaderView *)headerView {
-    if (!_headerView) {
-        _headerView = [[ReportTableHeaderView alloc] initWithBridge:self.bridge];
-    }
-    return _headerView;
-}
-
 - (ReportTableHeaderScrollView *)headerScrollView {
     if (!_headerScrollView) {
         _headerScrollView = [[ReportTableHeaderScrollView alloc] init];
@@ -60,6 +53,14 @@
     return _headerScrollView;
 }
 
+
+- (void)didAddSubview:(UIView *)subview {
+    if ([subview isKindOfClass:[RCTView class]]) {
+        [subview removeFromSuperview];
+        self.headerView = subview;
+        [self.headerScrollView addSubview: self.headerView];
+    }
+}
 
 - (id)initWithBridge:(RCTBridge *)bridge {
     self = [super init];
@@ -256,22 +257,9 @@
             [self.headerView removeFromSuperview];
             self.headerView = nil;
         } else {
-            if (_headerView != nil && self.headerView.frame.size.height != headerViewSize.height) {
-                // header 更新
-                [self.headerView removeFromSuperview];
-                _headerView = nil;
-            }
-            if (_headerView == nil) {
-                [self.headerScrollView addSubview: self.headerView];
-            }
             self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
         }
-        // 更新了heaher 要更新tableHight
-//        CGRect tableRect = self.reportTableModel.tableRect;
-//        tableRect.size.height = MIN(tableRect.size.height, self.dataHeight + headerViewSize.height);
-//        self.reportTableView.frame = tableRect;
     }
-
     self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, 0);
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
     self.reportTableView.headerScrollView = self.headerScrollView;

@@ -53,7 +53,9 @@ export default class ReportTableWrapper extends React.Component{
                 {...this.props}
                 headerViewSize={this.headerViewSize}
                 onClickEvent={this.onClickEvent}
-            />
+            >
+                {this.props.headerView?.()}
+            </ReportTableView>
         );
     }
 }
