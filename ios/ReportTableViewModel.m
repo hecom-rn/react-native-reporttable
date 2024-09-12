@@ -46,6 +46,7 @@
 - (ReportTableHeaderScrollView *)headerScrollView {
     if (!_headerScrollView) {
         _headerScrollView = [[ReportTableHeaderScrollView alloc] init];
+        _headerScrollView.tag = 999999;
         _headerScrollView.showsHorizontalScrollIndicator = NO;
         _headerScrollView.showsVerticalScrollIndicator = NO;
         [self.reportTableView addSubview: _headerScrollView];
@@ -259,9 +260,13 @@
         } else {
             self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
         }
+
     }
-    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, 0);
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
+    
+    BOOL canScroll = (self.dataHeight ?: 0) + self.headerScrollView.frame.size.height > self.reportTableModel.tableRect.size.height;
+    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, canScroll ? self.reportTableModel.tableRect.size.height : 0);
+    
     self.reportTableView.headerScrollView = self.headerScrollView;
     [self.reportTableView scrollViewDidZoom: self.reportTableView];
     [self reloadCheck];
@@ -514,8 +519,10 @@
         NSNumber *height = [cloumsHight valueForKeyPath:@"@sum.self"];
         self.reportTableModel.onContentSize(@{@"width": @([width floatValue] + (rowsWidth.count + 1) * 1), @"height": @([height floatValue] + (cloumsHight.count + 1) * 1)});
     }
-    
     self.reportTableView.frame = self.reportTableModel.tableRect;
+    BOOL canScroll = self.dataHeight + self.headerScrollView.frame.size.height > self.reportTableModel.tableRect.size.height;
+    self.headerScrollView.contentSize = CGSizeMake(self.headerScrollView.contentSize.width, canScroll ? self.reportTableModel.tableRect.size.height : 0);
+    
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableModel.tableRect.size.width, self.headerScrollView.frame.size.height);
     if (frozenArray.count > 0 && self.reportTableModel.permutable) {
         // 如果有合并的则让permutable失效

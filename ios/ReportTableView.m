@@ -31,6 +31,7 @@
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
     self.spreadsheetView.tableHeaderView = headerScrollView;
     _headerScrollView = headerScrollView;
+    headerScrollView.delegate = self.spreadsheetView;
     self.headerScrollView.isUserScouce = false;
     self.spreadsheetView.tableView.scrollEnabled = true;
     [self sendSubviewToBack:_headerScrollView];
