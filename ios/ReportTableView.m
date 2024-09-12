@@ -289,11 +289,17 @@
                         y = y + over;
 
                         cell.label.transform = CGAffineTransformMakeTranslation(0, y);
+                        if (cell.customImageView) {
+                            cell.customImageView.transform = CGAffineTransformMakeTranslation(0, y);
+                        }
                     }
                 } else {
                     // 缩放后影响了显示范围， 则恢复
                     if (cell.label.transform.ty != 0) {
                         cell.label.transform = CGAffineTransformMakeTranslation(0, 0);
+                        if (cell.customImageView) {
+                            cell.customImageView.transform = CGAffineTransformMakeTranslation(0, 0);
+                        }
                     }
                 }
             }
