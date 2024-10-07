@@ -96,7 +96,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                         public void run() {
                             Log.e("RrportTableCell", "BuildConfig.DEBUG = " + BuildConfig.DEBUG);
                             Bitmap innerBitmap = null;
-                            if (BuildConfig.DEBUG) {
+                            if (BuildConfig.DEBUG || sUri.startsWith("file:")) {
                                 InputStream in = null;
                                 try {
                                     in = new URL(sUri).openStream();
@@ -107,8 +107,8 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                             } else {
                                 innerBitmap = BitmapFactory.decodeResource(getContext().getResources(), Cell.Path.getResourceDrawableId(getContext(), sUri));
                             }
-                            innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon().getWidth(), cell.getIcon().getHeight(), true);
                             if (innerBitmap != null) {
+                                innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon().getWidth(), cell.getIcon().getHeight(), true);
                                 bitmapLruCache.put(sUri, innerBitmap);
                             }
                             latch.countDown();
