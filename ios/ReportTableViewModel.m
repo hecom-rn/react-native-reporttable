@@ -43,16 +43,10 @@
     return _reportTableView;
 }
 
-- (ReportTableHeaderView *)headerView {
-    if (!_headerView) {
-        _headerView = [[ReportTableHeaderView alloc] initWithBridge:self.bridge];
-    }
-    return _headerView;
-}
-
 - (ReportTableHeaderScrollView *)headerScrollView {
     if (!_headerScrollView) {
         _headerScrollView = [[ReportTableHeaderScrollView alloc] init];
+        _headerScrollView.tag = 999999;
         _headerScrollView.showsHorizontalScrollIndicator = NO;
         _headerScrollView.showsVerticalScrollIndicator = NO;
         [self.reportTableView addSubview: _headerScrollView];
@@ -60,6 +54,14 @@
     return _headerScrollView;
 }
 
+
+- (void)didAddSubview:(UIView *)subview {
+    if ([subview isKindOfClass:[RCTView class]]) {
+        [subview removeFromSuperview];
+        self.headerView = subview;
+        [self.headerScrollView addSubview: self.headerView];
+    }
+}
 
 - (id)initWithBridge:(RCTBridge *)bridge {
     self = [super init];
@@ -256,24 +258,15 @@
             [self.headerView removeFromSuperview];
             self.headerView = nil;
         } else {
-            if (_headerView != nil && self.headerView.frame.size.height != headerViewSize.height) {
-                // header 更新
-                [self.headerView removeFromSuperview];
-                _headerView = nil;
-            }
-            if (_headerView == nil) {
-                [self.headerScrollView addSubview: self.headerView];
-            }
             self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
         }
-        // 更新了heaher 要更新tableHight
-//        CGRect tableRect = self.reportTableModel.tableRect;
-//        tableRect.size.height = MIN(tableRect.size.height, self.dataHeight + headerViewSize.height);
-//        self.reportTableView.frame = tableRect;
-    }
 
-    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, 0);
+    }
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
+    
+    BOOL canScroll = (self.dataHeight ?: 0) + self.headerScrollView.frame.size.height > self.reportTableModel.tableRect.size.height;
+    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, canScroll ? self.reportTableModel.tableRect.size.height : 0);
+    
     self.reportTableView.headerScrollView = self.headerScrollView;
     [self.reportTableView scrollViewDidZoom: self.reportTableView];
     [self reloadCheck];
@@ -470,7 +463,7 @@
             CGFloat exceptText = (model.textPaddingLeft ?: model.textPaddingHorizontal) + (model.textPaddingRight ?: model.textPaddingHorizontal)  + imageIconWidth + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
             CGFloat boundWidth = MAX(maxWidth, mergeNum * minWidth) - exceptText;
             CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : model.richText != nil ? [self getAttTextWidth:model.richText withMaxWith: boundWidth] : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: boundWidth];
-            CGFloat tolerant = 8; // 额外的容错空间
+            CGFloat tolerant = textRect.size.width == 0 ? 0 : 8; // 额外的容错空间
             if (textRect.size.width + tolerant + exceptText > mergeNum * minWidth || textRect.size.height > model.fontSize * 1.5) {
                 BOOL useMerge = mergeNum > maxWidth/ minWidth; // 当横向有合并时，使用最小宽度来计算对应的高
                 if (textRect.size.height < model.fontSize * 1.9) {
@@ -526,8 +519,10 @@
         NSNumber *height = [cloumsHight valueForKeyPath:@"@sum.self"];
         self.reportTableModel.onContentSize(@{@"width": @([width floatValue] + (rowsWidth.count + 1) * 1), @"height": @([height floatValue] + (cloumsHight.count + 1) * 1)});
     }
-    
     self.reportTableView.frame = self.reportTableModel.tableRect;
+    BOOL canScroll = self.dataHeight + self.headerScrollView.frame.size.height > self.reportTableModel.tableRect.size.height;
+    self.headerScrollView.contentSize = CGSizeMake(self.headerScrollView.contentSize.width, canScroll ? self.reportTableModel.tableRect.size.height : 0);
+    
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableModel.tableRect.size.width, self.headerScrollView.frame.size.height);
     if (frozenArray.count > 0 && self.reportTableModel.permutable) {
         // 如果有合并的则让permutable失效
