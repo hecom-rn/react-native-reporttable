@@ -15,6 +15,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
+import android.util.Log;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
@@ -148,7 +149,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
                                   TableConfig config) {
         Cell cell = column.getDatas().get(position);
         float maxWidth =
-                this.table.getMaxColumnWidth(column) - config.getHorizontalPadding() * 2 - cellDrawFormat.getImageWidth();
+                Math.max(0, this.table.getMaxColumnWidth(column) - config.getHorizontalPadding() * 2 - cellDrawFormat.getImageWidth());
         CharSequence charSequence = getSpan(cell, config, paint);
         mTextPaint.set(paint);
         StaticLayout layout = new StaticLayout(charSequence, mTextPaint, (int) maxWidth,
