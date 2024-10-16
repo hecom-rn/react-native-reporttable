@@ -8,6 +8,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.core.SmartTable;
+import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.table.ArrayTableData;
 import com.hecom.reporttable.form.listener.OnMeasureListener;
@@ -275,6 +276,29 @@ public class HecomTable extends SmartTable<Cell> {
         }
         int tmpL = newData.length > 0 ? newData[0].length : 0;
         tableData.getTableInfo().setLineSize(tableData.getLineSize() + tmpL - l);
+        Cell[][] tmpCellArrays = new Cell[list.size()][];
+        for (int i = 0; i < list.size(); ++i) {
+            int tmpSize = list.get(i).getDatas().size();
+            Cell[] tmpArr = new Cell[tmpSize];
+            for(int j = 0; j < tmpSize; ++j) {
+                tmpArr[j] = (Cell) list.get(i).getDatas().get(j);
+            }
+            tmpCellArrays[i] = tmpArr;
+        }
+        tmpCellArrays = ArrayTableData.transformColumnArray(tmpCellArrays);
+        ArrayList<CellRange> mergeList = new ArrayList<>();
+        HecomTableData.mergeTable(tmpCellArrays, mergeList);
+        for (int i = 0; i < list.size(); i++) {
+            Column<Cell> column = list.get(i);
+            List<int[]> ranges = new ArrayList<>();
+            for (CellRange cellRange : mergeList) {
+                if (cellRange.getFirstCol() == i && cellRange.getFirstRow() != cellRange.getLastRow()) {
+                    ranges.add(new int[]{cellRange.getFirstRow(), cellRange.getLastRow()});
+                }
+            }
+            column.setRanges(ranges);
+        }
+        tableData.setUserCellRange(mergeList);
     }
 
     public void setData(final String json,
