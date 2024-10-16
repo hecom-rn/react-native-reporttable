@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.text.style.ReplacementSpan;
+import android.util.Log;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.utils.DensityUtils;
@@ -57,10 +58,12 @@ public class RichTextSpan extends ReplacementSpan {
         float[] padding = getPadding(paint, true);
         float[] margin = getMargin();
         RectF rect = getBgRect(x, y, paint, textWidth, padding, margin);
-        // 绘制文字
-        drawText(canvas, text, start, end, rect, paint);
+        // 绘制背景
+        drawBackGround(canvas, rect, paint);
         // 绘制边框
         drawBorder(canvas, rect, paint);
+        // 绘制文字
+        drawText(canvas, text, start, end, rect, paint);
 
         paint.setColor(originalColor);
         paint.setStyle(originalStyle);
@@ -103,6 +106,20 @@ public class RichTextSpan extends ReplacementSpan {
         return new RectF(bgStartX, bgStartY, bgEndX, bgEndY);
     }
 
+    private void drawBackGround(Canvas canvas, RectF rect, Paint paint) {
+        if (this.style.getBackgroundColor() != null) {
+            try {
+                paint.setColor(Color.parseColor(this.style.getBackgroundColor()));
+            }catch (Exception err) {
+                Log.e("RichTextSpan", err.toString());
+            }
+            paint.setStrokeWidth(0);
+            paint.setStyle(Paint.Style.FILL);
+            float cornerRadius = DensityUtils.dp2px(this.context, this.style.getBorderRadius());
+            canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
+        }
+    }
+
     private void drawBorder(Canvas canvas, RectF rect, Paint paint) {
         if (this.style.getBorderColor() != null && this.style.getBorderWidth() != -1) {
             paint.setColor(Color.parseColor(this.style.getBorderColor()));
@@ -117,6 +134,14 @@ public class RichTextSpan extends ReplacementSpan {
                           Paint paint) {
         paint.setStyle(Paint.Style.FILL);
         paint.setTextAlign(Paint.Align.CENTER);
+        try {
+            String textColor = this.style.getTextColor();
+            if (textColor != null) {
+                paint.setColor(Color.parseColor(textColor));
+            }
+        } catch (Exception err) {
+            Log.e("RichTextSpan", err.toString());
+        }
         canvas.drawText(text, start, end, rect.centerX(),
                 rect.centerY() + paint.getFontMetrics().bottom, paint);
     }
