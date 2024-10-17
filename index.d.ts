@@ -104,6 +104,19 @@ declare module "@hecom/react-native-report-table" {
         fontSize?: number;  // default 14
         textColor?: Color;
         isOverstriking?: boolean; // 文本是否加粗。 default false
+        /**
+         * 是否是标签, 不为空时，显示为🏷️样式，与borderWidth互斥，优先级别borderWidth高， 优先级比单text的高
+         * item 左右间距为4， 上下间距为4。
+         * 同一行显示不下时，换一行展示。
+         * 计算所占高度时，上下最小为8。
+         * 整体左右 还使用textPaddingHorizontal||textPaddingLeft||textPaddingRight
+         */
+        tagProps?: {
+            backgroundColor?: Color; // 文本额外的背景色
+            paddingHorizontal?: number; // 左右额外间距  默认为8
+            height?: number; // 高度默认20。  指定高度, 内容上下居中， 宽度自适应单行。超出最大单行时，显示省略符 
+            radius?: number; // 圆角
+        };
     }
 
     export interface DataSource extends ItemTextStyle {
@@ -136,15 +149,6 @@ declare module "@hecom/react-native-report-table" {
         classificationLineColor?: Color; // 分割线颜色，优先级比ItemConfig中的高，可选
 
         isForbidden?: boolean; // 显示禁用线
-
-        /**
-         * @deprecated use richText
-         */
-        asteriskColor?: Color; // 显示一个必填标识符 *， 显示位置与textAlignment相关，0显示在右侧，1，2是显示在左侧
-         /**
-         * @deprecated use richText
-         */
-        strikethrough?: boolean; // 文本显示删除线
 
         icon?: IconStyle;
         extraText?: {
