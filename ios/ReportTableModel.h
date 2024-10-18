@@ -39,11 +39,14 @@
 @property (nonatomic, strong) UIColor *borderColor;
 @property (nonatomic, assign) CGFloat borderRadius;
 @property (nonatomic, assign) CGFloat borderWidth;
-
+@property (nonatomic, assign) CGFloat paddingVer;
+@property (nonatomic, assign) CGFloat paddingHor;
+@property (nonatomic, strong) UIColor *backgroundColor;
 @property (nonatomic, assign) BOOL isOverstriking;
 @property (nonatomic, strong) NSString *text;
 @property (nonatomic, strong) UIFont *font;
 @property (nonatomic, strong) UIColor *textColor;
+@property (nonatomic, assign) CGFloat textWitdh;
 @end
 
 

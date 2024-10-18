@@ -420,7 +420,7 @@
             NSDictionary *columnWidthMap = [self.reportTableModel.columnsWidthMap objectForKey:[NSString stringWithFormat:@"%d", j]];
             CGFloat maxWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"maxWidth"] floatValue] : self.reportTableModel.maxWidth;
             
-            ItemModel *model = [self generateItemModel:dir WithmaxWidth: maxWidth];
+            ItemModel *model = [self generateItemModel:dir WithmaxWidth: maxWidth - 2];// 2分割线
             model.columIndex = j;
             if (curKeyIndex != model.keyIndex || j == rowCount - 1) { // 已经到末尾了，处理了本次循环
                 for(int k = 0; k < sameLenth; k++) {
@@ -467,14 +467,15 @@
             CGFloat boundWidth = MAX(maxWidth, mergeNum * minWidth) - exceptText;
             CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : model.richText != nil ? [self getAttTextWidth:model.richText withMaxWith: boundWidth] : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: boundWidth];
             CGFloat tolerant = textRect.size.width == 0 ? 0 : 8; // 额外的容错空间
-            if (textRect.size.width + tolerant + exceptText > mergeNum * minWidth || textRect.size.height > model.fontSize * 1.5) {
+            CGFloat contenWidth = textRect.size.width + tolerant + exceptText;
+            if (contenWidth > mergeNum * minWidth || textRect.size.height > model.fontSize * 1.5) {
                 BOOL useMerge = mergeNum > maxWidth/ minWidth; // 当横向有合并时，使用最小宽度来计算对应的高
                 if (textRect.size.height < model.fontSize * 1.9) {
                    // minWidth < text < maxWidth
                     rowWith = useMerge ? maxWidth + tolerant : textRect.size.width + exceptText + tolerant;
                 } else {
                    // 多行
-                    rowWith = useMerge ? minWidth : maxWidth;
+                    rowWith = useMerge ? minWidth : model.richText != nil ? contenWidth : maxWidth;
                     CGFloat textHeight = textRect.size.height + (minHeight - model.fontSize - 3); // marginVer*2
                     int samekey = 1;
                     for (int k = i + 1; k < dataSource.count; k++) {
@@ -623,11 +624,6 @@
             NSString *text = [RCTConvert NSString: [richTextDic objectForKey:@"text"]];
             NSRange range = NSMakeRange(attributedText.length, text.length);
             NSArray *textStyleKeys = style != nil ? [style allKeys] : @[];
-            NSDictionary *tagProps = [textStyleKeys containsObject:@"tagProps"] ? [RCTConvert NSDictionary:[style objectForKey:@"tagProps"]]: nil;
-            if (tagProps == nil) {
-                // 有标签时，按标签显示
-                [attributedText appendAttributedString: [[NSMutableAttributedString alloc] initWithString:text]];
-            }
             // basic
             BOOL isOverstriking = [textStyleKeys containsObject:@"isOverstriking"] ? [RCTConvert BOOL:[style objectForKey:@"isOverstriking"]] : model.isOverstriking;
             CGFloat fontSize = [textStyleKeys containsObject:@"fontSize"] ? [RCTConvert CGFloat:[style objectForKey:@"fontSize"]] : model.fontSize;
@@ -639,13 +635,31 @@
             CGFloat borderWidth = [textStyleKeys containsObject:@"borderWidth"] ? [RCTConvert CGFloat:[style objectForKey:@"borderWidth"]] : 0;
             UIColor *borderColor = [textStyleKeys containsObject:@"borderColor"] ? [self colorFromHex: [style objectForKey:@"borderColor"]] : nil;
             BOOL strikethrough = [textStyleKeys containsObject:@"strikethrough"] ? [RCTConvert BOOL:[style objectForKey:@"strikethrough"]] : false;
+            CGFloat height = [textStyleKeys containsObject:@"height"] ? [RCTConvert CGFloat:[style objectForKey:@"height"]] : fontSize * 1.5;
+            CGFloat paddingHorizontal = [textStyleKeys containsObject:@"paddingHorizontal"] ? [RCTConvert CGFloat:[style objectForKey:@"paddingHorizontal"]] : fontSize * 0.4;
+            UIColor *backgroundColor = [textStyleKeys containsObject:@"backgroundColor"] ? [self colorFromHex: [style objectForKey:@"backgroundColor"]] : nil;
+            NSString *lineBreakMode = [textStyleKeys containsObject:@"lineBreakMode"] ? [RCTConvert NSString:[style objectForKey:@"lineBreakMode"]] : @"default";
+            
+            CGFloat paddingWidth = (model.textPaddingLeft ?: model.textPaddingHorizontal) + (model.textPaddingRight ?: model.textPaddingHorizontal); // 基础padding
+            CGFloat textWidth = [self getTextWidth:text withTextSize:fontSize withMaxWith:CGFLOAT_MAX].size.width;
+            BOOL breakLine = (tagTextWidth + textWidth + 4) > (maxWidth - paddingHorizontal * 2 - paddingWidth); // 4 是与下一个的间距
+            if (breakLine && [lineBreakMode isEqualToString:@"aLine"]) {
+                text = [self truncateTextToFitWidth:text withFont:font maxWidth : maxWidth - paddingHorizontal * 2 - paddingWidth];
+                textWidth =  [self getTextWidth:text withTextSize:fontSize withMaxWith:CGFLOAT_MAX].size.width;
+                tagTextWidth = 0;
+            }
+            
+            BOOL isEmpty = [attributedText.string isEqual:@""];
             if (borderColor != nil) {
                 // 支持border
                 TextBoderModel *labelStyle = [[TextBoderModel alloc] init];
                 labelStyle.borderColor = borderColor;
                 labelStyle.borderWidth = borderWidth;
                 labelStyle.borderRadius = borderRadius;
-                
+                labelStyle.textWitdh = textWidth + paddingHorizontal * 2;
+                labelStyle.paddingHor = paddingHorizontal;
+                labelStyle.paddingVer = (height - fontSize) / 2;
+                labelStyle.backgroundColor = backgroundColor;
                 labelStyle.isOverstriking = isOverstriking;
                 labelStyle.font = font;
                 labelStyle.textColor = textColor;
@@ -654,11 +668,40 @@
                 NSTextAttachment *attachment = [[NSTextAttachment alloc] init];
                 UIImage *image = [UIImage imageWithBorder:labelStyle];
                 attachment.image = image;
-                // 不知道什么原因，导致显示的attachment底部有留白。 先往上偏移一下吧
-                attachment.bounds = CGRectMake(0, -font.pointSize * 0.4, image.size.width, image.size.height);
-                NSAttributedString *tagString = [NSAttributedString attributedStringWithAttachment:attachment];
-                attributedText = [[NSMutableAttributedString alloc] initWithAttributedString:tagString];
-            } else if (tagProps == nil) {
+                // 自动使用 lineBreakMode aLine
+                NSDictionary *attributes = @{
+                    NSFontAttributeName: font,
+                };
+                NSMutableAttributedString *tagString = breakLine ? [[NSMutableAttributedString alloc] initWithString:isEmpty ? @"" : @"\n" attributes:attributes] : [[NSMutableAttributedString alloc] initWithString: tagTextWidth == 0 ? @"" : @" " attributes:attributes];
+                [tagString appendAttributedString: [NSAttributedString attributedStringWithAttachment:attachment]];
+                [attributedText appendAttributedString: tagString];
+            } else if (backgroundColor != nil) {
+                ExtraText *extraText = [[ExtraText alloc] init];
+                extraText.text = text;
+                
+                ExtraTextBackGroundStyle *bgStyle = [[ExtraTextBackGroundStyle alloc] init];
+                bgStyle.width = textWidth + paddingHorizontal * 2;
+                bgStyle.height = height;
+                bgStyle.radius = borderRadius;
+                bgStyle.color = backgroundColor;
+                extraText.backgroundStyle = bgStyle;
+               
+                ExtraTextStyle *style1 = [[ExtraTextStyle alloc] init];
+                style1.fontSize = fontSize;
+                style1.color = textColor;
+                extraText.style = style1;
+             
+                NSTextAttachment *attachment = [[NSTextAttachment alloc] init];
+                UIImage *image = [UIImage imageWithExtra:extraText];
+                attachment.image = image;
+                
+                // 自动使用 lineBreakMode aLine
+                NSDictionary *attributes = @{NSFontAttributeName: font};
+                NSMutableAttributedString *tagString = breakLine ? [[NSMutableAttributedString alloc] initWithString:isEmpty ? @"" : @"\n"attributes:attributes] : [[NSMutableAttributedString alloc] initWithString: tagTextWidth == 0 ? @"" : @" " attributes:attributes];
+                [tagString appendAttributedString: [NSAttributedString attributedStringWithAttachment:attachment]];
+                [attributedText appendAttributedString: tagString];
+            } else {
+                [attributedText appendAttributedString: [[NSMutableAttributedString alloc] initWithString:text]];
                 NSMutableDictionary *att = [NSMutableDictionary dictionaryWithDictionary:@{
                     NSForegroundColorAttributeName: textColor,
                     NSFontAttributeName: font
@@ -668,51 +711,7 @@
                 }
                 [attributedText addAttributes:att range:range];
             }
-            
-            // append type2
-            if (tagProps) {
-                NSArray *tagPropsKeys = [tagProps allKeys];
-                CGFloat paddingHorizontal = [tagPropsKeys containsObject:@"paddingHorizontal"] ? [RCTConvert CGFloat:[tagProps objectForKey:@"paddingHorizontal"]] : 8;
-                CGFloat height = [tagPropsKeys containsObject:@"height"] ? [RCTConvert CGFloat:[tagProps objectForKey:@"height"]] : 20;
-                CGFloat radius = [tagPropsKeys containsObject:@"radius"] ? [RCTConvert CGFloat:[tagProps objectForKey:@"radius"]] : 0;
-                UIColor *backgroundColor = [tagPropsKeys containsObject:@"backgroundColor"] ? [self colorFromHex: [tagProps objectForKey:@"backgroundColor"]] : nil;
-                
-                CGFloat paddingWidth = (model.textPaddingLeft ?: model.textPaddingHorizontal) + (model.textPaddingRight ?: model.textPaddingHorizontal); // 基础padding
-                ExtraText *extraText = [[ExtraText alloc] init];
-                CGFloat textWidth = [self getTextWidth:text withTextSize:fontSize withMaxWith:CGFLOAT_MAX].size.width;
-                BOOL breakLine = (tagTextWidth + textWidth + 4) > (maxWidth - paddingHorizontal * 2 - paddingWidth); // 4 是与下一个的间距
-                if (breakLine) {
-                    text = [self truncateTextToFitWidth:text withFont:font maxWidth: maxWidth - paddingHorizontal * 2 - paddingWidth];
-                    textWidth =  [self getTextWidth:text withTextSize:fontSize withMaxWith:CGFLOAT_MAX].size.width;
-                    tagTextWidth = 0;
-                }
-               
-                extraText.text = text;
-                
-                ExtraTextBackGroundStyle *bgStyle = [[ExtraTextBackGroundStyle alloc] init];
-                bgStyle.width = textWidth + paddingHorizontal * 2;
-                bgStyle.height = height;
-                bgStyle.radius = radius;
-                bgStyle.color = backgroundColor;
-                extraText.backgroundStyle = bgStyle;
-               
-                ExtraTextStyle *style = [[ExtraTextStyle alloc] init];
-                style.fontSize = fontSize;
-                style.color = textColor;
-                extraText.style = style;
-             
-                NSTextAttachment *attachment = [[NSTextAttachment alloc] init];
-                UIImage *image = [UIImage imageWithExtra:extraText];
-                attachment.image = image;
-                
-                NSDictionary *attributes = @{NSFontAttributeName: font};
-                NSMutableAttributedString *tagString = breakLine ? [[NSMutableAttributedString alloc] initWithString:@"\n" attributes:attributes] : [[NSMutableAttributedString alloc] initWithString: tagTextWidth == 0 ? @"" : @" " attributes:attributes];
-                [tagString appendAttributedString: [NSAttributedString attributedStringWithAttachment:attachment]];
-                
-                [attributedText appendAttributedString: tagString];
-                
-                tagTextWidth += textWidth + paddingHorizontal * 2 + 4;
-            }
+            tagTextWidth += textWidth + paddingHorizontal * 2 + 4;
         }
         model.richText = attributedText;
     }
@@ -721,14 +720,14 @@
 
 - (NSString *)truncateTextToFitWidth:(NSString *)text withFont:(UIFont *)font maxWidth:(CGFloat)maxWidth {
     // 创建NSAttributedString
-    CGSize size = [text boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, 20) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:font} context:nil].size;
+    CGSize size = [text boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:font} context:nil].size;
     
     // 如果宽度超过了限制
     if (size.width > maxWidth) {
         NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:text attributes:@{ NSFontAttributeName : font }];
         // 开始截取文本
         NSAttributedString *truncatedText;
-        // 使用boundingRectWithSize:options:context来更精确地控制
+        // 使用boundingRectWithSize:options:context来更精确地控制, 20 是...
         CGRect rect = [attributedString boundingRectWithSize:CGSizeMake(maxWidth, CGFLOAT_MAX)
                                                       options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading)
                                                     context:nil];
