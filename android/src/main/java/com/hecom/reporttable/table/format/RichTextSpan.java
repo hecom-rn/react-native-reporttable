@@ -94,6 +94,15 @@ public class RichTextSpan extends ReplacementSpan {
         return ZERO;
     }
 
+    public int getBackHeight() {
+        float fontSize = 10;
+        if (this.style.getFontSize() != -1) {
+            fontSize =
+                    DensityUtils.dp2px(this.context, this.style.getFontSize()) *
+                            config.getZoom();
+        }
+        return (int)(fontSize * 2);
+    }
 
     private RectF getBgRect(float x, float y, Paint paint, float textWidth, float[] padding,
                             float[] margin) {

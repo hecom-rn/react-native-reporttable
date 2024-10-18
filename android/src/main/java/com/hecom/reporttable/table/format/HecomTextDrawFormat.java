@@ -12,6 +12,7 @@ import android.text.Spanned;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.LineHeightSpan;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
@@ -170,18 +171,21 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         Context context = this.table.getContext();
         SpannableStringBuilder ssb = new SpannableStringBuilder();
         if (cell.getRichText() != null) {
-            for (Cell.RichText richText : cell.getRichText()) {
+            for (int i = 0; i < cell.getRichText().size(); ++i) {
+                Cell.RichText richText = cell.getRichText().get(i);
                 ssb.append(richText.getText());
                 if (richText.getStyle() != null) {
                     List<Object> spanList = getSpan(cell, config, context, richText.getStyle(),
                             paint);
-                    for (int i = 0; i < spanList.size(); i++) {
-                        ssb.setSpan(spanList.get(i),
+                    for (int j = 0; j < spanList.size(); j++) {
+                        ssb.setSpan(spanList.get(j),
                                 ssb.length() - richText.getText()
                                         .length(), ssb.length(),
                                 SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
-
+                }
+                if (i < cell.getRichText().size()) {
+                    ssb.append(' ');
                 }
             }
         } else {
@@ -221,8 +225,10 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         if (style.getStrikethrough() != null && style.getStrikethrough()) {
             result.add(new StrikethroughSpan());
         }
-        if (style.getBorderColor() != null && style.getBorderWidth() != -1) {
-            result.add(new RichTextSpan(context, cell, style, config));
+        if ((style.getBorderColor() != null && style.getBorderWidth() != -1) || style.getBackgroundColor() != null) {
+            RichTextSpan richTextSpan = new RichTextSpan(context, cell, style, config);
+            result.add(richTextSpan);
+            result.add(new LineHeightSpan.Standard(richTextSpan.getBackHeight()));
         }
         return result;
     }
