@@ -58,7 +58,13 @@ declare module "@hecom/react-native-report-table" {
         columnsWidthMap?: ColumnsWidthMap; // index 为指定index的列宽， 未设置则还使用原minWidth， maxWidth
 
         replenishColumnsWidthConfig?: {
-            showNumber?: number; // 完整显示的列， 在一屏幕中再次调整宽度，使其完全显示出几列。 屏幕选择时，不会再次生效
+            /*
+                完整显示的列， 在一屏幕中再次调整宽度，使其完全显示出几列。 
+                屏幕旋转时，不会再次生效.
+                超过最大列宽时，按最大列宽算。
+                每个格保留最少20 + padding的宽度, (20 + padding ）* showNumber > 显示宽度时，不生效
+            */ 
+            showNumber?: number; 
             ignoreColumns?: number[]; // 忽略的列
         };
     }

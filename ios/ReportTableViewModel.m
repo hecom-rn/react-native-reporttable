@@ -514,6 +514,8 @@
         NSArray *ignoreColumns = [dir objectForKey:@"ignoreColumns"] ? [RCTConvert NSArray:[dir objectForKey:@"ignoreColumns"]] : @[];
         NSInteger showNumber = [dir objectForKey:@"showNumber"] ? [RCTConvert NSInteger:[dir objectForKey:@"showNumber"]] : 0;
         showNumber = MIN(showNumber, self.dataSource.count > 0 ? self.dataSource[0].count : 0); // 不能超过最大列数
+        CGFloat padding = self.reportTableModel.itemConfig.textPaddingHorizontal * 2;
+        CGFloat contentWidth = self.reportTableModel.tableRect.size.width;
         if (showNumber > 0) {
             CGFloat len = 1;
             CGFloat totalLen = 1;
@@ -524,13 +526,42 @@
                 }
                 totalLen += [rowsWidth[i] floatValue];
             }
-            // 超出限制
-            if (totalLen > self.reportTableModel.tableRect.size.width) {
-                double sacle = (self.reportTableModel.tableRect.size.width - (totalLen - len)) / len;
+            double sacle = (contentWidth - (totalLen - len)) / len;
+            CGFloat minValue = 20;
+            // 超出限制, 且还容的下
+            if (totalLen > contentWidth && showNumber * (padding + minValue) < contentWidth) {
+                CGFloat nextLen = 1;
+                BOOL hasChange = NO;
                 for (int i = 0; i < showNumber; i++) {
                     BOOL ignore = [ignoreColumns containsObject:[NSNumber numberWithInteger: i + 1]];
                     if (!ignore) {
-                        rowsWidth[i] = [NSNumber numberWithFloat: [rowsWidth[i] floatValue] * sacle];
+                        CGFloat nextValue = [rowsWidth[i] floatValue] * sacle;
+                        if (nextValue < padding + minValue) {
+                            nextValue = padding + minValue;
+                            hasChange = YES;
+                        }
+                        rowsWidth[i] = [NSNumber numberWithFloat: nextValue];
+                    }
+                }
+                if (hasChange) {
+                    len = 1;
+                    totalLen = 1;
+                    for (int i = 0; i < showNumber; i++) {
+                        BOOL ignore = [ignoreColumns containsObject:[NSNumber numberWithInteger:i + 1]];
+                        CGFloat value =  [rowsWidth[i] floatValue];
+                        if (!ignore && value != padding + minValue) {
+                            len += value;
+                        }
+                        totalLen += value;
+                    }
+                    sacle = (contentWidth - (totalLen - len)) / len;
+                    for (int i = 0; i < showNumber; i++) {
+                        BOOL ignore = [ignoreColumns containsObject:[NSNumber numberWithInteger: i + 1]];
+                        CGFloat value =  [rowsWidth[i] floatValue];
+                        if (!ignore && value != padding + minValue) {
+                            CGFloat nextValue = value * sacle;
+                            rowsWidth[i] = [NSNumber numberWithFloat: nextValue];
+                        }
                     }
                 }
                 cloumsHight = [NSMutableArray arrayWithCapacity: dataSource.count];
