@@ -56,6 +56,11 @@ declare module "@hecom/react-native-report-table" {
         itemConfig?: ItemConfig; // 优先级比 DataSource中的属性低
 
         columnsWidthMap?: ColumnsWidthMap; // index 为指定index的列宽， 未设置则还使用原minWidth， maxWidth
+
+        replenishColumnsWidthConfig?: {
+            showNumber?: number; // 完整显示的列， 在一屏幕中再次调整宽度，使其完全显示出几列。 屏幕选择时，不会再次生效
+            ignoreColumns?: number[]; // 忽略的列
+        };
     }
 
     type Color = string ; //16进制色值，需6位   // AARRGGBB | RRGGBB;

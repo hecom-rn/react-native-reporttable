@@ -196,6 +196,12 @@
     [self reloadCheck];
 }
 
+- (void)setReplenishColumnsWidthConfig:(NSDictionary *)replenishColumnsWidthConfig {
+    self.reportTableModel.replenishColumnsWidthConfig = replenishColumnsWidthConfig;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)setColumnsWidthMap:(NSDictionary *)columnsWidthMap {
     self.reportTableModel.columnsWidthMap = columnsWidthMap;
     self.propertyCount += 1;
@@ -234,7 +240,6 @@
             CGSize headerViewSize = self.headerView.frame.size;
             self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
         }
-   
     } else {
         self.propertyCount += 1;
         [self reloadCheck];
@@ -341,7 +346,7 @@
 }
 
 - (void)reloadCheck {
-    if (self.propertyCount >= 20) {
+    if (self.propertyCount >= 21) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
@@ -502,6 +507,111 @@
         }
         [cloumsHight addObject:[NSNumber numberWithFloat:columnHeigt]];
         [self.dataSource addObject:modelArr];
+    }
+    // 再次更新列宽
+    NSDictionary *dir = self.reportTableModel.replenishColumnsWidthConfig;
+    if (dir != nil) {
+        NSArray *ignoreColumns = [dir objectForKey:@"ignoreColumns"] ? [RCTConvert NSArray:[dir objectForKey:@"ignoreColumns"]] : @[];
+        NSInteger showNumber = [dir objectForKey:@"showNumber"] ? [RCTConvert NSInteger:[dir objectForKey:@"showNumber"]] : 0;
+        showNumber = MIN(showNumber, self.dataSource.count > 0 ? self.dataSource[0].count : 0); // 不能超过最大列数
+        if (showNumber > 0) {
+            CGFloat len = 1;
+            CGFloat totalLen = 1;
+            for (int i = 0; i < showNumber; i++) {
+                BOOL ignore = [ignoreColumns containsObject:[NSNumber numberWithInteger:i + 1]];
+                if (!ignore) {
+                    len += [rowsWidth[i] floatValue];
+                }
+                totalLen += [rowsWidth[i] floatValue];
+            }
+            // 超出限制
+            if (totalLen > self.reportTableModel.tableRect.size.width) {
+                double sacle = (self.reportTableModel.tableRect.size.width - (totalLen - len)) / len;
+                for (int i = 0; i < showNumber; i++) {
+                    BOOL ignore = [ignoreColumns containsObject:[NSNumber numberWithInteger: i + 1]];
+                    if (!ignore) {
+                        rowsWidth[i] = [NSNumber numberWithFloat: [rowsWidth[i] floatValue] * sacle];
+                    }
+                }
+                cloumsHight = [NSMutableArray arrayWithCapacity: dataSource.count];
+                // 重新调整高度。 注意富文本标签会有问题
+                for (int i = 0; i < dataSource.count; i++) {
+                    CGFloat columnHeigt = minHeight;
+                    NSMutableArray *mergeLen = [NSMutableArray arrayWithCapacity: rowCount]; // 对应index 会有多少个合并
+                    NSInteger curKeyIndex = -1;
+                    NSInteger sameLenth = 1;
+                    for (int j = 0; j < dataSource[i].count; j ++) {
+                        NSDictionary *dir = dataSource[i][j];
+                        ItemModel *model = self.dataSource[i][j];
+                        if (curKeyIndex != model.keyIndex || j == rowCount - 1) { // 已经到末尾了，处理了本次循环
+                            for(int k = 0; k < sameLenth; k++) {
+                               [mergeLen addObject:@(sameLenth)];
+                            }
+                            if (curKeyIndex != model.keyIndex) {
+                                // 但是最后一个不是横向合并的，需要纠正为1
+                                mergeLen[mergeLen.count - 1] = @(1);
+                            }
+                            sameLenth = 1;
+                        } else {
+                            sameLenth += 1;
+                        }
+                        curKeyIndex = model.keyIndex;
+                    }
+                    for (int j = 0; j < dataSource[i].count; j ++) {
+                        CGFloat fixedRowWidth = [rowsWidth[j] floatValue]; // 取固定宽度
+                        CGFloat minWidth = fixedRowWidth;
+                        CGFloat maxWidth = fixedRowWidth;
+                        NSInteger mergeNum = [mergeLen[j] intValue];
+                        ItemModel *model = self.dataSource[i][j];
+                        NSDictionary *dir = dataSource[i][j];
+                        BOOL showLock = false;
+                        if (i == 0) {
+                            if (self.reportTableModel.permutable) {
+                                if (j >= self.reportTableModel.frozenColumns) {
+                                    showLock = true;
+                                }
+                            } else {
+                                if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
+                                    showLock = true;
+                                } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
+                                    showLock = true;
+                                }
+                            }
+                        }
+                        CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
+                        CGFloat exceptText = (model.textPaddingLeft ?: model.textPaddingHorizontal) + (model.textPaddingRight ?: model.textPaddingHorizontal)  + imageIconWidth + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
+                        CGFloat boundWidth = MAX(maxWidth, mergeNum * minWidth) - exceptText;
+                        CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : model.richText != nil ? [self getAttTextWidth:model.richText withMaxWith: boundWidth] : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: boundWidth];
+                        CGFloat tolerant = textRect.size.width == 0 ? 0 : 8; // 额外的容错空间
+                        CGFloat contenWidth = textRect.size.width + tolerant + exceptText;
+                        if (contenWidth > mergeNum * minWidth || textRect.size.height > model.fontSize * 1.5) {
+                            BOOL useMerge = mergeNum > maxWidth/ minWidth; // 当横向有合并时，使用最小宽度来计算对应的高
+                            if (textRect.size.height < model.fontSize * 1.9) {
+                            } else {
+                               // 多行
+                                CGFloat textHeight = textRect.size.height + (minHeight - model.fontSize - 3); // marginVer*2
+                                int samekey = 1;
+                                for (int k = i + 1; k < dataSource.count; k++) {
+                                    NSInteger nextKeyIndex = [RCTConvert NSInteger:[dataSource[k][j] objectForKey:@"keyIndex"]];
+                                    if (nextKeyIndex == model.keyIndex) {
+                                        samekey += 1;
+                                    } else {
+                                       break;
+                                    }
+                                }
+                                textHeight /= samekey;
+                                for (int k = i + 1; k < samekey + i; k++) {
+                                    [dataSource[k][j] setObject: [NSNumber numberWithFloat: MAX(textHeight, minHeight)] forKey: @"apportionHeight"];
+                                }
+                                NSNumber *apportionHeight = [dir objectForKey:@"apportionHeight"]; // 记录一下纵向合并
+                                columnHeigt = MAX(columnHeigt, apportionHeight == nil ? textHeight : [apportionHeight floatValue]);
+                            }
+                        }
+                    }
+                    [cloumsHight addObject:[NSNumber numberWithFloat:columnHeigt]];
+                }
+            }
+        }
     }
     for (int i = 0; i < rowsWidth.count; i++) {
         rowsWidth[i] = [NSNumber numberWithFloat: [rowsWidth[i] floatValue] - 1 - 1.0/rowsWidth.count];

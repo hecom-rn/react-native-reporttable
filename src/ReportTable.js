@@ -35,6 +35,7 @@ export default class ReportTable extends React.Component{
         frozenCount: 0,
         frozenPoint: 0,
         columnsWidthMap: {},
+        replenishColumnsWidthConfig: {},
         itemConfig: itemConfig,
         permutable: false,
         showBorder: false,
