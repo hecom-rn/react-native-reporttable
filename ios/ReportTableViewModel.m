@@ -307,6 +307,12 @@
     [self reloadCheck];
 }
 
+- (void)setIgnoreLocks:(NSArray *)ignoreLocks {
+    self.reportTableModel.ignoreLocks = ignoreLocks;
+    self.propertyCount += 1;
+    [self reloadCheck];
+}
+
 - (void)setLineColor:(NSString *)lineColor {
     self.reportTableModel.lineColor = [self colorFromHex: lineColor];
     self.propertyCount += 1;
@@ -346,7 +352,7 @@
 }
 
 - (void)reloadCheck {
-    if (self.propertyCount >= 21) {
+    if (self.propertyCount >= 22) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
@@ -424,8 +430,7 @@
             NSDictionary *dir = dataSource[i][j];
             NSDictionary *columnWidthMap = [self.reportTableModel.columnsWidthMap objectForKey:[NSString stringWithFormat:@"%d", j]];
             CGFloat maxWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"maxWidth"] floatValue] : self.reportTableModel.maxWidth;
-            
-            ItemModel *model = [self generateItemModel:dir WithmaxWidth: maxWidth - 2];// 2分割线
+            ItemModel *model = [self generateItemModel:dir WithmaxWidth: maxWidth - 2];// 2分割线, 注意
             model.columIndex = j;
             if (curKeyIndex != model.keyIndex || j == rowCount - 1) { // 已经到末尾了，处理了本次循环
                 for(int k = 0; k < sameLenth; k++) {
@@ -454,7 +459,7 @@
             ItemModel *model = modelArr[j];
             NSDictionary *dir = dataSource[i][j];
             BOOL showLock = false;
-            if (i == 0) {
+            if (i == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:j + 1]]) {
                 if (self.reportTableModel.permutable) {
                     if (j >= self.reportTableModel.frozenColumns) {
                         showLock = true;
@@ -596,7 +601,7 @@
                         ItemModel *model = self.dataSource[i][j];
                         NSDictionary *dir = dataSource[i][j];
                         BOOL showLock = false;
-                        if (i == 0) {
+                        if (i == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:j + 1]]) {
                             if (self.reportTableModel.permutable) {
                                 if (j >= self.reportTableModel.frozenColumns) {
                                     showLock = true;
@@ -612,7 +617,7 @@
                         CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
                         CGFloat exceptText = (model.textPaddingLeft ?: model.textPaddingHorizontal) + (model.textPaddingRight ?: model.textPaddingHorizontal)  + imageIconWidth + (model.extraText != nil ? model.extraText.backgroundStyle.width + 2 : 0) ; //margin
                         CGFloat boundWidth = MAX(maxWidth, mergeNum * minWidth) - exceptText;
-                        CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : model.richText != nil ? [self getAttTextWidth:model.richText withMaxWith: boundWidth] : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: boundWidth];
+                        CGRect textRect = [model.title isEqualToString:@"--"] ? CGRectMake(0, 0, 30, model.fontSize) : model.richText != nil ? [self getAttTextWidth:model.richText withMaxWith: boundWidth] : [self getTextWidth: model.title withTextSize: model.fontSize withMaxWith: boundWidth - 8];
                         CGFloat tolerant = textRect.size.width == 0 ? 0 : 8; // 额外的容错空间
                         CGFloat contenWidth = textRect.size.width + tolerant + exceptText;
                         if (contenWidth > mergeNum * minWidth || textRect.size.height > model.fontSize * 1.5) {

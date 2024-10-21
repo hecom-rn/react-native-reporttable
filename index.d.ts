@@ -46,6 +46,7 @@ declare module "@hecom/react-native-report-table" {
          *  首行前几列支持冻结  第二优先  使用前几列均显示带🔓的icon
          *  使用frozenColumns比frozenCount小时，可使🔒
          *  功能：锁定后冻结会点击列的之前所有的列
+         *  ignoreLocks中包含frozenColumns时，则frozenColumns生效，不会被取消冻结
         */
         frozenCount?: number;
 
@@ -54,6 +55,8 @@ declare module "@hecom/react-native-report-table" {
         headerView?: () => React.ReactElement;
 
         itemConfig?: ItemConfig; // 优先级比 DataSource中的属性低
+
+        ignoreLocks?: number[]; // 强制不显示 锁定icon， 可在frozenCount|permutable中不显示对应的🔒。 frozenColumns 生效
 
         columnsWidthMap?: ColumnsWidthMap; // index 为指定index的列宽， 未设置则还使用原minWidth， maxWidth
 
