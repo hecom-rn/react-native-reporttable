@@ -151,7 +151,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         Cell cell = column.getDatas().get(position);
         float maxWidth =
                 Math.max(0, this.table.getMaxColumnWidth(column) - config.getHorizontalPadding() * 2 - cellDrawFormat.getImageWidth());
-        CharSequence charSequence = getSpan(cell, config, paint);
+        CharSequence charSequence = getSpan(cell, config, paint, maxWidth);
         mTextPaint.set(paint);
         StaticLayout layout = new StaticLayout(charSequence, mTextPaint, (int) maxWidth,
                 StaticLayout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
@@ -167,7 +167,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
                 .getDisplayMetrics().density * 2, layout.getHeight());
     }
 
-    private SpannableStringBuilder getSpan(Cell cell, TableConfig config, Paint paint) {
+    private SpannableStringBuilder getSpan(Cell cell, TableConfig config, Paint paint, float maxWidth) {
         Context context = this.table.getContext();
         SpannableStringBuilder ssb = new SpannableStringBuilder();
         if (cell.getRichText() != null) {
@@ -176,7 +176,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
                 ssb.append(richText.getText());
                 if (richText.getStyle() != null) {
                     List<Object> spanList = getSpan(cell, config, context, richText.getStyle(),
-                            paint);
+                            paint, maxWidth);
                     for (int j = 0; j < spanList.size(); j++) {
                         ssb.setSpan(spanList.get(j),
                                 ssb.length() - richText.getText()
@@ -211,7 +211,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
 
     @NonNull
     private static List<Object> getSpan(Cell cell, TableConfig config, Context context,
-                                        Cell.RichTextStyle style, Paint paint) {
+                                        Cell.RichTextStyle style, Paint paint, float maxWidth) {
         List<Object> result = new ArrayList<>();
         if (style.getTextColor() != null) {
             result.add(new ForegroundColorSpan(Color.parseColor(style.getTextColor())));
@@ -226,7 +226,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
             result.add(new StrikethroughSpan());
         }
         if ((style.getBorderColor() != null && style.getBorderWidth() != -1) || style.getBackgroundColor() != null) {
-            RichTextSpan richTextSpan = new RichTextSpan(context, cell, style, config);
+            RichTextSpan richTextSpan = new RichTextSpan(context, cell, style, config, maxWidth);
             result.add(richTextSpan);
             result.add(new LineHeightSpan.Standard(richTextSpan.getBackHeight()));
         }
