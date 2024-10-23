@@ -20,8 +20,9 @@ import com.hecom.reporttable.table.bean.CellConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.format.HecomStyle;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,6 +43,15 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         GsonHelper.initGson(reactContext);
         mReactContext = reactContext;
         return new HecomTable(reactContext);
+    }
+
+    @ReactProp(name = "ignoreLocks")
+    public void setIgnoreLocks(HecomTable view, ReadableArray ignoreLocks) {
+        Set<Integer> ignore = new HashSet<>(ignoreLocks.size());
+        for (int i = 0; i < ignoreLocks.size(); i++) {
+            ignore.add(ignoreLocks.getInt(i));
+        }
+        view.getLockHelper().setIgnores(ignore);
     }
 
     @ReactProp(name = "disableZoom")
@@ -197,7 +207,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
     private void processSpliceData(HecomTable root, ReadableArray args) {
         ReadableArray array = args.getArray(0);
         HecomTable.SpliceItem[] spliceItems = new HecomTable.SpliceItem[array.size()];
-        for(int i = 0; i < array.size(); ++i) {
+        for (int i = 0; i < array.size(); ++i) {
             ReadableMap map = array.getMap(i);
             String data = map.getString("data");
             int y = map.getInt("y");
