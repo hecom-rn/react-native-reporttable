@@ -56,7 +56,7 @@ declare module "@hecom/react-native-report-table" {
 
         itemConfig?: ItemConfig; // 优先级比 DataSource中的属性低
 
-        ignoreLocks?: number[]; // 强制不显示 锁定icon， 可在frozenCount|permutable中不显示对应的🔒。 frozenColumns 生效
+        ignoreLocks?: number[]; // 强制不显示 锁定icon，从1开始 . 可在frozenCount|permutable中不显示对应的🔒。 frozenColumns 生效
 
         columnsWidthMap?: ColumnsWidthMap; // index 为指定index的列宽， 未设置则还使用原minWidth， maxWidth
 
