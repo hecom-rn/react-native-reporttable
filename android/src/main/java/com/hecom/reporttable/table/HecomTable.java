@@ -176,30 +176,13 @@ public class HecomTable extends SmartTable<Cell> {
     private void setDataInMainThread(String json,
                                      final TableConfigBean configBean) {
         try {
-            final HecomTableData rawTableData = (HecomTableData) getTableData();
             final HecomTableData tableData = HecomTableData.create(json,
 
                     new HecomFormat(), new CellDrawFormat(this, mLockHelper));
             tableData.setLimit(configBean);
             tableData.setOnItemClickListener(mClickHandler);
-
-
-            int arrayColumnSize = tableData.getColumns().size();
-            for (int i = 0; i < mLockHelper.getFrozenColumns() && i < arrayColumnSize; i++) {
-                tableData.getColumns().get(i).setFixed(true);
-            }
-
-            if (rawTableData != null) {
-                for (int i = 0; i < arrayColumnSize; i++) {
-                    if (rawTableData.getArrayColumns() != null &&
-                            rawTableData.getArrayColumns().size() > i) {
-                        Column<Cell> column = rawTableData.getArrayColumns().get(i);
-                        if (column.isFixed()) {
-                            tableData.getArrayColumns().get(i).setFixed(true);
-                        }
-                    }
-                }
-            }
+            // reLock会调用getTableData，注意这里的调用顺序
+            mLockHelper.reLock(tableData);
             setTableData(tableData);
             mLockHelper.update();
         } catch (Exception e) {

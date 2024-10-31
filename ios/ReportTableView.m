@@ -358,7 +358,7 @@
     if (model.iconStyle != nil) {
         cell.icon = model.iconStyle;
     }
-    if (row == 0) {
+    if (row == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
         if (self.reportTableModel.permutable) {
             if (column >= self.reportTableModel.oriFrozenColumns) {
                 BOOL isLocked = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns > column;
@@ -454,7 +454,8 @@
             @"horizontalCount": [NSNumber numberWithInteger:model.horCount]
         });
     }
-    if (row == 0) {
+    // 处理锁定
+    if (row == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
         if (self.reportTableModel.permutable) {
             if (column >= self.reportTableModel.oriFrozenColumns) {
                 BOOL isLocked = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns > column;
@@ -512,7 +513,9 @@
                     }
                 }
             } else if (self.reportTableModel.frozenCount >= newFrozenColums) {
-                self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums ? 0 : newFrozenColums;
+                self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums 
+                    ? [self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt: self.reportTableModel.oriFrozenColumns]] ? self.reportTableModel.oriFrozenColumns : 0
+                    : newFrozenColums;
                 [self.spreadsheetView reloadData];
                 [self scrollViewDidZoom: self];
             }

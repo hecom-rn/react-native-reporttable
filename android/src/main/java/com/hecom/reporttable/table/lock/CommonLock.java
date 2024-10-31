@@ -42,6 +42,12 @@ public class CommonLock extends Locker {
         return firstColMaxMerge;
     }
 
+    private void changeLock(List<Column> columns, int index, boolean lock) {
+        if (!this.ignore(index)) {
+            columns.get(index).setFixed(lock);
+        }
+    }
+
     @Override
     protected void updateLock(int col) {
         List<Column> columns = table.getTableData().getColumns();
@@ -52,19 +58,19 @@ public class CommonLock extends Locker {
             if (curFixedColumnIndex == -1 || col > curFixedColumnIndex) {
                 //前面列全部锁定
                 for (int i = 0; i <= firstColumnMaxMerge; i++) {
-                    columns.get(i).setFixed(true);
+                    this.changeLock(columns, i, true);
                 }
                 curFixedColumnIndex = col;
             } else if (col < curFixedColumnIndex) {
                 //后面列取消锁定
                 for (int i = col + 1; i <= firstColumnMaxMerge; i++) {
-                    columns.get(i).setFixed(false);
+                    this.changeLock(columns, i, false);
                 }
                 curFixedColumnIndex = col;
             } else {
                 //全部列取消锁定
                 for (int i = frozenIndex; i <= firstColumnMaxMerge; i++) {
-                    columns.get(i).setFixed(false);
+                    this.changeLock(columns, i, false);
                 }
                 curFixedColumnIndex = -1;
             }
@@ -73,19 +79,19 @@ public class CommonLock extends Locker {
         if (curFixedColumnIndex == -1 || col > curFixedColumnIndex) {
             //前面列全部锁定
             for (int i = 0; i <= col; i++) {
-                columns.get(i).setFixed(true);
+                this.changeLock(columns, i, true);
             }
             curFixedColumnIndex = col;
         } else if (col < curFixedColumnIndex) {
             //后面列取消锁定
             for (int i = col + 1; i <= curFixedColumnIndex; i++) {
-                columns.get(i).setFixed(false);
+                this.changeLock(columns, i, false);
             }
             curFixedColumnIndex = col;
         } else {
             //全部列取消锁定
             for (int i = frozenIndex; i <= col; i++) {
-                columns.get(i).setFixed(false);
+                this.changeLock(columns, i, false);
             }
             curFixedColumnIndex = -1;
         }

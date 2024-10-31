@@ -114,6 +114,8 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, assign) NSInteger frozenCount;
 @property (nonatomic, assign) NSInteger frozenPoint;
 @property (nonatomic, strong) ItemModel *itemConfig;
+@property (nonatomic, strong) NSArray *ignoreLocks;
+@property (nonatomic, strong) NSDictionary *replenishColumnsWidthConfig;
 @property (nonatomic, strong) NSDictionary *columnsWidthMap;
 /*
 *  是可排列的，仅支持不包含合并单元格的表
