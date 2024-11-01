@@ -49,7 +49,8 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
     private final Cell.Icon lockIcon = new Cell.Icon();
 
-    public LruCache<String,Bitmap> bitmapLruCache;
+    public LruCache<String, Bitmap> bitmapLruCache;
+
     public CellDrawFormat(final HecomTable table, Locker locker) {
         super(1, 1);
         this.table = table;
@@ -63,11 +64,11 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         lockIcon.setWidth(DensityUtils.dp2px(getContext(), 15));
         lockIcon.setHeight(DensityUtils.dp2px(getContext(), 15));
 
-        int maxMemory = (int)(Runtime.getRuntime().maxMemory() / 1024);// kB
+        int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);// kB
         int cacheSize = maxMemory / 16;
-        bitmapLruCache = new LruCache<String,Bitmap>(cacheSize){
+        bitmapLruCache = new LruCache<String, Bitmap>(cacheSize) {
             @Override
-            protected int sizeOf(String key,Bitmap bitmap){
+            protected int sizeOf(String key, Bitmap bitmap) {
                 return bitmap.getRowBytes() * bitmap.getHeight() / 1024;// KB
             }
         };
@@ -80,40 +81,44 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
     @Override
     protected Bitmap getBitmap(Cell cell, String value, int position) {
-        String sUri = this.getResourceUri(cell,value,position);
+        String sUri = this.getResourceUri(cell, value, position);
         Bitmap bitmap = bitmapLruCache.get(sUri);
-        if(bitmap == null) {
+        if (bitmap == null) {
             if (String.valueOf(lockIcon.getResourceId()).equals(sUri)) {
-                bitmap = BitmapFactory.decodeResource(getContext().getResources(),Integer.valueOf(sUri));
-                if(bitmap !=null) {
+                bitmap = BitmapFactory.decodeResource(getContext().getResources(),
+                        Integer.valueOf(sUri));
+                if (bitmap != null) {
                     bitmapLruCache.put(sUri, bitmap);
                 }
             } else {
                 int threadCount = 1;
                 CountDownLatch latch = new CountDownLatch(threadCount);
                 ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-                    executor.execute(new Runnable() {
-                        public void run() {
-                            Log.e("RrportTableCell", "BuildConfig.DEBUG = " + BuildConfig.DEBUG);
-                            Bitmap innerBitmap = null;
-                            if (BuildConfig.DEBUG || sUri.startsWith("file:")) {
-                                InputStream in = null;
-                                try {
-                                    in = new URL(sUri).openStream();
-                                    innerBitmap = BitmapFactory.decodeStream(in);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                innerBitmap = BitmapFactory.decodeResource(getContext().getResources(), Cell.Path.getResourceDrawableId(getContext(), sUri));
+                executor.execute(new Runnable() {
+                    public void run() {
+                        Log.e("RrportTableCell", "BuildConfig.DEBUG = " + BuildConfig.DEBUG);
+                        Bitmap innerBitmap = null;
+                        if (BuildConfig.DEBUG || sUri.startsWith("file:")) {
+                            InputStream in = null;
+                            try {
+                                in = new URL(sUri).openStream();
+                                innerBitmap = BitmapFactory.decodeStream(in);
+                            } catch (IOException e) {
+                                e.printStackTrace();
                             }
-                            if (innerBitmap != null) {
-                                innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon().getWidth(), cell.getIcon().getHeight(), true);
-                                bitmapLruCache.put(sUri, innerBitmap);
-                            }
-                            latch.countDown();
+                        } else {
+                            innerBitmap =
+                                    BitmapFactory.decodeResource(getContext().getResources(),
+                                            Cell.Path.getResourceDrawableId(getContext(), sUri));
                         }
-                    });
+                        if (innerBitmap != null) {
+                            innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon()
+                                    .getWidth(), cell.getIcon().getHeight(), true);
+                            bitmapLruCache.put(sUri, innerBitmap);
+                        }
+                        latch.countDown();
+                    }
+                });
 
                 // 在这里，主线程等待所有线程完成
                 try {
@@ -145,6 +150,14 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
             return lockIcon.getResourceId();
         }
         return icon.getResourceId();
+    }
+
+    float getIconWidth(Column<Cell> column, int position) {
+        Cell.Icon icon = getIcon(column, position);
+        if (icon == null) {
+            return 0;
+        }
+        return icon.getWidth() + drawPadding;
     }
 
 

@@ -17,6 +17,7 @@ import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.CellConfig;
+import com.hecom.reporttable.table.bean.ReplenishColumnsWidthConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.format.HecomStyle;
 
@@ -43,6 +44,23 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         GsonHelper.initGson(reactContext);
         mReactContext = reactContext;
         return new HecomTable(reactContext);
+    }
+
+    @ReactProp(name="replenishColumnsWidthConfig")
+    public void setReplenishColumnsWidthConfig(HecomTable view, ReadableMap config){
+        if(config.hasKey("showNumber")){
+            ReplenishColumnsWidthConfig replenishConfig = new ReplenishColumnsWidthConfig();
+            replenishConfig.setShowNumber(config.getInt("showNumber"));
+            if(config.hasKey("ignoreColumns")){
+                ReadableArray ignoreColumns = config.getArray("ignoreColumns");
+                Set<Integer> ignore = new HashSet<>(ignoreColumns.size());
+                for (int i = 0; i < ignoreColumns.size(); i++) {
+                    ignore.add(ignoreColumns.getInt(i));
+                }
+                replenishConfig.setIgnoreColumns(ignore);
+            }
+            view.setReplenishConfig(replenishConfig);
+        }
     }
 
     @ReactProp(name = "ignoreLocks")
