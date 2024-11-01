@@ -83,6 +83,7 @@ export default class ReportTableWrapper extends React.Component {
                     permutable={this.props.permutable}
                     ignoreLocks={this.props.ignoreLocks}
                     doubleClickZoom={this.props.doubleClickZoom}
+                    replenishColumnsWidthConfig={this.props.replenishColumnsWidthConfig}
                     lineColor={this.props.lineColor}
                     itemConfig={this.props.itemConfig}
                     onClickEvent={({nativeEvent: data}) => {

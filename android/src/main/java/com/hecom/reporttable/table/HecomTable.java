@@ -1,6 +1,8 @@
 package com.hecom.reporttable.table;
 
 import android.util.AttributeSet;
+import android.util.SparseIntArray;
+import android.view.ViewTreeObserver;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
@@ -17,6 +19,7 @@ import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.bean.CellConfig;
+import com.hecom.reporttable.table.bean.ReplenishColumnsWidthConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.format.BackgroundFormat;
 import com.hecom.reporttable.table.format.CellDrawFormat;
@@ -45,6 +48,11 @@ public class HecomTable extends SmartTable<Cell> {
 
     private TableConfigBean lastConfigBean;
     private String lastJson;
+
+    private ReplenishColumnsWidthConfig replenishConfig;
+
+    private boolean isTableLayoutReady = false;
+    private boolean isContentLayoutReady = false;
 
     public static class SpliceItem {
         private String data;
@@ -132,6 +140,17 @@ public class HecomTable extends SmartTable<Cell> {
                 }
             }
         });
+        getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                getViewTreeObserver().removeOnPreDrawListener(this);
+                HecomTable.this.isTableLayoutReady = true;
+                if (HecomTable.this.needReLayout()) {
+                    HecomTable.this.reLayout();
+                }
+                return true;
+            }
+        });
         getMeasurer().setOnMeasureListener(new OnMeasureListener() {
             @Override
             public void onContentSizeChanged(float width, float height) {
@@ -146,10 +165,65 @@ public class HecomTable extends SmartTable<Cell> {
 
             @Override
             public void onDidLayout() {
+                HecomTable.this.isContentLayoutReady = true;
+                if (HecomTable.this.needReLayout()) {
+                    HecomTable.this.reLayout();
+                } else {
+                    HecomTable.this.resizeColumns.clear();
+                }
                 context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                         .emit("tableDidLayout", "tableDidLayout");
             }
         });
+    }
+
+    private SparseIntArray resizeColumns = new SparseIntArray();
+
+    /**
+     * 是否需要重新调整列宽
+     */
+    private boolean needReLayout() {
+        if (this.replenishConfig == null || this.replenishConfig.getShowNumber() == 0 || !isTableLayoutReady || !isContentLayoutReady) {
+            return false;
+        }
+        int viewWidth = this.getMeasuredWidth();
+        List<Column> columns = this.getTableData().getColumns();
+        int columnWidth = 0;
+        for (int col = 0; col < this.replenishConfig.getShowNumber() && col < columns.size(); col++) {
+            columnWidth += columns.get(col).getComputeWidth();
+        }
+        return viewWidth > 0 && columnWidth > viewWidth;
+    }
+
+    private void reLayout() {
+        int viewWidth = this.getMeasuredWidth();
+        List<Column> columns = this.getTableData().getColumns();
+        int totalColumn = Math.min(this.replenishConfig.getShowNumber(), columns.size());
+        int columnTotalWidth = 0;
+        int columnCount = 0;
+        for (int col = 0; col < totalColumn; col++) {
+            columnTotalWidth += columns.get(col).getComputeWidth();
+            if (!this.replenishConfig.ignore(col)) {
+                columnCount++;
+            }
+        }
+        int offset = (columnTotalWidth - viewWidth) / columnCount;
+        for (int col = 0; col < totalColumn; col++) {
+            if (this.replenishConfig.ignore(col)) {
+                continue;
+            }
+            Column column = columns.get(col);
+            int resizeWidth = column.getComputeWidth() - offset - 1;
+            this.resizeColumns.put(column.getColumn(), resizeWidth);
+            if (resizeWidth < column.getMinWidth()) {
+                column.setMinWidth(column.getWidth());
+            }
+            List<Cell> cells = column.getDatas();
+            for (int i = 0; i < cells.size(); i++) {
+                cells.get(i).setCache(null);
+            }
+        }
+        notifyDataChanged();
     }
 
     private HecomStyle hecomStyle;
@@ -164,14 +238,20 @@ public class HecomTable extends SmartTable<Cell> {
         return hecomStyle;
     }
 
+    public boolean hasResizeWidth(Column<Cell> column){
+        return this.resizeColumns.size() > column.getColumn() && this.resizeColumns.get(column.getColumn()) != 0;
+    }
+
     public int getMaxColumnWidth(Column<Cell> column) {
+        if (this.hasResizeWidth(column)) {
+            return this.resizeColumns.get(column.getColumn());
+        }
         CellConfig config = lastConfigBean.getColumnConfigMap().get(column.getColumn());
         if (config != null && config.getMaxWidth() > 0) {
             return config.getMaxWidth();
         }
         return lastConfigBean.getMaxWidth();
     }
-
 
     private void setDataInMainThread(String json,
                                      final TableConfigBean configBean) {
@@ -324,4 +404,7 @@ public class HecomTable extends SmartTable<Cell> {
         return mLockHelper;
     }
 
+    public void setReplenishConfig(ReplenishColumnsWidthConfig replenishConfig) {
+        this.replenishConfig = replenishConfig;
+    }
 }

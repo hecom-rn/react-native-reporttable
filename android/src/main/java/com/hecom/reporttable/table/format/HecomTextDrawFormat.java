@@ -101,8 +101,8 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
                 break;
         }
 
-        StaticLayout layout = new StaticLayout(result.getText(), mTextPaint, rect.width(),
-                align, 1.0f, 0.0f, false);
+        StaticLayout layout = new StaticLayout(result.getText(), mTextPaint, rect.width(), align,
+                1.0f, 0.0f, false);
 
         // 计算垂直居中的偏移量
         int dy = (rect.height() - layout.getHeight()) / 2;
@@ -149,22 +149,28 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
     private CellCache measureText(Column<Cell> column, int position, Paint paint,
                                   TableConfig config) {
         Cell cell = column.getDatas().get(position);
-        float maxWidth =
-                Math.max(0, this.table.getMaxColumnWidth(column) - config.getHorizontalPadding() * 2 - cellDrawFormat.getImageWidth());
+        float otherWidth = config.getHorizontalPadding() * 2 + cellDrawFormat.getIconWidth(column, position);
+        float maxWidth = Math.max(otherWidth + 40,
+                this.table.getMaxColumnWidth(column) - otherWidth);
         CharSequence charSequence = getSpan(cell, config, paint, maxWidth);
         mTextPaint.set(paint);
         StaticLayout layout = new StaticLayout(charSequence, mTextPaint, (int) maxWidth,
                 StaticLayout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
         float maxLineWidth = 0;
-        for (int i = 0; i < layout.getLineCount(); i++) {
-            if (maxLineWidth == maxWidth) {
-                break;
+        if (this.table.hasResizeWidth(column)) {
+            maxLineWidth = maxWidth;
+        } else {
+            for (int i = 0; i < layout.getLineCount(); i++) {
+                if (maxLineWidth == maxWidth) {
+                    break;
+                }
+                maxLineWidth = Math.max(maxLineWidth, layout.getLineWidth(i));
             }
-            maxLineWidth = Math.max(maxLineWidth, layout.getLineWidth(i));
+            maxLineWidth += this.table.getContext().getResources()
+                    .getDisplayMetrics().density * 2;
         }
         // 文字最大宽度增加一点冗余，防止缩放过程中文字意外换行
-        return new CellCache(charSequence, maxLineWidth + this.table.getContext().getResources()
-                .getDisplayMetrics().density * 2, layout.getHeight());
+        return new CellCache(charSequence, maxLineWidth, layout.getHeight());
     }
 
     private SpannableStringBuilder getSpan(Cell cell, TableConfig config, Paint paint, float maxWidth) {
@@ -178,8 +184,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
                     List<Object> spanList = getSpan(cell, config, context, richText.getStyle(),
                             paint, maxWidth);
                     for (int j = 0; j < spanList.size(); j++) {
-                        ssb.setSpan(spanList.get(j),
-                                ssb.length() - richText.getText()
+                        ssb.setSpan(spanList.get(j), ssb.length() - richText.getText()
                                         .length(), ssb.length(),
                                 SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
