@@ -150,7 +150,9 @@
     NSMutableArray *dataSource = [NSMutableArray arrayWithArray:data];
     if (self.reportTableModel.data.count > 0) {
         self.reportTableModel.data = dataSource; // update
-        [self integratedDataSource];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self integratedDataSource];
+        });
     } else {
         self.reportTableModel.data = dataSource;
         self.propertyCount += 1;
