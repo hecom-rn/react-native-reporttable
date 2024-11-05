@@ -3,14 +3,8 @@ package com.hecom.reporttable.table.bean;
 import android.content.Context;
 import android.graphics.Paint;
 
-import com.hecom.reporttable.BuildConfig;
 import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
-import android.net.Uri;
-import android.util.Log;
-
-import com.facebook.common.util.UriUtil;
-
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +36,9 @@ public class Cell {
 
     private boolean strikethrough = false; //删除线
 
-    private int textPaddingLeft = -1; // 左侧间距
+    private int textPaddingLeft = -1;// 左侧间距
+    private int textPaddingRight = -1;
+    private int textPaddingHorizontal = -1;
 
     private ExtraText extraText; // 后缀标签
 
@@ -65,6 +61,7 @@ public class Cell {
             return;
         }
         // keyIndex涉及合并单元格，不能合并
+        this.keyIndex = newCell.getKeyIndex();
         this.title = newCell.getTitle();
         this.richText = newCell.getRichText();
         this.backgroundColor = newCell.getBackgroundColor();
@@ -80,7 +77,25 @@ public class Cell {
         this.strikethrough = newCell.isStrikethrough();
         this.extraText = newCell.getExtraText();
         this.textPaddingLeft = newCell.getTextPaddingLeft();
+        this.textPaddingRight = newCell.getTextPaddingRight();
+        this.textPaddingHorizontal = newCell.getTextPaddingHorizontal();
         cache = null;
+    }
+
+    public int getTextPaddingRight() {
+        return textPaddingRight;
+    }
+
+    public void setTextPaddingRight(int textPaddingRight) {
+        this.textPaddingRight = textPaddingRight;
+    }
+
+    public int getTextPaddingHorizontal() {
+        return textPaddingHorizontal;
+    }
+
+    public void setTextPaddingHorizontal(int textPaddingHorizontal) {
+        this.textPaddingHorizontal = textPaddingHorizontal;
     }
 
     public int getTextPaddingLeft() {

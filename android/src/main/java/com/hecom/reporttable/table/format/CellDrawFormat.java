@@ -80,8 +80,8 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
     }
 
     @Override
-    protected Bitmap getBitmap(Cell cell, String value, int position) {
-        String sUri = this.getResourceUri(cell, value, position);
+    protected Bitmap getBitmap(final Cell cell, String value, int position) {
+        final String sUri = this.getResourceUri(cell, value, position);
         Bitmap bitmap = bitmapLruCache.get(sUri);
         if (bitmap == null) {
             if (String.valueOf(lockIcon.getResourceId()).equals(sUri)) {
@@ -92,7 +92,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                 }
             } else {
                 int threadCount = 1;
-                CountDownLatch latch = new CountDownLatch(threadCount);
+                final CountDownLatch latch = new CountDownLatch(threadCount);
                 ExecutorService executor = Executors.newFixedThreadPool(threadCount);
                 executor.execute(new Runnable() {
                     public void run() {
@@ -152,7 +152,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         return icon.getResourceId();
     }
 
-    float getIconWidth(Column<Cell> column, int position) {
+    private float getIconWidth(Column<Cell> column, int position) {
         Cell.Icon icon = getIcon(column, position);
         if (icon == null) {
             return 0;
@@ -160,19 +160,29 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         return icon.getWidth() + drawPadding;
     }
 
+    float getMaxTextWidth(Column<Cell> column, int position, TableConfig config) {
+        Cell cell = column.getDatas().get(position);
+        float otherWidth =
+                this.getPaddingLeft(cell, config) + this.getPaddingRight(cell, config) + this.getIconWidth(column, position);
+        return Math.max(otherWidth + 40,
+                this.table.getMaxColumnWidth(column) - otherWidth);
+    }
 
     @Override
     public int measureWidth(Column<Cell> column, int position, TableConfig config) {
         Cell.Icon icon = getIcon(column, position);
+        Cell cell = column.getDatas().get(position);
         int textWidth = textDrawFormat.measureWidth(column, position, config);
-        int textPaddingLeft = column.getDatas().get(position).getTextPaddingLeft();
+        int paddingHorizontal = this.getPaddingLeft(cell, config) + this.getPaddingRight(cell,
+                // 由于TableMeasure中计算宽度时会默认加上全局的水平padding，所以这里需要减去
+                config) - config.getHorizontalPadding() * 2;
         if (icon == null) {
-            return textWidth + Math.max(textPaddingLeft, 0);
+            return textWidth + paddingHorizontal;
         }
         if (icon.getDirection() == Cell.Icon.LEFT || icon.getDirection() == Cell.Icon.RIGHT) {
-            return icon.getWidth() + textWidth + drawPadding + Math.max(textPaddingLeft, 0);
+            return icon.getWidth() + textWidth + drawPadding + paddingHorizontal;
         } else {
-            return Math.max(icon.getWidth(), textWidth) + Math.max(textPaddingLeft, 0);
+            return Math.max(icon.getWidth(), textWidth) + paddingHorizontal;
         }
     }
 
@@ -195,10 +205,10 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
         Cell.Icon icon = getIcon(cellInfo.column, cellInfo.row);
 
-        rect.left += (config.getLeftPadding(cellInfo)) * config.getZoom();
-        rect.right -= config.getRightPadding() * config.getZoom();
-        rect.top += config.getVerticalPadding() * config.getZoom();
-        rect.bottom -= config.getVerticalPadding() * config.getZoom();
+        rect.left += (int) (this.getPaddingLeft(cellInfo.data, config) * config.getZoom());
+        rect.right -= (int) (this.getPaddingRight(cellInfo.data, config) * config.getZoom());
+        rect.top += (int) (this.getPaddingTop(cellInfo.data, config) * config.getZoom());
+        rect.bottom -= (int) (this.getPaddingBottom(cellInfo.data, config) * config.getZoom());
 
         if (icon == null) {
             textDrawFormat.draw(c, rect, cellInfo, config);
@@ -303,5 +313,33 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         } else {
             return column.getDatas().get(position).getIcon();
         }
+    }
+
+    private int getPaddingLeft(Cell cell, TableConfig config) {
+        if (cell.getTextPaddingLeft() >= 0) {
+            return cell.getTextPaddingLeft();
+        }
+        if (cell.getTextPaddingHorizontal() >= 0) {
+            return cell.getTextPaddingHorizontal();
+        }
+        return config.getHorizontalPadding();
+    }
+
+    private int getPaddingRight(Cell cell, TableConfig config) {
+        if (cell.getTextPaddingRight() >= 0) {
+            return cell.getTextPaddingRight();
+        }
+        if (cell.getTextPaddingHorizontal() >= 0) {
+            return cell.getTextPaddingHorizontal();
+        }
+        return config.getHorizontalPadding();
+    }
+
+    private int getPaddingTop(Cell cell, TableConfig config) {
+        return config.getVerticalPadding();
+    }
+
+    private int getPaddingBottom(Cell cell, TableConfig config) {
+        return config.getVerticalPadding();
     }
 }

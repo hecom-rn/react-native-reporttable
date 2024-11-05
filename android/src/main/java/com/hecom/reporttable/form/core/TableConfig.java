@@ -11,7 +11,6 @@ import com.hecom.reporttable.form.data.format.grid.IGridFormat;
 import com.hecom.reporttable.form.data.format.grid.SimpleGridFormat;
 import com.hecom.reporttable.form.data.style.FontStyle;
 import com.hecom.reporttable.form.data.style.LineStyle;
-import com.hecom.reporttable.table.bean.Cell;
 
 
 /**
@@ -270,20 +269,6 @@ public class TableConfig {
 
     public int getHorizontalPadding() {
         return horizontalPadding;
-    }
-
-    public int getLeftPadding(CellInfo<Cell> cellInfo) {
-        if (cellInfo != null && cellInfo.data != null) {
-            int textPaddingLeft = cellInfo.data.getTextPaddingLeft();
-            if (textPaddingLeft >= 0) {
-                return textPaddingLeft;
-            }
-        }
-        return getHorizontalPadding();
-    }
-
-    public int getRightPadding() {
-        return getHorizontalPadding();
     }
 
     public TableConfig setHorizontalPadding(int horizontalPadding) {

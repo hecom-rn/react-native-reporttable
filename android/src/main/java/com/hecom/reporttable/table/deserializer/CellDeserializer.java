@@ -88,6 +88,12 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
         if (json.has("textPaddingLeft")) {
             cell.setTextPaddingLeft(DensityUtils.dp2px(this.context, json.get("textPaddingLeft").getAsInt()));
         }
+        if (json.has("textPaddingRight")) {
+            cell.setTextPaddingRight(DensityUtils.dp2px(this.context, json.get("textPaddingRight").getAsInt()));
+        }
+        if (json.has("textPaddingHorizontal")) {
+            cell.setTextPaddingHorizontal(DensityUtils.dp2px(this.context, json.get("textPaddingHorizontal").getAsInt()));
+        }
         if (json.has("extraText")) {
             cell.setExtraText(context.<ExtraText>deserialize(json.get("extraText"),
                     ExtraText.class));

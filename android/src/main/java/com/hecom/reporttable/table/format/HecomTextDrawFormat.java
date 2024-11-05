@@ -149,9 +149,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
     private CellCache measureText(Column<Cell> column, int position, Paint paint,
                                   TableConfig config) {
         Cell cell = column.getDatas().get(position);
-        float otherWidth = config.getHorizontalPadding() * 2 + cellDrawFormat.getIconWidth(column, position);
-        float maxWidth = Math.max(otherWidth + 40,
-                this.table.getMaxColumnWidth(column) - otherWidth);
+        float maxWidth = cellDrawFormat.getMaxTextWidth(column, position, config);
         CharSequence charSequence = getSpan(cell, config, paint, maxWidth);
         mTextPaint.set(paint);
         StaticLayout layout = new StaticLayout(charSequence, mTextPaint, (int) maxWidth,
