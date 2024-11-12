@@ -203,6 +203,7 @@ public class HecomTable extends SmartTable<Cell> {
         int columnCount = 0;
         for (int col = 0; col < totalColumn; col++) {
             columnTotalWidth += columns.get(col).getComputeWidth();
+            this.resizeColumns.put(col, 0);
             if (!this.replenishConfig.ignore(col)) {
                 columnCount++;
             }
