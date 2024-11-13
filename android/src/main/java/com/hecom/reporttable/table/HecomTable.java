@@ -200,24 +200,26 @@ public class HecomTable extends SmartTable<Cell> {
         List<Column> columns = this.getTableData().getColumns();
         int totalColumn = Math.min(this.replenishConfig.getShowNumber(), columns.size());
         int columnTotalWidth = 0;
-        int columnCount = 0;
+        int ignoreWidth = 0;
         for (int col = 0; col < totalColumn; col++) {
             columnTotalWidth += columns.get(col).getComputeWidth();
             this.resizeColumns.put(col, 0);
-            if (!this.replenishConfig.ignore(col)) {
-                columnCount++;
+            if (this.replenishConfig.ignore(col)) {
+                ignoreWidth += columns.get(col).getComputeWidth();
             }
         }
-        int offset = (columnTotalWidth - viewWidth) / columnCount;
         for (int col = 0; col < totalColumn; col++) {
             if (this.replenishConfig.ignore(col)) {
                 continue;
             }
             Column column = columns.get(col);
-            int resizeWidth = column.getComputeWidth() - offset - 1;
+            int resizeWidth = (int) Math.floor(
+                    column.getComputeWidth() -
+                            (column.getComputeWidth() * 1f / (columnTotalWidth - ignoreWidth) * (columnTotalWidth - viewWidth))
+            );
             this.resizeColumns.put(column.getColumn(), resizeWidth);
             if (resizeWidth < column.getMinWidth()) {
-                column.setMinWidth(column.getWidth());
+                column.setMinWidth(resizeWidth);
             }
             List<Cell> cells = column.getDatas();
             for (int i = 0; i < cells.size(); i++) {
@@ -239,7 +241,7 @@ public class HecomTable extends SmartTable<Cell> {
         return hecomStyle;
     }
 
-    public boolean hasResizeWidth(Column<Cell> column){
+    public boolean hasResizeWidth(Column<Cell> column) {
         return this.resizeColumns.size() > column.getColumn() && this.resizeColumns.get(column.getColumn()) != 0;
     }
 
@@ -344,7 +346,7 @@ public class HecomTable extends SmartTable<Cell> {
         for (int i = 0; i < list.size(); ++i) {
             int tmpSize = list.get(i).getDatas().size();
             Cell[] tmpArr = new Cell[tmpSize];
-            for(int j = 0; j < tmpSize; ++j) {
+            for (int j = 0; j < tmpSize; ++j) {
                 tmpArr[j] = (Cell) list.get(i).getDatas().get(j);
             }
             tmpCellArrays[i] = tmpArr;

@@ -164,8 +164,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         Cell cell = column.getDatas().get(position);
         float otherWidth =
                 this.getPaddingLeft(cell, config) + this.getPaddingRight(cell, config) + this.getIconWidth(column, position);
-        return Math.max(otherWidth + 40,
-                this.table.getMaxColumnWidth(column) - otherWidth);
+        return Math.max(0, this.table.getMaxColumnWidth(column) - otherWidth);
     }
 
     @Override
