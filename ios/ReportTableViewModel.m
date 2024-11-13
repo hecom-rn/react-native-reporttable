@@ -242,6 +242,12 @@
             CGSize headerViewSize = self.headerView.frame.size;
             self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
         }
+        if (self.reportTableModel.replenishColumnsWidthConfig != nil) {
+            NSInteger showNumber = [self.reportTableModel.replenishColumnsWidthConfig objectForKey:@"showNumber"] ? [RCTConvert NSInteger:[self.reportTableModel.replenishColumnsWidthConfig objectForKey:@"showNumber"]] : 0;
+            if (showNumber > 0) {
+                [self integratedDataSource];
+            }
+        }
     } else {
         self.propertyCount += 1;
         [self reloadCheck];
