@@ -9,6 +9,7 @@
 #import <ZMJGanttChart/ZMJGanttChart.h>
 
 @class IconStyle;
+@class ProgressStyle;
 @interface ReportTableCell : ZMJCell
 
 @property (nonatomic, strong) UILabel *label;
@@ -33,5 +34,8 @@
 - (void)hiddenBoxView;
 
 - (void)textStyle:(NSInteger)paddingLeft WithPaddingRight: (NSInteger)paddingRight;
+
+- (void)hiddenProgressView;
+- (void)setupProgressView:(ProgressStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height;
 
 @end

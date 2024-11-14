@@ -436,7 +436,10 @@
         CGPoint point = CGPointMake(x, y);
         [cell drawBoxPoint:point WithLineColor: model.boxLineColor];
     }
-
+    [cell hiddenProgressView];
+    if (model.progressStyle) {
+        [cell setupProgressView:model.progressStyle WithRowWidth:[self.rowsWidth[column] floatValue] Height: [self.cloumsHight[row] floatValue]];
+    }
     return cell;
 }
 

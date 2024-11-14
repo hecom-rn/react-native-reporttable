@@ -8,6 +8,16 @@
 #import <Foundation/Foundation.h>
 #import <React/RCTComponent.h>
 
+@interface ProgressStyle: NSObject
+@property (nonatomic, strong) NSArray *colors;
+@property (nonatomic, assign) CGFloat height;
+@property (nonatomic, assign) CGFloat marginHorizontal;
+@property (nonatomic, assign) CGFloat startRatio;
+@property (nonatomic, assign) CGFloat endRatio;
+@property (nonatomic, assign) CGFloat cornerRadius;
+@end
+
+
 @interface IconStyle: NSObject
 @property (nonatomic, strong) id path;
 @property (nonatomic, assign) CGSize size;
@@ -81,6 +91,7 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, strong) IconStyle *iconStyle;
 @property (nonatomic, strong) ItemModel *itemConfig;
 @property (nonatomic, strong) ExtraText *extraText;
+@property (nonatomic, strong) ProgressStyle *progressStyle;
 @property (nonatomic, assign) NSInteger columIndex;
 @end
 

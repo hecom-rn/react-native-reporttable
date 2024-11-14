@@ -65,6 +65,7 @@
 @interface ReportTableCell()
 @property (strong, atomic) LineView *lineView;
 @property (strong, atomic) BoxView *boxView;
+@property (strong, atomic) CAGradientLayer *gradientLayer;
 @end
 
 @implementation ReportTableCell
@@ -77,6 +78,28 @@
     return _label;
 }
 
+- (void)setupProgressView:(ProgressStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height {
+    CAGradientLayer *gradientLayer = [CAGradientLayer layer];
+    CGFloat showWidth = width - 2 * style.marginHorizontal;
+    CGRect frame = CGRectMake(style.marginHorizontal + showWidth * style.startRatio,
+                              (height - style.height) / 2,
+                              showWidth * (style.endRatio - style.startRatio),
+                              style.height);
+    gradientLayer.frame = frame;
+    gradientLayer.cornerRadius = style.cornerRadius;
+    gradientLayer.colors = style.colors;
+    gradientLayer.startPoint = CGPointMake(0, 0.5);
+    gradientLayer.endPoint = CGPointMake(1, 0.5);
+    self.gradientLayer = gradientLayer;
+    [self.contentView.layer addSublayer: gradientLayer];
+}
+
+- (void)hiddenProgressView {
+    if (_gradientLayer != nil) {
+        [_gradientLayer removeFromSuperlayer];
+        _gradientLayer = nil;
+    }
+}
 
 - (void)textStyle:(NSInteger)paddingLeft WithPaddingRight: (NSInteger)paddingRight {
     [self.label mas_remakeConstraints:^(MASConstraintMaker *make) {

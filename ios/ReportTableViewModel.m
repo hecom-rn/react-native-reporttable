@@ -747,6 +747,22 @@
     if ([keys containsObject: @"isOverstriking"]) {
         model.isOverstriking = [RCTConvert BOOL:[dir objectForKey:@"isOverstriking"]];
     }
+    NSDictionary *progressDic = [dir objectForKey:@"progressStyle"] ? [RCTConvert NSDictionary:[dir objectForKey:@"progressStyle"]] : nil;
+    if (progressDic != nil) {
+        ProgressStyle *progressStyle = [[ProgressStyle alloc] init];
+        progressStyle.height = [[progressDic objectForKey:@"height"] floatValue];
+        progressStyle.marginHorizontal = [[progressDic objectForKey:@"marginHorizontal"] floatValue];
+        progressStyle.startRatio = [[progressDic objectForKey:@"startRatio"] floatValue];
+        progressStyle.endRatio = [[progressDic objectForKey:@"endRatio"] floatValue];
+        progressStyle.cornerRadius = [[progressDic objectForKey:@"cornerRadius"] floatValue];
+        NSArray *arr = [progressDic objectForKey:@"colors"];
+        NSMutableArray *colors = [NSMutableArray arrayWithCapacity: arr.count];
+        for (NSString *str in arr) {
+            [colors addObject:[self colorFromHex:str].CGColor];
+        }
+        progressStyle.colors = colors;
+        model.progressStyle = progressStyle;
+    }
     NSDictionary *iconDic = [dir objectForKey:@"icon"] ? [RCTConvert NSDictionary:[dir objectForKey:@"icon"]] : nil;
     if (iconDic != nil) {
         IconStyle *icon = [[IconStyle alloc] init];

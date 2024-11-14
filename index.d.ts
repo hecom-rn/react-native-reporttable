@@ -175,6 +175,17 @@ declare module "@hecom/react-native-report-table" {
             text: string;
             isLeft: boolean; // 在原本文本左边 default false
         }; // 在原本文本内容中额外追加的文本
+
+        progressStyle?: ProgressStyle; // 单元格内添加一个背景条
+    }
+
+    export interface ProgressStyle {
+        colors: Color[]; // 横向渐变
+        height: number; // 上下单元格内居中显示
+        cornerRadius: number; // 圆角
+        marginHorizontal: number; // 左右留白
+        startRatio: number; // 开始计算点。 转化规则： 实际开始X = marginHorizontal + (rowWidth - marginHorizontal * 2) * startRatio
+        endRatio: number; // 结束计算点  转化规则： 实际结束X = marginHorizontal + (rowWidth - marginHorizontal * 2) * endRatio
     }
 
     export interface IconStyle {

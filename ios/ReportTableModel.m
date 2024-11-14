@@ -7,6 +7,9 @@
 
 #import "ReportTableModel.h"
 
+@implementation ProgressStyle
+
+@end
 
 @implementation ExtraTextBackGroundStyle
 
