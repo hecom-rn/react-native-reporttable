@@ -196,10 +196,10 @@ public class HecomTable extends SmartTable<Cell> {
     }
 
     private void reLayout() {
-        int viewWidth = this.getMeasuredWidth();
+        int viewWidth = this.getMeasuredWidth(); // 组件宽度
         List<Column> columns = this.getTableData().getColumns();
         int totalColumn = Math.min(this.replenishConfig.getShowNumber(), columns.size());
-        int columnTotalWidth = 0;
+        int columnTotalWidth = 0; // 实际前X列的宽度
         int ignoreWidth = 0;
         for (int col = 0; col < totalColumn; col++) {
             columnTotalWidth += columns.get(col).getComputeWidth();
@@ -208,15 +208,23 @@ public class HecomTable extends SmartTable<Cell> {
                 ignoreWidth += columns.get(col).getComputeWidth();
             }
         }
+        int minWidth = 150; // 列最小宽度，不能小于这个宽度
+        int resizedTotalWidth = 0; // 已经调整过的列宽总和
+        int resizedOffsetWidth = 0; // 已经调整过的需要缩小的列宽总和
+        int totalOffsetWidth = columnTotalWidth - viewWidth; // 需要缩小的总宽度
+        int totalColumnWidth = columnTotalWidth - ignoreWidth; // 前X列排除忽略列的总宽度
         for (int col = 0; col < totalColumn; col++) {
             if (this.replenishConfig.ignore(col)) {
                 continue;
             }
             Column column = columns.get(col);
-            int resizeWidth = (int) Math.floor(
-                    column.getComputeWidth() -
-                            (column.getComputeWidth() * 1f / (columnTotalWidth - ignoreWidth) * (columnTotalWidth - viewWidth))
-            );
+            // 计算按比例缩小的宽度
+            float resizeOffset = column.getComputeWidth() * 1f / (totalColumnWidth - resizedTotalWidth) * (totalOffsetWidth - resizedOffsetWidth);
+            // 实际缩小后的宽度不能小于最小宽度
+            int resizeWidth = Math.max(minWidth, (int) Math.floor(column.getComputeWidth() - resizeOffset));
+            // 累加已经处理的列宽和已经处理的偏移量
+            resizedTotalWidth += resizeWidth;
+            resizedOffsetWidth += column.getComputeWidth() - resizeWidth;
             this.resizeColumns.put(column.getColumn(), resizeWidth);
             if (resizeWidth < column.getMinWidth()) {
                 column.setMinWidth(resizeWidth);
