@@ -98,6 +98,10 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
             cell.setExtraText(context.<ExtraText>deserialize(json.get("extraText"),
                     ExtraText.class));
         }
+        if (json.has("progressStyle")) {
+            cell.setProgressStyle(context.<Cell.ProgressStyle>deserialize(json.get("progressStyle"),
+                    Cell.ProgressStyle.class));
+        }
         return cell;
     }
 }

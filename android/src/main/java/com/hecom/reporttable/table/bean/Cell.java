@@ -25,6 +25,7 @@ public class Cell {
     private int textColor = TableConfig.INVALID_COLOR;
     private Paint.Align textAlignment;
     private Icon icon;
+    private ProgressStyle progressStyle;
     private boolean isOverstriking = false;
 
     private boolean isForbidden = false; //斜线
@@ -79,7 +80,16 @@ public class Cell {
         this.textPaddingLeft = newCell.getTextPaddingLeft();
         this.textPaddingRight = newCell.getTextPaddingRight();
         this.textPaddingHorizontal = newCell.getTextPaddingHorizontal();
+
         cache = null;
+    }
+
+    public ProgressStyle getProgressStyle() {
+        return progressStyle;
+    }
+
+    public void setProgressStyle(ProgressStyle progressStyle) {
+        this.progressStyle = progressStyle;
     }
 
     public int getTextPaddingRight() {
@@ -224,6 +234,63 @@ public class Cell {
 
     public void setOverstriking(boolean overstriking) {
         isOverstriking = overstriking;
+    }
+
+    public static class ProgressStyle {
+        private int[] colors; // 横向渐变
+        private float height; // 高度，居中显示
+        private float radius; // 圆角半径
+        private float marginHorizontal; // 左右边距
+        private float startRatio; // 开始比例
+        private float endRatio; // 结束比例
+
+        public int[] getColors() {
+            return colors;
+        }
+
+        public void setColors(int[] colors) {
+            this.colors = colors;
+        }
+
+        public float getHeight() {
+            return height;
+        }
+
+        public void setHeight(float height) {
+            this.height = height;
+        }
+
+        public float getRadius() {
+            return radius;
+        }
+
+        public void setRadius(float radius) {
+            this.radius = radius;
+        }
+
+        public float getMarginHorizontal() {
+            return marginHorizontal;
+        }
+
+        public void setMarginHorizontal(float marginHorizontal) {
+            this.marginHorizontal = marginHorizontal;
+        }
+
+        public float getStartRatio() {
+            return startRatio;
+        }
+
+        public void setStartRatio(float startRatio) {
+            this.startRatio = startRatio;
+        }
+
+        public float getEndRatio() {
+            return endRatio;
+        }
+
+        public void setEndRatio(float endRatio) {
+            this.endRatio = endRatio;
+        }
     }
 
     public static class RichText {

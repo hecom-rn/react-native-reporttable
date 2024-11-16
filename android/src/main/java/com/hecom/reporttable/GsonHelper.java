@@ -12,6 +12,7 @@ import com.hecom.reporttable.table.deserializer.CellConfigDeserializer;
 import com.hecom.reporttable.table.deserializer.CellDeserializer;
 import com.hecom.reporttable.table.deserializer.ExtraTextDeserializer;
 import com.hecom.reporttable.table.deserializer.IconDeserializer;
+import com.hecom.reporttable.table.deserializer.ProgressStyleDeserializer;
 
 /**
  * Description : Created on 2023/5/12.
@@ -26,6 +27,7 @@ public class GsonHelper {
         }
         mGson = new GsonBuilder()
                 .registerTypeAdapter(Cell.Icon.class, new IconDeserializer(context))
+                .registerTypeAdapter(Cell.ProgressStyle.class, new ProgressStyleDeserializer(context))
                 .registerTypeAdapter(Cell.class, new CellDeserializer(context))
                 .registerTypeAdapter(CellConfig.class, new CellConfigDeserializer(context))
                 .registerTypeAdapter(ExtraText.class, new ExtraTextDeserializer())
