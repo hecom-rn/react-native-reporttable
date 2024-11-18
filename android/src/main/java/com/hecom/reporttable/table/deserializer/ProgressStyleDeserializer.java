@@ -11,14 +11,14 @@ import android.content.Context;
 import android.graphics.Color;
 
 import com.hecom.reporttable.form.utils.DensityUtils;
-import com.hecom.reporttable.table.bean.Cell;
+import com.hecom.reporttable.table.bean.ProgressStyle;
 
 import java.lang.reflect.Type;
 
 /**
  * Created by kevin.bai on 2024/4/22.
  */
-public class ProgressStyleDeserializer implements JsonDeserializer<Cell.ProgressStyle> {
+public class ProgressStyleDeserializer implements JsonDeserializer<ProgressStyle> {
     Context context;
 
     public ProgressStyleDeserializer(Context context) {
@@ -26,10 +26,10 @@ public class ProgressStyleDeserializer implements JsonDeserializer<Cell.Progress
     }
 
     @Override
-    public Cell.ProgressStyle deserialize(JsonElement jsonStr, Type typeOfT,
-                                          JsonDeserializationContext context) throws JsonParseException {
+    public ProgressStyle deserialize(JsonElement jsonStr, Type typeOfT,
+                                     JsonDeserializationContext context) throws JsonParseException {
         JsonObject json = jsonStr.getAsJsonObject();
-        Cell.ProgressStyle style = new Cell.ProgressStyle();
+        ProgressStyle style = new ProgressStyle();
         if (json.has("colors")) {
             JsonArray colors = json.get("colors").getAsJsonArray();
             int[] colorArr = new int[colors.size()];
@@ -54,6 +54,11 @@ public class ProgressStyleDeserializer implements JsonDeserializer<Cell.Progress
         }
         if (json.has("endRatio")) {
             style.setEndRatio(json.get("endRatio").getAsFloat());
+        }
+        if (json.has("antsLineStyle")) {
+            style.setAntsLineStyle(context.<ProgressStyle.AntsLineStyle>deserialize(json.get(
+                    "antsLineStyle"),
+                    ProgressStyle.AntsLineStyle.class));
         }
 
         return style;

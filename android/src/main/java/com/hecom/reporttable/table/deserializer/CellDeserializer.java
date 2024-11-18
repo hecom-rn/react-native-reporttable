@@ -14,6 +14,7 @@ import android.graphics.Paint;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.bean.ExtraText;
+import com.hecom.reporttable.table.bean.ProgressStyle;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -99,8 +100,8 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
                     ExtraText.class));
         }
         if (json.has("progressStyle")) {
-            cell.setProgressStyle(context.<Cell.ProgressStyle>deserialize(json.get("progressStyle"),
-                    Cell.ProgressStyle.class));
+            cell.setProgressStyle(context.<ProgressStyle>deserialize(json.get("progressStyle"),
+                    ProgressStyle.class));
         }
         return cell;
     }

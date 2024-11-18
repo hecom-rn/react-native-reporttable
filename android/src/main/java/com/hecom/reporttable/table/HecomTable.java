@@ -19,6 +19,7 @@ import com.hecom.reporttable.form.matrix.MatrixHelper;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.bean.CellConfig;
+import com.hecom.reporttable.table.bean.ProgressStyle;
 import com.hecom.reporttable.table.bean.ReplenishColumnsWidthConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.format.BackgroundFormat;
@@ -50,6 +51,8 @@ public class HecomTable extends SmartTable<Cell> {
     private String lastJson;
 
     private ReplenishColumnsWidthConfig replenishConfig;
+
+    private ProgressStyle progressStyle;
 
     private boolean isTableLayoutReady = false;
     private boolean isContentLayoutReady = false;
@@ -409,5 +412,31 @@ public class HecomTable extends SmartTable<Cell> {
 
     public void setReplenishConfig(ReplenishColumnsWidthConfig replenishConfig) {
         this.replenishConfig = replenishConfig;
+    }
+
+    private ProgressStyle createDefProgressStyle() {
+        ProgressStyle style = new ProgressStyle();
+        style.setColors(new int[]{0x00FF00, 0x00FFFF});
+        style.setHeight(DensityUtils.dp2px(getContext(), 18));
+        style.setRadius(DensityUtils.dp2px(getContext(), 4));
+        style.setMarginHorizontal(DensityUtils.dp2px(getContext(), 5));
+        ProgressStyle.AntsLineStyle antsLineStyle = new ProgressStyle.AntsLineStyle();
+        antsLineStyle.setColor(0xF9F9F9);
+        antsLineStyle.setWidth(DensityUtils.dp2px(getContext(), 1));
+        antsLineStyle.setDashPattern(new float[]{DensityUtils.dp2px(getContext(), 2),
+                DensityUtils.dp2px(getContext(), 2)});
+        style.setAntsLineStyle(antsLineStyle);
+        return style;
+    }
+
+    public ProgressStyle getProgressStyle() {
+        if (progressStyle == null) {
+            progressStyle = createDefProgressStyle();
+        }
+        return progressStyle;
+    }
+
+    public void setProgressStyle(ProgressStyle progressStyle) {
+        this.progressStyle = progressStyle;
     }
 }
