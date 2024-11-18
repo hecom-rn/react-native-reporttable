@@ -186,6 +186,12 @@ declare module "@hecom/react-native-report-table" {
         marginHorizontal: number; // 左右留白
         startRatio: number; // 开始计算点。 转化规则： 实际开始X = marginHorizontal + (rowWidth - marginHorizontal * 2) * startRatio
         endRatio: number; // 结束计算点  转化规则： 实际结束X = marginHorizontal + (rowWidth - marginHorizontal * 2) * endRatio
+        antsLineStyle?: {
+            color: Color;
+            lineWidth: number;
+            lineDashPattern: [number, number]; // 虚线样式，[实线，空白]
+            lineRatio: number; // 虚线开始位置。 转化规则： 实际结束X = marginHorizontal + (rowWidth - marginHorizontal * 2) * lineRatio
+        }
     }
 
     export interface IconStyle {
