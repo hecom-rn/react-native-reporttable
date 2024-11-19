@@ -47,8 +47,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         return new HecomTable(reactContext);
     }
 
-    @ReactProp(name = "progressStyle")
-    public void setProgressStyle(HecomTable view, ReadableMap config) {
+    private void setProgressStyle(HecomTable view, ReadableMap config) {
         ProgressStyle style = new ProgressStyle();
         if (config.hasKey("colors")) {
             ReadableArray colors = config.getArray("colors");
@@ -200,6 +199,9 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
             style.setOverstriking(config.getBoolean("isOverstriking"));
         }
         view.setHecomStyle(style);
+        if (config.hasKey("progressStyle")) {
+            setProgressStyle(view, config.getMap("progressStyle"));
+        }
     }
 
 
