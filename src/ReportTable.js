@@ -10,6 +10,16 @@ const itemConfig = {
     textAlignment: 0,  // 0左 1中 2右  default 0
     classificationLineColor:'#9cb3c8',
     isOverstriking: false,
+    progressStyle: {
+        height: 20,
+        cornerRadius: 1,
+        marginHorizontal: 8,
+        antsLineStyle: {
+            color: '#222222',
+            lineWidth: 1,
+            lineDashPattern: [4, 2]
+        }
+    }
 };
 
 export default class ReportTable extends React.Component{

@@ -7,7 +7,14 @@
 
 #import "ReportTableModel.h"
 
+@implementation AntsLineStyle
+
+@end
+
 @implementation ProgressStyle
+
+
+
 
 @end
 

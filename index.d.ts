@@ -83,6 +83,16 @@ declare module "@hecom/react-native-report-table" {
         textPaddingHorizontal?: number; // default 12
         classificationLineColor?: Color; // default #9cb3c8
         isOverstriking?: boolean; // 文本是否加粗。 default false
+        progressStyle: {
+            height: number; // 上下单元格内居中显示
+            cornerRadius: number; // 圆角
+            marginHorizontal: number; // 左右留白
+            antsLineStyle?: {
+                color: Color;
+                lineWidth: number;
+                lineDashPattern: [number, number]; // 虚线样式，[实线，空白]
+            }
+        }; // 默认的的样式， 优先级比DataSource中的低
     }
 
     enum ClassificationLinePosition {
@@ -181,16 +191,16 @@ declare module "@hecom/react-native-report-table" {
 
     export interface ProgressStyle {
         colors: Color[]; // 横向渐变
-        height: number; // 上下单元格内居中显示
-        cornerRadius: number; // 圆角
-        marginHorizontal: number; // 左右留白
+        height?: number; // 上下单元格内居中显示
+        cornerRadius?: number; // 圆角
+        marginHorizontal?: number; // 左右留白
         startRatio: number; // 开始计算点。 转化规则： 实际开始X = marginHorizontal + (rowWidth - marginHorizontal * 2) * startRatio
         endRatio: number; // 结束计算点  转化规则： 实际结束X = marginHorizontal + (rowWidth - marginHorizontal * 2) * endRatio
         antsLineStyle?: {
-            color: Color;
-            lineWidth: number;
-            lineDashPattern: [number, number]; // 虚线样式，[实线，空白]
-            lineRatio: number; // 虚线开始位置。 转化规则： 实际结束X = marginHorizontal + (rowWidth - marginHorizontal * 2) * lineRatio
+            color?: Color;
+            lineWidth?: number;
+            lineDashPattern?: [number, number]; // 虚线样式，[实线，空白]
+            lineRatio: number; // 虚线开始位置。 转化规则： 实际X = marginHorizontal + (rowWidth - marginHorizontal * 2) * lineRatio
         }
     }
 

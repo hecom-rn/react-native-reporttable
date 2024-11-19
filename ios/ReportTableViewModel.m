@@ -352,9 +352,23 @@
     
     model.classificationLineColor = [self colorFromHex:[itemConfig objectForKey:@"classificationLineColor"]];
     model.isOverstriking = [RCTConvert BOOL:[itemConfig objectForKey:@"isOverstriking"]];
-    
+    NSDictionary *progressDic = [itemConfig objectForKey:@"progressStyle"] ? [RCTConvert NSDictionary:[itemConfig objectForKey:@"progressStyle"]] : nil;
+    if (progressDic != nil) {
+        ProgressStyle *progressStyle = [[ProgressStyle alloc] init];
+        progressStyle.height = [[progressDic objectForKey:@"height"] floatValue];
+        progressStyle.marginHorizontal = [[progressDic objectForKey:@"marginHorizontal"] floatValue];
+        progressStyle.cornerRadius = [[progressDic objectForKey:@"cornerRadius"] floatValue];
+        NSDictionary *antsLineDic = [progressDic objectForKey:@"antsLineStyle"] ? [RCTConvert NSDictionary:[progressDic objectForKey:@"antsLineStyle"]] : nil;
+        if (antsLineDic != nil) {
+            AntsLineStyle *antsLineStyle = [[AntsLineStyle alloc] init];
+            antsLineStyle.lineWidth = [[antsLineDic objectForKey:@"lineWidth"] floatValue];
+            antsLineStyle.color = [self colorFromHex: [antsLineDic objectForKey:@"color"]];
+            antsLineStyle.lineDashPattern = [RCTConvert NSArray:[antsLineDic objectForKey:@"lineDashPattern"]];
+            progressStyle.antsLineStyle = antsLineStyle;
+        }
+        model.progressStyle = progressStyle;
+    }
     self.reportTableModel.itemConfig = model;
-    
     self.propertyCount += 1;
     [self reloadCheck];
 }
@@ -749,18 +763,28 @@
     }
     NSDictionary *progressDic = [dir objectForKey:@"progressStyle"] ? [RCTConvert NSDictionary:[dir objectForKey:@"progressStyle"]] : nil;
     if (progressDic != nil) {
+        ProgressStyle *defaultStyle = self.reportTableModel.itemConfig.progressStyle;
         ProgressStyle *progressStyle = [[ProgressStyle alloc] init];
-        progressStyle.height = [[progressDic objectForKey:@"height"] floatValue];
-        progressStyle.marginHorizontal = [[progressDic objectForKey:@"marginHorizontal"] floatValue];
+        progressStyle.height = [[progressDic objectForKey:@"height"] floatValue] ?: defaultStyle.height;
+        progressStyle.marginHorizontal = [[progressDic objectForKey:@"marginHorizontal"] floatValue]  ?: defaultStyle.marginHorizontal;
         progressStyle.startRatio = [[progressDic objectForKey:@"startRatio"] floatValue];
         progressStyle.endRatio = [[progressDic objectForKey:@"endRatio"] floatValue];
-        progressStyle.cornerRadius = [[progressDic objectForKey:@"cornerRadius"] floatValue];
+        progressStyle.cornerRadius = [[progressDic objectForKey:@"cornerRadius"] floatValue] ?: defaultStyle.cornerRadius;
         NSArray *arr = [progressDic objectForKey:@"colors"];
         NSMutableArray *colors = [NSMutableArray arrayWithCapacity: arr.count];
         for (NSString *str in arr) {
             [colors addObject:[self colorFromHex:str].CGColor];
         }
         progressStyle.colors = colors;
+        NSDictionary *antsLineDic = [progressDic objectForKey:@"antsLineStyle"] ? [RCTConvert NSDictionary:[progressDic objectForKey:@"antsLineStyle"]] : nil;
+        if (antsLineDic != nil) {
+            AntsLineStyle *antsLineStyle = [[AntsLineStyle alloc] init];
+            antsLineStyle.lineWidth = [[antsLineDic objectForKey:@"lineWidth"] floatValue] ?: defaultStyle.antsLineStyle.lineWidth;
+            antsLineStyle.lineRatio = [[antsLineDic objectForKey:@"lineRatio"] floatValue];
+            antsLineStyle.color = [self colorFromHex: [antsLineDic objectForKey:@"color"]] ?: defaultStyle.antsLineStyle.color;
+            antsLineStyle.lineDashPattern = [RCTConvert NSArray:[antsLineDic objectForKey:@"lineDashPattern"]] ?: defaultStyle.antsLineStyle.lineDashPattern;
+            progressStyle.antsLineStyle = antsLineStyle;
+        }
         model.progressStyle = progressStyle;
     }
     NSDictionary *iconDic = [dir objectForKey:@"icon"] ? [RCTConvert NSDictionary:[dir objectForKey:@"icon"]] : nil;
