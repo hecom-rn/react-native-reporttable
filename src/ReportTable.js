@@ -16,7 +16,7 @@ const itemConfig = {
         marginHorizontal: 8,
         antsLineStyle: {
             color: '#222222',
-            lineWidth: 1,
+            lineWidth: 0.5,
             lineDashPattern: [4, 2]
         }
     }
