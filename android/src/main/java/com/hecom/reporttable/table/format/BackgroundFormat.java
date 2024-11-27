@@ -72,11 +72,12 @@ public class BackgroundFormat extends BaseCellBackgroundFormat<CellInfo> {
                     LinearGradient.TileMode.CLAMP);
             progressPaint.setShader(linearGradient);
             canvas.drawRoundRect(progress, radius, radius, progressPaint);
-            this.drawAntsLine(canvas, rect, style.getAntsLineStyle());
+            this.drawAntsLine(canvas, rect, style.getAntsLineStyle(), marginHor);
         }
     }
 
-    private void drawAntsLine(Canvas canvas, Rect rect, ProgressStyle.AntsLineStyle style) {
+    private void drawAntsLine(Canvas canvas, Rect rect, ProgressStyle.AntsLineStyle style,
+                              float marginHor) {
         if (style == null) {
             return;
         }
@@ -88,7 +89,7 @@ public class BackgroundFormat extends BaseCellBackgroundFormat<CellInfo> {
         antsLinePaint.setStyle(Paint.Style.STROKE);
         antsLinePaint.setPathEffect(new DashPathEffect(style.getDashPattern() == null ?
                 defStyle.getDashPattern() : style.getDashPattern(), 0));
-        float startX = rect.left + rect.width() * style.getRatio();
+        float startX = rect.left + marginHor + rect.width() * style.getRatio();
         canvas.drawLine(startX, rect.top, startX, rect.bottom, antsLinePaint);
 
     }

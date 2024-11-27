@@ -82,13 +82,14 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
                 antsStyle.setColor(Color.parseColor(antsLineStyle.getString("color")));
             }
             if (antsLineStyle.hasKey("lineWidth")) {
-                antsStyle.setWidth((float) antsLineStyle.getDouble("lineWidth"));
+                antsStyle.setWidth(DensityUtils.dp2px(view.getContext(),
+                        (float) antsLineStyle.getDouble("lineWidth")));
             }
             if (antsLineStyle.hasKey("lineDashPattern")) {
                 ReadableArray colors = antsLineStyle.getArray("lineDashPattern");
                 float[] pattern = new float[colors.size()];
                 for (int i = 0; i < colors.size(); i++) {
-                    pattern[i] = (float) colors.getDouble(i);
+                    pattern[i] = DensityUtils.dp2px(view.getContext(), (float) colors.getDouble(i));
                 }
                 antsStyle.setDashPattern(pattern);
             }
