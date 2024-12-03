@@ -89,7 +89,7 @@ public class BackgroundFormat extends BaseCellBackgroundFormat<CellInfo> {
         antsLinePaint.setStyle(Paint.Style.STROKE);
         antsLinePaint.setPathEffect(new DashPathEffect(style.getDashPattern() == null ?
                 defStyle.getDashPattern() : style.getDashPattern(), 0));
-        float startX = rect.left + marginHor + rect.width() * style.getRatio();
+        float startX = rect.left + marginHor + (rect.width() - 2 * marginHor) * style.getRatio();
         canvas.drawLine(startX, rect.top, startX, rect.bottom, antsLinePaint);
 
     }
