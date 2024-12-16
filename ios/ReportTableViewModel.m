@@ -446,7 +446,7 @@
         NSMutableArray *modelArr = [NSMutableArray arrayWithCapacity: rowCount];
         CGFloat columnHeigt = minHeight;
         NSMutableArray *mergeLen = [NSMutableArray arrayWithCapacity: rowCount]; // 对应index 会有多少个合并
-        NSInteger curKeyIndex = -1;
+        NSInteger curKeyIndex;
         NSInteger sameLenth = 1;
         for (int j = 0; j < dataSource[i].count; j ++) {
             NSDictionary *dir = dataSource[i][j];
@@ -454,17 +454,25 @@
             CGFloat maxWidth = columnWidthMap ? [[columnWidthMap objectForKey:@"maxWidth"] floatValue] : self.reportTableModel.maxWidth;
             ItemModel *model = [self generateItemModel:dir WithmaxWidth: maxWidth - 2];// 2分割线, 注意
             model.columIndex = j;
-            if (curKeyIndex != model.keyIndex || j == rowCount - 1) { // 已经到末尾了，处理了本次循环
-                for(int k = 0; k < sameLenth; k++) {
-                   [mergeLen addObject:@(sameLenth)];
-                }
-                if (curKeyIndex != model.keyIndex) {
-                    // 但是最后一个不是横向合并的，需要纠正为1
-                    mergeLen[mergeLen.count - 1] = @(1);
-                }
-                sameLenth = 1;
+            if (j == 0) {
+                curKeyIndex = model.keyIndex;
             } else {
-                sameLenth += 1;
+                if (curKeyIndex != model.keyIndex || j == rowCount - 1) {
+                    if (j == rowCount - 1 && curKeyIndex == model.keyIndex) {
+                        // 最后一个是合并的
+                        sameLenth += 1;
+                    }
+                    for(int k = 0; k < sameLenth; k++) {
+                       [mergeLen addObject:@(sameLenth)];
+                    }
+                    if (j == rowCount - 1 && curKeyIndex != model.keyIndex) {
+                        // 但是最后一个不是横向合并的
+                        [mergeLen addObject:@(1)];
+                    }
+                    sameLenth = 1;
+                } else {
+                    sameLenth += 1;
+                }
             }
             curKeyIndex = model.keyIndex;
             [modelArr addObject: model];
