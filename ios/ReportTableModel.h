@@ -8,6 +8,24 @@
 #import <Foundation/Foundation.h>
 #import <React/RCTComponent.h>
 
+@interface AntsLineStyle: NSObject
+@property (nonatomic, strong) NSArray *lineDashPattern;
+@property (nonatomic, assign) CGFloat lineWidth;
+@property (nonatomic, strong) UIColor *color;
+@property (nonatomic, assign) CGFloat lineRatio;
+@end
+
+@interface ProgressStyle: NSObject
+@property (nonatomic, strong) NSArray *colors;
+@property (nonatomic, assign) CGFloat height;
+@property (nonatomic, assign) CGFloat marginHorizontal;
+@property (nonatomic, assign) CGFloat startRatio;
+@property (nonatomic, assign) CGFloat endRatio;
+@property (nonatomic, assign) CGFloat cornerRadius;
+@property (nonatomic, strong) AntsLineStyle *antsLineStyle;
+@end
+
+
 @interface IconStyle: NSObject
 @property (nonatomic, strong) id path;
 @property (nonatomic, assign) CGSize size;
@@ -81,6 +99,7 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, strong) IconStyle *iconStyle;
 @property (nonatomic, strong) ItemModel *itemConfig;
 @property (nonatomic, strong) ExtraText *extraText;
+@property (nonatomic, strong) ProgressStyle *progressStyle;
 @property (nonatomic, assign) NSInteger columIndex;
 @end
 
@@ -116,6 +135,7 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, strong) ItemModel *itemConfig;
 @property (nonatomic, strong) NSArray *ignoreLocks;
 @property (nonatomic, strong) NSDictionary *replenishColumnsWidthConfig;
+@property (nonatomic, strong) ProgressStyle *progressStyle;
 @property (nonatomic, strong) NSDictionary *columnsWidthMap;
 /*
 *  是可排列的，仅支持不包含合并单元格的表

@@ -84,6 +84,7 @@ export default class ReportTableWrapper extends React.Component {
                     ignoreLocks={this.props.ignoreLocks}
                     doubleClickZoom={this.props.doubleClickZoom}
                     replenishColumnsWidthConfig={this.props.replenishColumnsWidthConfig}
+                    progressStyle={this.props.progressStyle}
                     lineColor={this.props.lineColor}
                     itemConfig={this.props.itemConfig}
                     onClickEvent={({nativeEvent: data}) => {

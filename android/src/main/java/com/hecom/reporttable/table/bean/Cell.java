@@ -25,6 +25,7 @@ public class Cell {
     private int textColor = TableConfig.INVALID_COLOR;
     private Paint.Align textAlignment;
     private Icon icon;
+    private ProgressStyle progressStyle;
     private boolean isOverstriking = false;
 
     private boolean isForbidden = false; //斜线
@@ -79,7 +80,16 @@ public class Cell {
         this.textPaddingLeft = newCell.getTextPaddingLeft();
         this.textPaddingRight = newCell.getTextPaddingRight();
         this.textPaddingHorizontal = newCell.getTextPaddingHorizontal();
+
         cache = null;
+    }
+
+    public ProgressStyle getProgressStyle() {
+        return progressStyle;
+    }
+
+    public void setProgressStyle(ProgressStyle progressStyle) {
+        this.progressStyle = progressStyle;
     }
 
     public int getTextPaddingRight() {
