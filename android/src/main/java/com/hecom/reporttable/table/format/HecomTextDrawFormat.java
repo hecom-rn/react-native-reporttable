@@ -12,9 +12,11 @@ import android.text.Spanned;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.LineHeightSpan;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
+import android.util.Log;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
@@ -99,8 +101,8 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
                 break;
         }
 
-        StaticLayout layout = new StaticLayout(result.getText(), mTextPaint, rect.width(),
-                align, 1.0f, 0.0f, false);
+        StaticLayout layout = new StaticLayout(result.getText(), mTextPaint, rect.width(), align,
+                1.0f, 0.0f, false);
 
         // 计算垂直居中的偏移量
         int dy = (rect.height() - layout.getHeight()) / 2;
@@ -147,40 +149,46 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
     private CellCache measureText(Column<Cell> column, int position, Paint paint,
                                   TableConfig config) {
         Cell cell = column.getDatas().get(position);
-        float maxWidth =
-                this.table.getMaxColumnWidth(column) - config.getHorizontalPadding() * 2 - cellDrawFormat.getImageWidth();
-        CharSequence charSequence = getSpan(cell, config, paint);
+        float maxWidth = cellDrawFormat.getMaxTextWidth(column, position, config);
+        CharSequence charSequence = getSpan(cell, config, paint, maxWidth);
         mTextPaint.set(paint);
         StaticLayout layout = new StaticLayout(charSequence, mTextPaint, (int) maxWidth,
                 StaticLayout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
         float maxLineWidth = 0;
-        for (int i = 0; i < layout.getLineCount(); i++) {
-            if (maxLineWidth == maxWidth) {
-                break;
+        if (this.table.hasResizeWidth(column)) {
+            maxLineWidth = maxWidth;
+        } else {
+            for (int i = 0; i < layout.getLineCount(); i++) {
+                if (maxLineWidth == maxWidth) {
+                    break;
+                }
+                maxLineWidth = Math.max(maxLineWidth, layout.getLineWidth(i));
             }
-            maxLineWidth = Math.max(maxLineWidth, layout.getLineWidth(i));
+            maxLineWidth += this.table.getContext().getResources()
+                    .getDisplayMetrics().density * 2;
         }
         // 文字最大宽度增加一点冗余，防止缩放过程中文字意外换行
-        return new CellCache(charSequence, maxLineWidth + this.table.getContext().getResources()
-                .getDisplayMetrics().density * 2, layout.getHeight());
+        return new CellCache(charSequence, maxLineWidth, layout.getHeight());
     }
 
-    private SpannableStringBuilder getSpan(Cell cell, TableConfig config, Paint paint) {
+    private SpannableStringBuilder getSpan(Cell cell, TableConfig config, Paint paint, float maxWidth) {
         Context context = this.table.getContext();
         SpannableStringBuilder ssb = new SpannableStringBuilder();
         if (cell.getRichText() != null) {
-            for (Cell.RichText richText : cell.getRichText()) {
+            for (int i = 0; i < cell.getRichText().size(); ++i) {
+                Cell.RichText richText = cell.getRichText().get(i);
                 ssb.append(richText.getText());
                 if (richText.getStyle() != null) {
                     List<Object> spanList = getSpan(cell, config, context, richText.getStyle(),
-                            paint);
-                    for (int i = 0; i < spanList.size(); i++) {
-                        ssb.setSpan(spanList.get(i),
-                                ssb.length() - richText.getText()
+                            paint, maxWidth);
+                    for (int j = 0; j < spanList.size(); j++) {
+                        ssb.setSpan(spanList.get(j), ssb.length() - richText.getText()
                                         .length(), ssb.length(),
                                 SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
-
+                }
+                if (i < cell.getRichText().size()) {
+                    ssb.append(' ');
                 }
             }
         } else {
@@ -206,7 +214,7 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
 
     @NonNull
     private static List<Object> getSpan(Cell cell, TableConfig config, Context context,
-                                        Cell.RichTextStyle style, Paint paint) {
+                                        Cell.RichTextStyle style, Paint paint, float maxWidth) {
         List<Object> result = new ArrayList<>();
         if (style.getTextColor() != null) {
             result.add(new ForegroundColorSpan(Color.parseColor(style.getTextColor())));
@@ -220,8 +228,10 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         if (style.getStrikethrough() != null && style.getStrikethrough()) {
             result.add(new StrikethroughSpan());
         }
-        if (style.getBorderColor() != null && style.getBorderWidth() != -1) {
-            result.add(new RichTextSpan(context, cell, style, config));
+        if ((style.getBorderColor() != null && style.getBorderWidth() != -1) || style.getBackgroundColor() != null) {
+            RichTextSpan richTextSpan = new RichTextSpan(context, cell, style, config, maxWidth);
+            result.add(richTextSpan);
+            result.add(new LineHeightSpan.Standard(richTextSpan.getBackHeight()));
         }
         return result;
     }

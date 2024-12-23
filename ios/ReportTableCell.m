@@ -65,6 +65,8 @@
 @interface ReportTableCell()
 @property (strong, atomic) LineView *lineView;
 @property (strong, atomic) BoxView *boxView;
+@property (strong, atomic) CAGradientLayer *gradientLayer;
+@property (strong, atomic) CAShapeLayer *shapeLayer;
 @end
 
 @implementation ReportTableCell
@@ -73,10 +75,53 @@
     if (!_label) {
         _label = [UILabel new];
         _label.numberOfLines = 0;
+        _label.layer.zPosition = 1;
     }
     return _label;
 }
 
+- (void)setupProgressView:(ProgressStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height {
+    CAGradientLayer *gradientLayer = [CAGradientLayer layer];
+    CGFloat showWidth = width - 2 * style.marginHorizontal;
+    CGFloat lineWidth = style.antsLineStyle ? style.antsLineStyle.lineWidth : 0;
+    BOOL isLeft = style.antsLineStyle ? style.antsLineStyle.lineRatio >= style.endRatio : false;
+    CGRect frame = CGRectMake(style.marginHorizontal + showWidth * style.startRatio + (isLeft ? -lineWidth / 2 : lineWidth / 2),
+                              (height - style.height) / 2,
+                              showWidth * (style.endRatio - style.startRatio) + lineWidth / 2,
+                              style.height);
+    gradientLayer.frame = frame;
+    gradientLayer.cornerRadius = style.cornerRadius;
+    gradientLayer.colors = style.colors;
+    gradientLayer.startPoint = CGPointMake(0, 0.5);
+    gradientLayer.endPoint = CGPointMake(1, 0.5);
+    self.gradientLayer = gradientLayer;
+    [self.contentView.layer insertSublayer:gradientLayer atIndex: self.contentView.layer.sublayers.count];
+    
+    if (style.antsLineStyle) {
+        CAShapeLayer *shapeLayer = [CAShapeLayer layer];
+        shapeLayer.strokeColor = style.antsLineStyle.color.CGColor;
+        shapeLayer.lineWidth = style.antsLineStyle.lineWidth;
+        shapeLayer.lineDashPattern = style.antsLineStyle.lineDashPattern;
+        UIBezierPath *path = [UIBezierPath bezierPath];
+        CGFloat x = style.marginHorizontal + showWidth * style.antsLineStyle.lineRatio;
+        [path moveToPoint:CGPointMake(x, 0)];
+        [path addLineToPoint:CGPointMake(x, height)];
+        shapeLayer.path = path.CGPath;
+        self.shapeLayer = shapeLayer;
+        [self.contentView.layer insertSublayer:shapeLayer atIndex: self.contentView.layer.sublayers.count];
+    }
+}
+
+- (void)hiddenProgressView {
+    if (_gradientLayer != nil) {
+        [_gradientLayer removeFromSuperlayer];
+        _gradientLayer = nil;
+    }
+    if (_shapeLayer != nil) {
+        [_shapeLayer removeFromSuperlayer];
+        _shapeLayer = nil;
+    }
+}
 
 - (void)textStyle:(NSInteger)paddingLeft WithPaddingRight: (NSInteger)paddingRight {
     [self.label mas_remakeConstraints:^(MASConstraintMaker *make) {

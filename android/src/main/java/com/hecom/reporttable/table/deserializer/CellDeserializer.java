@@ -14,6 +14,7 @@ import android.graphics.Paint;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.bean.Cell;
 import com.hecom.reporttable.table.bean.ExtraText;
+import com.hecom.reporttable.table.bean.ProgressStyle;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -88,9 +89,19 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
         if (json.has("textPaddingLeft")) {
             cell.setTextPaddingLeft(DensityUtils.dp2px(this.context, json.get("textPaddingLeft").getAsInt()));
         }
+        if (json.has("textPaddingRight")) {
+            cell.setTextPaddingRight(DensityUtils.dp2px(this.context, json.get("textPaddingRight").getAsInt()));
+        }
+        if (json.has("textPaddingHorizontal")) {
+            cell.setTextPaddingHorizontal(DensityUtils.dp2px(this.context, json.get("textPaddingHorizontal").getAsInt()));
+        }
         if (json.has("extraText")) {
             cell.setExtraText(context.<ExtraText>deserialize(json.get("extraText"),
                     ExtraText.class));
+        }
+        if (json.has("progressStyle")) {
+            cell.setProgressStyle(context.<ProgressStyle>deserialize(json.get("progressStyle"),
+                    ProgressStyle.class));
         }
         return cell;
     }

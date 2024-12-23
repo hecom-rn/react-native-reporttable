@@ -20,9 +20,8 @@
    
    CGSize textSize = CTFramesetterSuggestFrameSizeWithConstraints(framesetter, CFRangeMake(0, [attributedString length]), NULL, CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX), NULL);
     
-    
-    CGFloat paddingHor = model.font.pointSize * 0.4;
-    CGFloat paddingVer = model.font.pointSize * 0.25;
+   CGFloat paddingHor = model.paddingHor;
+   CGFloat paddingVer = model.paddingVer;
    
    CGSize imageSize = CGSizeMake(textSize.width + paddingHor * 2, textSize.height + paddingVer * 2);
    
@@ -36,9 +35,17 @@
    // Flip the coordinate system
    CGContextTranslateCTM(context, 0, imageSize.height);
    CGContextScaleCTM(context, 1.0, -1.0);
-   
+
    CGRect textRect = CGRectMake(paddingHor, paddingVer, imageSize.width - paddingHor * 2, imageSize.height - paddingVer * 2);
    
+    if (model.backgroundColor) {
+       CGColorRef fillColor = model.backgroundColor.CGColor;
+       //使用CGColor设置图形上下文中的当前填充颜色
+       CGContextSetFillColorWithColor(context, fillColor);
+        //使用当前图形状态中的填充颜色绘制所提供矩形中包含的区域。
+        CGContextFillRect(context, textRect);
+    }
+    
    [attributedString addAttribute:NSForegroundColorAttributeName value:model.textColor range:NSMakeRange(0, attributedString.length)];
    
    CGPathRef path = CGPathCreateWithRect(textRect, NULL);

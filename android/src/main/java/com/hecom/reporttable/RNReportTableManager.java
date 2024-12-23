@@ -17,11 +17,14 @@ import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.CellConfig;
+import com.hecom.reporttable.table.bean.ProgressStyle;
+import com.hecom.reporttable.table.bean.ReplenishColumnsWidthConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.format.HecomStyle;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,6 +45,83 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         GsonHelper.initGson(reactContext);
         mReactContext = reactContext;
         return new HecomTable(reactContext);
+    }
+
+    private void setProgressStyle(HecomTable view, ReadableMap config) {
+        ProgressStyle style = new ProgressStyle();
+        if (config.hasKey("colors")) {
+            ReadableArray colors = config.getArray("colors");
+            int[] colorArr = new int[colors.size()];
+            for (int i = 0; i < colors.size(); i++) {
+                colorArr[i] = Color.parseColor(colors.getString(i));
+            }
+            style.setColors(colorArr);
+        }
+        if (config.hasKey("height")) {
+            style.setHeight(DensityUtils.dp2px(view.getContext(), (float) config.getDouble(
+                    "height")));
+        }
+        if (config.hasKey("cornerRadius")) {
+            style.setRadius(DensityUtils.dp2px(view.getContext(), (float) config.getDouble(
+                    "cornerRadius")));
+        }
+        if (config.hasKey("marginHorizontal")) {
+            style.setMarginHorizontal(DensityUtils.dp2px(view.getContext(),
+                    (float) config.getDouble("marginHorizontal")));
+        }
+        if (config.hasKey("startRatio")) {
+            style.setStartRatio((float) config.getDouble("startRatio"));
+        }
+        if (config.hasKey("endRatio")) {
+            style.setEndRatio((float) config.getDouble("endRatio"));
+        }
+        if (config.hasKey("antsLineStyle")) {
+            ReadableMap antsLineStyle = config.getMap("antsLineStyle");
+            ProgressStyle.AntsLineStyle antsStyle = new ProgressStyle.AntsLineStyle();
+            if (antsLineStyle.hasKey("color")) {
+                antsStyle.setColor(Color.parseColor(antsLineStyle.getString("color")));
+            }
+            if (antsLineStyle.hasKey("lineWidth")) {
+                antsStyle.setWidth(DensityUtils.dp2px(view.getContext(),
+                        (float) antsLineStyle.getDouble("lineWidth")));
+            }
+            if (antsLineStyle.hasKey("lineDashPattern")) {
+                ReadableArray colors = antsLineStyle.getArray("lineDashPattern");
+                float[] pattern = new float[colors.size()];
+                for (int i = 0; i < colors.size(); i++) {
+                    pattern[i] = DensityUtils.dp2px(view.getContext(), (float) colors.getDouble(i));
+                }
+                antsStyle.setDashPattern(pattern);
+            }
+            style.setAntsLineStyle(antsStyle);
+        }
+        view.setProgressStyle(style);
+    }
+
+    @ReactProp(name = "replenishColumnsWidthConfig")
+    public void setReplenishColumnsWidthConfig(HecomTable view, ReadableMap config) {
+        if (config.hasKey("showNumber")) {
+            ReplenishColumnsWidthConfig replenishConfig = new ReplenishColumnsWidthConfig();
+            replenishConfig.setShowNumber(config.getInt("showNumber"));
+            if (config.hasKey("ignoreColumns")) {
+                ReadableArray ignoreColumns = config.getArray("ignoreColumns");
+                Set<Integer> ignore = new HashSet<>(ignoreColumns.size());
+                for (int i = 0; i < ignoreColumns.size(); i++) {
+                    ignore.add(ignoreColumns.getInt(i));
+                }
+                replenishConfig.setIgnoreColumns(ignore);
+            }
+            view.setReplenishConfig(replenishConfig);
+        }
+    }
+
+    @ReactProp(name = "ignoreLocks")
+    public void setIgnoreLocks(HecomTable view, ReadableArray ignoreLocks) {
+        Set<Integer> ignore = new HashSet<>(ignoreLocks.size());
+        for (int i = 0; i < ignoreLocks.size(); i++) {
+            ignore.add(ignoreLocks.getInt(i));
+        }
+        view.getLockHelper().setIgnores(ignore);
     }
 
     @ReactProp(name = "disableZoom")
@@ -120,6 +200,9 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
             style.setOverstriking(config.getBoolean("isOverstriking"));
         }
         view.setHecomStyle(style);
+        if (config.hasKey("progressStyle")) {
+            setProgressStyle(view, config.getMap("progressStyle"));
+        }
     }
 
 
@@ -197,7 +280,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
     private void processSpliceData(HecomTable root, ReadableArray args) {
         ReadableArray array = args.getArray(0);
         HecomTable.SpliceItem[] spliceItems = new HecomTable.SpliceItem[array.size()];
-        for(int i = 0; i < array.size(); ++i) {
+        for (int i = 0; i < array.size(); ++i) {
             ReadableMap map = array.getMap(i);
             String data = map.getString("data");
             int y = map.getInt("y");

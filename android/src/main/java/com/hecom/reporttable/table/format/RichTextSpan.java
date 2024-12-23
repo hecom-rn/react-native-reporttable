@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.text.style.ReplacementSpan;
+import android.util.Log;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.utils.DensityUtils;
@@ -27,11 +28,14 @@ public class RichTextSpan extends ReplacementSpan {
 
     TableConfig config;
 
-    public RichTextSpan(Context context, Cell cell, Cell.RichTextStyle style, TableConfig config) {
+    float maxWidth;
+
+    public RichTextSpan(Context context, Cell cell, Cell.RichTextStyle style, TableConfig config, float maxWidth) {
         this.style = style;
         this.context = context;
         this.cell = cell;
         this.config = config;
+        this.maxWidth = maxWidth;
     }
 
     @Override
@@ -39,7 +43,11 @@ public class RichTextSpan extends ReplacementSpan {
                        Paint.FontMetricsInt fm) {
         float[] padding = getPadding(paint, false);
         float[] margin = getMargin();
-        return Math.round(paint.measureText(text, start, end) + padding[0] + padding[2] + margin[0] + margin[2]);
+        return this.getTextWidth(paint, text, start, end) + Math.round(padding[0] + padding[2] + margin[0] + margin[2]);
+    }
+
+    public int getTextWidth(Paint paint, CharSequence text, int start, int end) {
+        return Math.min((int)maxWidth, Math.round(paint.measureText(text, start, end)));
     }
 
     @Override
@@ -53,14 +61,16 @@ public class RichTextSpan extends ReplacementSpan {
         boolean isBold = paint.isFakeBoldText();
         Paint.Align originAlign = paint.getTextAlign();
 
-        float textWidth = paint.measureText(text, start, end);
+        float textWidth = this.getTextWidth(paint, text, start, end);
         float[] padding = getPadding(paint, true);
         float[] margin = getMargin();
         RectF rect = getBgRect(x, y, paint, textWidth, padding, margin);
-        // 绘制文字
-        drawText(canvas, text, start, end, rect, paint);
+        // 绘制背景
+        drawBackGround(canvas, rect, paint);
         // 绘制边框
         drawBorder(canvas, rect, paint);
+        // 绘制文字
+        drawText(canvas, text, start, end, rect, paint);
 
         paint.setColor(originalColor);
         paint.setStyle(originalStyle);
@@ -91,6 +101,15 @@ public class RichTextSpan extends ReplacementSpan {
         return ZERO;
     }
 
+    public int getBackHeight() {
+        float fontSize = 10;
+        if (this.style.getFontSize() != -1) {
+            fontSize =
+                    DensityUtils.dp2px(this.context, this.style.getFontSize()) *
+                            config.getZoom();
+        }
+        return (int)(fontSize * 2);
+    }
 
     private RectF getBgRect(float x, float y, Paint paint, float textWidth, float[] padding,
                             float[] margin) {
@@ -101,6 +120,20 @@ public class RichTextSpan extends ReplacementSpan {
         float bgEndY = fontMetrics.descent + y + padding[3];
 
         return new RectF(bgStartX, bgStartY, bgEndX, bgEndY);
+    }
+
+    private void drawBackGround(Canvas canvas, RectF rect, Paint paint) {
+        if (this.style.getBackgroundColor() != null) {
+            try {
+                paint.setColor(Color.parseColor(this.style.getBackgroundColor()));
+            }catch (Exception err) {
+                Log.e("RichTextSpan", err.toString());
+            }
+            paint.setStrokeWidth(0);
+            paint.setStyle(Paint.Style.FILL);
+            float cornerRadius = DensityUtils.dp2px(this.context, this.style.getBorderRadius());
+            canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
+        }
     }
 
     private void drawBorder(Canvas canvas, RectF rect, Paint paint) {
@@ -117,7 +150,24 @@ public class RichTextSpan extends ReplacementSpan {
                           Paint paint) {
         paint.setStyle(Paint.Style.FILL);
         paint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(text, start, end, rect.centerX(),
-                rect.centerY() + paint.getFontMetrics().bottom, paint);
+        try {
+            String textColor = this.style.getTextColor();
+            if (textColor != null) {
+                paint.setColor(Color.parseColor(textColor));
+            }
+        } catch (Exception err) {
+            Log.e("RichTextSpan", err.toString());
+        }
+        if(this.getTextWidth(paint, text, start, end) < maxWidth) {
+            canvas.drawText(text, start, end, rect.centerX(),
+                    rect.centerY() + paint.getFontMetrics().bottom, paint);
+        } else {
+            float availableWidth = maxWidth - paint.measureText("...");
+            CharSequence drawText = text.subSequence(start, end);
+            String ellipsisText = drawText.subSequence(0, paint.breakText(drawText.toString(), true, availableWidth, null)) + "...";
+
+            canvas.drawText(ellipsisText, rect.centerX(),
+                    rect.centerY() + paint.getFontMetrics().bottom, paint);
+        }
     }
 }

@@ -1,11 +1,16 @@
 package com.hecom.reporttable.table.bean;
 
+import android.content.Context;
 import android.graphics.Paint;
 
 import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 /**
  * 单元格数据
@@ -20,6 +25,7 @@ public class Cell {
     private int textColor = TableConfig.INVALID_COLOR;
     private Paint.Align textAlignment;
     private Icon icon;
+    private ProgressStyle progressStyle;
     private boolean isOverstriking = false;
 
     private boolean isForbidden = false; //斜线
@@ -31,7 +37,9 @@ public class Cell {
 
     private boolean strikethrough = false; //删除线
 
-    private int textPaddingLeft = -1; // 左侧间距
+    private int textPaddingLeft = -1;// 左侧间距
+    private int textPaddingRight = -1;
+    private int textPaddingHorizontal = -1;
 
     private ExtraText extraText; // 后缀标签
 
@@ -54,6 +62,7 @@ public class Cell {
             return;
         }
         // keyIndex涉及合并单元格，不能合并
+        this.keyIndex = newCell.getKeyIndex();
         this.title = newCell.getTitle();
         this.richText = newCell.getRichText();
         this.backgroundColor = newCell.getBackgroundColor();
@@ -69,7 +78,34 @@ public class Cell {
         this.strikethrough = newCell.isStrikethrough();
         this.extraText = newCell.getExtraText();
         this.textPaddingLeft = newCell.getTextPaddingLeft();
+        this.textPaddingRight = newCell.getTextPaddingRight();
+        this.textPaddingHorizontal = newCell.getTextPaddingHorizontal();
+
         cache = null;
+    }
+
+    public ProgressStyle getProgressStyle() {
+        return progressStyle;
+    }
+
+    public void setProgressStyle(ProgressStyle progressStyle) {
+        this.progressStyle = progressStyle;
+    }
+
+    public int getTextPaddingRight() {
+        return textPaddingRight;
+    }
+
+    public void setTextPaddingRight(int textPaddingRight) {
+        this.textPaddingRight = textPaddingRight;
+    }
+
+    public int getTextPaddingHorizontal() {
+        return textPaddingHorizontal;
+    }
+
+    public void setTextPaddingHorizontal(int textPaddingHorizontal) {
+        this.textPaddingHorizontal = textPaddingHorizontal;
     }
 
     public int getTextPaddingLeft() {
@@ -489,5 +525,24 @@ public class Cell {
         public void set__packager_asset(boolean __packager_asset) {
             this.__packager_asset = __packager_asset;
         }
+
+        private static Map<String, Integer> mResourceDrawableIdMap = new HashMap<>();
+
+        public static int getResourceDrawableId(Context context, @Nullable String name) {
+            if (name == null || name.isEmpty()) {
+                return 0;
+            }
+            name = name.toLowerCase().replace("-", "_");
+            if (mResourceDrawableIdMap.containsKey(name)) {
+                return mResourceDrawableIdMap.get(name);
+            }
+            int id = context.getResources().getIdentifier(
+                    name,
+                    "drawable",
+                    context.getPackageName());
+            mResourceDrawableIdMap.put(name, id);
+            return id;
+        }
+
     }
 }

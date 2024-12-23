@@ -7,9 +7,11 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.LruCache;
 
 import com.hecom.reporttable.R;
+import com.hecom.reporttable.BuildConfig;
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
 import com.hecom.reporttable.form.data.column.Column;
@@ -47,7 +49,8 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
     private final Cell.Icon lockIcon = new Cell.Icon();
 
-    public LruCache<String,Bitmap> bitmapLruCache;
+    public LruCache<String, Bitmap> bitmapLruCache;
+
     public CellDrawFormat(final HecomTable table, Locker locker) {
         super(1, 1);
         this.table = table;
@@ -61,11 +64,11 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         lockIcon.setWidth(DensityUtils.dp2px(getContext(), 15));
         lockIcon.setHeight(DensityUtils.dp2px(getContext(), 15));
 
-        int maxMemory = (int)(Runtime.getRuntime().maxMemory() / 1024);// kB
+        int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);// kB
         int cacheSize = maxMemory / 16;
-        bitmapLruCache = new LruCache<String,Bitmap>(cacheSize){
+        bitmapLruCache = new LruCache<String, Bitmap>(cacheSize) {
             @Override
-            protected int sizeOf(String key,Bitmap bitmap){
+            protected int sizeOf(String key, Bitmap bitmap) {
                 return bitmap.getRowBytes() * bitmap.getHeight() / 1024;// KB
             }
         };
@@ -77,35 +80,45 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
     }
 
     @Override
-    protected Bitmap getBitmap(Cell cell, String value, int position) {
-        String sUri = this.getResourceUri(cell,value,position);
+    protected Bitmap getBitmap(final Cell cell, String value, int position) {
+        final String sUri = this.getResourceUri(cell, value, position);
         Bitmap bitmap = bitmapLruCache.get(sUri);
-        if(bitmap == null) {
+        if (bitmap == null) {
             if (String.valueOf(lockIcon.getResourceId()).equals(sUri)) {
-                bitmap = BitmapFactory.decodeResource(getContext().getResources(),Integer.valueOf(sUri));
-                if(bitmap !=null) {
+                bitmap = BitmapFactory.decodeResource(getContext().getResources(),
+                        Integer.valueOf(sUri));
+                if (bitmap != null) {
                     bitmapLruCache.put(sUri, bitmap);
                 }
             } else {
                 int threadCount = 1;
-                CountDownLatch latch = new CountDownLatch(threadCount);
+                final CountDownLatch latch = new CountDownLatch(threadCount);
                 ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-                    executor.execute(new Runnable() {
-                        public void run() {
+                executor.execute(new Runnable() {
+                    public void run() {
+                        Log.e("RrportTableCell", "BuildConfig.DEBUG = " + BuildConfig.DEBUG);
+                        Bitmap innerBitmap = null;
+                        if (BuildConfig.DEBUG || sUri.startsWith("file:")) {
                             InputStream in = null;
                             try {
                                 in = new URL(sUri).openStream();
-                                Bitmap innerBitmap = BitmapFactory.decodeStream(in);
-                                innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon().getWidth(), cell.getIcon().getHeight(), true);
-                                if(innerBitmap !=null) {
-                                    bitmapLruCache.put(sUri, innerBitmap);
-                                }
+                                innerBitmap = BitmapFactory.decodeStream(in);
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            latch.countDown();
+                        } else {
+                            innerBitmap =
+                                    BitmapFactory.decodeResource(getContext().getResources(),
+                                            Cell.Path.getResourceDrawableId(getContext(), sUri));
                         }
-                    });
+                        if (innerBitmap != null) {
+                            innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon()
+                                    .getWidth(), cell.getIcon().getHeight(), true);
+                            bitmapLruCache.put(sUri, innerBitmap);
+                        }
+                        latch.countDown();
+                    }
+                });
 
                 // 在这里，主线程等待所有线程完成
                 try {
@@ -139,19 +152,36 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         return icon.getResourceId();
     }
 
+    private float getIconWidth(Column<Cell> column, int position) {
+        Cell.Icon icon = getIcon(column, position);
+        if (icon == null) {
+            return 0;
+        }
+        return icon.getWidth() + drawPadding;
+    }
+
+    float getMaxTextWidth(Column<Cell> column, int position, TableConfig config) {
+        Cell cell = column.getDatas().get(position);
+        float otherWidth =
+                this.getPaddingLeft(cell, config) + this.getPaddingRight(cell, config) + this.getIconWidth(column, position);
+        return Math.max(0, this.table.getMaxColumnWidth(column) - otherWidth);
+    }
 
     @Override
     public int measureWidth(Column<Cell> column, int position, TableConfig config) {
         Cell.Icon icon = getIcon(column, position);
+        Cell cell = column.getDatas().get(position);
         int textWidth = textDrawFormat.measureWidth(column, position, config);
-        int textPaddingLeft = column.getDatas().get(position).getTextPaddingLeft();
+        int paddingHorizontal = this.getPaddingLeft(cell, config) + this.getPaddingRight(cell,
+                // 由于TableMeasure中计算宽度时会默认加上全局的水平padding，所以这里需要减去
+                config) - config.getHorizontalPadding() * 2;
         if (icon == null) {
-            return textWidth + Math.max(textPaddingLeft, 0);
+            return textWidth + paddingHorizontal;
         }
         if (icon.getDirection() == Cell.Icon.LEFT || icon.getDirection() == Cell.Icon.RIGHT) {
-            return icon.getWidth() + textWidth + drawPadding + Math.max(textPaddingLeft, 0);
+            return icon.getWidth() + textWidth + drawPadding + paddingHorizontal;
         } else {
-            return Math.max(icon.getWidth(), textWidth) + Math.max(textPaddingLeft, 0);
+            return Math.max(icon.getWidth(), textWidth) + paddingHorizontal;
         }
     }
 
@@ -174,10 +204,10 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
         Cell.Icon icon = getIcon(cellInfo.column, cellInfo.row);
 
-        rect.left += (config.getLeftPadding(cellInfo)) * config.getZoom();
-        rect.right -= config.getRightPadding() * config.getZoom();
-        rect.top += config.getVerticalPadding() * config.getZoom();
-        rect.bottom -= config.getVerticalPadding() * config.getZoom();
+        rect.left += (int) (this.getPaddingLeft(cellInfo.data, config) * config.getZoom());
+        rect.right -= (int) (this.getPaddingRight(cellInfo.data, config) * config.getZoom());
+        rect.top += (int) (this.getPaddingTop(cellInfo.data, config) * config.getZoom());
+        rect.bottom -= (int) (this.getPaddingBottom(cellInfo.data, config) * config.getZoom());
 
         if (icon == null) {
             textDrawFormat.draw(c, rect, cellInfo, config);
@@ -282,5 +312,33 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
         } else {
             return column.getDatas().get(position).getIcon();
         }
+    }
+
+    private int getPaddingLeft(Cell cell, TableConfig config) {
+        if (cell.getTextPaddingLeft() >= 0) {
+            return cell.getTextPaddingLeft();
+        }
+        if (cell.getTextPaddingHorizontal() >= 0) {
+            return cell.getTextPaddingHorizontal();
+        }
+        return config.getHorizontalPadding();
+    }
+
+    private int getPaddingRight(Cell cell, TableConfig config) {
+        if (cell.getTextPaddingRight() >= 0) {
+            return cell.getTextPaddingRight();
+        }
+        if (cell.getTextPaddingHorizontal() >= 0) {
+            return cell.getTextPaddingHorizontal();
+        }
+        return config.getHorizontalPadding();
+    }
+
+    private int getPaddingTop(Cell cell, TableConfig config) {
+        return config.getVerticalPadding();
+    }
+
+    private int getPaddingBottom(Cell cell, TableConfig config) {
+        return config.getVerticalPadding();
     }
 }

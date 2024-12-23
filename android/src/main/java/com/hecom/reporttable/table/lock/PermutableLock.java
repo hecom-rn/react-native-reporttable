@@ -13,7 +13,6 @@ import java.util.List;
  */
 public class PermutableLock extends Locker {
 
-
     List<Integer> fixedColumn = new ArrayList<>();
 
     public PermutableLock(HecomTable table) {

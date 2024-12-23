@@ -1,6 +1,11 @@
 package com.hecom.reporttable.table.lock;
 
+import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.table.HecomTable;
+import com.hecom.reporttable.table.HecomTableData;
+import com.hecom.reporttable.table.bean.Cell;
+
+import java.util.Set;
 
 /**
  * Created by kevin.bai on 2024/1/7.
@@ -32,6 +37,12 @@ public class LockHelper extends Locker {
     }
 
     @Override
+    public void setIgnores(Set<Integer> ignores) {
+        super.setIgnores(ignores);
+        locker.setIgnores(ignores);
+    }
+
+    @Override
     protected void updateLock(int column) {
         if (locker != null) {
             locker.updateLock(column);
@@ -60,6 +71,25 @@ public class LockHelper extends Locker {
     public void setCount(int count) {
         if (locker instanceof CommonLock) {
             ((CommonLock) locker).frozenCount = count;
+        }
+    }
+
+    public void reLock(HecomTableData newData) {
+        final HecomTableData oldData = (HecomTableData) this.table.getTableData();
+        int arrayColumnSize = newData.getColumns().size();
+        for (int i = 0; i < getFrozenColumns() && i < arrayColumnSize; i++) {
+            newData.getColumns().get(i).setFixed(true);
+        }
+        if (oldData != null) {
+            for (int i = 0; i < arrayColumnSize; i++) {
+                if (oldData.getArrayColumns() != null &&
+                        oldData.getArrayColumns().size() > i) {
+                    Column<Cell> column = oldData.getArrayColumns().get(i);
+                    if (column.isFixed()) {
+                        newData.getArrayColumns().get(i).setFixed(true);
+                    }
+                }
+            }
         }
     }
 }

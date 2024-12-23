@@ -46,6 +46,7 @@ declare module "@hecom/react-native-report-table" {
          *  首行前几列支持冻结  第二优先  使用前几列均显示带🔓的icon
          *  使用frozenColumns比frozenCount小时，可使🔒
          *  功能：锁定后冻结会点击列的之前所有的列
+         *  ignoreLocks中包含frozenColumns时，则frozenColumns生效，不会被取消冻结
         */
         frozenCount?: number;
 
@@ -55,7 +56,20 @@ declare module "@hecom/react-native-report-table" {
 
         itemConfig?: ItemConfig; // 优先级比 DataSource中的属性低
 
+        ignoreLocks?: number[]; // 强制不显示 锁定icon，从1开始 . 可在frozenCount|permutable中不显示对应的🔒。 frozenColumns 生效
+
         columnsWidthMap?: ColumnsWidthMap; // index 为指定index的列宽， 未设置则还使用原minWidth， maxWidth
+         /*
+            完整显示的列， 在一屏幕中再次调整宽度，使其完全显示出几列。 
+            屏幕旋转时，会再次生效.
+            未超过最大列宽时，按最大列宽算。
+            每格保留最少 或20 + padding的宽,ignoreColumns忽略改规则
+            每列的minWidth * showNumber > 显示宽度时，该配置不生效
+        */ 
+        replenishColumnsWidthConfig?: {
+            showNumber?: number; // 截止到第几列，从1开始，包含本身列
+            ignoreColumns?: number[]; // 忽略的列
+        };
     }
 
     type Color = string ; //16进制色值，需6位   // AARRGGBB | RRGGBB;
@@ -69,6 +83,16 @@ declare module "@hecom/react-native-report-table" {
         textPaddingHorizontal?: number; // default 12
         classificationLineColor?: Color; // default #9cb3c8
         isOverstriking?: boolean; // 文本是否加粗。 default false
+        progressStyle: {
+            height: number; // 上下单元格内居中显示
+            cornerRadius: number; // 圆角
+            marginHorizontal: number; // 左右留白
+            antsLineStyle?: {
+                color: Color;
+                lineWidth: number;
+                lineDashPattern: [number, number]; // 虚线样式，[实线，空白]
+            }
+        }; // 默认的的样式， 优先级比DataSource中的低
     }
 
     enum ClassificationLinePosition {
@@ -101,9 +125,18 @@ declare module "@hecom/react-native-report-table" {
     }
 
     interface ItemTextStyle {
-        fontSize?: number;  // default 14
+        fontSize?: number;  // 默认 14
         textColor?: Color;
-        isOverstriking?: boolean; // 文本是否加粗。 default false
+        isOverstriking?: boolean; // 文本是否加粗。 默认 false
+        
+        backgroundColor?: Color; // 文本额外的背景色
+        paddingHorizontal?: number; // 左右额外间距  默认 fontSize * 0.4;
+        height?: number; // 默认 fontSize * 1.5;
+        /*
+            default: 默认，但带标签可能超出显示区域
+            aLine： 同一行显示不下时，换一行展示.单行显示不下，省略
+        */
+        lineBreakMode?: 'default' | 'aLine'; //  默认: 'default'
     }
 
     export interface DataSource extends ItemTextStyle {
@@ -137,15 +170,6 @@ declare module "@hecom/react-native-report-table" {
 
         isForbidden?: boolean; // 显示禁用线
 
-        /**
-         * @deprecated use richText
-         */
-        asteriskColor?: Color; // 显示一个必填标识符 *， 显示位置与textAlignment相关，0显示在右侧，1，2是显示在左侧
-         /**
-         * @deprecated use richText
-         */
-        strikethrough?: boolean; // 文本显示删除线
-
         icon?: IconStyle;
         extraText?: {
             backgroundStyle: {
@@ -161,6 +185,23 @@ declare module "@hecom/react-native-report-table" {
             text: string;
             isLeft: boolean; // 在原本文本左边 default false
         }; // 在原本文本内容中额外追加的文本
+
+        progressStyle?: ProgressStyle; // 单元格内添加一个背景条
+    }
+
+    export interface ProgressStyle {
+        colors: Color[]; // 横向渐变
+        height?: number; // 上下单元格内居中显示
+        cornerRadius?: number; // 圆角
+        marginHorizontal?: number; // 左右留白
+        startRatio: number; // 开始计算点。 转化规则： 实际开始X = marginHorizontal + (rowWidth - marginHorizontal * 2) * startRatio
+        endRatio: number; // 结束计算点  转化规则： 实际结束X = marginHorizontal + (rowWidth - marginHorizontal * 2) * endRatio
+        antsLineStyle?: {
+            color?: Color;
+            lineWidth?: number;
+            lineDashPattern?: [number, number]; // 虚线样式，[实线，空白]
+            lineRatio: number; // 虚线开始位置。 转化规则： 实际X = marginHorizontal + (rowWidth - marginHorizontal * 2) * lineRatio
+        }
     }
 
     export interface IconStyle {

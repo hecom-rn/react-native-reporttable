@@ -31,6 +31,7 @@
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
     self.spreadsheetView.tableHeaderView = headerScrollView;
     _headerScrollView = headerScrollView;
+    headerScrollView.delegate = self.spreadsheetView;
     self.headerScrollView.isUserScouce = false;
     self.spreadsheetView.tableView.scrollEnabled = true;
     [self sendSubviewToBack:_headerScrollView];
@@ -288,11 +289,17 @@
                         y = y + over;
 
                         cell.label.transform = CGAffineTransformMakeTranslation(0, y);
+                        if (cell.customImageView) {
+                            cell.customImageView.transform = CGAffineTransformMakeTranslation(0, y);
+                        }
                     }
                 } else {
                     // 缩放后影响了显示范围， 则恢复
                     if (cell.label.transform.ty != 0) {
                         cell.label.transform = CGAffineTransformMakeTranslation(0, 0);
+                        if (cell.customImageView) {
+                            cell.customImageView.transform = CGAffineTransformMakeTranslation(0, 0);
+                        }
                     }
                 }
             }
@@ -351,7 +358,7 @@
     if (model.iconStyle != nil) {
         cell.icon = model.iconStyle;
     }
-    if (row == 0) {
+    if (row == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
         if (self.reportTableModel.permutable) {
             if (column >= self.reportTableModel.oriFrozenColumns) {
                 BOOL isLocked = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns > column;
@@ -429,7 +436,10 @@
         CGPoint point = CGPointMake(x, y);
         [cell drawBoxPoint:point WithLineColor: model.boxLineColor];
     }
-
+    [cell hiddenProgressView];
+    if (model.progressStyle) {
+        [cell setupProgressView:model.progressStyle WithRowWidth:[self.rowsWidth[column] floatValue] Height: [self.cloumsHight[row] floatValue]];
+    }
     return cell;
 }
 
@@ -447,7 +457,8 @@
             @"horizontalCount": [NSNumber numberWithInteger:model.horCount]
         });
     }
-    if (row == 0) {
+    // 处理锁定
+    if (row == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
         if (self.reportTableModel.permutable) {
             if (column >= self.reportTableModel.oriFrozenColumns) {
                 BOOL isLocked = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns > column;
@@ -505,7 +516,9 @@
                     }
                 }
             } else if (self.reportTableModel.frozenCount >= newFrozenColums) {
-                self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums ? 0 : newFrozenColums;
+                self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums 
+                    ? [self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt: self.reportTableModel.oriFrozenColumns]] ? self.reportTableModel.oriFrozenColumns : 0
+                    : newFrozenColums;
                 [self.spreadsheetView reloadData];
                 [self scrollViewDidZoom: self];
             }
