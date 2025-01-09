@@ -485,7 +485,7 @@
             if (i == 0) {
                 [rowsWidth addObject:[NSNumber numberWithFloat:rowWith]];
             }
-            NSInteger mergeNum = [mergeLen[j] intValue];
+            NSInteger mergeNum = mergeLen.count > j ? [mergeLen[j] intValue] : 1;
             ItemModel *model = modelArr[j];
             NSDictionary *dir = dataSource[i][j];
             BOOL showLock = false;
@@ -639,7 +639,7 @@
                         CGFloat fixedRowWidth = [rowsWidth[j] floatValue]; // 取固定宽度
                         CGFloat minWidth = fixedRowWidth;
                         CGFloat maxWidth = fixedRowWidth;
-                        NSInteger mergeNum = [mergeLen[j] intValue];
+                        NSInteger mergeNum = mergeLen.count > j ? [mergeLen[j] intValue] : 1;
                         ItemModel *model = self.dataSource[i][j];
                         NSDictionary *dir = dataSource[i][j];
                         BOOL showLock = false;
