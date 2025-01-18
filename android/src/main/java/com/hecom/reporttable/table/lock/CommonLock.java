@@ -5,7 +5,9 @@ import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.table.HecomTable;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 普通列锁定逻辑，受frozenPoint、frozenCount影响 Created by kevin.bai on 2024/1/4.
@@ -16,7 +18,7 @@ public class CommonLock extends Locker {
 
     public int frozenPoint = 0;
 
-    private int firstColMaxMerge = -1;
+    private Map<Integer, Integer> colMaxMergeMap = new HashMap<>();
 
     private int curFixedColumnIndex;
 
@@ -24,22 +26,24 @@ public class CommonLock extends Locker {
         super(table);
     }
 
-    private int getFirstColMaxMerge() {
-        if (firstColMaxMerge == -1) {
+    private int getFirstColMaxMerge(int col) {
+        int colMaxMerge = colMaxMergeMap.containsKey(col) ? colMaxMergeMap.get(col) : -1;
+        if (colMaxMerge == -1) {
             TableData tableData = table.getTableData();
             int maxColumn = -1;
             List<CellRange> list = tableData.getUserCellRange();
             for (int i = 0; i < list.size(); i++) {
                 CellRange cellRange = list.get(i);
-                if (cellRange.getFirstCol() == 0 && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0) {
+                if (cellRange.getFirstCol() == col && cellRange.getFirstRow() == 0 && cellRange.getLastCol() > 0) {
                     if (maxColumn < cellRange.getLastCol()) {
                         maxColumn = cellRange.getLastCol();
                     }
                 }
             }
-            firstColMaxMerge = maxColumn;
+            colMaxMerge = maxColumn;
+            colMaxMergeMap.put(col, colMaxMerge);
         }
-        return firstColMaxMerge;
+        return colMaxMerge;
     }
 
     private void changeLock(List<Column> columns, int index, boolean lock) {
@@ -52,7 +56,7 @@ public class CommonLock extends Locker {
     protected void updateLock(int col) {
         List<Column> columns = table.getTableData().getColumns();
 
-        int firstColumnMaxMerge = getFirstColMaxMerge();
+        int firstColumnMaxMerge = getFirstColMaxMerge(col);
         int frozenIndex = frozenColumns;
         if (firstColumnMaxMerge > 0) {
             if (curFixedColumnIndex == -1 || col > curFixedColumnIndex) {
@@ -100,9 +104,9 @@ public class CommonLock extends Locker {
     @Override
     public boolean needShowLock(int col) {
         boolean isLockItem;
-        int firstColumnMaxMerge = getFirstColMaxMerge();
+        int firstColumnMaxMerge = getFirstColMaxMerge(col);
         if (frozenPoint > 0) {
-            if (col == 0 && firstColumnMaxMerge > 0) {
+            if (firstColumnMaxMerge >= 0) {
                 col = firstColumnMaxMerge;
             }
             isLockItem = col == frozenPoint - 1;
