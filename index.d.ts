@@ -83,7 +83,7 @@ declare module "@hecom/react-native-report-table" {
         textPaddingHorizontal?: number; // default 12
         classificationLineColor?: Color; // default #9cb3c8
         isOverstriking?: boolean; // 文本是否加粗。 default false
-        progressStyle: {
+        progressStyle?: {
             height: number; // 上下单元格内居中显示
             cornerRadius: number; // 圆角
             marginHorizontal: number; // 左右留白
