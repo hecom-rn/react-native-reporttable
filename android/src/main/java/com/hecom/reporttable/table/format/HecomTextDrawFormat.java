@@ -231,7 +231,9 @@ public class HecomTextDrawFormat implements IDrawFormat<Cell> {
         if ((style.getBorderColor() != null && style.getBorderWidth() != -1) || style.getBackgroundColor() != null) {
             RichTextSpan richTextSpan = new RichTextSpan(context, cell, style, config, maxWidth);
             result.add(richTextSpan);
-            result.add(new LineHeightSpan.Standard(richTextSpan.getBackHeight()));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                result.add(new LineHeightSpan.Standard(richTextSpan.getBackHeight()));
+            }
         }
         return result;
     }
