@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
