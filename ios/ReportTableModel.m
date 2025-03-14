@@ -13,8 +13,9 @@
 
 @implementation ProgressStyle
 
+@end
 
-
+@implementation FloatIconStyle
 
 @end
 

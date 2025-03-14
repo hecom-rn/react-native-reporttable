@@ -79,7 +79,7 @@
     }
     return _label;
 }
-
+#pragma ProgressView
 - (void)setupProgressView:(ProgressStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height {
     CAGradientLayer *gradientLayer = [CAGradientLayer layer];
     CGFloat showWidth = width - 2 * style.marginHorizontal;
@@ -122,7 +122,7 @@
         _shapeLayer = nil;
     }
 }
-
+#pragma text
 - (void)textStyle:(NSInteger)paddingLeft WithPaddingRight: (NSInteger)paddingRight {
     [self.label mas_remakeConstraints:^(MASConstraintMaker *make) {
         float iconPaddingHorizontal = _icon ? self.icon.paddingHorizontal : 4;
@@ -166,6 +166,7 @@
      [self.label layoutIfNeeded];
 }
 
+#pragma lockImage
 - (BOOL)isSetupImageView {
     return _lockImageView != nil || _icon != nil;
 }
@@ -202,6 +203,10 @@
             _customImageView = nil;
             _icon = nil;
         }
+    }
+    if (_floatImageView != nil) {
+        [_floatImageView removeFromSuperview];
+        _floatImageView = nil;
     }
 }
 
@@ -256,7 +261,32 @@
     return self;
 }
 
+#pragma FloatIcon
+- (void)setFloatIcon:(FloatIconStyle *)floatIcon {
+    if (!_floatImageView) {
+        _floatImageView = [[UIImageView alloc] init];
+        _floatImageView.image = [RCTConvert UIImage: floatIcon.path];
+        [self.contentView addSubview: _floatImageView];
+        [_floatImageView mas_makeConstraints:^(MASConstraintMaker *make) {
+            if (floatIcon.top) {
+                make.top.equalTo(self.contentView).offset(floatIcon.top);
+            }
+            if (floatIcon.bottom) {
+                make.bottom.equalTo(self.contentView).offset(-floatIcon.bottom);
+            }
+            if (floatIcon.left) {
+                make.left.equalTo(self.contentView).offset(floatIcon.left);
+            }
+            if (floatIcon.right) {
+                make.right.equalTo(self.contentView).offset(-floatIcon.right);
+            }
+            make.size.mas_equalTo(floatIcon.size);
+        }];
+        [_floatImageView layoutIfNeeded];
+    }
+}
 
+#pragma ForbiddenLine
 // ForbiddenLine
 - (void)drawLinePoint:(CGPoint)point WithLineColor: (UIColor *)color {
     // 不能使用drawReact 会导致分割线闪动

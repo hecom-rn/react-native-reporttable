@@ -10,6 +10,7 @@
 
 @class IconStyle;
 @class ProgressStyle;
+@class FloatIconStyle;
 @interface ReportTableCell : ZMJCell
 
 @property (nonatomic, strong) UILabel *label;
@@ -24,6 +25,8 @@
 
 @property (nonatomic, strong) UIImageView *lockImageView;
 @property (nonatomic, strong) UIImageView *customImageView;
+@property (nonatomic, strong) UIImageView *floatImageView;
+@property (nonatomic, strong) FloatIconStyle *floatIcon;
 
 - (void)updateContentView:(NSInteger)textPaddingHorizontal;
 

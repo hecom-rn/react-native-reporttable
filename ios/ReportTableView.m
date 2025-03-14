@@ -358,6 +358,9 @@
     if (model.iconStyle != nil) {
         cell.icon = model.iconStyle;
     }
+    if (model.floatIcon != nil) {
+        cell.floatIcon = model.floatIcon;
+    }
     if (row == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
         if (self.reportTableModel.permutable) {
             if (column >= self.reportTableModel.oriFrozenColumns) {

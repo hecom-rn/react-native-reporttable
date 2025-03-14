@@ -806,6 +806,17 @@
         }
         model.iconStyle = icon;
     }
+    NSDictionary *floatIconDic = [dir objectForKey:@"floatIcon"] ? [RCTConvert NSDictionary:[dir objectForKey:@"floatIcon"]] : nil;
+    if (floatIconDic != nil) {
+        FloatIconStyle *floatIcon = [[FloatIconStyle alloc] init];
+        floatIcon.size = CGSizeMake([[floatIconDic objectForKey:@"width"] floatValue], [[floatIconDic objectForKey:@"height"] floatValue]);
+        floatIcon.path = [floatIconDic objectForKey:@"path"];
+        floatIcon.top = [[floatIconDic objectForKey:@"top"] floatValue];
+        floatIcon.left = [[floatIconDic objectForKey:@"left"] floatValue];
+        floatIcon.right = [[floatIconDic objectForKey:@"right"] floatValue];
+        floatIcon.bottom = [[floatIconDic objectForKey:@"bottom"] floatValue];
+        model.floatIcon = floatIcon;
+    }
     NSDictionary *extraTextDic = [dir objectForKey:@"extraText"] ? [RCTConvert NSDictionary:[dir objectForKey:@"extraText"]] : nil;
     if (extraTextDic != nil) {
         ExtraText *text = [[ExtraText alloc] init];
