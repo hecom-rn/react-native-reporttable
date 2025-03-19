@@ -13,6 +13,7 @@ import com.hecom.reporttable.table.deserializer.AntsLineStyleDeserializer;
 import com.hecom.reporttable.table.deserializer.CellConfigDeserializer;
 import com.hecom.reporttable.table.deserializer.CellDeserializer;
 import com.hecom.reporttable.table.deserializer.ExtraTextDeserializer;
+import com.hecom.reporttable.table.deserializer.FloatIconDeserializer;
 import com.hecom.reporttable.table.deserializer.IconDeserializer;
 import com.hecom.reporttable.table.deserializer.ProgressStyleDeserializer;
 
@@ -28,6 +29,7 @@ public class GsonHelper {
             return;
         }
         mGson = new GsonBuilder()
+                .registerTypeAdapter(Cell.FloatIcon.class, new FloatIconDeserializer(context))
                 .registerTypeAdapter(Cell.Icon.class, new IconDeserializer(context))
                 .registerTypeAdapter(ProgressStyle.class, new ProgressStyleDeserializer(context))
                 .registerTypeAdapter(ProgressStyle.AntsLineStyle.class, new AntsLineStyleDeserializer(context))

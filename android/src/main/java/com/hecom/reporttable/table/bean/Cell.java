@@ -25,6 +25,7 @@ public class Cell {
     private int textColor = TableConfig.INVALID_COLOR;
     private Paint.Align textAlignment;
     private Icon icon;
+    private FloatIcon floatIcon;
     private ProgressStyle progressStyle;
     private boolean isOverstriking = false;
 
@@ -70,6 +71,7 @@ public class Cell {
         this.textColor = newCell.getTextColor();
         this.textAlignment = newCell.getTextAlignment();
         this.icon = newCell.getIcon();
+        this.floatIcon = newCell.getFloatIcon();
         this.isOverstriking = newCell.isOverstriking();
         this.isForbidden = newCell.isForbidden();
         this.classificationLinePosition = newCell.getClassificationLinePosition();
@@ -234,6 +236,14 @@ public class Cell {
 
     public void setOverstriking(boolean overstriking) {
         isOverstriking = overstriking;
+    }
+
+    public FloatIcon getFloatIcon() {
+        return floatIcon;
+    }
+
+    public void setFloatIcon(FloatIcon floatIcon) {
+        this.floatIcon = floatIcon;
     }
 
     public static class RichText {
@@ -545,4 +555,45 @@ public class Cell {
         }
 
     }
+
+
+    public static class FloatIcon extends Icon {
+        private int top = -1;
+        private int left = -1;
+        private int right = -1;
+        private int bottom = -1;
+
+        public int getBottom() {
+            return bottom;
+        }
+
+        public void setBottom(int bottom) {
+            this.bottom = bottom;
+        }
+
+        public int getRight() {
+            return right;
+        }
+
+        public void setRight(int right) {
+            this.right = right;
+        }
+
+        public int getLeft() {
+            return left;
+        }
+
+        public void setLeft(int left) {
+            this.left = left;
+        }
+
+        public int getTop() {
+            return top;
+        }
+
+        public void setTop(int top) {
+            this.top = top;
+        }
+    }
+
 }
