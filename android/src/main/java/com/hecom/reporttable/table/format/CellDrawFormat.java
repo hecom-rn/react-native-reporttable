@@ -85,8 +85,14 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
     @Override
     protected Bitmap getBitmap(final Cell cell, String value, int position) {
         final String sUri = this.getResourceUri(cell, value, position);
-        return this.getBitmapFromUri(sUri, cell.getIcon()
-                .getWidth(), cell.getIcon().getHeight());
+        int width = 0;
+        int height = 0;
+        if (cell.getIcon() != null) {
+            width = cell.getIcon().getWidth();
+            height = cell.getIcon().getHeight();
+        }
+        Bitmap bitmap = this.getBitmapFromUri(sUri, width, height);
+        return bitmap;
     }
 
     private Bitmap getBitmapFromUri(String sUri, int width, int height) {
