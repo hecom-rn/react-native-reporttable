@@ -654,8 +654,9 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
             @Override
             public void run() {
                 matrixHelper.setAutoFling(value);
+                notifyDataChanged();
             }
-        }, 500);
+        }, 100);
     }
 }
 
