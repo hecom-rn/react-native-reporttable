@@ -62,9 +62,45 @@
 @end
 
 
+@interface GradientView : UIView
+@end
+
+@implementation GradientView
+- (instancetype)initWithFrame:(CGRect)frame
+                       colors:(NSArray<UIColor *> *)colors
+                   startPoint:(CGPoint)startPoint
+                     endPoint:(CGPoint)endPoint {
+    self = [super initWithFrame:frame];
+    if (self) {
+        // 创建CAGradientLayer实例
+        CAGradientLayer *gradientLayer = [CAGradientLayer layer];
+        
+        // 设置渐变颜色
+        NSMutableArray *cgColors = [NSMutableArray array];
+        for (UIColor *color in colors) {
+            [cgColors addObject:(id)color.CGColor];
+        }
+        // 设置渐变的颜色
+        gradientLayer.colors = cgColors;
+        // 设置渐变的方向（从左到右）
+        gradientLayer.startPoint = startPoint;
+        gradientLayer.endPoint = endPoint;
+        // 设置渐变层的大小与视图一致
+        gradientLayer.frame = self.bounds;
+        // 将渐变层添加到视图的图层中
+        [self.layer addSublayer:gradientLayer];
+    }
+    return self;
+}
+
+@end
+
+
+
 @interface ReportTableCell()
 @property (strong, atomic) LineView *lineView;
 @property (strong, atomic) BoxView *boxView;
+@property (strong, atomic) GradientView *gradientView;
 @property (strong, atomic) CAGradientLayer *gradientLayer;
 @property (strong, atomic) CAShapeLayer *shapeLayer;
 @end
@@ -286,6 +322,18 @@
     }
 }
 
+#pragma GradientView
+- (void)hiddenGradientView {
+    if (_gradientView != nil) {
+        [_gradientView removeFromSuperview];
+        _gradientView = nil;
+    }
+}
+- (void)setupGradientView:(GradientStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height {
+    self.gradientView = [[GradientView alloc] initWithFrame:CGRectMake(0, 0, width, height) colors:style.colors startPoint:style.startPoint endPoint:style.endPoint];
+    [self.contentView addSubview: self.gradientView];
+}
+
 #pragma ForbiddenLine
 // ForbiddenLine
 - (void)drawLinePoint:(CGPoint)point WithLineColor: (UIColor *)color {
@@ -301,7 +349,6 @@
         _lineView = nil;
     }
 }
-
 
 - (LineView *)lineView {
     if (!_lineView) {

@@ -165,6 +165,12 @@ declare module "@hecom/react-native-report-table" {
 
         boxLineColor?: Color; // 显示一个内嵌宽度为1的框线
 
+        gradient?: {
+            colors:  Color[];
+            start: { x: number; y: number };
+            end: { x: number; y: number };
+        }; // 渐变色背景
+
         classificationLinePosition?: ClassificationLinePosition; // 特殊分割线颜色的位置
         classificationLineColor?: Color; // 分割线颜色，优先级比ItemConfig中的高，可选
 

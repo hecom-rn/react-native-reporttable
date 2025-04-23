@@ -11,6 +11,7 @@
 @class IconStyle;
 @class ProgressStyle;
 @class FloatIconStyle;
+@class GradientStyle;
 @interface ReportTableCell : ZMJCell
 
 @property (nonatomic, strong) UILabel *label;
@@ -40,5 +41,8 @@
 
 - (void)hiddenProgressView;
 - (void)setupProgressView:(ProgressStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height;
+
+- (void)hiddenGradientView;
+- (void)setupGradientView:(GradientStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height;
 
 @end

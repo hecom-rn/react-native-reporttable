@@ -33,6 +33,13 @@
 @property (nonatomic, assign) CGFloat paddingHorizontal;
 @end
 
+@interface GradientStyle: NSObject
+@property (nonatomic, strong) NSArray *colors;
+@property (nonatomic, assign) CGPoint startPoint;
+@property (nonatomic, assign) CGPoint endPoint;
+@end
+
+
 @interface FloatIconStyle: NSObject
 @property (nonatomic, strong) id path;
 @property (nonatomic, assign) CGSize size;
@@ -111,6 +118,7 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, strong) ItemModel *itemConfig;
 @property (nonatomic, strong) ExtraText *extraText;
 @property (nonatomic, strong) ProgressStyle *progressStyle;
+@property (nonatomic, strong) GradientStyle *gradientStyle;
 @property (nonatomic, assign) NSInteger columIndex;
 @end
 

@@ -15,6 +15,10 @@
 
 @end
 
+@implementation GradientStyle
+
+@end
+
 @implementation FloatIconStyle
 
 @end
