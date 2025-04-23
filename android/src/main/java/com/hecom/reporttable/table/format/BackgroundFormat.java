@@ -1,11 +1,13 @@
 package com.hecom.reporttable.table.format;
 
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Shader;
 
 import com.hecom.reporttable.form.core.TableConfig;
 import com.hecom.reporttable.form.data.CellInfo;
@@ -40,11 +42,28 @@ public class BackgroundFormat extends BaseCellBackgroundFormat<CellInfo> {
         return this.table.getHecomStyle().getBackgroundColor();
     }
 
+    private void setShader(CellInfo cellInfo, Rect rect, Paint paint) {
+        Cell tableBean = (Cell) cellInfo.data;
+        Cell.Gradient gradient = tableBean.getGradient();
+        if (gradient != null) {
+            int startX = rect.left + rect.width()*gradient.getStart().x;
+            int startY = rect.top + rect.height()*gradient.getStart().y;
+            int endX = rect.left + rect.width()*gradient.getEnd().x;
+            int endY = rect.top + rect.height()*gradient.getEnd().y;
+            int[] colors = new int[gradient.getColors().length];
+            for(int i = 0; i < colors.length; ++i) {
+                colors[i] = Color.parseColor(gradient.getColors()[i]);
+            }
+            paint.setShader(new LinearGradient(startX, startY, endX, endY, colors, null, Shader.TileMode.CLAMP));
+        }
+    }
+
     @Override
     public void drawBackground(Canvas canvas, Rect rect, CellInfo t, Paint paint) {
         int color = getBackGroundColor(t);
         if (color != TableConfig.INVALID_COLOR) {
             bgPaint.setColor(color);
+            this.setShader(t, rect, bgPaint);
             canvas.drawRect(rect, bgPaint);
         }
         this.drawProgress(canvas, rect, t);

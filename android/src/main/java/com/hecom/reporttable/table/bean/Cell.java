@@ -2,6 +2,7 @@ package com.hecom.reporttable.table.bean;
 
 import android.content.Context;
 import android.graphics.Paint;
+import android.graphics.Point;
 
 import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
@@ -21,6 +22,7 @@ public class Cell {
     private String title;
     private ArrayList<RichText> richText;
     private int backgroundColor = TableConfig.INVALID_COLOR;
+    private Gradient gradient;
     private float fontSize = 0;
     private int textColor = TableConfig.INVALID_COLOR;
     private Paint.Align textAlignment;
@@ -67,6 +69,7 @@ public class Cell {
         this.title = newCell.getTitle();
         this.richText = newCell.getRichText();
         this.backgroundColor = newCell.getBackgroundColor();
+        this.gradient = newCell.getGradient();
         this.fontSize = newCell.getFontSize();
         this.textColor = newCell.getTextColor();
         this.textAlignment = newCell.getTextAlignment();
@@ -244,6 +247,14 @@ public class Cell {
 
     public void setFloatIcon(FloatIcon floatIcon) {
         this.floatIcon = floatIcon;
+    }
+
+    public Gradient getGradient() {
+        return gradient;
+    }
+
+    public void setGradient(Gradient gradient) {
+        this.gradient = gradient;
     }
 
     public static class RichText {
@@ -596,4 +607,33 @@ public class Cell {
         }
     }
 
+    public static class Gradient {
+        private String[] colors;
+        private Point start;
+        private Point end;
+
+        public String[] getColors() {
+            return colors;
+        }
+
+        public void setColors(String[] colors) {
+            this.colors = colors;
+        }
+
+        public Point getStart() {
+            return start;
+        }
+
+        public void setStart(Point start) {
+            this.start = start;
+        }
+
+        public Point getEnd() {
+            return end;
+        }
+
+        public void setEnd(Point end) {
+            this.end = end;
+        }
+    }
 }

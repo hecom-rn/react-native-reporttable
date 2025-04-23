@@ -46,6 +46,11 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
                     new TypeToken<ArrayList<Cell.RichText>>() {
                     }.getType()));
         }
+        if (json.has("gradient")) {
+            cell.setGradient(context.<Cell.Gradient>deserialize(json.get("gradient"),
+                    new TypeToken<Cell.Gradient>() {
+                    }.getType()));
+        }
         if (json.has("backgroundColor")) {
             cell.setBackgroundColor(Color.parseColor(json.get("backgroundColor").getAsString()));
         }
