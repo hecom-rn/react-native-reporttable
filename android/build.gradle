@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 def safeExtGet(prop, fallback) {
     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
@@ -6,6 +7,8 @@ def safeExtGet(prop, fallback) {
 
 buildscript {
     repositories {
+        maven { url "https://maven.aliyun.com/repository/public/" }
+        maven { url "https://maven.aliyun.com/nexus/content/groups/public/" }
         maven {
             url 'https://maven.aliyun.com/repository/public/'
         }
@@ -22,6 +25,8 @@ buildscript {
 
 allprojects {
     repositories {
+        maven { url "https://maven.aliyun.com/repository/public/" }
+        maven { url "https://maven.aliyun.com/nexus/content/groups/public/" }
         maven {
             url 'https://maven.aliyun.com/repository/public/'
         }
@@ -35,7 +40,7 @@ allprojects {
 
 android {
     compileSdkVersion safeExtGet('compileSdkVersion', 26)
-//    buildToolsVersion safeExtGet('buildToolsVersion', '26.0.3')
+//    
 
     defaultConfig {
         minSdkVersion safeExtGet('minSdkVersion', 21)
@@ -46,17 +51,25 @@ android {
     lintOptions {
         abortOnError false
     }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
 }
 
 repositories {
+        maven { url "https://maven.aliyun.com/repository/public/" }
+        maven { url "https://maven.aliyun.com/nexus/content/groups/public/" }
     flatDir {
         dirs 'libs'
     }
     google()
+    mavenCentral()
 }
 
 dependencies {
+    implementation(project(":shared"))
     api 'com.facebook.react:react-native:+'
     api "androidx.annotation:annotation:1.2.0"
     implementation 'com.google.code.gson:gson:2.8.0'
+    implementation 'androidx.core:core-ktx:1.10.1'
 }
