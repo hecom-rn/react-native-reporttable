@@ -9,6 +9,7 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.LinearLayout;
 
 import com.hecom.reporttable.form.component.IComponent;
 import com.hecom.reporttable.form.component.ITableTitle;
@@ -39,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Created by huang on 2017/10/30. 表格
  */
 
-public class SmartTable<T> extends View implements OnTableChangeListener, MainThreadExecuteHandle {
+public class SmartTable<T> extends LinearLayout implements OnTableChangeListener, MainThreadExecuteHandle {
 
     private XSequence<T> xAxis;
     private YSequence<T> yAxis;

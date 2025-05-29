@@ -18,15 +18,6 @@ import com.tencent.kuikly.core.render.android.adapter.KuiklyRenderAdapterManager
 import com.tencent.kuikly.core.render.android.css.ktx.toMap
 import com.tencent.kuikly.core.render.android.expand.KuiklyRenderViewBaseDelegatorDelegate
 import com.tencent.kuikly.core.render.android.expand.KuiklyRenderViewBaseDelegator
-import com.example.kuiklydemo.adapter.KRColorParserAdapter
-import com.example.kuiklydemo.adapter.KRFontAdapter
-import com.example.kuiklydemo.adapter.KRImageAdapter
-import com.example.kuiklydemo.adapter.KRLogAdapter
-import com.example.kuiklydemo.adapter.KRRouterAdapter
-import com.example.kuiklydemo.adapter.KRThreadAdapter
-import com.example.kuiklydemo.adapter.KRUncaughtExceptionHandlerAdapter
-import com.example.kuiklydemo.module.KRBridgeModule
-import com.example.kuiklydemo.module.KRShareModule
 import org.json.JSONObject
 
 class CustomLinearLayout constructor(

@@ -5,10 +5,12 @@ import android.util.SparseIntArray;
 import android.view.ViewTreeObserver;
 
 import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
+import com.hecom.reporttable.CustomLinearLayout;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.column.Column;
@@ -29,6 +31,8 @@ import com.hecom.reporttable.table.format.HecomGridFormat;
 import com.hecom.reporttable.table.format.HecomStyle;
 import com.hecom.reporttable.table.format.ShadowDrawOver;
 import com.hecom.reporttable.table.lock.LockHelper;
+import com.tencent.kuikly.core.render.android.expand.KuiklyRenderViewBaseDelegator;
+import com.tencent.kuikly.core.render.android.expand.KuiklyRenderViewBaseDelegatorDelegate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -279,6 +283,9 @@ public class HecomTable extends SmartTable<Cell> {
             mLockHelper.reLock(tableData);
             setTableData(tableData);
             mLockHelper.update();
+            ReactContext reactContext = (ReactContext) getContext();
+            KuiklyRenderViewBaseDelegator baseDelegator = new KuiklyRenderViewBaseDelegator((KuiklyRenderViewBaseDelegatorDelegate) reactContext.getCurrentActivity());
+            this.addView(new CustomLinearLayout(reactContext, null, 0, baseDelegator));
         } catch (Exception e) {
             e.printStackTrace();
         }
