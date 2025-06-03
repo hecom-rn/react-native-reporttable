@@ -47,7 +47,8 @@ public class RichTextSpan extends ReplacementSpan {
     }
 
     public int getTextWidth(Paint paint, CharSequence text, int start, int end) {
-        return Math.min((int)maxWidth, Math.round(paint.measureText(text, start, end)));
+        float[] padding = getPadding(paint, true);
+        return Math.min((int)(maxWidth + padding[0] + padding[2]), Math.round(paint.measureText(text, start, end)));
     }
 
     @Override
@@ -131,7 +132,7 @@ public class RichTextSpan extends ReplacementSpan {
             }
             paint.setStrokeWidth(0);
             paint.setStyle(Paint.Style.FILL);
-            float cornerRadius = DensityUtils.dp2px(this.context, this.style.getBorderRadius());
+            float cornerRadius = DensityUtils.dp2px(this.context, this.style.getBorderRadius()) * config.getZoom();
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
         }
     }
@@ -141,7 +142,7 @@ public class RichTextSpan extends ReplacementSpan {
             paint.setColor(Color.parseColor(this.style.getBorderColor()));
             paint.setStrokeWidth(DensityUtils.dp2px(this.context, this.style.getBorderWidth()));
             paint.setStyle(Paint.Style.STROKE);
-            float cornerRadius = DensityUtils.dp2px(this.context, this.style.getBorderRadius());
+            float cornerRadius = DensityUtils.dp2px(this.context, this.style.getBorderRadius()) * config.getZoom();
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
         }
     }
@@ -158,11 +159,13 @@ public class RichTextSpan extends ReplacementSpan {
         } catch (Exception err) {
             Log.e("RichTextSpan", err.toString());
         }
-        if(this.getTextWidth(paint, text, start, end) < maxWidth) {
+        float[] padding = getPadding(paint, true);
+        float innerMaxWidth = maxWidth + padding[0] + padding[2];
+        if(this.getTextWidth(paint, text, start, end) < innerMaxWidth) {
             canvas.drawText(text, start, end, rect.centerX(),
                     rect.centerY() + paint.getFontMetrics().bottom, paint);
         } else {
-            float availableWidth = maxWidth - paint.measureText("...");
+            float availableWidth = innerMaxWidth - paint.measureText("...");
             CharSequence drawText = text.subSequence(start, end);
             String ellipsisText = drawText.subSequence(0, paint.breakText(drawText.toString(), true, availableWidth, null)) + "...";
 
