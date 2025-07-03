@@ -339,6 +339,9 @@ public class HecomTable extends SmartTable<Cell> {
             }
         }
         for (int i = 0; i < newData.length; i++) {
+            if (list.size() <= i) {
+                continue;
+            }
             Column column = list.get(i);
             ArrayList<Cell> datas = new ArrayList<>(column.getDatas());
             for (int j = 0; j < l; j++) {

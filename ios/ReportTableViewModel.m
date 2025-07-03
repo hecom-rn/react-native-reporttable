@@ -806,6 +806,32 @@
         }
         model.iconStyle = icon;
     }
+    NSDictionary *floatIconDic = [dir objectForKey:@"floatIcon"] ? [RCTConvert NSDictionary:[dir objectForKey:@"floatIcon"]] : nil;
+    if (floatIconDic != nil) {
+        FloatIconStyle *floatIcon = [[FloatIconStyle alloc] init];
+        floatIcon.size = CGSizeMake([[floatIconDic objectForKey:@"width"] floatValue], [[floatIconDic objectForKey:@"height"] floatValue]);
+        floatIcon.path = [floatIconDic objectForKey:@"path"];
+        floatIcon.top = [[floatIconDic objectForKey:@"top"] floatValue];
+        floatIcon.left = [[floatIconDic objectForKey:@"left"] floatValue];
+        floatIcon.right = [[floatIconDic objectForKey:@"right"] floatValue];
+        floatIcon.bottom = [[floatIconDic objectForKey:@"bottom"] floatValue];
+        model.floatIcon = floatIcon;
+    }
+    NSDictionary *gradientStyleDic = [dir objectForKey:@"gradient"] ? [RCTConvert NSDictionary:[dir objectForKey:@"gradient"]] : nil;
+    if (gradientStyleDic != nil) {
+        GradientStyle *gradientStyle = [[GradientStyle alloc] init];
+        NSDictionary *startPoint = [gradientStyleDic objectForKey:@"start"];
+        NSDictionary *endPoint = [gradientStyleDic objectForKey:@"end"];
+        gradientStyle.startPoint = CGPointMake([[startPoint objectForKey:@"x"] floatValue], [[startPoint objectForKey:@"y"] floatValue]);
+        gradientStyle.endPoint = CGPointMake([[endPoint objectForKey:@"x"] floatValue], [[endPoint objectForKey:@"y"] floatValue]);
+        NSArray *arr = [gradientStyleDic objectForKey:@"colors"];
+        NSMutableArray *colors = [NSMutableArray arrayWithCapacity: arr.count];
+        for (NSString *str in arr) {
+            [colors addObject:[self colorFromHex:str]];
+        }
+        gradientStyle.colors = colors;
+        model.gradientStyle = gradientStyle;
+    }
     NSDictionary *extraTextDic = [dir objectForKey:@"extraText"] ? [RCTConvert NSDictionary:[dir objectForKey:@"extraText"]] : nil;
     if (extraTextDic != nil) {
         ExtraText *text = [[ExtraText alloc] init];

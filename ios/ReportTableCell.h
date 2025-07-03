@@ -10,6 +10,8 @@
 
 @class IconStyle;
 @class ProgressStyle;
+@class FloatIconStyle;
+@class GradientStyle;
 @interface ReportTableCell : ZMJCell
 
 @property (nonatomic, strong) UILabel *label;
@@ -24,6 +26,8 @@
 
 @property (nonatomic, strong) UIImageView *lockImageView;
 @property (nonatomic, strong) UIImageView *customImageView;
+@property (nonatomic, strong) UIImageView *floatImageView;
+@property (nonatomic, strong) FloatIconStyle *floatIcon;
 
 - (void)updateContentView:(NSInteger)textPaddingHorizontal;
 
@@ -37,5 +41,8 @@
 
 - (void)hiddenProgressView;
 - (void)setupProgressView:(ProgressStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height;
+
+- (void)hiddenGradientView;
+- (void)setupGradientView:(GradientStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height;
 
 @end

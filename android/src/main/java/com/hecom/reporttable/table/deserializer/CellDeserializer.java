@@ -46,6 +46,11 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
                     new TypeToken<ArrayList<Cell.RichText>>() {
                     }.getType()));
         }
+        if (json.has("gradient")) {
+            cell.setGradient(context.<Cell.Gradient>deserialize(json.get("gradient"),
+                    new TypeToken<Cell.Gradient>() {
+                    }.getType()));
+        }
         if (json.has("backgroundColor")) {
             cell.setBackgroundColor(Color.parseColor(json.get("backgroundColor").getAsString()));
         }
@@ -65,6 +70,9 @@ public class CellDeserializer implements JsonDeserializer<Cell> {
         }
         if (json.has("icon")) {
             cell.setIcon(context.<Cell.Icon>deserialize(json.get("icon"), Cell.Icon.class));
+        }
+        if (json.has("floatIcon")) {
+            cell.setFloatIcon(context.<Cell.FloatIcon>deserialize(json.get("floatIcon"), Cell.FloatIcon.class));
         }
         if (json.has("isOverstriking")) {
             cell.setOverstriking(json.get("isOverstriking").getAsBoolean());

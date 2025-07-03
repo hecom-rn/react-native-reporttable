@@ -165,11 +165,18 @@ declare module "@hecom/react-native-report-table" {
 
         boxLineColor?: Color; // 显示一个内嵌宽度为1的框线
 
+        gradient?: {
+            colors:  Color[];
+            start: { x: number; y: number };
+            end: { x: number; y: number };
+        }; // 渐变色背景
+
         classificationLinePosition?: ClassificationLinePosition; // 特殊分割线颜色的位置
         classificationLineColor?: Color; // 分割线颜色，优先级比ItemConfig中的高，可选
 
         isForbidden?: boolean; // 显示禁用线
 
+        floatIcon?: FloatIcon; // 悬浮图标，在最上层
         icon?: IconStyle;
         extraText?: {
             backgroundStyle: {
@@ -202,6 +209,19 @@ declare module "@hecom/react-native-report-table" {
             lineDashPattern?: [number, number]; // 虚线样式，[实线，空白]
             lineRatio: number; // 虚线开始位置。 转化规则： 实际X = marginHorizontal + (rowWidth - marginHorizontal * 2) * lineRatio
         }
+    }
+
+    export interface FloatIcon {
+        path: ImageResolvedAssetSource; // ios only
+        name: string; // android only
+        width: number,
+        height: number,
+
+        // 同比绝对布局， 两个组合即可
+        top?: number,
+        left?: number,
+        right?: number,
+        bottom?: number,
     }
 
     export interface IconStyle {

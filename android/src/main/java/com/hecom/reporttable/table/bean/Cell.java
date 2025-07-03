@@ -2,6 +2,7 @@ package com.hecom.reporttable.table.bean;
 
 import android.content.Context;
 import android.graphics.Paint;
+import android.graphics.Point;
 
 import com.hecom.reporttable.R;
 import com.hecom.reporttable.form.core.TableConfig;
@@ -21,10 +22,12 @@ public class Cell {
     private String title;
     private ArrayList<RichText> richText;
     private int backgroundColor = TableConfig.INVALID_COLOR;
+    private Gradient gradient;
     private float fontSize = 0;
     private int textColor = TableConfig.INVALID_COLOR;
     private Paint.Align textAlignment;
     private Icon icon;
+    private FloatIcon floatIcon;
     private ProgressStyle progressStyle;
     private boolean isOverstriking = false;
 
@@ -66,10 +69,12 @@ public class Cell {
         this.title = newCell.getTitle();
         this.richText = newCell.getRichText();
         this.backgroundColor = newCell.getBackgroundColor();
+        this.gradient = newCell.getGradient();
         this.fontSize = newCell.getFontSize();
         this.textColor = newCell.getTextColor();
         this.textAlignment = newCell.getTextAlignment();
         this.icon = newCell.getIcon();
+        this.floatIcon = newCell.getFloatIcon();
         this.isOverstriking = newCell.isOverstriking();
         this.isForbidden = newCell.isForbidden();
         this.classificationLinePosition = newCell.getClassificationLinePosition();
@@ -234,6 +239,22 @@ public class Cell {
 
     public void setOverstriking(boolean overstriking) {
         isOverstriking = overstriking;
+    }
+
+    public FloatIcon getFloatIcon() {
+        return floatIcon;
+    }
+
+    public void setFloatIcon(FloatIcon floatIcon) {
+        this.floatIcon = floatIcon;
+    }
+
+    public Gradient getGradient() {
+        return gradient;
+    }
+
+    public void setGradient(Gradient gradient) {
+        this.gradient = gradient;
     }
 
     public static class RichText {
@@ -544,5 +565,75 @@ public class Cell {
             return id;
         }
 
+    }
+
+
+    public static class FloatIcon extends Icon {
+        private int top = -1;
+        private int left = -1;
+        private int right = -1;
+        private int bottom = -1;
+
+        public int getBottom() {
+            return bottom;
+        }
+
+        public void setBottom(int bottom) {
+            this.bottom = bottom;
+        }
+
+        public int getRight() {
+            return right;
+        }
+
+        public void setRight(int right) {
+            this.right = right;
+        }
+
+        public int getLeft() {
+            return left;
+        }
+
+        public void setLeft(int left) {
+            this.left = left;
+        }
+
+        public int getTop() {
+            return top;
+        }
+
+        public void setTop(int top) {
+            this.top = top;
+        }
+    }
+
+    public static class Gradient {
+        private String[] colors;
+        private Point start;
+        private Point end;
+
+        public String[] getColors() {
+            return colors;
+        }
+
+        public void setColors(String[] colors) {
+            this.colors = colors;
+        }
+
+        public Point getStart() {
+            return start;
+        }
+
+        public void setStart(Point start) {
+            this.start = start;
+        }
+
+        public Point getEnd() {
+            return end;
+        }
+
+        public void setEnd(Point end) {
+            this.end = end;
+        }
     }
 }

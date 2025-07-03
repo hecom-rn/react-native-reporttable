@@ -62,9 +62,45 @@
 @end
 
 
+@interface GradientView : UIView
+@end
+
+@implementation GradientView
+- (instancetype)initWithFrame:(CGRect)frame
+                       colors:(NSArray<UIColor *> *)colors
+                   startPoint:(CGPoint)startPoint
+                     endPoint:(CGPoint)endPoint {
+    self = [super initWithFrame:frame];
+    if (self) {
+        // 创建CAGradientLayer实例
+        CAGradientLayer *gradientLayer = [CAGradientLayer layer];
+        
+        // 设置渐变颜色
+        NSMutableArray *cgColors = [NSMutableArray array];
+        for (UIColor *color in colors) {
+            [cgColors addObject:(id)color.CGColor];
+        }
+        // 设置渐变的颜色
+        gradientLayer.colors = cgColors;
+        // 设置渐变的方向（从左到右）
+        gradientLayer.startPoint = startPoint;
+        gradientLayer.endPoint = endPoint;
+        // 设置渐变层的大小与视图一致
+        gradientLayer.frame = self.bounds;
+        // 将渐变层添加到视图的图层中
+        [self.layer addSublayer:gradientLayer];
+    }
+    return self;
+}
+
+@end
+
+
+
 @interface ReportTableCell()
 @property (strong, atomic) LineView *lineView;
 @property (strong, atomic) BoxView *boxView;
+@property (strong, atomic) GradientView *gradientView;
 @property (strong, atomic) CAGradientLayer *gradientLayer;
 @property (strong, atomic) CAShapeLayer *shapeLayer;
 @end
@@ -79,7 +115,7 @@
     }
     return _label;
 }
-
+#pragma ProgressView
 - (void)setupProgressView:(ProgressStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height {
     CAGradientLayer *gradientLayer = [CAGradientLayer layer];
     CGFloat showWidth = width - 2 * style.marginHorizontal;
@@ -122,7 +158,7 @@
         _shapeLayer = nil;
     }
 }
-
+#pragma text
 - (void)textStyle:(NSInteger)paddingLeft WithPaddingRight: (NSInteger)paddingRight {
     [self.label mas_remakeConstraints:^(MASConstraintMaker *make) {
         float iconPaddingHorizontal = _icon ? self.icon.paddingHorizontal : 4;
@@ -166,6 +202,7 @@
      [self.label layoutIfNeeded];
 }
 
+#pragma lockImage
 - (BOOL)isSetupImageView {
     return _lockImageView != nil || _icon != nil;
 }
@@ -202,6 +239,10 @@
             _customImageView = nil;
             _icon = nil;
         }
+    }
+    if (_floatImageView != nil) {
+        [_floatImageView removeFromSuperview];
+        _floatImageView = nil;
     }
 }
 
@@ -256,7 +297,44 @@
     return self;
 }
 
+#pragma FloatIcon
+- (void)setFloatIcon:(FloatIconStyle *)floatIcon {
+    if (!_floatImageView) {
+        _floatImageView = [[UIImageView alloc] init];
+        _floatImageView.image = [RCTConvert UIImage: floatIcon.path];
+        [self.contentView addSubview: _floatImageView];
+        [_floatImageView mas_makeConstraints:^(MASConstraintMaker *make) {
+            if (floatIcon.top) {
+                make.top.equalTo(self.contentView).offset(floatIcon.top);
+            }
+            if (floatIcon.bottom) {
+                make.bottom.equalTo(self.contentView).offset(-floatIcon.bottom);
+            }
+            if (floatIcon.left) {
+                make.left.equalTo(self.contentView).offset(floatIcon.left);
+            }
+            if (floatIcon.right) {
+                make.right.equalTo(self.contentView).offset(-floatIcon.right);
+            }
+            make.size.mas_equalTo(floatIcon.size);
+        }];
+        [_floatImageView layoutIfNeeded];
+    }
+}
 
+#pragma GradientView
+- (void)hiddenGradientView {
+    if (_gradientView != nil) {
+        [_gradientView removeFromSuperview];
+        _gradientView = nil;
+    }
+}
+- (void)setupGradientView:(GradientStyle *)style WithRowWidth:(CGFloat)width Height:(CGFloat)height {
+    self.gradientView = [[GradientView alloc] initWithFrame:CGRectMake(0, 0, width, height) colors:style.colors startPoint:style.startPoint endPoint:style.endPoint];
+    [self.contentView addSubview: self.gradientView];
+}
+
+#pragma ForbiddenLine
 // ForbiddenLine
 - (void)drawLinePoint:(CGPoint)point WithLineColor: (UIColor *)color {
     // 不能使用drawReact 会导致分割线闪动
@@ -271,7 +349,6 @@
         _lineView = nil;
     }
 }
-
 
 - (LineView *)lineView {
     if (!_lineView) {

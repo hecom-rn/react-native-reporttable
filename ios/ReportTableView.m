@@ -358,6 +358,9 @@
     if (model.iconStyle != nil) {
         cell.icon = model.iconStyle;
     }
+    if (model.floatIcon != nil) {
+        cell.floatIcon = model.floatIcon;
+    }
     if (row == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
         if (self.reportTableModel.permutable) {
             if (column >= self.reportTableModel.oriFrozenColumns) {
@@ -423,22 +426,24 @@
         cell.label.textColor = model.textColor;
         cell.label.font = font;
     }
+    CGFloat x = [self.reportTableModel.rowsWidth[column] floatValue];
+    CGFloat y = [self.reportTableModel.cloumsHight[row] floatValue];
+    [cell hiddenGradientView];
     [cell hiddenLineView];
     [cell hiddenBoxView];
+    [cell hiddenProgressView];
+    if (model.gradientStyle) {
+        [cell setupGradientView:model.gradientStyle WithRowWidth:x Height:y];
+    }
     if (model.isForbidden) {
-        CGFloat x = [self.reportTableModel.rowsWidth[column] floatValue];
-        CGFloat y = [self.reportTableModel.cloumsHight[row] floatValue];
         CGPoint point = CGPointMake(x, y);
         [cell drawLinePoint:point WithLineColor:self.reportTableModel.lineColor];
     } else if (model.boxLineColor != nil) {
-        CGFloat x = [self.reportTableModel.rowsWidth[column] floatValue];
-        CGFloat y = [self.reportTableModel.cloumsHight[row] floatValue];
         CGPoint point = CGPointMake(x, y);
         [cell drawBoxPoint:point WithLineColor: model.boxLineColor];
     }
-    [cell hiddenProgressView];
     if (model.progressStyle) {
-        [cell setupProgressView:model.progressStyle WithRowWidth:[self.rowsWidth[column] floatValue] Height: [self.cloumsHight[row] floatValue]];
+        [cell setupProgressView:model.progressStyle WithRowWidth:x Height: y];
     }
     return cell;
 }

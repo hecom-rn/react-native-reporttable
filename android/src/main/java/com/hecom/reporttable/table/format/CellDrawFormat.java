@@ -4,11 +4,14 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.LruCache;
+
+import androidx.annotation.NonNull;
 
 import com.hecom.reporttable.R;
 import com.hecom.reporttable.BuildConfig;
@@ -82,6 +85,17 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
     @Override
     protected Bitmap getBitmap(final Cell cell, String value, int position) {
         final String sUri = this.getResourceUri(cell, value, position);
+        int width = 0;
+        int height = 0;
+        if (cell.getIcon() != null) {
+            width = cell.getIcon().getWidth();
+            height = cell.getIcon().getHeight();
+        }
+        Bitmap bitmap = this.getBitmapFromUri(sUri, width, height);
+        return bitmap;
+    }
+
+    private Bitmap getBitmapFromUri(String sUri, int width, int height) {
         Bitmap bitmap = bitmapLruCache.get(sUri);
         if (bitmap == null) {
             if (String.valueOf(lockIcon.getResourceId()).equals(sUri)) {
@@ -112,8 +126,7 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
                                             Cell.Path.getResourceDrawableId(getContext(), sUri));
                         }
                         if (innerBitmap != null) {
-                            innerBitmap = Bitmap.createScaledBitmap(innerBitmap, cell.getIcon()
-                                    .getWidth(), cell.getIcon().getHeight(), true);
+                            innerBitmap = Bitmap.createScaledBitmap(innerBitmap, width, height, true);
                             bitmapLruCache.put(sUri, innerBitmap);
                         }
                         latch.countDown();
@@ -211,85 +224,170 @@ public class CellDrawFormat extends ImageResDrawFormat<Cell> {
 
         if (icon == null) {
             textDrawFormat.draw(c, rect, cellInfo, config);
-            return;
-        }
-        setImageWidth(icon.getWidth());
-        setImageHeight(icon.getHeight());
-
-        int imgWidth = (int) (getImageWidth() * config.getZoom());
-        int imgHeight = (int) (getImageHeight() * config.getZoom());
-
-        int textWidth, drawPadding = 0;
-        if (!TextUtils.isEmpty(cellInfo.value.trim())) {
-            drawPadding = (int) (this.drawPadding * config.getZoom());
-        }
-        Paint.Align textAlign;
-        if (cellInfo.data.getTextAlignment() != null) {
-            textAlign = cellInfo.data.getTextAlignment();
         } else {
-            textAlign = table.getHecomStyle().getAlign();
-        }
-        int imgRight = 0, imgLeft = 0;
-        switch (icon.getDirection()) {//单元格icon的相对位置
-            case Cell.Icon.LEFT:
-                this.rect.set(rect.left + (imgWidth + drawPadding), rect.top, rect.right,
-                        rect.bottom);
-                textDrawFormat.draw(c, this.rect, cellInfo, config);
-                textWidth = getDrawWidth(cellInfo);
-                switch (textAlign) { //单元格内容的对齐方式
-                    case CENTER:
-                        imgRight = Math.min(this.rect.right,
-                                (this.rect.right + this.rect.left - textWidth) / 2) - drawPadding;
-                        break;
-                    case LEFT:
-                        imgRight = this.rect.left - drawPadding;
-                        break;
-                    case RIGHT:
-                        imgRight = this.rect.right - textWidth - drawPadding;
-                        break;
-                }
-                this.rect.set(imgRight - imgWidth, rect.top, imgRight, rect.bottom);
-                this.drawImg(c, this.rect, cellInfo, config);
-                break;
-            case Cell.Icon.RIGHT:
-                this.rect.set(rect.left, rect.top, rect.right - (imgWidth + drawPadding),
-                        rect.bottom);
-                textDrawFormat.draw(c, this.rect, cellInfo, config);
-                textWidth = getDrawWidth(cellInfo);
-                switch (textAlign) { //单元格内容的对齐方式
-                    case CENTER:
-                        imgLeft = Math.min(this.rect.right,
-                                (this.rect.right + this.rect.left + textWidth) / 2) + drawPadding;
-                        break;
-                    case LEFT:
-                        imgLeft = this.rect.left + textWidth + drawPadding;
-                        break;
-                    case RIGHT:
-                        imgLeft = this.rect.right + drawPadding;
-                        break;
-                }
-                this.rect.set(imgLeft, rect.top, imgLeft + imgWidth, rect.bottom);
-                this.drawImg(c, this.rect, cellInfo, config);
-                break;
-            case Cell.Icon.TOP:
-                this.rect.set(rect.left, rect.top + (imgHeight + drawPadding) / 2, rect.right,
-                        rect.bottom);
-                textDrawFormat.draw(c, this.rect, cellInfo, config);
-                int imgBottom = (rect.top + rect.bottom) / 2 - textDrawFormat.measureHeight
-                        (cellInfo.column, cellInfo.row, config) / 2 + drawPadding;
-                this.rect.set(rect.left, imgBottom - imgHeight, rect.right, imgBottom);
-                this.drawImg(c, this.rect, cellInfo, config);
-                break;
-            case Cell.Icon.BOTTOM:
-                this.rect.set(rect.left, rect.top, rect.right, rect.bottom - (imgHeight +
-                        drawPadding) / 2);
-                textDrawFormat.draw(c, this.rect, cellInfo, config);
-                int imgTop = (rect.top + rect.bottom) / 2 + textDrawFormat.measureHeight
-                        (cellInfo.column, cellInfo.row, config) / 2 - drawPadding;
-                this.rect.set(rect.left, imgTop, rect.right, imgTop + imgHeight);
-                this.drawImg(c, this.rect, cellInfo, config);
-                break;
+            setImageWidth(icon.getWidth());
+            setImageHeight(icon.getHeight());
 
+            int imgWidth = (int) (getImageWidth() * config.getZoom());
+            int imgHeight = (int) (getImageHeight() * config.getZoom());
+
+            int textWidth, drawPadding = 0;
+            if (!TextUtils.isEmpty(cellInfo.value.trim())) {
+                drawPadding = (int) (this.drawPadding * config.getZoom());
+            }
+            Paint.Align textAlign;
+            if (cellInfo.data.getTextAlignment() != null) {
+                textAlign = cellInfo.data.getTextAlignment();
+            } else {
+                textAlign = table.getHecomStyle().getAlign();
+            }
+            int imgRight = 0, imgLeft = 0;
+            switch (icon.getDirection()) {//单元格icon的相对位置
+                case Cell.Icon.LEFT:
+                    this.rect.set(rect.left + (imgWidth + drawPadding), rect.top, rect.right,
+                            rect.bottom);
+                    textDrawFormat.draw(c, this.rect, cellInfo, config);
+                    textWidth = getDrawWidth(cellInfo);
+                    switch (textAlign) { //单元格内容的对齐方式
+                        case CENTER:
+                            imgRight = Math.min(this.rect.right,
+                                    (this.rect.right + this.rect.left - textWidth) / 2) - drawPadding;
+                            break;
+                        case LEFT:
+                            imgRight = this.rect.left - drawPadding;
+                            break;
+                        case RIGHT:
+                            imgRight = this.rect.right - textWidth - drawPadding;
+                            break;
+                    }
+                    this.rect.set(imgRight - imgWidth, rect.top, imgRight, rect.bottom);
+                    this.drawImg(c, this.rect, cellInfo, config);
+                    break;
+                case Cell.Icon.RIGHT:
+                    this.rect.set(rect.left, rect.top, rect.right - (imgWidth + drawPadding),
+                            rect.bottom);
+                    textDrawFormat.draw(c, this.rect, cellInfo, config);
+                    textWidth = getDrawWidth(cellInfo);
+                    switch (textAlign) { //单元格内容的对齐方式
+                        case CENTER:
+                            imgLeft = Math.min(this.rect.right,
+                                    (this.rect.right + this.rect.left + textWidth) / 2) + drawPadding;
+                            break;
+                        case LEFT:
+                            imgLeft = this.rect.left + textWidth + drawPadding;
+                            break;
+                        case RIGHT:
+                            imgLeft = this.rect.right + drawPadding;
+                            break;
+                    }
+                    this.rect.set(imgLeft, rect.top, imgLeft + imgWidth, rect.bottom);
+                    this.drawImg(c, this.rect, cellInfo, config);
+                    break;
+                case Cell.Icon.TOP:
+                    this.rect.set(rect.left, rect.top + (imgHeight + drawPadding) / 2, rect.right,
+                            rect.bottom);
+                    textDrawFormat.draw(c, this.rect, cellInfo, config);
+                    int imgBottom = (rect.top + rect.bottom) / 2 - textDrawFormat.measureHeight
+                            (cellInfo.column, cellInfo.row, config) / 2 + drawPadding;
+                    this.rect.set(rect.left, imgBottom - imgHeight, rect.right, imgBottom);
+                    this.drawImg(c, this.rect, cellInfo, config);
+                    break;
+                case Cell.Icon.BOTTOM:
+                    this.rect.set(rect.left, rect.top, rect.right, rect.bottom - (imgHeight +
+                            drawPadding) / 2);
+                    textDrawFormat.draw(c, this.rect, cellInfo, config);
+                    int imgTop = (rect.top + rect.bottom) / 2 + textDrawFormat.measureHeight
+                            (cellInfo.column, cellInfo.row, config) / 2 - drawPadding;
+                    this.rect.set(rect.left, imgTop, rect.right, imgTop + imgHeight);
+                    this.drawImg(c, this.rect, cellInfo, config);
+                    break;
+
+            }
+        }
+        if (cellInfo.data.getFloatIcon() != null) {
+            Rect floadRect = getRect(rect, cellInfo);
+            this.drawFloatIcon(c, cellInfo.data.getFloatIcon(), floadRect, cellInfo, config);
+        }
+    }
+
+    private static @NonNull Rect getRect(Rect rect, CellInfo<Cell> cellInfo) {
+        Rect floadRect = new Rect();
+        Cell.FloatIcon floatIcon = cellInfo.data.getFloatIcon();
+        int top = floatIcon.getTop();
+        int bottom = floatIcon.getBottom();
+        int left = floatIcon.getLeft();
+        int right = floatIcon.getRight();
+        int width = floatIcon.getWidth();
+        int height = floatIcon.getHeight();
+        if (top != -1) {
+            if (left != -1) {
+                floadRect.set(
+                rect.left + left,
+                rect.top + top,
+               rect.left + left + width,
+             rect.top + top + height
+                );
+            } else if (right != -1) {
+                floadRect.set(
+                rect.right - right - width,
+                rect.top + top,
+                rect.right - right,
+                rect.top + top + height
+                );
+            }
+        } else if (bottom != -1) {
+            if (left != -1) {
+                floadRect.set(
+                        rect.left + left,
+                        rect.bottom - bottom - height,
+                        rect.left + left + width,
+                        rect.bottom - bottom
+                );
+            } else if (right != -1) {
+                floadRect.set(
+                        rect.right - right - width,
+                        rect.bottom - bottom - height,
+                        rect.right - right,
+                        rect.bottom - bottom
+                );
+            }
+        }
+        return floadRect;
+    }
+
+    private void drawFloatIcon(Canvas c, Cell.FloatIcon floatIcon, Rect rect, CellInfo<Cell> cellInfo , TableConfig config) {
+        Paint paint = config.getPaint();
+        int imageWidth = floatIcon.getWidth();
+        int imageHeight = floatIcon.getHeight();
+        Rect imgRect = new Rect();
+        Rect drawRect = new Rect();
+        Bitmap bitmap =this.getBitmapFromUri(floatIcon.getPath().getUri(), imageWidth, imageHeight);
+        if(bitmap != null) {
+            paint.setColor(Color.BLACK);
+            paint.setStyle(Paint.Style.FILL);
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            imgRect.set(0,0,width,height);
+            float scaleX = (float)width/imageWidth;
+            float scaleY = (float)height/imageHeight;
+            if(scaleX >1 || scaleY >1){
+                if(scaleX > scaleY){
+                    width = (int) (width/scaleX);
+                    height = imageHeight;
+                }else{
+                    height = (int) (height/scaleY);
+                    width = imageWidth;
+                }
+            }
+            width= (int) (width*config.getZoom());
+            height = (int) (height*config.getZoom());
+            int disX= (rect.right-rect.left-width)/2;
+            int disY= (rect.bottom-rect.top-height)/2;
+            drawRect.left = rect.left+disX;
+            drawRect.top = rect.top+ disY;
+            drawRect.right = rect.right - disX;
+            drawRect.bottom = rect.bottom - disY;
+            c.drawBitmap(bitmap, imgRect, drawRect, paint);
         }
     }
 
