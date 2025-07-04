@@ -65,6 +65,7 @@ public class BackgroundFormat extends BaseCellBackgroundFormat<CellInfo> {
             bgPaint.setColor(color);
             this.setShader(t, rect, bgPaint);
             canvas.drawRect(rect, bgPaint);
+            bgPaint.setShader(null);
         }
         this.drawProgress(canvas, rect, t);
     }
