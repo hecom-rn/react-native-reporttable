@@ -222,9 +222,11 @@ public class HecomTable extends SmartTable<Cell> {
             }
             Column column = columns.get(col);
             // 计算按比例缩小的宽度
-            float resizeOffset = column.getComputeWidth() * 1f / (totalColumnWidth - resizedTotalWidth) * (totalOffsetWidth - resizedOffsetWidth);
+            float resizeOffset =
+                    column.getComputeWidth() * 1f / (totalColumnWidth - resizedTotalWidth) * (totalOffsetWidth - resizedOffsetWidth);
             // 实际缩小后的宽度不能小于最小宽度
-            int resizeWidth = Math.max(minWidth, (int) Math.floor(column.getComputeWidth() - resizeOffset));
+            int resizeWidth = Math.max(minWidth,
+                    (int) Math.floor(column.getComputeWidth() - resizeOffset));
             // 累加已经处理的列宽和已经处理的偏移量
             resizedTotalWidth += resizeWidth;
             resizedOffsetWidth += column.getComputeWidth() - resizeWidth;
@@ -235,6 +237,23 @@ public class HecomTable extends SmartTable<Cell> {
             List<Cell> cells = column.getDatas();
             for (int i = 0; i < cells.size(); i++) {
                 cells.get(i).setCache(null);
+            }
+        }
+        float ratio = 1f * viewWidth / columnTotalWidth; // 计算缩放比例
+        if (ratio < 1) {
+            for (int col = totalColumn; col < columns.size(); col++) {
+                Column column = columns.get(col);
+                int resizeWidth = Math.max(minWidth,
+                        (int) Math.floor(column.getComputeWidth() * ratio));
+
+                this.resizeColumns.put(column.getColumn(), resizeWidth);
+                if (resizeWidth < column.getMinWidth()) {
+                    column.setMinWidth(resizeWidth);
+                }
+                List<Cell> cells = column.getDatas();
+                for (int i = 0; i < cells.size(); i++) {
+                    cells.get(i).setCache(null);
+                }
             }
         }
         notifyDataChanged();
