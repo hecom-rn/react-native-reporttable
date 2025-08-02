@@ -521,11 +521,21 @@
                     }
                 }
             } else if (self.reportTableModel.frozenCount >= newFrozenColums) {
-                self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums 
-                    ? [self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt: self.reportTableModel.oriFrozenColumns]] ? self.reportTableModel.oriFrozenColumns : 0
-                    : newFrozenColums;
-                [self.spreadsheetView reloadData];
-                [self scrollViewDidZoom: self];
+                BOOL willUnLock = self.reportTableModel.frozenColumns >= newFrozenColums;
+                float frozenWidth = 0;
+                for (int i = 0; i < newFrozenColums; i++) {
+                    frozenWidth += [self.rowsWidth[i] floatValue];
+                }
+                if (!willUnLock && frozenWidth * self.zoomScale > self.reportTableModel.tableRect.size.width - 40) {
+                    [self hideAllToasts];
+                    [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
+                } else {
+                    self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums
+                        ? [self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt: self.reportTableModel.oriFrozenColumns]] ? self.reportTableModel.oriFrozenColumns : 0
+                        : newFrozenColums;
+                    [self.spreadsheetView reloadData];
+                    [self scrollViewDidZoom: self];
+                }
             }
         }
     }
