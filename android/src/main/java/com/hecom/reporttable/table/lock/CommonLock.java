@@ -57,7 +57,6 @@ public class CommonLock extends Locker {
         List<Column> columns = table.getTableData().getColumns();
 
         int firstColumnMaxMerge = getFirstColMaxMerge(col);
-        int frozenIndex = frozenColumns;
         if (firstColumnMaxMerge > 0) {
             if (curFixedColumnIndex == -1 || col > curFixedColumnIndex) {
                 //前面列全部锁定
@@ -73,7 +72,7 @@ public class CommonLock extends Locker {
                 curFixedColumnIndex = col;
             } else {
                 //全部列取消锁定
-                for (int i = frozenIndex; i <= firstColumnMaxMerge; i++) {
+                for (int i = 0; i <= firstColumnMaxMerge; i++) {
                     this.changeLock(columns, i, false);
                 }
                 curFixedColumnIndex = -1;
@@ -94,7 +93,7 @@ public class CommonLock extends Locker {
             curFixedColumnIndex = col;
         } else {
             //全部列取消锁定
-            for (int i = frozenIndex; i <= col; i++) {
+            for (int i = 0; i <= col; i++) {
                 this.changeLock(columns, i, false);
             }
             curFixedColumnIndex = -1;
