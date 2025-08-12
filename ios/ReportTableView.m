@@ -361,21 +361,16 @@
     if (model.floatIcon != nil) {
         cell.floatIcon = model.floatIcon;
     }
-    if (row == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
-        if (self.reportTableModel.permutable) {
+    if (row == 0) {
+        if (self.reportTableModel.permutable && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
             if (column >= self.reportTableModel.oriFrozenColumns) {
                 BOOL isLocked = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns > column;
                 cell.isLocked = isLocked;
             }
         } else {
-            if (self.reportTableModel.frozenPoint > 0) {
-                if (column == self.reportTableModel.frozenPoint - model.horCount) {
-                    cell.isLocked = column == self.reportTableModel.frozenColumns - model.horCount;
-                }
-            } else if (self.reportTableModel.frozenCount > 0) {
-                if (column < self.reportTableModel.frozenCount) {
-                    cell.isLocked = column < self.reportTableModel.frozenColumns;
-                }
+            NSDictionary *frozenConfig = [self.reportTableModel.frozenAbility objectForKey:[NSString stringWithFormat:@"%d", column]];
+            if (frozenConfig && column > self.reportTableModel.oriFrozenColumns - 1) {
+                cell.isLocked = [[frozenConfig objectForKey:@"locked"] boolValue];
             }
         }
     }
@@ -463,8 +458,8 @@
         });
     }
     // 处理锁定
-    if (row == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
-        if (self.reportTableModel.permutable) {
+    if (row == 0) {
+        if (self.reportTableModel.permutable && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:column + 1]]) {
             if (column >= self.reportTableModel.oriFrozenColumns) {
                 BOOL isLocked = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns > column;
                 if (isLocked) {
@@ -504,24 +499,9 @@
             }
         } else {
             NSInteger newFrozenColums = column + model.horCount;
-            if (self.reportTableModel.frozenPoint > 0) {
-                if (newFrozenColums == self.reportTableModel.frozenPoint) {
-                    BOOL willUnLock = self.reportTableModel.frozenColumns == self.reportTableModel.frozenPoint;
-                    float frozenWidth = 0;
-                    for (int i = 0; i < newFrozenColums; i++) {
-                        frozenWidth += [self.rowsWidth[i] floatValue];
-                    }
-                    if (!willUnLock && frozenWidth * self.zoomScale > self.reportTableModel.tableRect.size.width - 40) {
-                        [self hideAllToasts];
-                        [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
-                    } else {
-                        self.reportTableModel.frozenColumns = willUnLock ? self.reportTableModel.oriFrozenColumns : self.reportTableModel.frozenPoint;
-                        [self.spreadsheetView reloadData];
-                        [self scrollViewDidZoom: self];
-                    }
-                }
-            } else if (self.reportTableModel.frozenCount >= newFrozenColums) {
-                BOOL willUnLock = self.reportTableModel.frozenColumns >= newFrozenColums;
+            NSDictionary *frozenConfig = [self.reportTableModel.frozenAbility objectForKey:[NSString stringWithFormat:@"%d", newFrozenColums - 1]];
+            if (frozenConfig && newFrozenColums > self.reportTableModel.oriFrozenColumns) {
+                BOOL willUnLock = [[frozenConfig objectForKey:@"locked"] boolValue];
                 float frozenWidth = 0;
                 for (int i = 0; i < newFrozenColums; i++) {
                     frozenWidth += [self.rowsWidth[i] floatValue];
@@ -530,9 +510,8 @@
                     [self hideAllToasts];
                     [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
                 } else {
-                    self.reportTableModel.frozenColumns = self.reportTableModel.frozenColumns == newFrozenColums
-                        ? [self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt: self.reportTableModel.oriFrozenColumns]] ? self.reportTableModel.oriFrozenColumns : 0
-                        : newFrozenColums;
+                    self.reportTableModel.frozenColumns = willUnLock ? self.reportTableModel.oriFrozenColumns : newFrozenColums;
+                    [frozenConfig setValue: willUnLock ? @NO : @YES forKey:@"locked"];
                     [self.spreadsheetView reloadData];
                     [self scrollViewDidZoom: self];
                 }

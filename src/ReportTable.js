@@ -84,6 +84,18 @@ export default class ReportTable extends React.Component{
         this.props?.onContentSize(nativeEvent);
     }
 
+    convertFrozenAbility = () => {
+        const { frozenAbility, frozenPoint, frozenCount } = this.props;
+        const oriAbility = frozenPoint
+            ? { [`${frozenPoint - 1}`]: { locked: false } }
+            : frozenCount
+            ? new Array(frozenCount)
+                  .fill(false)
+                  .reduce((p, c, i) => Object.assign(p, { [`${i}`]: { locked: false } }), {})
+            : {};
+        return frozenAbility || oriAbility;
+    };
+
     render() {
         return (
             <View style={{flex: 1}}>
@@ -92,6 +104,7 @@ export default class ReportTable extends React.Component{
                     {...this.props}
                     itemConfig={{ ...itemConfig, ...this.props.itemConfig }}
                     onContentSize={this.onContentSize}
+                    frozenAbility={this.convertFrozenAbility()}
                 />
             </View>
         );

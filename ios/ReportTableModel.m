@@ -105,13 +105,6 @@
     return _frozenRows;
 }
 
-- (NSInteger)frozenPoint {
-    if (!_frozenPoint) {
-          return 0;
-    }
-    return _frozenPoint;
-}
-
 @end
 
 

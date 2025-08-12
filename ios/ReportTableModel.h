@@ -149,17 +149,16 @@ typedef NS_OPTIONS(NSUInteger, ClassificationLinePosition) {
 @property (nonatomic, copy) RCTDirectEventBlock onContentSize;
 @property (nonatomic, strong) UIColor *lineColor;
 @property (nonatomic, assign) CGRect tableRect;
-@property (nonatomic, assign) NSInteger frozenCount;
-@property (nonatomic, assign) NSInteger frozenPoint;
 @property (nonatomic, strong) ItemModel *itemConfig;
 @property (nonatomic, strong) NSArray *ignoreLocks;
 @property (nonatomic, strong) NSDictionary *replenishColumnsWidthConfig;
 @property (nonatomic, strong) ProgressStyle *progressStyle;
 @property (nonatomic, strong) NSDictionary *columnsWidthMap;
+@property (nonatomic, strong) NSDictionary *frozenAbility;
 /*
 *  是可排列的，仅支持不包含合并单元格的表
 *  开启后，每列表头显示锁定按钮🔒，锁定后可冻结指定列
-*  开启后 frozenColumns生效，frozenPoint和 frozenCount 失效
+*  开启后 frozenColumns生效
 *  frozenColumns 不显示锁定按钮，始终冻结
 */
 @property (nonatomic, assign) BOOL permutable;

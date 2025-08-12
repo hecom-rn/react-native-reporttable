@@ -327,16 +327,8 @@
     [self reloadCheck];
 }
 
-- (void)setFrozenCount:(NSInteger)frozenCount {
-    self.reportTableModel.frozenCount = frozenCount;
-    self.reportTableModel.frozenColumns = self.reportTableModel.oriFrozenColumns;
-    self.propertyCount += 1;
-    [self reloadCheck];
-}
-
-- (void)setFrozenPoint:(NSInteger)frozenPoint {
-    self.reportTableModel.frozenPoint = frozenPoint;
-    self.reportTableModel.frozenColumns = self.reportTableModel.oriFrozenColumns;
+- (void)setFrozenAbility:(NSDictionary *)frozenAbility {
+    self.reportTableModel.frozenAbility = frozenAbility;
     self.propertyCount += 1;
     [self reloadCheck];
 }
@@ -374,7 +366,7 @@
 }
 
 - (void)reloadCheck {
-    if (self.propertyCount >= 22) {
+    if (self.propertyCount >= 21) {
         self.propertyCount = 0;
         [self integratedDataSource];
     }
@@ -488,18 +480,15 @@
             NSInteger mergeNum = mergeLen.count > j ? [mergeLen[j] intValue] : 1;
             ItemModel *model = modelArr[j];
             NSDictionary *dir = dataSource[i][j];
+            NSDictionary *frozenConfig = [self.reportTableModel.frozenAbility objectForKey:[NSString stringWithFormat:@"%d", j]];
             BOOL showLock = false;
-            if (i == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:j + 1]]) {
-                if (self.reportTableModel.permutable) {
+            if (i == 0) {
+                if (self.reportTableModel.permutable && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:j + 1]]) {
                     if (j >= self.reportTableModel.frozenColumns) {
                         showLock = true;
                     }
-                } else {
-                    if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
-                        showLock = true;
-                    } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
-                        showLock = true;
-                    } 
+                } else if (frozenConfig) {
+                    showLock = true;
                 }
             }
             CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
@@ -647,18 +636,15 @@
                         NSInteger mergeNum = mergeLen.count > j ? [mergeLen[j] intValue] : 1;
                         ItemModel *model = self.dataSource[i][j];
                         NSDictionary *dir = dataSource[i][j];
+                        NSDictionary *frozenConfig = [self.reportTableModel.frozenAbility objectForKey:[NSString stringWithFormat:@"%d", j]];
                         BOOL showLock = false;
-                        if (i == 0 && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:j + 1]]) {
-                            if (self.reportTableModel.permutable) {
+                        if (i == 0) {
+                            if (self.reportTableModel.permutable && ![self.reportTableModel.ignoreLocks containsObject: [NSNumber numberWithInt:j + 1]]) {
                                 if (j >= self.reportTableModel.frozenColumns) {
                                     showLock = true;
                                 }
-                            } else {
-                                if (self.reportTableModel.frozenPoint > 0 && j + 1 == self.reportTableModel.frozenPoint) {
-                                    showLock = true;
-                                } else if (self.reportTableModel.frozenCount > 0 && j < self.reportTableModel.frozenCount) {
-                                    showLock = true;
-                                }
+                            } else if (frozenConfig) {
+                                showLock = true;
                             }
                         }
                         CGFloat imageIconWidth = (showLock ? 13 : model.iconStyle != nil ? model.iconStyle.size.width + model.iconStyle.paddingHorizontal : 0);
@@ -725,6 +711,42 @@
         // 如果有合并的则让permutable失效
         self.reportTableModel.permutable = NO;
     }
+    
+    // 给合并单元格的补全frozenAbility
+    NSMutableDictionary *nextFrozenAbility = [NSMutableDictionary dictionaryWithDictionary: self.reportTableModel.frozenAbility];
+    for (ForzenRange *forzenRange in frozenArray) {
+        if (forzenRange.startX == 0) {
+            for (NSString *key in self.reportTableModel.frozenAbility) {
+                if ([key integerValue] > forzenRange.startY && [key intValue] <= forzenRange.endY) {
+                    NSDictionary *value = self.reportTableModel.frozenAbility[key];
+                    [nextFrozenAbility setValue: value forKey: [NSString stringWithFormat:@"%d", forzenRange.startY]];
+                }
+            }
+        }
+    }
+    self.reportTableModel.frozenAbility = nextFrozenAbility;
+    
+    if (self.reportTableModel.frozenAbility) {
+        NSInteger maxKey = 0;
+        for (NSString *key in self.reportTableModel.frozenAbility) {
+            NSDictionary *value = self.reportTableModel.frozenAbility[key];
+            BOOL locked = [value[@"locked"] boolValue];
+            NSInteger nextfrozenColumns = [key integerValue] + 1; // frozenAbility 是从0开始的
+            if (locked) {
+                if (maxKey == nil) {
+                    maxKey = nextfrozenColumns;
+                } else {
+                    if (maxKey < nextfrozenColumns) {
+                        maxKey = nextfrozenColumns;
+                    }
+                }
+            }
+        }
+        if (maxKey > 0) {
+            self.reportTableModel.frozenColumns = maxKey;
+        }
+    }
+    
     self.reportTableView.reportTableModel = self.reportTableModel;
     
 }

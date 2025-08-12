@@ -11,8 +11,8 @@ declare module "@hecom/react-native-report-table" {
         minWidth?: number;
         minHeight?: number;
         maxWidth?: number;
-        frozenColumns?: number; // 冻结前几列，不显示🔓 ，且不可取消
-        frozenRows?: number; // 冻结前几行，不显示🔓， 且不可取消
+        frozenColumns?: number; // 冻结前几列，不显示🔓 ，且不可取消 从1开始
+        frozenRows?: number; // 冻结前几行，不显示🔓， 且不可取消 从1开始
         onClickEvent?: (item: ItemClick) => void;
         onScrollEnd?: (isEnd: boolean) => void;
         onScroll?: (pro: ScrollPro) => void;
@@ -36,6 +36,14 @@ declare module "@hecom/react-native-report-table" {
         permutable?: boolean;
 
         /*
+         *  锁定能力  [columns: string]从0开始算
+         *  设置后对应列显示锁定按钮，根据locked显示锁定状态，锁定后可冻结/解锁对应的前几列
+         *  frozenColumns 不显示锁定按钮，始终冻结，优先级比其高
+         */
+        frozenAbility?: {[columns: string]: { locked: boolean }};
+
+        /*
+         *  @deprecated  @see frozenAbility
          *  首行 指定列支持冻结  第一优先  使用指定列后显示带🔓的icon  默认不锁定
          *  frozenColumns 与 frozenPoint 相等时，可显示🔒
          *  取消锁定后冻结frozenColumns生效的列
@@ -43,6 +51,7 @@ declare module "@hecom/react-native-report-table" {
         frozenPoint?: number; // 均从1开始算
 
         /*
+         *  @deprecated  @see frozenAbility
          *  首行前几列支持冻结  第二优先  使用前几列均显示带🔓的icon
          *  使用frozenColumns比frozenCount小时，可使🔒
          *  功能：锁定后冻结会点击列的之前所有的列
