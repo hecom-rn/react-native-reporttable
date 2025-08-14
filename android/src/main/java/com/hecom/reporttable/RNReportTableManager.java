@@ -8,6 +8,7 @@ import android.text.TextUtils;
 
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -30,7 +31,6 @@ import java.util.Set;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 
 public class RNReportTableManager extends SimpleViewManager<HecomTable> {
     private ThemedReactContext mReactContext;
@@ -143,10 +143,10 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
 
     @ReactProp(name = "frozenAbility")
     public void setFrozenAbility(HecomTable view, ReadableMap frozenAbility) {
-        if (frozenAbility!= null) {
+        if (frozenAbility != null) {
             Map<Integer, FrozenConfigItem> ability = new HashMap<>();
-            ReadableMapKeySetIterator iterator  = frozenAbility.keySetIterator();
-            while(iterator.hasNextKey()){
+            ReadableMapKeySetIterator iterator = frozenAbility.keySetIterator();
+            while (iterator.hasNextKey()) {
                 String key = iterator.nextKey();
                 ReadableMap item = frozenAbility.getMap(key);
                 FrozenConfigItem config = new FrozenConfigItem();
@@ -154,7 +154,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
                 if (item.hasKey("locked")) {
                     config.setLocked(item.getBoolean("locked"));
                 }
-                ability.put(config.getColumn(),config);
+                ability.put(config.getColumn(), config);
             }
             view.getLockHelper().setAbility(ability);
         }
@@ -201,8 +201,8 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         }
         if (config.hasKey("textAlignment")) {
             int textAlignment = config.getInt("textAlignment");
-            Paint.Align align = textAlignment == 1 ? Paint.Align.CENTER :
-                    textAlignment == 2 ? Paint.Align.RIGHT : Paint.Align.LEFT;
+            Paint.Align align = textAlignment == 1 ? Paint.Align.CENTER
+                    : textAlignment == 2 ? Paint.Align.RIGHT : Paint.Align.LEFT;
             style.setAlign(align);
         }
         if (config.hasKey("isOverstriking")) {
@@ -213,7 +213,6 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
             setProgressStyle(view, config.getMap("progressStyle"));
         }
     }
-
 
     @ReactProp(name = "data")
     public void setData(HecomTable view, ReadableMap dataSource) {
@@ -257,10 +256,9 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         }
     }
 
-
     @Override
     public void receiveCommand(@NonNull HecomTable root, String commandId,
-                               @Nullable ReadableArray args) {
+            @Nullable ReadableArray args) {
         super.receiveCommand(root, commandId, args);
         switch (commandId) {
             case "scrollTo":
@@ -299,15 +297,15 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         }
         root.spliceDataArray(spliceItems);
 
-//        ReadableMap map = args.getMap(0);
-//        String data = map.getString("data");
-//        int y = map.getInt("y");
-//        int l = map.getInt("l");
-//        root.spliceData(data, y, l);
+        // ReadableMap map = args.getMap(0);
+        // String data = map.getString("data");
+        // int y = map.getInt("y");
+        // int l = map.getInt("l");
+        // root.spliceData(data, y, l);
     }
 
     private void processScrollTo(HecomTable root, ReadableArray args) {
-        //{ lineX: 0, lineY: 0, offsetX: 0, offsetY: 0, animated : true }
+        // { lineX: 0, lineY: 0, offsetX: 0, offsetY: 0, animated : true }
         TableInfo tableInfo = root.getTableData().getTableInfo();
         ReadableMap map = args.getMap(0);
         int lineX = map.getInt("lineX");
@@ -330,11 +328,9 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         }
     }
 
-
     private void processScrollToBottom(HecomTable root, ReadableArray args) {
         root.getMatrixHelper().flingBottom(300);
     }
-
 
     @Nullable
     @Override
