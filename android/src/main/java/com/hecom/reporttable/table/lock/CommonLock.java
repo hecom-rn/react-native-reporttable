@@ -4,6 +4,8 @@ import com.hecom.reporttable.form.data.CellRange;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.table.TableData;
 import com.hecom.reporttable.table.HecomTable;
+import com.hecom.reporttable.table.HecomTableData;
+import com.hecom.reporttable.table.bean.FrozenConfigItem;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,9 +16,7 @@ import java.util.Map;
  */
 public class CommonLock extends Locker {
 
-    public int frozenCount = 0;
-
-    public int frozenPoint = 0;
+    public Map<Integer, FrozenConfigItem> ability = null;
 
     private Map<Integer, Integer> colMaxMergeMap = new HashMap<>();
 
@@ -47,9 +47,7 @@ public class CommonLock extends Locker {
     }
 
     private void changeLock(List<Column> columns, int index, boolean lock) {
-        if (!this.ignore(index)) {
-            columns.get(index).setFixed(lock);
-        }
+        columns.get(index).setFixed(lock);
     }
 
     @Override
@@ -72,7 +70,7 @@ public class CommonLock extends Locker {
                 curFixedColumnIndex = col;
             } else {
                 //全部列取消锁定
-                for (int i = 0; i <= firstColumnMaxMerge; i++) {
+                for (int i = frozenColumns; i <= firstColumnMaxMerge; i++) {
                     this.changeLock(columns, i, false);
                 }
                 curFixedColumnIndex = -1;
@@ -93,7 +91,7 @@ public class CommonLock extends Locker {
             curFixedColumnIndex = col;
         } else {
             //全部列取消锁定
-            for (int i = 0; i <= col; i++) {
+            for (int i = frozenColumns; i <= col; i++) {
                 this.changeLock(columns, i, false);
             }
             curFixedColumnIndex = -1;
@@ -102,23 +100,41 @@ public class CommonLock extends Locker {
 
     @Override
     public boolean needShowLock(int col) {
-        boolean isLockItem;
-        int firstColumnMaxMerge = getFirstColMaxMerge(col);
-        if (frozenPoint > 0) {
-            if (firstColumnMaxMerge >= 0) {
-                col = firstColumnMaxMerge;
-            }
-            isLockItem = col == frozenPoint - 1;
-        } else if (frozenCount > 0) {
-            isLockItem = col < frozenCount;
-        } else {
-            isLockItem = false;
+        if (ability == null) {
+            return false;
         }
-        return isLockItem;
+        return ability.get(col) != null;
     }
 
     @Override
     public int getRawCol(int col) {
         return col;
+    }
+
+    @Override
+    public void reLock(HecomTableData newData) {
+        if (ability != null) {
+            List<CellRange> list = newData.getUserCellRange();
+            // 当存在合并单元格时，ability中只包含最后一列的配置，需要补全前面列的配置
+            for (int i = 0; i < list.size(); i++) {
+                CellRange cellRange = list.get(i);
+                if (cellRange.getFirstRow() == 0) {
+                    FrozenConfigItem item = ability.get(cellRange.getLastCol());
+                    if (item != null) {
+                        for (int j = cellRange.getFirstCol(); j < cellRange.getLastCol(); j++) {
+                            if (ability.get(j) == null) {
+                                FrozenConfigItem newItem = new FrozenConfigItem();
+                                newItem.setColumn(j);
+                                newItem.setLocked(item.isLocked());
+                                ability.put(j, newItem);
+                            }
+                        }
+                    }
+                }
+            }
+            for (FrozenConfigItem item : ability.values()) {
+                newData.getColumns().get(item.getColumn()).setFixed(item.isLocked());
+            }
+        }
     }
 }

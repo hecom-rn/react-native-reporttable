@@ -80,6 +80,7 @@ export default class ReportTableWrapper extends React.Component {
                     frozenPoint={this.props.frozenPoint}
                     frozenCount={this.props.frozenCount}
                     frozenColumns={this.props.frozenColumns}
+                    frozenAbility={this.props.frozenAbility}
                     permutable={this.props.permutable}
                     ignoreLocks={this.props.ignoreLocks}
                     doubleClickZoom={this.props.doubleClickZoom}

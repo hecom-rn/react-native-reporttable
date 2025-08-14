@@ -2,6 +2,7 @@ package com.hecom.reporttable.table.lock;
 
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.table.HecomTable;
+import com.hecom.reporttable.table.HecomTableData;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,6 +23,11 @@ public class PermutableLock extends Locker {
     @Override
     public int getRawCol(int col) {
         return table.getTableData().getColumns().get(col).getColumn();
+    }
+
+    @Override
+    public void reLock(HecomTableData newData) {
+
     }
 
     private Column findColumn(List<Column> list, int col){
@@ -72,6 +78,6 @@ public class PermutableLock extends Locker {
 
     @Override
     protected boolean needShowLock(int col) {
-        return col >= frozenColumns;
+        return !this.ignore(col) && col >= frozenColumns;
     }
 }

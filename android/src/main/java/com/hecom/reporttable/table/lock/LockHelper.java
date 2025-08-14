@@ -4,7 +4,9 @@ import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.HecomTableData;
 import com.hecom.reporttable.table.bean.Cell;
+import com.hecom.reporttable.table.bean.FrozenConfigItem;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -31,7 +33,7 @@ public class LockHelper extends Locker {
     }
 
     @Override
-    public void setFrozenColumns(int frozenColumns){
+    public void setFrozenColumns(int frozenColumns) {
         super.setFrozenColumns(frozenColumns);
         locker.setFrozenColumns(frozenColumns);
     }
@@ -62,19 +64,14 @@ public class LockHelper extends Locker {
         return locker.getRawCol(col);
     }
 
-    public void setPoint(int point) {
+    public void setAbility(Map<Integer, FrozenConfigItem> array) {
         if (locker instanceof CommonLock) {
-            ((CommonLock) locker).frozenPoint = point;
-        }
-    }
-
-    public void setCount(int count) {
-        if (locker instanceof CommonLock) {
-            ((CommonLock) locker).frozenCount = count;
+            ((CommonLock) locker).ability = array;
         }
     }
 
     public void reLock(HecomTableData newData) {
+        locker.reLock(newData);
         final HecomTableData oldData = (HecomTableData) this.table.getTableData();
         int arrayColumnSize = newData.getColumns().size();
         for (int i = 0; i < getFrozenColumns() && i < arrayColumnSize; i++) {

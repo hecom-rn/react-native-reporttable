@@ -1,6 +1,7 @@
 package com.hecom.reporttable.table.lock;
 
 import com.hecom.reporttable.table.HecomTable;
+import com.hecom.reporttable.table.HecomTableData;
 
 import java.util.Set;
 
@@ -52,7 +53,7 @@ public abstract class Locker {
     }
 
     public boolean needShowLock(int row, int col) {
-        if (row == 0 && !this.ignore(col)) {
+        if (row == 0) {
             return this.needShowLock(col);
         }
         return false;
@@ -63,4 +64,6 @@ public abstract class Locker {
     protected abstract boolean needShowLock(int col);
 
     public abstract int getRawCol(int col);
+
+    public abstract void reLock(HecomTableData newData);
 }

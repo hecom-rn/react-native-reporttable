@@ -17,11 +17,13 @@ import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomTable;
 import com.hecom.reporttable.table.bean.CellConfig;
+import com.hecom.reporttable.table.bean.FrozenConfigItem;
 import com.hecom.reporttable.table.bean.ProgressStyle;
 import com.hecom.reporttable.table.bean.ReplenishColumnsWidthConfig;
 import com.hecom.reporttable.table.bean.TableConfigBean;
 import com.hecom.reporttable.table.format.HecomStyle;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -139,16 +141,23 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
         view.getLockHelper().setFrozenColumns(frozenColumns);
     }
 
-
-    @ReactProp(name = "frozenPoint")
-    public void setFrozenPoint(HecomTable view, int frozenPoint) {
-        view.getLockHelper().setPoint(frozenPoint);
-    }
-
-
-    @ReactProp(name = "frozenCount")
-    public void setFrozenCount(HecomTable view, int frozenCount) {
-        view.getLockHelper().setCount(frozenCount);
+    @ReactProp(name = "frozenAbility")
+    public void setFrozenAbility(HecomTable view, ReadableMap frozenAbility) {
+        if (frozenAbility!= null) {
+            Map<Integer, FrozenConfigItem> ability = new HashMap<>();
+            ReadableMapKeySetIterator iterator  = frozenAbility.keySetIterator();
+            while(iterator.hasNextKey()){
+                String key = iterator.nextKey();
+                ReadableMap item = frozenAbility.getMap(key);
+                FrozenConfigItem config = new FrozenConfigItem();
+                config.setColumn(Integer.parseInt(key));
+                if (item.hasKey("locked")) {
+                    config.setLocked(item.getBoolean("locked"));
+                }
+                ability.put(config.getColumn(),config);
+            }
+            view.getLockHelper().setAbility(ability);
+        }
     }
 
     @ReactProp(name = "permutable")
