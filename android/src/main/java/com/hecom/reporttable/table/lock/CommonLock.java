@@ -133,7 +133,9 @@ public class CommonLock extends Locker {
                 }
             }
             for (FrozenConfigItem item : ability.values()) {
-                newData.getColumns().get(item.getColumn()).setFixed(item.isLocked());
+                for (int i = item.getColumn(); i >= frozenColumns; i--) {
+                    newData.getColumns().get(i).setFixed(item.isLocked());
+                }
             }
         }
     }
