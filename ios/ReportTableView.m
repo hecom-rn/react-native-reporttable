@@ -510,8 +510,34 @@
                     [self hideAllToasts];
                     [self makeToast:@"请缩小表格或旋转屏幕后再锁定"];
                 } else {
-                    self.reportTableModel.frozenColumns = willUnLock ? self.reportTableModel.oriFrozenColumns : newFrozenColums;
-                    [frozenConfig setValue: willUnLock ? @NO : @YES forKey:@"locked"];
+                    if (willUnLock) {
+                        // 修改所有比column大的列的locked
+                        [self.reportTableModel.frozenAbility enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+                            if (column <= [key integerValue]) {
+                                [obj setValue: @NO forKey:@"locked"];
+                            }
+                        }];
+                        NSInteger nextFrozenColums = self.reportTableModel.oriFrozenColumns;
+                        for (int i = self.reportTableModel.oriFrozenColumns; i < newFrozenColums; i++) {
+                            NSDictionary *config = [self.reportTableModel.frozenAbility objectForKey:[NSString stringWithFormat:@"%d", i]];
+                            if (config) {
+                                BOOL locked = [config[@"locked"] boolValue];
+                                if (locked) {
+                                    nextFrozenColums = i + 1;
+                                }
+                            }
+                        }
+                        self.reportTableModel.frozenColumns = nextFrozenColums;
+                    } else {
+                        // 修改所有比newFrozenColums小的列的locked状态
+                        for (int i = self.reportTableModel.oriFrozenColumns; i < newFrozenColums; i++) {
+                            NSDictionary *config = [self.reportTableModel.frozenAbility objectForKey:[NSString stringWithFormat:@"%d", i]];
+                            if (config) {
+                                [config setValue: @YES forKey:@"locked"];
+                            }
+                        }
+                        self.reportTableModel.frozenColumns = newFrozenColums;
+                    }
                     [self.spreadsheetView reloadData];
                     [self scrollViewDidZoom: self];
                 }

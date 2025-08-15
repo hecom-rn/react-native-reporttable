@@ -742,7 +742,7 @@
                 }
             }
         }
-        if (maxKey > 0) {
+        if (maxKey > self.reportTableModel.oriFrozenColumns) {
             self.reportTableModel.frozenColumns = maxKey;
         }
     }
