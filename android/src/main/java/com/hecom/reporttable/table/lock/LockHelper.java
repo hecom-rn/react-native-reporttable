@@ -66,7 +66,7 @@ public class LockHelper extends Locker {
 
     public void setAbility(Map<Integer, FrozenConfigItem> array) {
         if (locker instanceof CommonLock) {
-            ((CommonLock) locker).ability = array;
+            ((CommonLock) locker).setAbility(array);
         }
     }
 

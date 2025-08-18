@@ -16,11 +16,18 @@ import java.util.Map;
  */
 public class CommonLock extends Locker {
 
-    public Map<Integer, FrozenConfigItem> ability = null;
+    private Map<Integer, FrozenConfigItem> ability = null;
 
     private Map<Integer, Integer> colMaxMergeMap = new HashMap<>();
 
     private int curFixedColumnIndex;
+
+    private boolean needReLock = false;
+
+    public void setAbility(Map<Integer, FrozenConfigItem> ability) {
+        this.ability = ability;
+        this.needReLock = true;
+    }
 
     public CommonLock(HecomTable table) {
         super(table);
@@ -113,7 +120,8 @@ public class CommonLock extends Locker {
 
     @Override
     public void reLock(HecomTableData newData) {
-        if (ability != null) {
+        if (ability != null && needReLock) {
+            needReLock = false;
             List<CellRange> list = newData.getUserCellRange();
             // 当存在合并单元格时，ability中只包含最后一列的配置，需要补全前面列的配置
             for (int i = 0; i < list.size(); i++) {
