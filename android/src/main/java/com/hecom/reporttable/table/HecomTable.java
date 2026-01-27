@@ -5,9 +5,12 @@ import android.util.SparseIntArray;
 import android.view.ViewTreeObserver;
 
 import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.facebook.react.uimanager.UIManagerHelper;
+import com.facebook.react.uimanager.events.EventDispatcher;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.core.SmartTable;
 import com.hecom.reporttable.form.data.CellRange;
@@ -133,13 +136,30 @@ public class HecomTable extends SmartTable<Cell> {
                 map.putDouble("translateX", translateX);
                 map.putDouble("translateY", translateY);
                 map.putDouble("scale", scale);
-                context.getJSModule(RCTEventEmitter.class)
-                        .receiveEvent(getId(), "onScroll", map);
+//                context.getJSModule(RCTEventEmitter.class)
+//                        .receiveEvent(getId(), "onScroll", map);
+
+                final EventDispatcher mEventDispatcher =
+                        UIManagerHelper.getEventDispatcherForReactTag((ReactContext) context, getId());
+                mEventDispatcher.dispatchEvent(
+                        new TableEvent(
+                                UIManagerHelper.getSurfaceId(HecomTable.this),
+                                getId(),
+                                "topOnScroll",
+                                map));
+
                 MatrixHelper mh = getMatrixHelper();
                 boolean notBottom = (mh.getZoomRect().bottom - mh.getOriginalRect().bottom) > 0;
                 if (!notBottom) {
-                    (context).getJSModule(RCTEventEmitter.class)
-                            .receiveEvent(getId(), "onScrollEnd", null);
+//                    (context).getJSModule(RCTEventEmitter.class)
+//                            .receiveEvent(getId(), "onScrollEnd", null);
+
+                    mEventDispatcher.dispatchEvent(
+                            new TableEvent(
+                                    UIManagerHelper.getSurfaceId(HecomTable.this),
+                                    getId(),
+                                    "topOnScrollEnd",
+                                    null));
                 }
             }
         });
@@ -162,8 +182,16 @@ public class HecomTable extends SmartTable<Cell> {
                 WritableMap map = Arguments.createMap();
                 map.putDouble("width", widthDp);
                 map.putDouble("height", heightDp);
-                context.getJSModule(RCTEventEmitter.class)
-                        .receiveEvent(getId(), "onContentSize", map);
+//                context.getJSModule(RCTEventEmitter.class)
+//                        .receiveEvent(getId(), "onContentSize", map);
+                final EventDispatcher mEventDispatcher =
+                        UIManagerHelper.getEventDispatcherForReactTag((ReactContext) context, getId());
+                mEventDispatcher.dispatchEvent(
+                        new TableEvent(
+                                UIManagerHelper.getSurfaceId(HecomTable.this),
+                                getId(),
+                                "topOnContentSize",
+                                map));
             }
 
             @Override

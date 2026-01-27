@@ -336,10 +336,10 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
     @Override
     public Map<String, Object> getExportedCustomDirectEventTypeConstants() {
         return MapBuilder.<String, Object>builder()
-                .put("onClickEvent", MapBuilder.of("registrationName", "onClickEvent"))
-                .put("onScrollEnd", MapBuilder.of("registrationName", "onScrollEnd"))
-                .put("onScroll", MapBuilder.of("registrationName", "onScroll"))
-                .put("onContentSize", MapBuilder.of("registrationName", "onContentSize"))
+                .put("topClickOnItem", MapBuilder.of("registrationName", "onClickEvent"))
+                .put("topOnScrollEnd", MapBuilder.of("registrationName", "onScrollEnd"))
+                .put("topOnScroll", MapBuilder.of("registrationName", "onScroll"))
+                .put("topOnContentSize", MapBuilder.of("registrationName", "onContentSize"))
                 .build();
     }
 
