@@ -358,7 +358,7 @@
     model.backgroundColor = [self colorFromHex:[itemConfig objectForKey:@"backgroundColor"]];
     model.fontSize = [RCTConvert CGFloat:[itemConfig objectForKey:@"fontSize"]];
     model.textColor = [self colorFromHex:[itemConfig objectForKey:@"textColor"]];
-    model.textAlignment = [RCTConvert NSInteger:[itemConfig objectForKey:@"textAlignment"]];
+    model.textAlignment = (NSTextAlignment)[RCTConvert NSInteger:[itemConfig objectForKey:@"textAlignment"]];
     model.textPaddingHorizontal = [RCTConvert NSInteger:[itemConfig objectForKey:@"textPaddingHorizontal"]];
     
     model.classificationLineColor = [self colorFromHex:[itemConfig objectForKey:@"classificationLineColor"]];
@@ -775,12 +775,8 @@
             BOOL locked = [value[@"locked"] boolValue];
             NSInteger nextfrozenColumns = [key integerValue] + 1; // frozenAbility 是从0开始的
             if (locked) {
-                if (maxKey == nil) {
+                if (maxKey < nextfrozenColumns) {
                     maxKey = nextfrozenColumns;
-                } else {
-                    if (maxKey < nextfrozenColumns) {
-                        maxKey = nextfrozenColumns;
-                    }
                 }
             }
         }
@@ -813,7 +809,7 @@
     }
     model.textAlignment = model.itemConfig.textAlignment;
     if ([keys containsObject: @"textAlignment"]) {
-        model.textAlignment = [RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
+        model.textAlignment = (NSTextAlignment)[RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
     }
     if ([keys containsObject: @"classificationLinePosition"]) {
         model.classificationLinePosition = [RCTConvert NSInteger:[dir objectForKey:@"classificationLinePosition"]];
@@ -850,7 +846,7 @@
         NSArray *arr = [progressDic objectForKey:@"colors"];
         NSMutableArray *colors = [NSMutableArray arrayWithCapacity: arr.count];
         for (NSString *str in arr) {
-            [colors addObject:[self colorFromHex:str].CGColor];
+            [colors addObject:(__bridge id)[self colorFromHex:str].CGColor];
         }
         progressStyle.colors = colors;
         NSDictionary *antsLineDic = [progressDic objectForKey:@"antsLineStyle"] ? [RCTConvert NSDictionary:[progressDic objectForKey:@"antsLineStyle"]] : nil;
@@ -1006,7 +1002,7 @@
                 
                 // 自动使用 lineBreakMode aLine
                 NSDictionary *attributes = @{NSFontAttributeName: font};
-                NSMutableAttributedString *tagString = breakLine ? [[NSMutableAttributedString alloc] initWithString:isEmpty ? @"" : @"\n"attributes:attributes] : [[NSMutableAttributedString alloc] initWithString: tagTextWidth == 0 ? @"" : @" " attributes:attributes];
+                NSMutableAttributedString *tagString = breakLine ? [[NSMutableAttributedString alloc] initWithString:isEmpty ? @"" : @"\n" attributes:attributes] : [[NSMutableAttributedString alloc] initWithString: tagTextWidth == 0 ? @"" : @" " attributes:attributes];
                 [tagString appendAttributedString: [NSAttributedString attributedStringWithAttachment:attachment]];
                 [attributedText appendAttributedString: tagString];
             } else {
@@ -1044,9 +1040,7 @@
         NSRange displayRange = NSMakeRange(0, rect.size.width / attributedString.size.width * attributedString.length);
         // 截取并添加省略号
         truncatedText = [attributedString attributedSubstringFromRange:displayRange];
-        truncatedText = [NSString stringWithFormat:@"%@...", truncatedText.string];
-        
-        return truncatedText;
+        return [NSString stringWithFormat:@"%@...", truncatedText.string];
     }
     // 如果不需要截取直接返回原始文本
     return text;

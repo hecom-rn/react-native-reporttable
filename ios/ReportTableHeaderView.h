@@ -9,7 +9,7 @@
 #import <React/RCTBridgeModule.h>
 
 @interface ReportTableHeaderView: RCTView
-- (id)initWithBridge:(RCTBridge *)bridge;
++ (id)createWithBridge:(RCTBridge *)bridge;
 @end
 
 
