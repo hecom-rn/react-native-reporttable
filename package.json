@@ -15,10 +15,7 @@
   "codegenConfig": {
     "name": "ReportTableSpec",
     "type": "components",
-    "jsSrcsDir": "src",
-    "android": {
-      "javaPackageName": "com.hecom.reporttable"
-    }
+    "jsSrcsDir": "src"
   },
   "keywords": [
     "react-component",

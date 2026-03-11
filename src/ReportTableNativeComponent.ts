@@ -66,7 +66,7 @@ type ReplenishColumnsWidthConfig = Readonly<{
 }>;
 
 // ---- Component props ----
-export type NativeProps = ViewProps & {
+type NativeProps = ViewProps & {
     // Layout
     size?: SizeType;
     headerViewSize?: SizeType;
