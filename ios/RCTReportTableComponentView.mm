@@ -66,19 +66,13 @@ using namespace facebook::react;
     const auto &newProps = *std::static_pointer_cast<const ReportTableProps>(props);
 
     // ---- size ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->size != newProps.size) {
-        CGSize size = CGSizeMake(newProps.size.width, newProps.size.height);
-        [_viewModel setSize:size];
-    }
+    [_viewModel setSize:CGSizeMake(newProps.size.width, newProps.size.height)];
 
     // ---- headerViewSize ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->headerViewSize != newProps.headerViewSize) {
-        CGSize headerViewSize = CGSizeMake(newProps.headerViewSize.width, newProps.headerViewSize.height);
-        [_viewModel setHeaderViewSize:headerViewSize];
-    }
+    [_viewModel setHeaderViewSize:CGSizeMake(newProps.headerViewSize.width, newProps.headerViewSize.height)];
 
     // ---- data (JSON string → NSArray) ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->data != newProps.data) {
+    {
         NSString *dataStr = [NSString stringWithUTF8String:newProps.data.c_str()];
         NSArray *data = [self arrayFromJSONString:dataStr];
         if (data) {
@@ -87,82 +81,57 @@ using namespace facebook::react;
     }
 
     // ---- minWidth ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->minWidth != newProps.minWidth) {
-        [_viewModel setMinWidth:newProps.minWidth];
-    }
+    [_viewModel setMinWidth:newProps.minWidth];
 
     // ---- maxWidth ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->maxWidth != newProps.maxWidth) {
-        [_viewModel setMaxWidth:newProps.maxWidth];
-    }
+    [_viewModel setMaxWidth:newProps.maxWidth];
 
     // ---- minHeight ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->minHeight != newProps.minHeight) {
-        [_viewModel setMinHeight:newProps.minHeight];
-    }
+    [_viewModel setMinHeight:newProps.minHeight];
 
     // ---- frozenColumns ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->frozenColumns != newProps.frozenColumns) {
-        [_viewModel setFrozenColumns:newProps.frozenColumns];
-    }
+    [_viewModel setFrozenColumns:newProps.frozenColumns];
 
     // ---- frozenRows ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->frozenRows != newProps.frozenRows) {
-        [_viewModel setFrozenRows:newProps.frozenRows];
-    }
+    [_viewModel setFrozenRows:newProps.frozenRows];
 
     // ---- lineColor ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->lineColor != newProps.lineColor) {
-        NSString *color = [NSString stringWithUTF8String:newProps.lineColor.c_str()];
-        [_viewModel setLineColor:color];
-    }
+    [_viewModel setLineColor:[NSString stringWithUTF8String:newProps.lineColor.c_str()]];
 
     // ---- showBorder ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->showBorder != newProps.showBorder) {
-        [_viewModel setShowBorder:newProps.showBorder];
-    }
+    [_viewModel setShowBorder:newProps.showBorder];
 
     // ---- disableZoom ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->disableZoom != newProps.disableZoom) {
-        [_viewModel setDisableZoom:newProps.disableZoom];
-    }
+    [_viewModel setDisableZoom:newProps.disableZoom];
 
     // ---- permutable ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->permutable != newProps.permutable) {
-        [_viewModel setPermutable:newProps.permutable];
-    }
+    [_viewModel setPermutable:newProps.permutable];
 
     // ---- itemConfig ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->itemConfig != newProps.itemConfig) {
-        NSDictionary *itemConfig = [self itemConfigFromProps:newProps.itemConfig];
-        [_viewModel setItemConfig:itemConfig];
-    }
+    [_viewModel setItemConfig:[self itemConfigFromProps:newProps.itemConfig]];
 
     // ---- columnsWidthMap (JSON string → NSDictionary) ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->columnsWidthMap != newProps.columnsWidthMap) {
+    {
         NSString *jsonStr = [NSString stringWithUTF8String:newProps.columnsWidthMap.c_str()];
         NSDictionary *dict = [self dictionaryFromJSONString:jsonStr];
         [_viewModel setColumnsWidthMap:dict ?: @{}];
     }
 
     // ---- frozenAbility (JSON string → NSDictionary) ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->frozenAbility != newProps.frozenAbility) {
+    {
         NSString *jsonStr = [NSString stringWithUTF8String:newProps.frozenAbility.c_str()];
         NSDictionary *dict = [self dictionaryFromJSONString:jsonStr];
         [_viewModel setFrozenAbility:dict ?: @{}];
     }
 
     // ---- replenishColumnsWidthConfig ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->replenishColumnsWidthConfig != newProps.replenishColumnsWidthConfig) {
-        NSMutableDictionary *config = [NSMutableDictionary dictionary];
-        if (newProps.replenishColumnsWidthConfig.showNumber.has_value()) {
-            config[@"showNumber"] = @(newProps.replenishColumnsWidthConfig.showNumber.value());
-        }
+    {
+        NSDictionary *config = @{ @"showNumber": @(newProps.replenishColumnsWidthConfig.showNumber) };
         [_viewModel setReplenishColumnsWidthConfig:config];
     }
 
     // ---- ignoreLocks ----
-    if (!oldProps || std::static_pointer_cast<const ReportTableProps>(oldProps)->ignoreLocks != newProps.ignoreLocks) {
+    {
         NSMutableArray *ignoreLocks = [NSMutableArray array];
         for (auto val : newProps.ignoreLocks) {
             [ignoreLocks addObject:@(val)];
@@ -320,7 +289,7 @@ using namespace facebook::react;
  * Converts the codegen-generated ReportTableItemConfig C++ struct into
  * the NSDictionary format expected by -[ReportTableViewModel setItemConfig:].
  */
-- (NSDictionary *)itemConfigFromProps:(const ReportTableItemConfig &)cfg
+- (NSDictionary *)itemConfigFromProps:(const ReportTableItemConfigStruct &)cfg
 {
     NSMutableDictionary *dict = [NSMutableDictionary dictionary];
 
