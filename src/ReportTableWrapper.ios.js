@@ -25,25 +25,26 @@ export default class ReportTableWrapper extends React.Component{
 
     scrollTo = (params) => {
         const { lineX = 0, lineY = 0, offsetX = 0, offsetY = 0, animated = true } = params || {};
-        this.table.scrollTo([lineX, lineY, offsetX, offsetY, animated]);
+        // Pass as array for backward compat with ReportTableView.ios.js
+        this.table && this.table.scrollTo([lineX, lineY, offsetX, offsetY, animated]);
     }
 
     spliceData = (params) => {
-        this.table.spliceData([params]);
+        this.table && this.table.spliceData([params]);
     }
-    
+
     updateData = (params) => {
-        this.table.updateData([params.data, params.y, params.x]);
+        this.table && this.table.updateData([params.data, params.y, params.x]);
     }
 
     scrollToBottom = () => {
-        this.table.scrollToBottom();
+        this.table && this.table.scrollToBottom();
     }
 
     onClickEvent = ({nativeEvent: {keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount}}) => {
         this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount});
     };
-    
+
     render() {
         return (
             <ReportTableView
@@ -57,3 +58,4 @@ export default class ReportTableWrapper extends React.Component{
         );
     }
 }
+

@@ -21,12 +21,21 @@
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 @property (nonatomic, assign) NSInteger propertyCount;
 @property (nonatomic, weak) RCTBridge *bridge;
-@property (nonatomic, strong) ReportTableHeaderView *headerView;
+// Typed as UIView so both RCTView (old arch) and RCTViewComponentView (new arch) are accepted.
+@property (nonatomic, strong) UIView *headerView;
 @property (nonatomic, assign) CGFloat dataHeight;
 
 @end
 
 @implementation ReportTableViewModel
+
+// Event block properties are declared in the header; synthesise storage here.
+// In old arch these are set by RCT_EXPORT_VIEW_PROPERTY; in new arch they are
+// wired up directly by RCTReportTableComponentView.
+@synthesize onClickEvent  = _onClickEvent;
+@synthesize onScrollEnd   = _onScrollEnd;
+@synthesize onScroll      = _onScroll;
+@synthesize onContentSize = _onContentSize;
 
 - (NSMutableArray<NSArray<ItemModel *> *> *)dataSource{
     if (!_dataSource) {
@@ -63,10 +72,20 @@
     }
 }
 
-- (id)initWithBridge:(RCTBridge *)bridge {
+- (id)initWithBridge:(nullable RCTBridge *)bridge {
     self = [super init];
     if (self) {
         self.bridge = bridge;
+        self.reportTableModel = [[ReportTableModel alloc] init];
+        self.propertyCount = 0;
+    }
+    return self;
+}
+
+/// Convenience initialiser used when running under Fabric (no bridge required).
+- (id)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
         self.reportTableModel = [[ReportTableModel alloc] init];
         self.propertyCount = 0;
     }
@@ -425,6 +444,29 @@
 - (void)scrollToBottom {
     [self.reportTableView scrollToBottom];
 }
+
+// ---------------------------------------------------------------------------
+#pragma mark - Fabric header-view mounting helpers
+// ---------------------------------------------------------------------------
+
+/// Accepts any UIView (including Fabric's RCTViewComponentView) as the header.
+- (void)mountHeaderView:(UIView *)headerView {
+    if (!headerView) return;
+    [headerView removeFromSuperview];
+    self.headerView = headerView;
+    [self.headerScrollView addSubview:self.headerView];
+}
+
+/// Removes the header view if it matches the currently installed one.
+- (void)unmountHeaderView:(UIView *)headerView {
+    if (self.headerView == headerView) {
+        [self.headerView removeFromSuperview];
+        self.headerView = nil;
+    } else {
+        [headerView removeFromSuperview];
+    }
+}
+
 
 - (void)integratedDataSource {
     NSMutableArray<NSArray *> *dataSource = [NSMutableArray arrayWithArray: self.reportTableModel.data];

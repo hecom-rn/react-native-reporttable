@@ -5,6 +5,9 @@
 //  Created by ms on 2019/11/21.
 //
 
+// Old-architecture bridge manager – not compiled when Fabric is enabled.
+#if !RCT_NEW_ARCH_ENABLED
+
 #import "ReportTableManager.h"
 #import <Foundation/Foundation.h>
 #import "ReportTableViewModel.h"
@@ -92,3 +95,5 @@ RCT_EXPORT_METHOD(scrollToBottom:(nonnull NSNumber*)reactTag) {
 
 
 @end
+
+#endif // !RCT_NEW_ARCH_ENABLED
