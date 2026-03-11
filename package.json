@@ -15,7 +15,12 @@
   "codegenConfig": {
     "name": "ReportTableSpec",
     "type": "components",
-    "jsSrcsDir": "src"
+    "jsSrcsDir": "src",
+    "ios": {
+      "componentProvider": {
+        "ReportTable": "RCTReportTableComponentView"
+      }
+    }
   },
   "keywords": [
     "react-component",

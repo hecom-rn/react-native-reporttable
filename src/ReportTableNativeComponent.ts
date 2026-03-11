@@ -3,6 +3,7 @@
  * Supports React Native New Architecture (RN 0.73+).
  */
 
+import type * as React from 'react';
 import type { HostComponent, ViewProps } from 'react-native';
 import type {
     DirectEventHandler,
@@ -66,7 +67,7 @@ type ReplenishColumnsWidthConfig = Readonly<{
 }>;
 
 // ---- Component props ----
-type NativeProps = ViewProps & {
+export interface NativeProps extends ViewProps {
     // Layout
     size?: SizeType;
     headerViewSize?: SizeType;
@@ -107,12 +108,14 @@ type NativeProps = ViewProps & {
     onScrollEnd?: DirectEventHandler<ScrollEventData>;
     onScroll?: DirectEventHandler<ScrollEventData>;
     onContentSize?: DirectEventHandler<ContentSizeEventData>;
-};
+}
+
+type ReportTableViewType = HostComponent<NativeProps>;
 
 // ---- Imperative commands ----
 export interface NativeCommands {
     scrollTo(
-        viewRef: React.RefObject<HostComponent<NativeProps>>,
+        viewRef: React.ElementRef<ReportTableViewType>,
         lineX: Int32,
         lineY: Int32,
         offsetX: Float,
@@ -120,16 +123,16 @@ export interface NativeCommands {
         animated: boolean,
     ): void;
     updateData(
-        viewRef: React.RefObject<HostComponent<NativeProps>>,
+        viewRef: React.ElementRef<ReportTableViewType>,
         data: string,
         y: Int32,
         x: Int32,
     ): void;
     spliceData(
-        viewRef: React.RefObject<HostComponent<NativeProps>>,
+        viewRef: React.ElementRef<ReportTableViewType>,
         config: string,
     ): void;
-    scrollToBottom(viewRef: React.RefObject<HostComponent<NativeProps>>): void;
+    scrollToBottom(viewRef: React.ElementRef<ReportTableViewType>): void;
 }
 
 export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
