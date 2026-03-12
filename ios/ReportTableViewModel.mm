@@ -24,6 +24,7 @@
 // Typed as UIView so both RCTView (old arch) and RCTViewComponentView (new arch) are accepted.
 @property (nonatomic, strong) UIView *headerView;
 @property (nonatomic, assign) CGFloat dataHeight;
+@property (nonatomic, assign) CGSize lastHeaderViewSize;
 
 @end
 
@@ -274,6 +275,7 @@
 }
 
 - (void)setHeaderViewSize:(CGSize)headerViewSize {
+    self.lastHeaderViewSize = headerViewSize;
     // headerScrollView 只会初始化一次
     if (!_headerScrollView) {
         // 第一次初始化
@@ -454,6 +456,12 @@
     if (!headerView) return;
     [headerView removeFromSuperview];
     self.headerView = headerView;
+    // Fabric delivers props before children; if setHeaderViewSize: was already
+    // called, apply the stored frame now so the header has the correct size.
+    CGSize size = self.lastHeaderViewSize;
+    if (size.width > 0 || size.height > 0) {
+        self.headerView.frame = CGRectMake(0, 0, size.width, size.height);
+    }
     [self.headerScrollView addSubview:self.headerView];
 }
 

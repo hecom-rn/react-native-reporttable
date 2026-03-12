@@ -124,10 +124,11 @@ using namespace facebook::react;
         [_viewModel setFrozenAbility:dict ?: @{}];
     }
 
-    // ---- replenishColumnsWidthConfig ----
+    // ---- replenishColumnsWidthConfig (JSON string → NSDictionary) ----
     {
-        NSDictionary *config = @{ @"showNumber": @(newProps.replenishColumnsWidthConfig.showNumber) };
-        [_viewModel setReplenishColumnsWidthConfig:config];
+        NSString *jsonStr = [NSString stringWithUTF8String:newProps.replenishColumnsWidthConfig.c_str()];
+        NSDictionary *dict = [self dictionaryFromJSONString:jsonStr];
+        [_viewModel setReplenishColumnsWidthConfig:dict ?: @{}];
     }
 
     // ---- ignoreLocks ----

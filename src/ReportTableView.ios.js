@@ -130,9 +130,12 @@ export default class ReportTableView extends React.Component {
                 typeof frozenAbility === 'string'
                     ? frozenAbility
                     : JSON.stringify(frozenAbility ?? {}),
+            replenishColumnsWidthConfig:
+                typeof replenishColumnsWidthConfig === 'string'
+                    ? replenishColumnsWidthConfig
+                    : JSON.stringify(replenishColumnsWidthConfig ?? {}),
         };
 
-        // replenishColumnsWidthConfig is typed as an object in codegen, pass as-is
         // ignoreLocks is typed as ReadonlyArray<Int32>, pass as-is
 
         return (
@@ -140,7 +143,6 @@ export default class ReportTableView extends React.Component {
                 ref={(ref) => (this._nativeRef = ref)}
                 {...rest}
                 {...serializedProps}
-                replenishColumnsWidthConfig={replenishColumnsWidthConfig}
                 ignoreLocks={ignoreLocks}
             />
         );

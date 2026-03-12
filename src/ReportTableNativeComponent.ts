@@ -61,11 +61,6 @@ type ItemConfig = Readonly<{
     progressStyle?: ProgressStyle;
 }>;
 
-// ---- ReplenishColumnsWidthConfig ----
-type ReplenishColumnsWidthConfig = Readonly<{
-    showNumber?: Int32;
-}>;
-
 // ---- Component props ----
 export interface NativeProps extends ViewProps {
     // Layout
@@ -97,8 +92,8 @@ export interface NativeProps extends ViewProps {
     columnsWidthMap?: string;
     frozenAbility?: string;
 
-    // Config with known shape
-    replenishColumnsWidthConfig?: ReplenishColumnsWidthConfig;
+    // Config – serialized as JSON string in JS (may contain showNumber, ignoreColumns, etc.)
+    replenishColumnsWidthConfig?: string;
 
     // Array of column indices to ignore locking
     ignoreLocks?: ReadonlyArray<Int32>;
