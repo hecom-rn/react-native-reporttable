@@ -166,12 +166,25 @@
     return [text boundingRectWithSize:CGSizeMake(maxWidth, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin context: nil];
 }
 
+/// Returns a deeply-mutable copy of a single row (NSArray of NSDictionary).
+- (NSMutableArray *)mutableRowFromRow:(NSArray *)row {
+    NSMutableArray *mutableRow = [NSMutableArray arrayWithCapacity:row.count];
+    for (id item in row) {
+        [mutableRow addObject:[NSMutableDictionary dictionaryWithDictionary:item]];
+    }
+    return mutableRow;
+}
+
 - (void)setData:(NSArray *)data {
-    NSMutableArray *dataSource = [NSMutableArray arrayWithArray:data];
+    NSMutableArray *dataSource = [NSMutableArray arrayWithCapacity:data.count];
+    for (NSArray *row in data) {
+        [dataSource addObject:[self mutableRowFromRow:row]];
+    }
     if (self.reportTableModel.data.count > 0) {
         self.reportTableModel.data = dataSource; // update
+        __weak typeof(self) weak_self = self;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self integratedDataSource];
+            [weak_self integratedDataSource];
         });
     } else {
         self.reportTableModel.data = dataSource;
@@ -183,8 +196,9 @@
 - (void)setMinWidth:(float)minWidth {
     if (self.reportTableModel.minWidth != 0 && self.reportTableModel.minWidth != minWidth) {
         self.reportTableModel.minWidth = minWidth; // update
+        __weak typeof(self) weak_self = self;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self integratedDataSource];
+            [weak_self integratedDataSource];
         });
     } else {
         self.reportTableModel.minWidth = minWidth;
@@ -396,12 +410,13 @@
 - (void)updateDataSource:(NSArray<NSArray *> *)data withY:(NSInteger)y withX:(NSInteger)x {
     if (self.reportTableModel.data.count > 0) {
         NSMutableArray *arr = self.reportTableModel.data;
-        NSArray *rowArr = (NSArray *)arr[0];
+        NSMutableArray *rowArr = (NSMutableArray *)arr[0];
         for (int i = y; i < arr.count; i++) {
             if (data.count > i - y) {
+                NSMutableArray *destRow = (NSMutableArray *)arr[i];
                 for (int j = x; j < rowArr.count; j++) {
                     if (data[i-y].count > j-x) {
-                        arr[i][j] = (NSDictionary *)data[i-y][j-x];
+                        destRow[j] = [NSMutableDictionary dictionaryWithDictionary:data[i-y][j-x]];
                     } else {
                         continue;
                     }
@@ -430,8 +445,12 @@
             }
             // 插入
             if (data.count > 0 && y <= arr.count) {
-                NSIndexSet *indexes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(y, data.count)];
-                [arr insertObjects:data atIndexes:indexes];
+                NSMutableArray *mutableRows = [NSMutableArray arrayWithCapacity:data.count];
+                for (NSArray *row in data) {
+                    [mutableRows addObject:[self mutableRowFromRow:row]];
+                }
+                NSIndexSet *indexes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(y, mutableRows.count)];
+                [arr insertObjects:mutableRows atIndexes:indexes];
             }
         }
     }
@@ -445,6 +464,12 @@
 
 - (void)scrollToBottom {
     [self.reportTableView scrollToBottom];
+}
+
+- (void)resetScrollPosition {
+    if (_reportTableView && _reportTableView.spreadsheetView) {
+        [_reportTableView.spreadsheetView setContentOffset:CGPointZero animated:NO];
+    }
 }
 
 // ---------------------------------------------------------------------------

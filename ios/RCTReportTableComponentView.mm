@@ -56,6 +56,13 @@ using namespace facebook::react;
     return concreteComponentDescriptorProvider<ReportTableComponentDescriptor>();
 }
 
+- (void)prepareForRecycle
+{
+    [super prepareForRecycle];
+    // Fabric 可能复用视图实例；复用前重置滚动状态，避免旧偏移量残留
+    [_viewModel resetScrollPosition];
+}
+
 // ---------------------------------------------------------------------------
 #pragma mark - Props update
 // ---------------------------------------------------------------------------

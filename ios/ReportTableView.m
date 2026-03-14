@@ -29,13 +29,19 @@
 @implementation ReportTableView
 
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
-    self.spreadsheetView.tableHeaderView = headerScrollView;
     _headerScrollView = headerScrollView;
-    headerScrollView.delegate = self.spreadsheetView;
     self.headerScrollView.isUserScouce = false;
     self.spreadsheetView.tableView.scrollEnabled = true;
-    // 只有 header 可见时才需要调整层级；height=0 时调用会误操作 SpreadsheetView 内部 overlayView
     if (headerScrollView.frame.size.height > 0) {
+        // 有 header 可见时才挂载并激活，否则 UIScrollView 的 panGesture 会干扰 spreadsheetView
+        self.spreadsheetView.tableHeaderView = headerScrollView;
+        headerScrollView.delegate = self.spreadsheetView;
+        [self sendSubviewToBack:_headerScrollView];
+    } else {
+        // 无 header 时重置 tableHeaderView 为默认空 scrollView，避免 UIScrollView 的 panGesture 干扰 spreadsheetView
+        // 同时把 headerScrollView 沉到最底层
+        self.spreadsheetView.tableHeaderView = [UIScrollView new];
+        headerScrollView.delegate = nil;
         [self sendSubviewToBack:_headerScrollView];
     }
     self.isOnHeader = false;

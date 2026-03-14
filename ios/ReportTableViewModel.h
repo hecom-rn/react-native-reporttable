@@ -23,6 +23,7 @@
 - (void)updateDataSource:(NSArray *)data withY:(NSInteger)y withX:(NSInteger)x;
 - (void)spliceData:(NSArray *)config;
 - (void)scrollToBottom;
+- (void)resetScrollPosition;
 
 // ---- Property setters (called by Fabric component view) ----
 - (void)setSize:(CGSize)size;
