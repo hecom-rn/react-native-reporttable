@@ -6,8 +6,6 @@
 //
 
 #import "ReportTableHeaderView.h"
-#import <React/RCTBridge.h>
-#import <React/RCTRootView.h>
 
 
 @interface ReportTableHeaderScrollView () <UIScrollViewDelegate>
@@ -37,14 +35,4 @@
 @end
 
 
-@implementation ReportTableHeaderView
 
-+ (id)createWithBridge:(RCTBridge *)bridge {
-    RCTRootView *rootView = [[RCTRootView alloc] initWithBridge:bridge
-                                                    moduleName:@"ReportTableHeaderView"
-                                              initialProperties:@{}];
-    [rootView setSizeFlexibility:RCTRootViewSizeFlexibilityHeight];
-    return rootView;
-}
-
-@end

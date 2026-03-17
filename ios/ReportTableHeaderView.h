@@ -5,14 +5,7 @@
 //  Created by ms on 2019/11/27.
 //
 
-#import <React/RCTView.h>
-#import <React/RCTBridgeModule.h>
-
-@interface ReportTableHeaderView: RCTView
-+ (id)createWithBridge:(RCTBridge *)bridge;
-@end
-
-
+#import <UIKit/UIKit.h>
 
 typedef void (^EndDrag)(BOOL isEndeDrag);
 @interface ReportTableHeaderScrollView: UIScrollView

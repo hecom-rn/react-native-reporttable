@@ -7,15 +7,11 @@
 
 #import <Foundation/Foundation.h>
 #import <React/RCTView.h>
-#import <React/RCTBridgeModule.h>
 #import <React/RCTComponent.h>
 
 @interface ReportTableViewModel: RCTView
 
-/// Old-architecture initialiser (bridge-based). No-op bridge accepted in new arch.
-- (id)initWithBridge:(nullable RCTBridge *)bridge;
-
-/// Convenience initialiser used by the Fabric component view.
+/// Initialiser used by the Fabric component view.
 - (id)initWithFrame:(CGRect)frame;
 
 // ---- Imperative commands ----

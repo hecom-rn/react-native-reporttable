@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppRegistry, View } from 'react-native';
+import { AppRegistry, StyleSheet, View } from 'react-native';
 import ReportTableView from './ReportTableView';
 
 export default class ReportTableWrapper extends React.Component{
@@ -16,7 +16,9 @@ export default class ReportTableWrapper extends React.Component{
 
     handleData = (props) => {
         if (props.headerView && props.headerView()) {
-            const {width, height} = props.headerView().props.style;
+            const flatStyle = StyleSheet.flatten(props.headerView().props.style) || {};
+            const width = flatStyle.width || 0;
+            const height = flatStyle.height || 0;
             this.headerViewSize = {height, width};
         } else {
             this.headerViewSize = {width: 0, height:0};
@@ -46,14 +48,18 @@ export default class ReportTableWrapper extends React.Component{
     };
 
     render() {
+        // Destructure headerView so the function itself is NOT forwarded as a
+        // prop to the native Fabric component (it is not in the Codegen spec).
+        // It is only used as a React child via mountChildComponentView:index:.
+        const { headerView, ...tableProps } = this.props;
         return (
             <ReportTableView
                 ref={ref => this.table = ref}
-                {...this.props}
+                {...tableProps}
                 headerViewSize={this.headerViewSize}
                 onClickEvent={this.onClickEvent}
             >
-                {this.props.headerView?.()}
+                {headerView?.()}
             </ReportTableView>
         );
     }

@@ -12,7 +12,7 @@
 #import "ReportTableHeaderView.h"
 #import "UIImage+ImageTag.h"
 
-@class SpreadsheetView;
+#import <ZMJGanttChart/ZMJGanttChart.h>
 @interface ReportTableViewModel();
 
 @property (nonatomic, strong) ReportTableView * reportTableView;
@@ -20,7 +20,6 @@
 @property (nonatomic, strong) ReportTableModel *reportTableModel;
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 @property (nonatomic, assign) NSInteger propertyCount;
-@property (nonatomic, weak) RCTBridge *bridge;
 // Typed as UIView so both RCTView (old arch) and RCTViewComponentView (new arch) are accepted.
 @property (nonatomic, strong) UIView *headerView;
 @property (nonatomic, assign) CGFloat dataHeight;
@@ -65,25 +64,6 @@
 }
 
 
-- (void)didAddSubview:(UIView *)subview {
-    if ([subview isKindOfClass:[RCTView class]]) {
-        [subview removeFromSuperview];
-        self.headerView = subview;
-        [self.headerScrollView addSubview: self.headerView];
-    }
-}
-
-- (id)initWithBridge:(nullable RCTBridge *)bridge {
-    self = [super init];
-    if (self) {
-        self.bridge = bridge;
-        self.reportTableModel = [[ReportTableModel alloc] init];
-        self.propertyCount = 0;
-    }
-    return self;
-}
-
-/// Convenience initialiser used when running under Fabric (no bridge required).
 - (id)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
@@ -182,7 +162,7 @@
     }
     if (self.reportTableModel.data.count > 0) {
         self.reportTableModel.data = dataSource; // update
-        __weak typeof(self) weak_self = self;
+        __weak __typeof__(self) weak_self = self;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [weak_self integratedDataSource];
         });
@@ -196,7 +176,7 @@
 - (void)setMinWidth:(float)minWidth {
     if (self.reportTableModel.minWidth != 0 && self.reportTableModel.minWidth != minWidth) {
         self.reportTableModel.minWidth = minWidth; // update
-        __weak typeof(self) weak_self = self;
+        __weak __typeof__(self) weak_self = self;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [weak_self integratedDataSource];
         });
