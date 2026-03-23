@@ -60,7 +60,7 @@ using namespace facebook::react;
 {
     [super prepareForRecycle];
     // Fabric 可能复用视图实例；复用前重置滚动状态，避免旧偏移量残留
-    [_viewModel resetScrollPosition];
+    [_viewModel resetForRecycle];
 }
 
 // ---------------------------------------------------------------------------
@@ -149,6 +149,9 @@ using namespace facebook::react;
 
     // ---- events ----
     [self setupEventCallbacks];
+
+    // 所有 props 已设置完毕，触发一次布局计算与渲染
+    [_viewModel integratedDataSource];
 
     [super updateProps:props oldProps:oldProps];
 }

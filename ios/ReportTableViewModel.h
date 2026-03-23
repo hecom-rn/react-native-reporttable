@@ -19,7 +19,9 @@
 - (void)updateDataSource:(NSArray *)data withY:(NSInteger)y withX:(NSInteger)x;
 - (void)spliceData:(NSArray *)config;
 - (void)scrollToBottom;
-- (void)resetScrollPosition;
+- (void)resetForRecycle;
+/// 所有 props 设置完毕后调用，触发布局计算与渲染。
+- (void)integratedDataSource;
 
 // ---- Property setters (called by Fabric component view) ----
 - (void)setSize:(CGSize)size;

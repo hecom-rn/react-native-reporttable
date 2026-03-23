@@ -19,19 +19,13 @@
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
 @property (nonatomic, strong) ReportTableModel *reportTableModel;
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
-@property (nonatomic, assign) NSInteger propertyCount;
-// Typed as UIView so both RCTView (old arch) and RCTViewComponentView (new arch) are accepted.
 @property (nonatomic, strong) UIView *headerView;
 @property (nonatomic, assign) CGFloat dataHeight;
-@property (nonatomic, assign) CGSize lastHeaderViewSize;
 
 @end
 
 @implementation ReportTableViewModel
 
-// Event block properties are declared in the header; synthesise storage here.
-// In old arch these are set by RCT_EXPORT_VIEW_PROPERTY; in new arch they are
-// wired up directly by RCTReportTableComponentView.
 @synthesize onClickEvent  = _onClickEvent;
 @synthesize onScrollEnd   = _onScrollEnd;
 @synthesize onScroll      = _onScroll;
@@ -68,7 +62,6 @@
     self = [super initWithFrame:frame];
     if (self) {
         self.reportTableModel = [[ReportTableModel alloc] init];
-        self.propertyCount = 0;
     }
     return self;
 }
@@ -160,162 +153,85 @@
     for (NSArray *row in data) {
         [dataSource addObject:[self mutableRowFromRow:row]];
     }
-    if (self.reportTableModel.data.count > 0) {
-        self.reportTableModel.data = dataSource; // update
-        __weak __typeof__(self) weak_self = self;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [weak_self integratedDataSource];
-        });
-    } else {
-        self.reportTableModel.data = dataSource;
-        self.propertyCount += 1;
-        [self reloadCheck];
-    }
+    self.reportTableModel.data = dataSource;
 }
 
 - (void)setMinWidth:(float)minWidth {
-    if (self.reportTableModel.minWidth != 0 && self.reportTableModel.minWidth != minWidth) {
-        self.reportTableModel.minWidth = minWidth; // update
-        __weak __typeof__(self) weak_self = self;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [weak_self integratedDataSource];
-        });
-    } else {
-        self.reportTableModel.minWidth = minWidth;
-        self.propertyCount += 1;
-        [self reloadCheck];
-    }
+    self.reportTableModel.minWidth = minWidth;
 }
 
 - (void)setMaxWidth:(float)maxWidth {
     self.reportTableModel.maxWidth = maxWidth;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setMinHeight:(float)minHeight {
     self.reportTableModel.minHeight = minHeight;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setShowBorder:(BOOL)showBorder {
     self.reportTableModel.showBorder = showBorder;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setFrozenColumns:(NSInteger)frozenColumns {
     self.reportTableModel.frozenColumns = frozenColumns;
     self.reportTableModel.oriFrozenColumns = frozenColumns;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setReplenishColumnsWidthConfig:(NSDictionary *)replenishColumnsWidthConfig {
     self.reportTableModel.replenishColumnsWidthConfig = replenishColumnsWidthConfig;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setColumnsWidthMap:(NSDictionary *)columnsWidthMap {
     self.reportTableModel.columnsWidthMap = columnsWidthMap;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setFrozenRows:(NSInteger)frozenRows {
     self.reportTableModel.frozenRows = frozenRows;
-    self.propertyCount += 1;
-    [self reloadCheck];
-}
-
-- (void)setOnClickEvent:(RCTDirectEventBlock)onClickEvent {
-    self.reportTableModel.onClickEvent = onClickEvent;
-    self.propertyCount += 1;
-    [self reloadCheck];
-}
-
-- (void)setOnContentSize:(RCTDirectEventBlock)onContentSize {
-    self.reportTableModel.onContentSize = onContentSize;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setSize:(CGSize)size {
     self.reportTableModel.tableRect = CGRectMake(0, 0, size.width, size.height);
-    if (self.dataHeight) {
-        CGSize headersize = CGSizeMake(0, 0);
-        if (_headerView) {
-            headersize.height = _headerView.frame.size.height;
-        }
-        CGRect tableRect = CGRectMake(0, 0, size.width, size.height);
-        self.reportTableView.frame = tableRect;
-        [self.reportTableView scrollViewDidZoom: self.reportTableView];
-        if (_headerView != nil ) {
-            CGSize headerViewSize = self.headerView.frame.size;
-            self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
-        }
-        if (self.reportTableModel.replenishColumnsWidthConfig != nil) {
-            NSInteger showNumber = [self.reportTableModel.replenishColumnsWidthConfig objectForKey:@"showNumber"] ? [RCTConvert NSInteger:[self.reportTableModel.replenishColumnsWidthConfig objectForKey:@"showNumber"]] : 0;
-            if (showNumber > 0) {
-                [self integratedDataSource];
-            }
-        }
-    } else {
-        self.propertyCount += 1;
-        [self reloadCheck];
-    }
+}
+
+- (void)setOnClickEvent:(RCTDirectEventBlock)onClickEvent {
+    self.reportTableModel.onClickEvent = onClickEvent;
+}
+
+- (void)setOnContentSize:(RCTDirectEventBlock)onContentSize {
+    self.reportTableModel.onContentSize = onContentSize;
+}
+
+- (void)setOnScrollEnd:(RCTDirectEventBlock)onScrollEnd {
+    self.reportTableModel.onScrollEnd = onScrollEnd;
+}
+
+- (void)setOnScroll:(RCTDirectEventBlock)onScroll {
+    self.reportTableModel.onScrollEnd = onScroll;
 }
 
 - (void)setHeaderViewSize:(CGSize)headerViewSize {
-    self.lastHeaderViewSize = headerViewSize;
-    // headerScrollView 只会初始化一次
     if (!_headerScrollView) {
-        // 第一次初始化
-        self.propertyCount += 1;
-        if (headerViewSize.width == 0) {
-            // donothing
-        } else {
+        if (headerViewSize.width > 0) {
             self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
             [self.headerScrollView addSubview: self.headerView];
         }
     } else {
         if (headerViewSize.width == 0) {
-            // 当headerViewSize为0时，会移除headerView
             [self.headerView removeFromSuperview];
             self.headerView = nil;
         } else {
             self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
         }
-
     }
     self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
-    
     BOOL canScroll = (self.dataHeight ?: 0) + self.headerScrollView.frame.size.height > self.reportTableModel.tableRect.size.height;
     self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, canScroll ? self.reportTableModel.tableRect.size.height : 0);
-    
     self.reportTableView.headerScrollView = self.headerScrollView;
     [self.reportTableView scrollViewDidZoom: self.reportTableView];
-    [self reloadCheck];
-}
-
-- (void)setOnScrollEnd:(RCTDirectEventBlock)onScrollEnd {
-    self.reportTableModel.onScrollEnd = onScrollEnd;
-    self.propertyCount += 1;
-    [self reloadCheck];
-}
-
-- (void)setOnScroll:(RCTDirectEventBlock)onScroll{
-    self.reportTableModel.onScroll = onScroll;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setPermutable:(BOOL)permutable {
     self.reportTableModel.permutable = permutable;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setDisableZoom:(BOOL)disableZoom {
@@ -326,26 +242,18 @@
         self.reportTableView.maximumZoomScale = 2;
         self.reportTableView.minimumZoomScale = 0.5;
     }
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setIgnoreLocks:(NSArray *)ignoreLocks {
     self.reportTableModel.ignoreLocks = ignoreLocks;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setLineColor:(NSString *)lineColor {
     self.reportTableModel.lineColor = [self colorFromHex: lineColor];
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setFrozenAbility:(NSDictionary *)frozenAbility {
     self.reportTableModel.frozenAbility = frozenAbility;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setItemConfig:(NSDictionary *)itemConfig {
@@ -376,15 +284,6 @@
         model.progressStyle = progressStyle;
     }
     self.reportTableModel.itemConfig = model;
-    self.propertyCount += 1;
-    [self reloadCheck];
-}
-
-- (void)reloadCheck {
-    if (self.propertyCount >= 21) {
-        self.propertyCount = 0;
-        [self integratedDataSource];
-    }
 }
 
 - (void)updateDataSource:(NSArray<NSArray *> *)data withY:(NSInteger)y withX:(NSInteger)x {
@@ -446,10 +345,27 @@
     [self.reportTableView scrollToBottom];
 }
 
-- (void)resetScrollPosition {
-    if (_reportTableView && _reportTableView.spreadsheetView) {
-        [_reportTableView.spreadsheetView setContentOffset:CGPointZero animated:NO];
+- (void)resetForRecycle {
+    self.reportTableModel.data = [NSMutableArray array];
+    self.reportTableModel.minWidth = 0;
+    self.dataHeight = 0;
+    [self.dataSource removeAllObjects];
+    if (_reportTableView) {
+        _reportTableView.zoomScale = 1.0;
+        [_reportTableView scrollViewDidZoom:_reportTableView];
+        if (_reportTableView.spreadsheetView) {
+            [_reportTableView.spreadsheetView setContentOffset:CGPointZero animated:NO];
+        }
     }
+    _onClickEvent = nil;
+    _onScrollEnd = nil;
+    _onScroll = nil;
+    _onContentSize = nil;
+    self.headerScrollView = nil;
+    self.reportTableModel.onClickEvent = nil;
+    self.reportTableModel.onScrollEnd = nil;
+    self.reportTableModel.onScroll = nil;
+    self.reportTableModel.onContentSize = nil;
 }
 
 // ---------------------------------------------------------------------------
