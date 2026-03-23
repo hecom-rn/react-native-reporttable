@@ -459,18 +459,11 @@
 /// Accepts any UIView (including Fabric's RCTViewComponentView) as the header.
 - (void)mountHeaderView:(UIView *)headerView {
     if (!headerView) return;
-    [headerView removeFromSuperview];
     self.headerView = headerView;
-    // Fabric delivers props before children; if setHeaderViewSize: was already
-    // called, apply the stored frame now so the header has the correct size.
-    CGSize size = self.lastHeaderViewSize;
-    if (size.width > 0 || size.height > 0) {
-        self.headerView.frame = CGRectMake(0, 0, size.width, size.height);
-    }
-    [self.headerScrollView addSubview:self.headerView];
+    [self.headerScrollView addSubview:headerView];
 }
 
-/// Removes the header view if it matches the currently installed one.
+/// Removes the header view if it matches the c·urrently installed one.
 - (void)unmountHeaderView:(UIView *)headerView {
     if (self.headerView == headerView) {
         [self.headerView removeFromSuperview];
