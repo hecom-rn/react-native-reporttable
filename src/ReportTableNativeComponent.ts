@@ -105,8 +105,8 @@ export interface NativeProps extends ViewProps {
 
     // Events
     onClickEvent?: DirectEventHandler<ClickEventData>;
-    onScrollEnd?: DirectEventHandler<ScrollEventData>;
-    onScroll?: DirectEventHandler<ScrollEventData>;
+    onScrollEnd?: DirectEventHandler<ScrollEndEventData>;
+    onScroll?: DirectEventHandler<ScrollProEventData>;
     onContentSize?: DirectEventHandler<ContentSizeEventData>;
 }
 
