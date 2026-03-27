@@ -206,13 +206,20 @@ using namespace facebook::react;
     _viewModel.onContentSize = ^(NSDictionary *body) {
         __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf) return;
-        auto eventEmitter = std::dynamic_pointer_cast<const ReportTableEventEmitter>(strongSelf->_eventEmitter);
-        if (eventEmitter) {
-            ReportTableEventEmitter::OnContentSize event{};
-            event.width  = [body[@"width"] doubleValue];
-            event.height = [body[@"height"] doubleValue];
-            eventEmitter->onContentSize(event);
-        }
+        
+        // 使用 dispatch_async 延迟到下一个 runloop，确保 EventEmitter 已绑定
+        dispatch_async(dispatch_get_main_queue(), ^{
+            __strong __typeof(weakSelf) delayedSelf = weakSelf;
+            if (!delayedSelf) return;
+            
+            auto eventEmitter = std::dynamic_pointer_cast<const ReportTableEventEmitter>(delayedSelf->_eventEmitter);
+            if (eventEmitter) {
+                ReportTableEventEmitter::OnContentSize event{};
+                event.width  = [body[@"width"] doubleValue];
+                event.height = [body[@"height"] doubleValue];
+                eventEmitter->onContentSize(event);
+            }
+        });
     };
 }
 
