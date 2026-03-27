@@ -206,7 +206,7 @@
 }
 
 - (void)setOnScroll:(RCTDirectEventBlock)onScroll {
-    self.reportTableModel.onScrollEnd = onScroll;
+    self.reportTableModel.onScroll = onScroll;
 }
 
 - (void)setHeaderViewSize:(CGSize)headerViewSize {
@@ -253,7 +253,11 @@
 }
 
 - (void)setFrozenAbility:(NSDictionary *)frozenAbility {
-    self.reportTableModel.frozenAbility = frozenAbility;
+    NSMutableDictionary *mutableAbility = [NSMutableDictionary dictionaryWithCapacity:frozenAbility.count];
+    [frozenAbility enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+        mutableAbility[key] = [NSMutableDictionary dictionaryWithDictionary:obj];
+    }];
+    self.reportTableModel.frozenAbility = mutableAbility;
 }
 
 - (void)setItemConfig:(NSDictionary *)itemConfig {
