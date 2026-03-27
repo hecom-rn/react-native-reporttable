@@ -23,9 +23,14 @@ type ClickEventData = Readonly<{
     horizontalCount: Int32;
 }>;
 
-type ScrollEventData = Readonly<{
-    offsetX: Double;
-    offsetY: Double;
+type ScrollEndEventData = Readonly<{
+    isEnd: boolean;
+}>;
+
+type ScrollProEventData = Readonly<{
+    translateX: Double;
+    translateY: Double;
+    scale: Double;
 }>;
 
 type ContentSizeEventData = Readonly<{

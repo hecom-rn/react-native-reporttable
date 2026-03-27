@@ -185,8 +185,7 @@ using namespace facebook::react;
         auto eventEmitter = std::dynamic_pointer_cast<const ReportTableEventEmitter>(strongSelf->_eventEmitter);
         if (eventEmitter) {
             ReportTableEventEmitter::OnScrollEnd event{};
-            event.offsetX = [body[@"offsetX"] doubleValue];
-            event.offsetY = [body[@"offsetY"] doubleValue];
+            event.isEnd = [body[@"isEnd"] boolValue];
             eventEmitter->onScrollEnd(event);
         }
     };
@@ -197,8 +196,9 @@ using namespace facebook::react;
         auto eventEmitter = std::dynamic_pointer_cast<const ReportTableEventEmitter>(strongSelf->_eventEmitter);
         if (eventEmitter) {
             ReportTableEventEmitter::OnScroll event{};
-            event.offsetX = [body[@"offsetX"] doubleValue];
-            event.offsetY = [body[@"offsetY"] doubleValue];
+            event.translateX = [body[@"translateX"] doubleValue];
+            event.translateY = [body[@"translateY"] doubleValue];
+            event.scale      = [body[@"scale"] doubleValue];
             eventEmitter->onScroll(event);
         }
     };
