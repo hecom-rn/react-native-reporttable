@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import ReportTableView from './ReportTableView';
 
 export default class ReportTableWrapper extends React.Component{
@@ -21,7 +21,7 @@ export default class ReportTableWrapper extends React.Component{
             const height = flatStyle.height || 0;
             this.headerViewSize = {height, width};
         } else {
-            this.headerViewSize = {width: 0, height: 0};
+            this.headerViewSize = {width: 300, height: 0.01}; // 先加一个占位，修复缩放问题
         }
     }
 
@@ -57,7 +57,7 @@ export default class ReportTableWrapper extends React.Component{
                 onClickEvent={this.onClickEvent}
                 style={{ collapsible: false, flex: 1 }} //  阻止扁平化 防止被判定为"不需要创建原生视图"，它的事件处理器可能不会被正确注册。
             >
-                {headerView?.()}
+                {headerView?.() ?? <View style={{width: 300, height: 0.01}} />} {/* 先加一个占位，修复缩放问题 */}
             </ReportTableView>
         );
     }
