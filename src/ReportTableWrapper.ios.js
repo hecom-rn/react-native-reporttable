@@ -49,6 +49,9 @@ export default class ReportTableWrapper extends React.Component{
 
     render() {
         const { headerView, ...tableProps } = this.props;
+        // collapsable={false} 阻止 Fabric 新架构对 headerView 容器做视图扁平化优化。
+        // 若不加此属性，当 headerView 包含多个子组件时，Fabric 会跳过中间容器层，
+        // 对每个子组件单独调用 mountChildComponentView:，导致只有最后一个子组件可见。
         return (
             <ReportTableView
                 ref={ref => this.table = ref}
@@ -57,7 +60,12 @@ export default class ReportTableWrapper extends React.Component{
                 onClickEvent={this.onClickEvent}
                 style={[this.props.size]}
             >
-                {headerView?.() ?? <View style={{width: 300, height: 0.01}} />} {/* 先加一个占位，修复缩放问题 */}
+                <View
+                    collapsable={false}
+                    style={{width: this.headerViewSize.width, height: this.headerViewSize.height}}
+                >
+                    {headerView?.() ??  <View style={{width: 300, height: 0.01}} />}
+                </View>
             </ReportTableView>
         );
     }

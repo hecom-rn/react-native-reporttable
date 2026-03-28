@@ -13,14 +13,17 @@
 #import "UIImage+ImageTag.h"
 
 #import <ZMJGanttChart/ZMJGanttChart.h>
-@interface ReportTableViewModel();
+@interface ReportTableViewModel ();
 
-@property (nonatomic, strong) ReportTableView * reportTableView;
+@property (nonatomic, strong) ReportTableView *reportTableView;
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
 @property (nonatomic, strong) ReportTableModel *reportTableModel;
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 @property (nonatomic, strong) UIView *headerView;
 @property (nonatomic, assign) CGFloat dataHeight;
+/// 从 headerViewSize prop 缓存的尺寸，用于在 mountHeaderView: 时序晚于
+/// setHeaderViewSize: 的情况下（Fabric 路径）补全 frame 设置。
+@property (nonatomic, assign) CGSize pendingHeaderViewSize;
 
 @end
 
@@ -209,25 +212,31 @@
     self.reportTableModel.onScroll = onScroll;
 }
 
+// ---------------------------------------------------------------------------
+#pragma mark - Header view size
+// ---------------------------------------------------------------------------
+
 - (void)setHeaderViewSize:(CGSize)headerViewSize {
-    if (!_headerScrollView) {
-        if (headerViewSize.width > 0) {
-            self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
-            [self.headerScrollView addSubview: self.headerView];
-        }
-    } else {
-        if (headerViewSize.width == 0) {
-            [self.headerView removeFromSuperview];
-            self.headerView = nil;
-        } else {
-            self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
-        }
+    self.pendingHeaderViewSize = headerViewSize;
+    // 若 headerView 已挂载（旧架构路径），同步更新其 frame。
+    // Fabric 路径下 mountChildComponentView: 晚于 updateProps:，
+    // 此时 _headerView 尚为 nil，frame 将在 mountHeaderView: 中补全。
+    if (_headerView) {
+        _headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
     }
-    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
-    BOOL canScroll = (self.dataHeight ?: 0) + self.headerScrollView.frame.size.height > self.reportTableModel.tableRect.size.height;
-    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, canScroll ? self.reportTableModel.tableRect.size.height : 0);
+    [self _applyHeaderScrollViewLayout];
+}
+
+/// 根据 pendingHeaderViewSize 更新 headerScrollView 的 frame 与 contentSize。
+/// 同时通知 reportTableView 重新应用 zoom 缩放，保持 header 与表格列对齐。
+- (void)_applyHeaderScrollViewLayout {
+    CGFloat headerHeight = self.pendingHeaderViewSize.height;
+    CGFloat headerWidth  = self.pendingHeaderViewSize.width;
+    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerHeight);
+    BOOL canScroll = (self.dataHeight ?: 0) + headerHeight > self.reportTableModel.tableRect.size.height;
+    self.headerScrollView.contentSize = CGSizeMake(headerWidth, canScroll ? self.reportTableModel.tableRect.size.height : 0);
     self.reportTableView.headerScrollView = self.headerScrollView;
-    [self.reportTableView scrollViewDidZoom: self.reportTableView];
+    [self.reportTableView scrollViewDidZoom:self.reportTableView];
 }
 
 - (void)setPermutable:(BOOL)permutable {
@@ -365,6 +374,7 @@
     _onScrollEnd = nil;
     _onScroll = nil;
     _onContentSize = nil;
+    self.pendingHeaderViewSize = CGSizeZero;
     self.headerScrollView = nil;
     self.reportTableModel.onClickEvent = nil;
     self.reportTableModel.onScrollEnd = nil;
@@ -373,24 +383,37 @@
 }
 
 // ---------------------------------------------------------------------------
-#pragma mark - Fabric header-view mounting helpers
+#pragma mark - Header view mounting (Fabric & Paper)
 // ---------------------------------------------------------------------------
 
-/// Accepts any UIView (including Fabric's RCTViewComponentView) as the header.
+/// 挂载 headerView（兼容 Fabric RCTViewComponentView 及普通 UIView）。
+/// Fabric 路径：先调用 updateProps:（含 setHeaderViewSize:），后调用此方法；
+/// 此时 pendingHeaderViewSize 已就绪，可直接为 headerView 设置正确 frame。
 - (void)mountHeaderView:(UIView *)headerView {
     if (!headerView) return;
-    self.headerView = headerView;
-    [self.headerScrollView addSubview:headerView];
+    // 若存在旧的 headerView，先卸载
+    if (_headerView && _headerView != headerView) {
+        [_headerView removeFromSuperview];
+    }
+    _headerView = headerView;
+    // Fabric 会在挂载前由布局引擎设置好 frame；
+    // 旧架构（Paper）路径下 frame 尚未设置，在此补全。
+    if (!CGSizeEqualToSize(self.pendingHeaderViewSize, CGSizeZero)) {
+        _headerView.frame = CGRectMake(0, 0, self.pendingHeaderViewSize.width, self.pendingHeaderViewSize.height);
+    }
+    [self.headerScrollView addSubview:_headerView];
+    [self _applyHeaderScrollViewLayout];
 }
 
-/// Removes the header view if it matches the c·urrently installed one.
+/// 卸载 headerView。
 - (void)unmountHeaderView:(UIView *)headerView {
-    if (self.headerView == headerView) {
-        [self.headerView removeFromSuperview];
-        self.headerView = nil;
+    if (_headerView == headerView) {
+        [_headerView removeFromSuperview];
+        _headerView = nil;
     } else {
         [headerView removeFromSuperview];
     }
+    [self _applyHeaderScrollViewLayout];
 }
 
 
