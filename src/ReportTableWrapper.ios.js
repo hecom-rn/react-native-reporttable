@@ -55,7 +55,7 @@ export default class ReportTableWrapper extends React.Component{
                 {...tableProps}
                 headerViewSize={this.headerViewSize}
                 onClickEvent={this.onClickEvent}
-                style={{ collapsible: false, flex: 1 }} //  阻止扁平化 防止被判定为"不需要创建原生视图"，它的事件处理器可能不会被正确注册。
+                style={[this.props.size]}
             >
                 {headerView?.() ?? <View style={{width: 300, height: 0.01}} />} {/* 先加一个占位，修复缩放问题 */}
             </ReportTableView>
