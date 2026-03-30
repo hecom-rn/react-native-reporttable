@@ -29,12 +29,21 @@
 @implementation ReportTableView
 
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
-    self.spreadsheetView.tableHeaderView = headerScrollView;
     _headerScrollView = headerScrollView;
-    headerScrollView.delegate = self.spreadsheetView;
     self.headerScrollView.isUserScouce = false;
     self.spreadsheetView.tableView.scrollEnabled = true;
-    [self sendSubviewToBack:_headerScrollView];
+    if (headerScrollView.frame.size.height > 0) {
+        // 有 header 可见时才挂载并激活，否则 UIScrollView 的 panGesture 会干扰 spreadsheetView
+        self.spreadsheetView.tableHeaderView = headerScrollView;
+        headerScrollView.delegate = self.spreadsheetView;
+        [self sendSubviewToBack:_headerScrollView];
+    } else {
+        // 无 header 时重置 tableHeaderView 为默认空 scrollView，避免 UIScrollView 的 panGesture 干扰 spreadsheetView
+        // 同时把 headerScrollView 沉到最底层
+        self.spreadsheetView.tableHeaderView = [UIScrollView new];
+        headerScrollView.delegate = nil;
+        [self sendSubviewToBack:_headerScrollView];
+    }
     self.isOnHeader = false;
 }
 
@@ -143,8 +152,10 @@
 }
 
 - (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(CGFloat)scale {
-    // 修正headerView的层级
-    [self sendSubviewToBack: self.headerScrollView];
+    // 修正headerView的层级（只有 header 可见时才有意义）
+    if (self.headerScrollView.frame.size.height > 0) {
+        [self sendSubviewToBack: self.headerScrollView];
+    }
     self.headerScrollView.isUserScouce = false;
     self.isOnHeader = false;
 
@@ -206,22 +217,24 @@
     if (self.isZooming) {
         return [super hitTest:point withEvent:event];
     }
-    BOOL isOnHeader = point.y < (self.headerScrollView.frame.size.height - self.headerScrollView.contentOffset.y) && self.spreadsheetView.contentOffset.y <= 0;
-    if (isOnHeader == YES && self.isOnHeader == false) {
+    CGFloat headerVisibleHeight = self.headerScrollView.frame.size.height - self.headerScrollView.contentOffset.y;
+    BOOL isOnHeader = headerVisibleHeight > 0
+                      && point.y < headerVisibleHeight
+                      && self.spreadsheetView.contentOffset.y <= 0;
+    if (isOnHeader && !self.isOnHeader) {
         self.headerScrollView.isUserScouce = true;
         self.headerScrollView.offset = self.spreadsheetView.contentOffset.y * self.zoomScale;
         [self.headerScrollView scrollViewDidScroll: self.headerScrollView];
         self.spreadsheetView.tableView.scrollEnabled = false;
         [self bringSubviewToFront: self.headerScrollView];
-        self.isOnHeader = isOnHeader;
-    } else if (isOnHeader == false && self.isOnHeader == true) {
+        self.isOnHeader = YES;
+    } else if (!isOnHeader && self.isOnHeader) {
         self.headerScrollView.isUserScouce = false;
         self.spreadsheetView.tableView.scrollEnabled = true;
         [self sendSubviewToBack: self.headerScrollView];
-        self.isOnHeader = isOnHeader;
-    } else {
-        self.isOnHeader = !isOnHeader;
+        self.isOnHeader = NO;
     }
+    // 注意：不再有 else 分支翻转 isOnHeader，避免 height=0 时状态错乱
     return [super hitTest:point withEvent:event];
 }
 

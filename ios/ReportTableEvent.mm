@@ -7,6 +7,11 @@
 
 #import "ReportTableEvent.h"
 
+#ifdef RCT_NEW_ARCH_ENABLED
+// In New Architecture the module is loaded via the TurboModule system;
+// requiresMainQueueSetup must return NO so it can be created on a background thread.
+#endif
+
 @implementation ReportTableEvent {
     bool hasListeners;
   }
@@ -47,6 +52,12 @@ RCT_EXPORT_MODULE()
 - (NSArray<NSString *> *)supportedEvents
 {
     return @[@"tableDidLayout"];
+}
+
+// New Architecture: requiresMainQueueSetup must return NO for TurboModules
++ (BOOL)requiresMainQueueSetup
+{
+    return NO;
 }
 
 @end

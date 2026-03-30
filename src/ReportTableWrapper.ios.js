@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppRegistry, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import ReportTableView from './ReportTableView';
 
 export default class ReportTableWrapper extends React.Component{
@@ -16,44 +16,58 @@ export default class ReportTableWrapper extends React.Component{
 
     handleData = (props) => {
         if (props.headerView && props.headerView()) {
-            const {width, height} = props.headerView().props.style;
+            const flatStyle = StyleSheet.flatten(props.headerView().props.style) || {};
+            const width = flatStyle.width || 0;
+            const height = flatStyle.height || 0;
             this.headerViewSize = {height, width};
         } else {
-            this.headerViewSize = {width: 0, height:0};
+            this.headerViewSize = {width: 300, height: 0.01}; // 先加一个占位，修复缩放问题
         }
     }
 
     scrollTo = (params) => {
         const { lineX = 0, lineY = 0, offsetX = 0, offsetY = 0, animated = true } = params || {};
-        this.table.scrollTo([lineX, lineY, offsetX, offsetY, animated]);
+        // Pass as array for backward compat with ReportTableView.ios.js
+        this.table && this.table.scrollTo([lineX, lineY, offsetX, offsetY, animated]);
     }
 
     spliceData = (params) => {
-        this.table.spliceData([params]);
+        this.table && this.table.spliceData([params]);
     }
-    
+
     updateData = (params) => {
-        this.table.updateData([params.data, params.y, params.x]);
+        this.table && this.table.updateData([params.data, params.y, params.x]);
     }
 
     scrollToBottom = () => {
-        this.table.scrollToBottom();
+        this.table && this.table.scrollToBottom();
     }
 
     onClickEvent = ({nativeEvent: {keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount}}) => {
         this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount});
     };
-    
+
     render() {
+        const { headerView, ...tableProps } = this.props;
+        // collapsable={false} 阻止 Fabric 新架构对 headerView 容器做视图扁平化优化。
+        // 若不加此属性，当 headerView 包含多个子组件时，Fabric 会跳过中间容器层，
+        // 对每个子组件单独调用 mountChildComponentView:，导致只有最后一个子组件可见。
         return (
             <ReportTableView
                 ref={ref => this.table = ref}
-                {...this.props}
+                {...tableProps}
                 headerViewSize={this.headerViewSize}
                 onClickEvent={this.onClickEvent}
+                style={[this.props.size]}
             >
-                {this.props.headerView?.()}
+                <View
+                    collapsable={false}
+                    style={{width: this.headerViewSize.width, height: this.headerViewSize.height}}
+                >
+                    {headerView?.() ??  <View style={{width: 300, height: 0.01}} />}
+                </View>
             </ReportTableView>
         );
     }
 }
+

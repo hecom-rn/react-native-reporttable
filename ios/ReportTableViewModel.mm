@@ -12,21 +12,27 @@
 #import "ReportTableHeaderView.h"
 #import "UIImage+ImageTag.h"
 
-@class SpreadsheetView;
-@interface ReportTableViewModel();
+#import <ZMJGanttChart/ZMJGanttChart.h>
+@interface ReportTableViewModel ();
 
-@property (nonatomic, strong) ReportTableView * reportTableView;
+@property (nonatomic, strong) ReportTableView *reportTableView;
 @property (nonatomic, strong) NSMutableArray<NSArray<ItemModel *> *> *dataSource;
 @property (nonatomic, strong) ReportTableModel *reportTableModel;
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
-@property (nonatomic, assign) NSInteger propertyCount;
-@property (nonatomic, weak) RCTBridge *bridge;
-@property (nonatomic, strong) ReportTableHeaderView *headerView;
+@property (nonatomic, strong) UIView *headerView;
 @property (nonatomic, assign) CGFloat dataHeight;
+/// 从 headerViewSize prop 缓存的尺寸，用于在 mountHeaderView: 时序晚于
+/// setHeaderViewSize: 的情况下（Fabric 路径）补全 frame 设置。
+@property (nonatomic, assign) CGSize pendingHeaderViewSize;
 
 @end
 
 @implementation ReportTableViewModel
+
+@synthesize onClickEvent  = _onClickEvent;
+@synthesize onScrollEnd   = _onScrollEnd;
+@synthesize onScroll      = _onScroll;
+@synthesize onContentSize = _onContentSize;
 
 - (NSMutableArray<NSArray<ItemModel *> *> *)dataSource{
     if (!_dataSource) {
@@ -55,20 +61,10 @@
 }
 
 
-- (void)didAddSubview:(UIView *)subview {
-    if ([subview isKindOfClass:[RCTView class]]) {
-        [subview removeFromSuperview];
-        self.headerView = subview;
-        [self.headerScrollView addSubview: self.headerView];
-    }
-}
-
-- (id)initWithBridge:(RCTBridge *)bridge {
-    self = [super init];
+- (id)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
     if (self) {
-        self.bridge = bridge;
         self.reportTableModel = [[ReportTableModel alloc] init];
-        self.propertyCount = 0;
     }
     return self;
 }
@@ -146,161 +142,105 @@
     return [text boundingRectWithSize:CGSizeMake(maxWidth, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin context: nil];
 }
 
-- (void)setData:(NSArray *)data {
-    NSMutableArray *dataSource = [NSMutableArray arrayWithArray:data];
-    if (self.reportTableModel.data.count > 0) {
-        self.reportTableModel.data = dataSource; // update
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self integratedDataSource];
-        });
-    } else {
-        self.reportTableModel.data = dataSource;
-        self.propertyCount += 1;
-        [self reloadCheck];
+/// Returns a deeply-mutable copy of a single row (NSArray of NSDictionary).
+- (NSMutableArray *)mutableRowFromRow:(NSArray *)row {
+    NSMutableArray *mutableRow = [NSMutableArray arrayWithCapacity:row.count];
+    for (id item in row) {
+        [mutableRow addObject:[NSMutableDictionary dictionaryWithDictionary:item]];
     }
+    return mutableRow;
+}
+
+- (void)setData:(NSArray *)data {
+    NSMutableArray *dataSource = [NSMutableArray arrayWithCapacity:data.count];
+    for (NSArray *row in data) {
+        [dataSource addObject:[self mutableRowFromRow:row]];
+    }
+    self.reportTableModel.data = dataSource;
 }
 
 - (void)setMinWidth:(float)minWidth {
-    if (self.reportTableModel.minWidth != 0 && self.reportTableModel.minWidth != minWidth) {
-        self.reportTableModel.minWidth = minWidth; // update
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self integratedDataSource];
-        });
-    } else {
-        self.reportTableModel.minWidth = minWidth;
-        self.propertyCount += 1;
-        [self reloadCheck];
-    }
+    self.reportTableModel.minWidth = minWidth;
 }
 
 - (void)setMaxWidth:(float)maxWidth {
     self.reportTableModel.maxWidth = maxWidth;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setMinHeight:(float)minHeight {
     self.reportTableModel.minHeight = minHeight;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setShowBorder:(BOOL)showBorder {
     self.reportTableModel.showBorder = showBorder;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setFrozenColumns:(NSInteger)frozenColumns {
     self.reportTableModel.frozenColumns = frozenColumns;
     self.reportTableModel.oriFrozenColumns = frozenColumns;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setReplenishColumnsWidthConfig:(NSDictionary *)replenishColumnsWidthConfig {
     self.reportTableModel.replenishColumnsWidthConfig = replenishColumnsWidthConfig;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setColumnsWidthMap:(NSDictionary *)columnsWidthMap {
     self.reportTableModel.columnsWidthMap = columnsWidthMap;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setFrozenRows:(NSInteger)frozenRows {
     self.reportTableModel.frozenRows = frozenRows;
-    self.propertyCount += 1;
-    [self reloadCheck];
-}
-
-- (void)setOnClickEvent:(RCTDirectEventBlock)onClickEvent {
-    self.reportTableModel.onClickEvent = onClickEvent;
-    self.propertyCount += 1;
-    [self reloadCheck];
-}
-
-- (void)setOnContentSize:(RCTDirectEventBlock)onContentSize {
-    self.reportTableModel.onContentSize = onContentSize;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setSize:(CGSize)size {
     self.reportTableModel.tableRect = CGRectMake(0, 0, size.width, size.height);
-    if (self.dataHeight) {
-        CGSize headersize = CGSizeMake(0, 0);
-        if (_headerView) {
-            headersize.height = _headerView.frame.size.height;
-        }
-        CGRect tableRect = CGRectMake(0, 0, size.width, size.height);
-        self.reportTableView.frame = tableRect;
-        [self.reportTableView scrollViewDidZoom: self.reportTableView];
-        if (_headerView != nil ) {
-            CGSize headerViewSize = self.headerView.frame.size;
-            self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
-        }
-        if (self.reportTableModel.replenishColumnsWidthConfig != nil) {
-            NSInteger showNumber = [self.reportTableModel.replenishColumnsWidthConfig objectForKey:@"showNumber"] ? [RCTConvert NSInteger:[self.reportTableModel.replenishColumnsWidthConfig objectForKey:@"showNumber"]] : 0;
-            if (showNumber > 0) {
-                [self integratedDataSource];
-            }
-        }
-    } else {
-        self.propertyCount += 1;
-        [self reloadCheck];
-    }
 }
 
-- (void)setHeaderViewSize:(CGSize)headerViewSize {
-    // headerScrollView 只会初始化一次
-    if (!_headerScrollView) {
-        // 第一次初始化
-        self.propertyCount += 1;
-        if (headerViewSize.width == 0) {
-            // donothing
-        } else {
-            self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
-            [self.headerScrollView addSubview: self.headerView];
-        }
-    } else {
-        if (headerViewSize.width == 0) {
-            // 当headerViewSize为0时，会移除headerView
-            [self.headerView removeFromSuperview];
-            self.headerView = nil;
-        } else {
-            self.headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
-        }
+- (void)setOnClickEvent:(RCTDirectEventBlock)onClickEvent {
+    self.reportTableModel.onClickEvent = onClickEvent;
+}
 
-    }
-    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerViewSize.height);
-    
-    BOOL canScroll = (self.dataHeight ?: 0) + self.headerScrollView.frame.size.height > self.reportTableModel.tableRect.size.height;
-    self.headerScrollView.contentSize = CGSizeMake(headerViewSize.width, canScroll ? self.reportTableModel.tableRect.size.height : 0);
-    
-    self.reportTableView.headerScrollView = self.headerScrollView;
-    [self.reportTableView scrollViewDidZoom: self.reportTableView];
-    [self reloadCheck];
+- (void)setOnContentSize:(RCTDirectEventBlock)onContentSize {
+    self.reportTableModel.onContentSize = onContentSize;
 }
 
 - (void)setOnScrollEnd:(RCTDirectEventBlock)onScrollEnd {
     self.reportTableModel.onScrollEnd = onScrollEnd;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
-- (void)setOnScroll:(RCTDirectEventBlock)onScroll{
+- (void)setOnScroll:(RCTDirectEventBlock)onScroll {
     self.reportTableModel.onScroll = onScroll;
-    self.propertyCount += 1;
-    [self reloadCheck];
+}
+
+// ---------------------------------------------------------------------------
+#pragma mark - Header view size
+// ---------------------------------------------------------------------------
+
+- (void)setHeaderViewSize:(CGSize)headerViewSize {
+    self.pendingHeaderViewSize = headerViewSize;
+    // 若 headerView 已挂载（旧架构路径），同步更新其 frame。
+    // Fabric 路径下 mountChildComponentView: 晚于 updateProps:，
+    // 此时 _headerView 尚为 nil，frame 将在 mountHeaderView: 中补全。
+    if (_headerView) {
+        _headerView.frame = CGRectMake(0, 0, headerViewSize.width, headerViewSize.height);
+    }
+    [self _applyHeaderScrollViewLayout];
+}
+
+/// 根据 pendingHeaderViewSize 更新 headerScrollView 的 frame 与 contentSize。
+/// 同时通知 reportTableView 重新应用 zoom 缩放，保持 header 与表格列对齐。
+- (void)_applyHeaderScrollViewLayout {
+    CGFloat headerHeight = self.pendingHeaderViewSize.height;
+    CGFloat headerWidth  = self.pendingHeaderViewSize.width;
+    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableView.frame.size.width, headerHeight);
+    BOOL canScroll = (self.dataHeight ?: 0) + headerHeight > self.reportTableModel.tableRect.size.height;
+    self.headerScrollView.contentSize = CGSizeMake(headerWidth, canScroll ? self.reportTableModel.tableRect.size.height : 0);
+    self.reportTableView.headerScrollView = self.headerScrollView;
+    [self.reportTableView scrollViewDidZoom:self.reportTableView];
 }
 
 - (void)setPermutable:(BOOL)permutable {
     self.reportTableModel.permutable = permutable;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setDisableZoom:(BOOL)disableZoom {
@@ -311,26 +251,22 @@
         self.reportTableView.maximumZoomScale = 2;
         self.reportTableView.minimumZoomScale = 0.5;
     }
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setIgnoreLocks:(NSArray *)ignoreLocks {
     self.reportTableModel.ignoreLocks = ignoreLocks;
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setLineColor:(NSString *)lineColor {
     self.reportTableModel.lineColor = [self colorFromHex: lineColor];
-    self.propertyCount += 1;
-    [self reloadCheck];
 }
 
 - (void)setFrozenAbility:(NSDictionary *)frozenAbility {
-    self.reportTableModel.frozenAbility = frozenAbility;
-    self.propertyCount += 1;
-    [self reloadCheck];
+    NSMutableDictionary *mutableAbility = [NSMutableDictionary dictionaryWithCapacity:frozenAbility.count];
+    [frozenAbility enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+        mutableAbility[key] = [NSMutableDictionary dictionaryWithDictionary:obj];
+    }];
+    self.reportTableModel.frozenAbility = mutableAbility;
 }
 
 - (void)setItemConfig:(NSDictionary *)itemConfig {
@@ -339,7 +275,7 @@
     model.backgroundColor = [self colorFromHex:[itemConfig objectForKey:@"backgroundColor"]];
     model.fontSize = [RCTConvert CGFloat:[itemConfig objectForKey:@"fontSize"]];
     model.textColor = [self colorFromHex:[itemConfig objectForKey:@"textColor"]];
-    model.textAlignment = [RCTConvert NSInteger:[itemConfig objectForKey:@"textAlignment"]];
+    model.textAlignment = (NSTextAlignment)[RCTConvert NSInteger:[itemConfig objectForKey:@"textAlignment"]];
     model.textPaddingHorizontal = [RCTConvert NSInteger:[itemConfig objectForKey:@"textPaddingHorizontal"]];
     
     model.classificationLineColor = [self colorFromHex:[itemConfig objectForKey:@"classificationLineColor"]];
@@ -361,26 +297,18 @@
         model.progressStyle = progressStyle;
     }
     self.reportTableModel.itemConfig = model;
-    self.propertyCount += 1;
-    [self reloadCheck];
-}
-
-- (void)reloadCheck {
-    if (self.propertyCount >= 21) {
-        self.propertyCount = 0;
-        [self integratedDataSource];
-    }
 }
 
 - (void)updateDataSource:(NSArray<NSArray *> *)data withY:(NSInteger)y withX:(NSInteger)x {
     if (self.reportTableModel.data.count > 0) {
         NSMutableArray *arr = self.reportTableModel.data;
-        NSArray *rowArr = (NSArray *)arr[0];
+        NSMutableArray *rowArr = (NSMutableArray *)arr[0];
         for (int i = y; i < arr.count; i++) {
             if (data.count > i - y) {
+                NSMutableArray *destRow = (NSMutableArray *)arr[i];
                 for (int j = x; j < rowArr.count; j++) {
                     if (data[i-y].count > j-x) {
-                        arr[i][j] = (NSDictionary *)data[i-y][j-x];
+                        destRow[j] = [NSMutableDictionary dictionaryWithDictionary:data[i-y][j-x]];
                     } else {
                         continue;
                     }
@@ -409,8 +337,12 @@
             }
             // 插入
             if (data.count > 0 && y <= arr.count) {
-                NSIndexSet *indexes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(y, data.count)];
-                [arr insertObjects:data atIndexes:indexes];
+                NSMutableArray *mutableRows = [NSMutableArray arrayWithCapacity:data.count];
+                for (NSArray *row in data) {
+                    [mutableRows addObject:[self mutableRowFromRow:row]];
+                }
+                NSIndexSet *indexes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(y, mutableRows.count)];
+                [arr insertObjects:mutableRows atIndexes:indexes];
             }
         }
     }
@@ -425,6 +357,65 @@
 - (void)scrollToBottom {
     [self.reportTableView scrollToBottom];
 }
+
+- (void)resetForRecycle {
+    self.reportTableModel.data = [NSMutableArray array];
+    self.reportTableModel.minWidth = 0;
+    self.dataHeight = 0;
+    [self.dataSource removeAllObjects];
+    if (_reportTableView) {
+        _reportTableView.zoomScale = 1.0;
+        [_reportTableView scrollViewDidZoom:_reportTableView];
+        if (_reportTableView.spreadsheetView) {
+            [_reportTableView.spreadsheetView setContentOffset:CGPointZero animated:NO];
+        }
+    }
+    _onClickEvent = nil;
+    _onScrollEnd = nil;
+    _onScroll = nil;
+    _onContentSize = nil;
+    self.pendingHeaderViewSize = CGSizeZero;
+    self.headerScrollView = nil;
+    self.reportTableModel.onClickEvent = nil;
+    self.reportTableModel.onScrollEnd = nil;
+    self.reportTableModel.onScroll = nil;
+    self.reportTableModel.onContentSize = nil;
+}
+
+// ---------------------------------------------------------------------------
+#pragma mark - Header view mounting (Fabric & Paper)
+// ---------------------------------------------------------------------------
+
+/// 挂载 headerView（兼容 Fabric RCTViewComponentView 及普通 UIView）。
+/// Fabric 路径：先调用 updateProps:（含 setHeaderViewSize:），后调用此方法；
+/// 此时 pendingHeaderViewSize 已就绪，可直接为 headerView 设置正确 frame。
+- (void)mountHeaderView:(UIView *)headerView {
+    if (!headerView) return;
+    // 若存在旧的 headerView，先卸载
+    if (_headerView && _headerView != headerView) {
+        [_headerView removeFromSuperview];
+    }
+    _headerView = headerView;
+    // Fabric 会在挂载前由布局引擎设置好 frame；
+    // 旧架构（Paper）路径下 frame 尚未设置，在此补全。
+    if (!CGSizeEqualToSize(self.pendingHeaderViewSize, CGSizeZero)) {
+        _headerView.frame = CGRectMake(0, 0, self.pendingHeaderViewSize.width, self.pendingHeaderViewSize.height);
+    }
+    [self.headerScrollView addSubview:_headerView];
+    [self _applyHeaderScrollViewLayout];
+}
+
+/// 卸载 headerView。
+- (void)unmountHeaderView:(UIView *)headerView {
+    if (_headerView == headerView) {
+        [_headerView removeFromSuperview];
+        _headerView = nil;
+    } else {
+        [headerView removeFromSuperview];
+    }
+    [self _applyHeaderScrollViewLayout];
+}
+
 
 - (void)integratedDataSource {
     NSMutableArray<NSArray *> *dataSource = [NSMutableArray arrayWithArray: self.reportTableModel.data];
@@ -733,12 +724,8 @@
             BOOL locked = [value[@"locked"] boolValue];
             NSInteger nextfrozenColumns = [key integerValue] + 1; // frozenAbility 是从0开始的
             if (locked) {
-                if (maxKey == nil) {
+                if (maxKey < nextfrozenColumns) {
                     maxKey = nextfrozenColumns;
-                } else {
-                    if (maxKey < nextfrozenColumns) {
-                        maxKey = nextfrozenColumns;
-                    }
                 }
             }
         }
@@ -771,7 +758,7 @@
     }
     model.textAlignment = model.itemConfig.textAlignment;
     if ([keys containsObject: @"textAlignment"]) {
-        model.textAlignment = [RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
+        model.textAlignment = (NSTextAlignment)[RCTConvert NSInteger:[dir objectForKey:@"textAlignment"]];
     }
     if ([keys containsObject: @"classificationLinePosition"]) {
         model.classificationLinePosition = [RCTConvert NSInteger:[dir objectForKey:@"classificationLinePosition"]];
@@ -808,7 +795,7 @@
         NSArray *arr = [progressDic objectForKey:@"colors"];
         NSMutableArray *colors = [NSMutableArray arrayWithCapacity: arr.count];
         for (NSString *str in arr) {
-            [colors addObject:[self colorFromHex:str].CGColor];
+            [colors addObject:(__bridge id)[self colorFromHex:str].CGColor];
         }
         progressStyle.colors = colors;
         NSDictionary *antsLineDic = [progressDic objectForKey:@"antsLineStyle"] ? [RCTConvert NSDictionary:[progressDic objectForKey:@"antsLineStyle"]] : nil;
@@ -964,7 +951,7 @@
                 
                 // 自动使用 lineBreakMode aLine
                 NSDictionary *attributes = @{NSFontAttributeName: font};
-                NSMutableAttributedString *tagString = breakLine ? [[NSMutableAttributedString alloc] initWithString:isEmpty ? @"" : @"\n"attributes:attributes] : [[NSMutableAttributedString alloc] initWithString: tagTextWidth == 0 ? @"" : @" " attributes:attributes];
+                NSMutableAttributedString *tagString = breakLine ? [[NSMutableAttributedString alloc] initWithString:isEmpty ? @"" : @"\n" attributes:attributes] : [[NSMutableAttributedString alloc] initWithString: tagTextWidth == 0 ? @"" : @" " attributes:attributes];
                 [tagString appendAttributedString: [NSAttributedString attributedStringWithAttachment:attachment]];
                 [attributedText appendAttributedString: tagString];
             } else {
@@ -1002,9 +989,7 @@
         NSRange displayRange = NSMakeRange(0, rect.size.width / attributedString.size.width * attributedString.length);
         // 截取并添加省略号
         truncatedText = [attributedString attributedSubstringFromRange:displayRange];
-        truncatedText = [NSString stringWithFormat:@"%@...", truncatedText.string];
-        
-        return truncatedText;
+        return [NSString stringWithFormat:@"%@...", truncatedText.string];
     }
     // 如果不需要截取直接返回原始文本
     return text;

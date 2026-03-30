@@ -12,6 +12,16 @@
   "publishConfig": {
     "access": "public"
   },
+  "codegenConfig": {
+    "name": "ReportTableSpec",
+    "type": "components",
+    "jsSrcsDir": "src",
+    "ios": {
+      "componentProvider": {
+        "ReportTable": "RCTReportTableComponentView"
+      }
+    }
+  },
   "keywords": [
     "react-component",
     "react-native",
@@ -31,7 +41,7 @@
     "prop-types": "^15.5.10"
   },
   "peerDependencies": {
-    "react-native": ">=0.48"
+    "react-native": ">=0.73"
   },
   "homepage": "https://github.com/hecom-rn/react-native-reporttable#readme"
 }
