@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanResponder, ScrollView, UIManager } from 'react-native';
+import { PanResponder, ScrollView } from 'react-native';
 import ReportTableView from './ReportTableView';
 
 export default class ReportTableWrapper extends React.Component {
@@ -28,16 +28,17 @@ export default class ReportTableWrapper extends React.Component {
             onPanResponderRelease: (evt, gs) => {
             }
         });
-        this.data = this._toAndroidData(this.props);
-    }
-
-    UNSAFE_componentWillReceiveProps(nextProps) {
-        this.data = this._toAndroidData(nextProps);
     }
 
     render() {
         let {headerHeight} = this.state;
-        const {headerView, size, headerViewOrientation, HeaderComponent = ScrollView} = this.props;
+        const {
+            headerView,
+            size,
+            headerViewOrientation,
+            HeaderComponent = ScrollView,
+            ...tableProps
+        } = this.props;
         return (
             <ScrollView
                 ref={(ref) => (this.scrollView = ref)}
@@ -71,30 +72,15 @@ export default class ReportTableWrapper extends React.Component {
                 </HeaderComponent>
 
                 <ReportTableView
-                    ref={'AndroidReportTableView'}
-                    onScrollEnd={this.props.onScrollEnd}
-                    onScroll={this.props.onScroll}
-                    onContentSize={this.props.onContentSize}
-                    disableZoom={this.props.disableZoom}
-                    frozenRows={this.props.frozenRows}
-                    frozenPoint={this.props.frozenPoint}
-                    frozenCount={this.props.frozenCount}
-                    frozenColumns={this.props.frozenColumns}
-                    frozenAbility={this.props.frozenAbility}
-                    permutable={this.props.permutable}
-                    ignoreLocks={this.props.ignoreLocks}
-                    doubleClickZoom={this.props.doubleClickZoom}
-                    replenishColumnsWidthConfig={this.props.replenishColumnsWidthConfig}
-                    progressStyle={this.props.progressStyle}
-                    lineColor={this.props.lineColor}
-                    itemConfig={this.props.itemConfig}
+                    ref={(ref) => (this.table = ref)}
+                    {...tableProps}
+                    size={size}
                     onClickEvent={({nativeEvent: data}) => {
                         if (data) {
                             const {keyIndex, rowIndex, columnIndex, textColor} = data;
                             this.props.onClickEvent && this.props.onClickEvent({keyIndex, rowIndex, columnIndex});
                         }
                     }}
-                    data={this.data}
                     style={{width: size.width, height: size.height}}
                     {...this.panResponder.panHandlers}
                 />
@@ -103,53 +89,18 @@ export default class ReportTableWrapper extends React.Component {
     }
 
     scrollTo = (params) => {
-        UIManager.dispatchViewManagerCommand(
-            this._getTableHandle(),
-            'scrollTo',
-            [params]
-        );
+        this.table && this.table.scrollTo(params);
     }
     scrollToBottom = () => {
-        UIManager.dispatchViewManagerCommand(
-            this._getTableHandle(),
-            'scrollToBottom',
-            undefined
-        );
+        this.table && this.table.scrollToBottom();
     }
 
     updateData = (params) => {
-        params.data = JSON.stringify(params.data);
-        UIManager.dispatchViewManagerCommand(
-            this._getTableHandle(),
-            'updateData',
-            [params]
-        );
+        this.table && this.table.updateData(params);
     }
 
     spliceData = (params) => {
-        params?.forEach((item) => {
-            item.data = JSON.stringify(item.data);
-        })
-        UIManager.dispatchViewManagerCommand(
-            this._getTableHandle(),
-            'spliceData',
-            [params]
-        );
-    }
-
-    _getTableHandle = () => {
-        return ReactNative.findNodeHandle(this.refs.AndroidReportTableView);
-    };
-
-    _toAndroidData = (props) => {
-        const {data, minWidth, minHeight, maxWidth, columnsWidthMap} = props;
-        return {
-            data: data && JSON.stringify(data),
-            columnsWidthMap: columnsWidthMap && JSON.stringify(columnsWidthMap),
-            minWidth: minWidth,
-            minHeight: minHeight,
-            maxWidth: maxWidth,
-        };
+        this.table && this.table.spliceData(params);
     }
 }
 

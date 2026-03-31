@@ -88,6 +88,7 @@ export interface NativeProps extends ViewProps {
     lineColor?: string;
     showBorder?: boolean;
     disableZoom?: boolean;
+    doubleClickZoom?: boolean;
     permutable?: boolean;
 
     // Item style config (typed object)
