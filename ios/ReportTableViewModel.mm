@@ -359,27 +359,28 @@
 }
 
 - (void)resetForRecycle {
-    self.reportTableModel.data = [NSMutableArray array];
-    self.reportTableModel.minWidth = 0;
     self.dataHeight = 0;
     [self.dataSource removeAllObjects];
     if (_reportTableView) {
         _reportTableView.zoomScale = 1.0;
         [_reportTableView scrollViewDidZoom:_reportTableView];
-        if (_reportTableView.spreadsheetView) {
-            [_reportTableView.spreadsheetView setContentOffset:CGPointZero animated:NO];
-        }
+        [_reportTableView resetForRecycle];
+    }
+    if (_headerView) {
+        [_headerView removeFromSuperview];
+        _headerView = nil;
+    }
+    if (_headerScrollView) {
+        _headerScrollView.delegate = nil;
+        [_headerScrollView removeFromSuperview];
+        _headerScrollView = nil;
     }
     _onClickEvent = nil;
     _onScrollEnd = nil;
     _onScroll = nil;
     _onContentSize = nil;
     self.pendingHeaderViewSize = CGSizeZero;
-    self.headerScrollView = nil;
-    self.reportTableModel.onClickEvent = nil;
-    self.reportTableModel.onScrollEnd = nil;
-    self.reportTableModel.onScroll = nil;
-    self.reportTableModel.onContentSize = nil;
+    self.reportTableModel = [[ReportTableModel alloc] init];
 }
 
 // ---------------------------------------------------------------------------

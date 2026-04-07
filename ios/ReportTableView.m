@@ -28,8 +28,23 @@
 
 @implementation ReportTableView
 
+- (void)resetSpreadsheetBorder {
+    self.spreadsheetView.layer.masksToBounds = NO;
+    self.spreadsheetView.layer.borderColor = nil;
+    self.spreadsheetView.layer.borderWidth = 0;
+}
+
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
+    if (_headerScrollView != nil && _headerScrollView != headerScrollView) {
+        _headerScrollView.delegate = nil;
+    }
     _headerScrollView = headerScrollView;
+    if (headerScrollView == nil) {
+        self.spreadsheetView.tableHeaderView = [UIScrollView new];
+        self.spreadsheetView.tableView.scrollEnabled = true;
+        self.isOnHeader = false;
+        return;
+    }
     self.headerScrollView.isUserScouce = false;
     self.spreadsheetView.tableView.scrollEnabled = true;
     if (headerScrollView.frame.size.height > 0) {
@@ -94,6 +109,8 @@
         self.spreadsheetView.layer.masksToBounds = YES;
         self.spreadsheetView.layer.borderColor = reportTableModel.lineColor.CGColor;
         self.spreadsheetView.layer.borderWidth = hairline;
+    } else {
+        [self resetSpreadsheetBorder];
     }
     if (self.reportTableModel.permutedArr.count > 0 && reportTableModel.dataSource.count > 0) {
         NSArray *data = reportTableModel.dataSource[0];
@@ -210,6 +227,29 @@
         float x = self.spreadsheetView.contentOffset.x;
         float y = MAX(0, self.spreadsheetView.contentSize.height - self.spreadsheetView.frame.size.height / self.zoomScale);
         [self.spreadsheetView setContentOffset:CGPointMake(x, y) animated: true];
+    }
+}
+
+- (void)resetForRecycle {
+    self.isOnHeader = false;
+    self.reportTableModel = nil;
+    self.dataSource = nil;
+    self.frozenArray = nil;
+    self.cloumsHight = nil;
+    self.rowsWidth = nil;
+    self.spreadsheetView.showCloumnForzenShadow = NO;
+    [self resetSpreadsheetBorder];
+    if (_spreadsheetView) {
+        [_spreadsheetView setContentOffset:CGPointZero animated:NO];
+        _spreadsheetView.tableView.scrollEnabled = true;
+        _spreadsheetView.tableHeaderView = [UIScrollView new];
+    }
+    if (_headerScrollView) {
+        _headerScrollView.delegate = nil;
+        _headerScrollView.isUserScouce = false;
+        _headerScrollView.offset = 0;
+        _headerScrollView.contentOffset = CGPointZero;
+        [self sendSubviewToBack:_headerScrollView];
     }
 }
 
