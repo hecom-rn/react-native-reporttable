@@ -28,10 +28,53 @@
 
 @implementation ReportTableView
 
+- (void)configureSpreadsheetView:(SpreadsheetView *)spreadsheetView {
+    spreadsheetView.showsVerticalScrollIndicator = false;
+    spreadsheetView.showsHorizontalScrollIndicator = false;
+    spreadsheetView.dataSource = self;
+    spreadsheetView.delegate = self;
+    spreadsheetView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    spreadsheetView.frame = self.bounds;
+    spreadsheetView.bounces = false;
+    [spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier:[ReportTableCell description]];
+
+    __weak typeof(self)weak_self = self;
+    spreadsheetView.onScrollEnd = ^(BOOL isOnEnd) {
+        if (weak_self.reportTableModel.onScrollEnd != nil) {
+            weak_self.reportTableModel.onScrollEnd(@{@"isEnd": @YES});
+        }
+    };
+    spreadsheetView.onScroll = ^(NSDictionary *object) {
+        if (weak_self.reportTableModel.onScroll != nil) {
+            weak_self.reportTableModel.onScroll(object);
+        }
+        [weak_self setMergedCellsLabelOffset];
+    };
+    spreadsheetView.rowHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_rowHeaderView"];
+    spreadsheetView.cornerView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_cornerView"];
+    spreadsheetView.tableView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_tableView"];
+    spreadsheetView.columnHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_columnHeaderView"];
+}
+
+- (void)tearDownSpreadsheetView {
+    if (_spreadsheetView == nil) {
+        return;
+    }
+    _spreadsheetView.dataSource = nil;
+    _spreadsheetView.delegate = nil;
+    _spreadsheetView.onScroll = nil;
+    _spreadsheetView.onScrollEnd = nil;
+    [_spreadsheetView removeFromSuperview];
+    _spreadsheetView = nil;
+}
+
 - (void)resetSpreadsheetBorder {
-    self.spreadsheetView.layer.masksToBounds = NO;
-    self.spreadsheetView.layer.borderColor = nil;
-    self.spreadsheetView.layer.borderWidth = 0;
+    if (_spreadsheetView == nil) {
+        return;
+    }
+    _spreadsheetView.layer.masksToBounds = NO;
+    _spreadsheetView.layer.borderColor = nil;
+    _spreadsheetView.layer.borderWidth = 0;
 }
 
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
@@ -40,8 +83,10 @@
     }
     _headerScrollView = headerScrollView;
     if (headerScrollView == nil) {
-        self.spreadsheetView.tableHeaderView = [UIScrollView new];
-        self.spreadsheetView.tableView.scrollEnabled = true;
+        if (_spreadsheetView != nil) {
+            _spreadsheetView.tableHeaderView = [UIScrollView new];
+            _spreadsheetView.tableView.scrollEnabled = true;
+        }
         self.isOnHeader = false;
         return;
     }
@@ -84,7 +129,7 @@
         self.containerView.layer.anchorPoint = CGPointMake(0, 0);
         [self addSubview: self.containerView];
 
-        [self.spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier: [ReportTableCell description]];
+        [self spreadsheetView];
         [self.spreadsheetView flashScrollIndicators];
     }
     return self;
@@ -139,8 +184,9 @@
 
 
     self.spreadsheetView.showCloumnForzenShadow = isFullWidth; // 设置是否显示阴影
-    [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
+    [self.spreadsheetView reloadData];
+    [self.spreadsheetView layoutIfNeeded];
     [self setMergedCellsLabelOffset];
     [ReportTableEvent tableDidLayout]; // 回调完成回调
 }
@@ -237,12 +283,12 @@
     self.frozenArray = nil;
     self.cloumsHight = nil;
     self.rowsWidth = nil;
-    self.spreadsheetView.showCloumnForzenShadow = NO;
     [self resetSpreadsheetBorder];
     if (_spreadsheetView) {
         [_spreadsheetView setContentOffset:CGPointZero animated:NO];
         _spreadsheetView.tableView.scrollEnabled = true;
         _spreadsheetView.tableHeaderView = [UIScrollView new];
+        _spreadsheetView.showCloumnForzenShadow = NO;
     }
     if (_headerScrollView) {
         _headerScrollView.delegate = nil;
@@ -251,6 +297,7 @@
         _headerScrollView.contentOffset = CGPointZero;
         [self sendSubviewToBack:_headerScrollView];
     }
+    [self tearDownSpreadsheetView];
 }
 
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
@@ -282,29 +329,7 @@
     if (!_spreadsheetView) {
         _spreadsheetView = ({
             SpreadsheetView *ssv = [SpreadsheetView new];
-            ssv.showsVerticalScrollIndicator = false;
-            ssv.showsHorizontalScrollIndicator = false;
-            ssv.dataSource = self;
-            ssv.delegate   = self;
-            ssv.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-            ssv.frame = self.bounds;
-            ssv.bounces = false;
-            __weak typeof(self)weak_self = self;
-            ssv.onScrollEnd = ^(BOOL isOnEnd) {
-                if (weak_self.reportTableModel.onScrollEnd != nil) {
-                    weak_self.reportTableModel.onScrollEnd(@{@"isEnd": @YES});
-                }
-            };
-            ssv.onScroll = ^(NSDictionary *object) {
-                if (weak_self.reportTableModel.onScroll != nil) {
-                    weak_self.reportTableModel.onScroll(object);
-                }
-                [weak_self setMergedCellsLabelOffset];
-            };
-            ssv.rowHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_rowHeaderView"];
-            ssv.cornerView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_cornerView"];
-            ssv.tableView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_tableView"];
-            ssv.columnHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_columnHeaderView"];
+            [self configureSpreadsheetView:ssv];
             [self addSubview:ssv];
             ssv;
         });
@@ -547,8 +572,9 @@
                     [self.reportTableModel.permutedArr addObject:@(columIndex)];
                 }
                 self.reportTableModel.frozenColumns = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns;
-                [self.spreadsheetView reloadData];
                 [self scrollViewDidZoom: self];
+                [self.spreadsheetView reloadData];
+                [self.spreadsheetView layoutIfNeeded];
             }
         } else {
             NSInteger newFrozenColums = column + model.horCount;
@@ -591,8 +617,9 @@
                         }
                         self.reportTableModel.frozenColumns = newFrozenColums;
                     }
-                    [self.spreadsheetView reloadData];
                     [self scrollViewDidZoom: self];
+                    [self.spreadsheetView reloadData];
+                    [self.spreadsheetView layoutIfNeeded];
                 }
             }
         }
