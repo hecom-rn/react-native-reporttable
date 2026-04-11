@@ -70,16 +70,25 @@ using namespace facebook::react;
 - (void)updateProps:(const Props::Shared &)props
            oldProps:(const Props::Shared &)oldProps
 {
+    const auto oldReportTableProps = oldProps ? std::static_pointer_cast<const ReportTableProps>(oldProps) : nullptr;
     const auto &newProps = *std::static_pointer_cast<const ReportTableProps>(props);
 
     // ---- size ----
-    [_viewModel setSize:CGSizeMake(newProps.size.width, newProps.size.height)];
+    if (!oldReportTableProps
+        || newProps.size.width != oldReportTableProps->size.width
+        || newProps.size.height != oldReportTableProps->size.height) {
+        [_viewModel setSize:CGSizeMake(newProps.size.width, newProps.size.height)];
+    }
 
     // ---- headerViewSize ----
-    [_viewModel setHeaderViewSize:CGSizeMake(newProps.headerViewSize.width, newProps.headerViewSize.height)];
+    if (!oldReportTableProps
+        || newProps.headerViewSize.width != oldReportTableProps->headerViewSize.width
+        || newProps.headerViewSize.height != oldReportTableProps->headerViewSize.height) {
+        [_viewModel setHeaderViewSize:CGSizeMake(newProps.headerViewSize.width, newProps.headerViewSize.height)];
+    }
 
     // ---- data (JSON string → NSArray) ----
-    {
+    if (!oldReportTableProps || newProps.data != oldReportTableProps->data) {
         NSString *dataStr = [NSString stringWithUTF8String:newProps.data.c_str()];
         NSArray *data = [self arrayFromJSONString:dataStr];
         if (data) {
@@ -88,58 +97,76 @@ using namespace facebook::react;
     }
 
     // ---- minWidth ----
-    [_viewModel setMinWidth:newProps.minWidth];
+    if (!oldReportTableProps || newProps.minWidth != oldReportTableProps->minWidth) {
+        [_viewModel setMinWidth:newProps.minWidth];
+    }
 
     // ---- maxWidth ----
-    [_viewModel setMaxWidth:newProps.maxWidth];
+    if (!oldReportTableProps || newProps.maxWidth != oldReportTableProps->maxWidth) {
+        [_viewModel setMaxWidth:newProps.maxWidth];
+    }
 
     // ---- minHeight ----
-    [_viewModel setMinHeight:newProps.minHeight];
+    if (!oldReportTableProps || newProps.minHeight != oldReportTableProps->minHeight) {
+        [_viewModel setMinHeight:newProps.minHeight];
+    }
 
     // ---- frozenColumns ----
-    [_viewModel setFrozenColumns:newProps.frozenColumns];
+    if (!oldReportTableProps || newProps.frozenColumns != oldReportTableProps->frozenColumns) {
+        [_viewModel setFrozenColumns:newProps.frozenColumns];
+    }
 
     // ---- frozenRows ----
-    [_viewModel setFrozenRows:newProps.frozenRows];
+    if (!oldReportTableProps || newProps.frozenRows != oldReportTableProps->frozenRows) {
+        [_viewModel setFrozenRows:newProps.frozenRows];
+    }
 
     // ---- lineColor ----
-    [_viewModel setLineColor:[NSString stringWithUTF8String:newProps.lineColor.c_str()]];
+    if (!oldReportTableProps || newProps.lineColor != oldReportTableProps->lineColor) {
+        [_viewModel setLineColor:[NSString stringWithUTF8String:newProps.lineColor.c_str()]];
+    }
 
     // ---- showBorder ----
-    [_viewModel setShowBorder:newProps.showBorder];
+    if (!oldReportTableProps || newProps.showBorder != oldReportTableProps->showBorder) {
+        [_viewModel setShowBorder:newProps.showBorder];
+    }
 
     // ---- disableZoom ----
-    [_viewModel setDisableZoom:newProps.disableZoom];
+    if (!oldReportTableProps || newProps.disableZoom != oldReportTableProps->disableZoom) {
+        [_viewModel setDisableZoom:newProps.disableZoom];
+    }
 
     // ---- permutable ----
-    [_viewModel setPermutable:newProps.permutable];
+    if (!oldReportTableProps || newProps.permutable != oldReportTableProps->permutable) {
+        [_viewModel setPermutable:newProps.permutable];
+    }
 
     // ---- itemConfig ----
     [_viewModel setItemConfig:[self itemConfigFromProps:newProps.itemConfig]];
 
     // ---- columnsWidthMap (JSON string → NSDictionary) ----
-    {
+    if (!oldReportTableProps || newProps.columnsWidthMap != oldReportTableProps->columnsWidthMap) {
         NSString *jsonStr = [NSString stringWithUTF8String:newProps.columnsWidthMap.c_str()];
         NSDictionary *dict = [self dictionaryFromJSONString:jsonStr];
         [_viewModel setColumnsWidthMap:dict ?: @{}];
     }
 
     // ---- frozenAbility (JSON string → NSDictionary) ----
-    {
+    if (!oldReportTableProps || newProps.frozenAbility != oldReportTableProps->frozenAbility) {
         NSString *jsonStr = [NSString stringWithUTF8String:newProps.frozenAbility.c_str()];
         NSDictionary *dict = [self dictionaryFromJSONString:jsonStr];
         [_viewModel setFrozenAbility:dict ?: @{}];
     }
 
     // ---- replenishColumnsWidthConfig (JSON string → NSDictionary) ----
-    {
+    if (!oldReportTableProps || newProps.replenishColumnsWidthConfig != oldReportTableProps->replenishColumnsWidthConfig) {
         NSString *jsonStr = [NSString stringWithUTF8String:newProps.replenishColumnsWidthConfig.c_str()];
         NSDictionary *dict = [self dictionaryFromJSONString:jsonStr];
         [_viewModel setReplenishColumnsWidthConfig:dict ?: @{}];
     }
 
     // ---- ignoreLocks ----
-    {
+    if (!oldReportTableProps || newProps.ignoreLocks != oldReportTableProps->ignoreLocks) {
         NSMutableArray *ignoreLocks = [NSMutableArray array];
         for (auto val : newProps.ignoreLocks) {
             [ignoreLocks addObject:@(val)];
@@ -150,8 +177,20 @@ using namespace facebook::react;
     // ---- events ----
     [self setupEventCallbacks];
 
-    // 所有 props 已设置完毕，触发一次布局计算与渲染
-    [_viewModel integratedDataSource];
+    // 所有 props 已设置完毕，触发一次布局计算与渲染。
+    // 首次挂载（oldProps == nil）立即渲染；后续更新推迟到下一个 run loop cycle，
+    // 避免 reloadData 在 UITrackingRunLoopMode 中打断用户正在进行的 tap 手势。
+    // cancelPreviousPerformRequestsWithTarget: 将快速连续的刷新合并为一次渲染。
+    if (!oldProps) {
+        [_viewModel integratedDataSource];
+    } else {
+        [NSObject cancelPreviousPerformRequestsWithTarget:_viewModel
+                                                 selector:@selector(integratedDataSource)
+                                                   object:nil];
+        [_viewModel performSelector:@selector(integratedDataSource)
+                         withObject:nil
+                         afterDelay:0];
+    }
 
     [super updateProps:props oldProps:oldProps];
 }
