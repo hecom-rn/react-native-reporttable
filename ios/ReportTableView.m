@@ -60,6 +60,9 @@
     if (_spreadsheetView == nil) {
         return;
     }
+    [NSObject cancelPreviousPerformRequestsWithTarget:self
+                                             selector:@selector(_scheduleSpreadsheetReload)
+                                               object:nil];
     _spreadsheetView.dataSource = nil;
     _spreadsheetView.delegate = nil;
     _spreadsheetView.onScroll = nil;
@@ -185,10 +188,10 @@
 
     self.spreadsheetView.showCloumnForzenShadow = isFullWidth; // 设置是否显示阴影
     [self scrollViewDidZoom: self];
-    [self.spreadsheetView reloadData];
-    [self.spreadsheetView layoutIfNeeded];
-    [self setMergedCellsLabelOffset];
-    [ReportTableEvent tableDidLayout]; // 回调完成回调
+    [NSObject cancelPreviousPerformRequestsWithTarget:self
+                                             selector:@selector(_scheduleSpreadsheetReload)
+                                               object:nil];
+    [self _scheduleSpreadsheetReload];
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
@@ -277,8 +280,11 @@
 }
 
 - (void)resetForRecycle {
+    [NSObject cancelPreviousPerformRequestsWithTarget:self
+                                             selector:@selector(_scheduleSpreadsheetReload)
+                                               object:nil];
     self.isOnHeader = false;
-    self.reportTableModel = nil;
+    _reportTableModel = nil;
     self.dataSource = nil;
     self.frozenArray = nil;
     self.cloumsHight = nil;
@@ -385,6 +391,26 @@
     }
 }
 
+
+/// 触发 SpreadsheetView 重新渲染。
+/// 若用户手指仍在触碰（isTracking/isDragging），则延迟 50ms 后重试，
+/// 避免 reloadData 回收正在被触摸的 cell、中断 tap 手势识别。
+- (void)_scheduleSpreadsheetReload {
+    // 若 model 已被清除（recycle），直接退出
+    if (_reportTableModel == nil) { return; }
+    // 若 SpreadsheetView 正在追踪触摸，推迟执行
+    if (_spreadsheetView != nil &&
+        (_spreadsheetView.isTracking || _spreadsheetView.isDragging)) {
+        [self performSelector:@selector(_scheduleSpreadsheetReload)
+                   withObject:nil
+                   afterDelay:0.05];
+        return;
+    }
+    [self.spreadsheetView reloadData];
+    [self.spreadsheetView layoutIfNeeded];
+    [self setMergedCellsLabelOffset];
+    [ReportTableEvent tableDidLayout];
+}
 
 //MARK: DataSource
 - (NSInteger)numberOfColumns:(SpreadsheetView *)spreadsheetView {
