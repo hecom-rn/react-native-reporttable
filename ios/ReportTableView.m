@@ -398,9 +398,9 @@
 - (void)_scheduleSpreadsheetReload {
     // 若 model 已被清除（recycle），直接退出
     if (_reportTableModel == nil) { return; }
-    // 若 SpreadsheetView 正在追踪触摸，推迟执行
+    // 若 SpreadsheetView 内部 tableView 正在追踪触摸，推迟执行
     if (_spreadsheetView != nil &&
-        (_spreadsheetView.isTracking || _spreadsheetView.isDragging)) {
+        (_spreadsheetView.tableView.isTracking || _spreadsheetView.tableView.isDragging)) {
         [self performSelector:@selector(_scheduleSpreadsheetReload)
                    withObject:nil
                    afterDelay:0.05];
