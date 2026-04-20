@@ -694,16 +694,6 @@
         NSNumber *height = [cloumsHight valueForKeyPath:@"@sum.self"];
         self.reportTableModel.onContentSize(@{@"width": @([width floatValue] + (rowsWidth.count + 1) * 1), @"height": @([height floatValue] + (cloumsHight.count + 1) * 1)});
     }
-    self.reportTableView.frame = self.reportTableModel.tableRect;
-    BOOL canScroll = self.dataHeight + self.headerScrollView.frame.size.height > self.reportTableModel.tableRect.size.height;
-    self.headerScrollView.contentSize = CGSizeMake(self.headerScrollView.contentSize.width, canScroll ? self.reportTableModel.tableRect.size.height : 0);
-    
-    self.headerScrollView.frame = CGRectMake(0, 0, self.reportTableModel.tableRect.size.width, self.headerScrollView.frame.size.height);
-    if (frozenArray.count > 0 && self.reportTableModel.permutable) {
-        // 如果有合并的则让permutable失效
-        self.reportTableModel.permutable = NO;
-    }
-    
     // 给合并单元格的补全frozenAbility
     NSMutableDictionary *nextFrozenAbility = [NSMutableDictionary dictionaryWithDictionary: self.reportTableModel.frozenAbility];
     for (ForzenRange *forzenRange in frozenArray) {
@@ -734,8 +724,25 @@
             self.reportTableModel.frozenColumns = maxKey;
         }
     }
-    
-    self.reportTableView.reportTableModel = self.reportTableModel;
+    if (frozenArray.count > 0 && self.reportTableModel.permutable) {
+        // 如果有合并的则让permutable失效
+        self.reportTableModel.permutable = NO;
+    }
+
+    // frame 修改、reloadData、layoutIfNeeded 必须在同一个无动画事务里原子完成：
+    // reportTableView.frame 变化会触发隐式 CA 动画；若在 reloadData 之前 flush，
+    // 会渲染出"旧 cell + 新尺寸"的错位帧。performWithoutAnimation 禁用隐式动画
+    // 并让 layoutIfNeeded 在 block 内同步完成，CA 只看到最终填充好的状态。
+    ReportTableModel *model = self.reportTableModel;
+    CGRect tableRect = model.tableRect;
+    CGFloat headerHeight = self.headerScrollView.frame.size.height;
+    BOOL canScroll = self.dataHeight + headerHeight > tableRect.size.height;
+    [UIView performWithoutAnimation:^{
+        self.reportTableView.frame = tableRect;
+        self.headerScrollView.frame = CGRectMake(0, 0, tableRect.size.width, headerHeight);
+        self.headerScrollView.contentSize = CGSizeMake(self.headerScrollView.contentSize.width, canScroll ? tableRect.size.height : 0);
+        self.reportTableView.reportTableModel = model;
+    }];
     
 }
 

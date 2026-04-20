@@ -138,6 +138,18 @@
     return self;
 }
 
+// 当视图重新出现在窗口（如从子页面返回），强制清除 SpreadsheetView 残留的
+// currentTouch。这是因为页面跳转时 UIKit 发送 touchesCancelled:，但其中
+// [performSelector:clearCurrentTouch afterDelay:0] 在转场期间的
+// UITrackingRunLoopMode 下不会执行，导致 currentTouch 永远不为 nil，
+// 进而使后续所有 touchesBegan: 直接被丢弃、点击事件失效。
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    if (self.window && _spreadsheetView && _spreadsheetView.currentTouch) {
+        [_spreadsheetView clearCurrentTouch];
+    }
+}
+
 - (void)setReportTableModel:(ReportTableModel *)reportTableModel{
     _reportTableModel = reportTableModel;
     self.dataSource = reportTableModel.dataSource;
@@ -283,6 +295,10 @@
     [NSObject cancelPreviousPerformRequestsWithTarget:self
                                              selector:@selector(_scheduleSpreadsheetReload)
                                                object:nil];
+    // 清除残留的 currentTouch，防止视图复用后点击失效
+    if (_spreadsheetView && _spreadsheetView.currentTouch) {
+        [_spreadsheetView clearCurrentTouch];
+    }
     self.isOnHeader = false;
     _reportTableModel = nil;
     self.dataSource = nil;
@@ -406,8 +422,7 @@
                    afterDelay:0.05];
         return;
     }
-    [self.spreadsheetView reloadData];
-    [self.spreadsheetView layoutIfNeeded];
+    [self reloadSpreadsheetView];
     [self setMergedCellsLabelOffset];
     [ReportTableEvent tableDidLayout];
 }
@@ -599,8 +614,7 @@
                 }
                 self.reportTableModel.frozenColumns = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns;
                 [self scrollViewDidZoom: self];
-                [self.spreadsheetView reloadData];
-                [self.spreadsheetView layoutIfNeeded];
+                [self reloadSpreadsheetView];
             }
         } else {
             NSInteger newFrozenColums = column + model.horCount;
@@ -644,13 +658,23 @@
                         self.reportTableModel.frozenColumns = newFrozenColums;
                     }
                     [self scrollViewDidZoom: self];
-                    [self.spreadsheetView reloadData];
-                    [self.spreadsheetView layoutIfNeeded];
+                    [self reloadSpreadsheetView];
                 }
             }
         }
     }
     // 注意有上面有return
+}
+
+/// 用 performWithoutAnimation 包裹 reloadData + layoutIfNeeded：
+/// UIView block 内的所有 layout/display 操作被合并到同一个 CA 事务，
+/// layoutIfNeeded 在 block 结束前强制同步完成，
+/// 确保 CA 只看到 cell 已全部填充后的最终树，消除中间的空白帧。
+- (void)reloadSpreadsheetView {
+    [UIView performWithoutAnimation:^{
+        [self.spreadsheetView reloadData];
+        [self.spreadsheetView layoutIfNeeded];
+    }];
 }
 
 - (void)spreadsheetViewDidLayout:(SpreadsheetView *)spreadsheetView {

@@ -29,6 +29,9 @@ using namespace facebook::react;
 
 @implementation RCTReportTableComponentView {
     ReportTableViewModel *_viewModel;
+    // prepareForRecycle 后置 YES；下一次 updateProps 改走同步 integratedDataSource，
+    // 避免 Fabric 在 SpreadsheetView 尚未重建前提交一帧渲染产生空白帧。
+    BOOL _pendingFirstRender;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,6 +64,7 @@ using namespace facebook::react;
     [super prepareForRecycle];
     // Fabric 可能复用视图实例；复用前重置滚动状态，避免旧偏移量残留
     [_viewModel resetForRecycle];
+    _pendingFirstRender = YES;
 }
 
 // ---------------------------------------------------------------------------
@@ -178,10 +182,13 @@ using namespace facebook::react;
     [self setupEventCallbacks];
 
     // 所有 props 已设置完毕，触发一次布局计算与渲染。
-    // 首次挂载（oldProps == nil）立即渲染；后续更新推迟到下一个 run loop cycle，
-    // 避免 reloadData 在 UITrackingRunLoopMode 中打断用户正在进行的 tap 手势。
+    // 首次挂载（oldProps == nil）或 recycle 后首帧（_pendingFirstRender）立即同步渲染，
+    // 防止 Fabric 在 SpreadsheetView 尚未重建前提交一帧渲染产生空白帧。
+    // 正常数据刷新推迟到下一个 run loop cycle，避免 reloadData 在
+    // UITrackingRunLoopMode 中打断用户正在进行的 tap 手势。
     // cancelPreviousPerformRequestsWithTarget: 将快速连续的刷新合并为一次渲染。
-    if (!oldProps) {
+    if (!oldProps || _pendingFirstRender) {
+        _pendingFirstRender = NO;
         [_viewModel integratedDataSource];
     } else {
         [NSObject cancelPreviousPerformRequestsWithTarget:_viewModel
