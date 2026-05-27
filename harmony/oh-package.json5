@@ -5,9 +5,9 @@
   "main": "index.ets",
   "author": "",
   "license": "MIT",
-  "type": "module",
   "dependencies": {
     "@ohos/vtable": "^1.0.0"
-  },,
-  "devDependencies": {}
+  },
+  "devDependencies": {},
+  "packageType": "InterfaceHar"
 }
