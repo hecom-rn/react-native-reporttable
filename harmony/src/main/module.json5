@@ -1,0 +1,10 @@
+{
+  "module": {
+    "name": "react-native-report-table",
+    "type": "har",
+    "deviceTypes": [
+      "phone",
+      "tablet"
+    ]
+  }
+}

@@ -22,6 +22,12 @@
       }
     }
   },
+  "harmony": {
+    "alias": "react-native-report-table",
+    "codegenConfig": {
+      "specPath": "src"
+    }
+  },
   "keywords": [
     "react-component",
     "react-native",
