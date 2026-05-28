@@ -1,317 +1,178 @@
 /**
  * ReportTableComponent.ets
  *
- * ArkTS UI component that renders a VTable ListTable inside an XComponent.
- * Handles gesture recognition (pinch-to-zoom, double-tap) and bridges
- * RN props/events to VTable.
+ * ArkTS UI component that renders a VTable.
+ * Bridges RN props/events to @ohos/vtable.
  */
-import { ListTable } from '@ohos/vtable';
-import { createHeaderCustomLayout } from './CustomCellLayout';
+import { VTable, VTableController } from '@ohos/vtable';
+import type { VTableOnEvent, CellClickData, ScrollEventData } from '@ohos/vtable';
+import {
+  RNOHContext,
+  ViewDescriptorWrapperBase,
+} from '@rnoh/react-native-openharmony/ts';
+
+export const RN_REPORT_TABLE_NAME: string = 'RNReportTable';
+
+@Observed
+export class ReportTableVTableController extends VTableController {
+}
 
 @Component
 export struct ReportTableComponent {
-  // Props from RN
-  @Prop records: string = '[]';
-  @Prop columns: string = '[]';
-  @Prop theme: string = '{}';
-  @Prop frozenColCount: number = 0;
-  @Prop frozenRowCount: number = 1;
-  @Prop lineColor: string = '#e8e8e8';
-  @Prop disableZoom: boolean = false;
-  @Prop showBorder: boolean = false;
-  @Prop doubleClickZoom: boolean = true;
-  @Prop itemConfig: string = '{}';
-  @Prop progressStyle: string = '{}';
+  public static readonly NAME = RN_REPORT_TABLE_NAME;
+  ctx: RNOHContext = {} as RNOHContext;
+  tag: number = 0;
 
-  // Internal state
-  @State private currentScale: number = 1.0;
-  private vtableInstance: ListTable | null = null;
-  private componentWidth: number = 0;
-  private componentHeight: number = 0;
-  private xComponentId: string = 'vtable_canvas_' + Date.now();
+  @ObjectLink controller: ReportTableVTableController;
+  @State option: Record<string, Object> = {} as Record<string, Object>;
+  private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
+  private cleanupCommandCallback: (() => void) | undefined = undefined;
+  private currentRawProps: string = '{}';
 
-  // Event callbacks (set by ViewManager)
-  onClickEvent: (data: object) => void = () => {};
-  onScroll: (data: object) => void = () => {};
-  onScrollEnd: (data: object) => void = () => {};
-  onContentSize: (data: object) => void = () => {};
+  aboutToAppear(): void {
+    this.subscribeToDescriptorChanges();
+    this.registerCommandCallback();
+    this.initFromDescriptor();
+  }
 
-  aboutToDisappear() {
-    if (this.vtableInstance) {
-      this.vtableInstance.release();
-      this.vtableInstance = null;
+  aboutToDisappear(): void {
+    if (this.unregisterDescriptorChangesListener !== undefined) {
+      this.unregisterDescriptorChangesListener();
+    }
+    if (this.cleanupCommandCallback !== undefined) {
+      this.cleanupCommandCallback();
+    }
+    this.controller.release();
+  }
+
+  private subscribeToDescriptorChanges(): void {
+    this.unregisterDescriptorChangesListener = this.ctx.descriptorRegistry.subscribeToDescriptorChanges(
+      this.tag,
+      (newDescriptor: object): void => {
+        this.onDescriptorChanged(newDescriptor);
+      }
+    );
+  }
+
+  private registerCommandCallback(): void {
+    this.cleanupCommandCallback = this.ctx.componentCommandReceiver.registerCommandCallback(
+      this.tag,
+      (commandName: string, args: Object[]): void => {
+        this.handleCommand(commandName, args);
+      }
+    );
+  }
+
+  private initFromDescriptor(): void {
+    const wrapper: ViewDescriptorWrapperBase | null =
+      this.ctx.descriptorRegistry.findDescriptorWrapperByTag<ViewDescriptorWrapperBase>(this.tag);
+    if (wrapper !== null) {
+      this.onDescriptorChanged(wrapper as object);
     }
   }
 
-  /**
-   * Initialize VTable after XComponent canvas is ready.
-   */
-  private initVTable(context: CanvasRenderingContext2D): void {
+  private onDescriptorChanged(descriptor: object): void {
+    const descriptorStr: string = JSON.stringify(descriptor);
+    const parsed: Record<string, Object> = JSON.parse(descriptorStr) as Record<string, Object>;
+    const rawPropsObj: Object | undefined = parsed['rawProps'];
+    if (rawPropsObj === undefined) {
+      return;
+    }
+    const rawPropsStr: string = JSON.stringify(rawPropsObj);
+    if (rawPropsStr === this.currentRawProps) {
+      return;
+    }
+    this.currentRawProps = rawPropsStr;
+    this.updateVTable(rawPropsStr);
+  }
+
+  private updateVTable(rawPropsStr: string): void {
     try {
-      const parsedRecords = JSON.parse(this.records);
-      const parsedColumns = JSON.parse(this.columns);
-      const parsedTheme = JSON.parse(this.theme);
+      const rawProps: Record<string, Object> = JSON.parse(rawPropsStr) as Record<string, Object>;
+      const recordsVal: Object | undefined = rawProps['records'];
+      const columnsVal: Object | undefined = rawProps['columns'];
+      const themeVal: Object | undefined = rawProps['theme'];
+      const frozenColCountVal: Object | undefined = rawProps['frozenColCount'];
 
-      // Build lock info map from columns' __lockInfo
-      const columnLockInfoMap: any = {};
-      for (let i = 0; i < parsedColumns.length; i++) {
-        if (parsedColumns[i].__lockInfo) {
-          columnLockInfoMap[i] = parsedColumns[i].__lockInfo;
-        }
-      }
+      const recordsStr: string = (recordsVal !== undefined) ? (recordsVal as string) : '[]';
+      const columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
+      const themeStr: string = (themeVal !== undefined) ? (themeVal as string) : '{}';
+      const frozenColCount: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
 
-      // Apply headerCustomLayout for columns with lock icons
-      const hasLockIcons = Object.keys(columnLockInfoMap).length > 0;
-      if (hasLockIcons) {
-        const headerLayout = createHeaderCustomLayout(columnLockInfoMap, (col: number, locked: boolean) => {
-          this.handleLockToggle(col, locked, columnLockInfoMap);
-        });
-        for (let i = 0; i < parsedColumns.length; i++) {
-          if (columnLockInfoMap[i]) {
-            parsedColumns[i].headerCustomLayout = headerLayout;
-          }
-        }
-      }
-
-      const option = {
-        container: null, // XComponent mode
-        records: parsedRecords,
-        columns: parsedColumns,
-        theme: parsedTheme,
-        frozenColCount: this.frozenColCount,
-        autoWrapText: false,
-        widthMode: 'standard',
-        heightMode: 'standard',
-        canvasWidth: this.componentWidth,
-        canvasHeight: this.componentHeight,
-      };
-
-      this.vtableInstance = new ListTable(option, context);
-      this.registerVTableEvents();
-      this.reportContentSize();
+      const optionStr: string = '{"records":' + recordsStr + ',"columns":' + columnsStr +
+        ',"theme":' + themeStr + ',"frozenColCount":' + frozenColCount.toString() +
+        ',"autoWrapText":false,"widthMode":"standard","heightMode":"standard"}';
+      const newOption: Record<string, Object> = JSON.parse(optionStr) as Record<string, Object>;
+      this.option = newOption;
+      this.controller.updateOption(newOption);
     } catch (e) {
-      console.error('[ReportTableComponent] initVTable failed:', JSON.stringify(e));
+      console.error('[ReportTableComponent] updateVTable failed');
     }
   }
 
-  /**
-   * Handle lock icon toggle.
-   * When user taps a lock icon, update frozen column count and re-render.
-   * Logic matches iOS: locking a column freezes all columns up to and including it.
-   */
-  private handleLockToggle(col: number, locked: boolean, columnLockInfoMap: any): void {
-    if (!this.vtableInstance) return;
-
-    // Update the lock state
-    columnLockInfoMap[col].isLocked = locked;
-
-    if (locked) {
-      // Freeze up to this column (col is 0-based, frozenColCount includes the column itself)
-      const newFrozenCount = Math.max(this.frozenColCount, col + 1);
-      this.vtableInstance.frozenColCount = newFrozenCount;
-    } else {
-      // Unlocking: find the rightmost still-locked column to determine new freeze count
-      let maxLocked = this.frozenColCount; // base frozen columns that are permanent
-      for (const key of Object.keys(columnLockInfoMap)) {
-        const idx = parseInt(key);
-        if (columnLockInfoMap[key].isLocked && idx + 1 > maxLocked) {
-          maxLocked = idx + 1;
+  private handleCommand(commandName: string, args: Object[]): void {
+    if (commandName === 'scrollTo' && args.length > 0) {
+      const paramsStr: string = JSON.stringify(args[0]);
+      const params: Record<string, Object> = JSON.parse(paramsStr) as Record<string, Object>;
+      const rowVal: Object | undefined = params['row'];
+      const colVal: Object | undefined = params['col'];
+      if (rowVal !== undefined) {
+        this.controller.scrollToRow(rowVal as number);
+      }
+      if (colVal !== undefined) {
+        this.controller.scrollToCol(colVal as number);
+      }
+    } else if (commandName === 'scrollToBottom') {
+      const recordsVal: Object | undefined = this.option['records'];
+      if (recordsVal !== undefined) {
+        const recordsArr: Object[] = recordsVal as Object[];
+        if (recordsArr.length > 0) {
+          this.controller.scrollToRow(recordsArr.length - 1);
         }
       }
-      // If no column is locked, revert to base frozenColCount
-      let anyLocked = false;
-      for (const key of Object.keys(columnLockInfoMap)) {
-        if (columnLockInfoMap[key].isLocked) {
-          anyLocked = true;
-          break;
-        }
-      }
-      this.vtableInstance.frozenColCount = anyLocked ? maxLocked : this.frozenColCount;
-    }
-
-    // Re-render to update lock icon visual state
-    this.vtableInstance.renderWithRecreateCells();
-  }
-
-  /**
-   * Register VTable events and forward to RN.
-   */
-  private registerVTableEvents(): void {
-    if (!this.vtableInstance) return;
-
-    this.vtableInstance.on('click_cell', (event) => {
-      const col = event.col;
-      const row = event.row;
-      const record = this.vtableInstance!.getRecordByCell(col, row);
-      const meta = record?.[`__meta_${col}`];
-      const keyIndex = meta?.keyIndex ?? 0;
-
-      this.onClickEvent({
-        keyIndex,
-        rowIndex: row,
-        columnIndex: col,
-        verticalCount: this.vtableInstance!.rowCount ?? 0,
-        horizontalCount: this.vtableInstance!.colCount ?? 0,
-      });
-    });
-
-    this.vtableInstance.on('scroll', (event) => {
-      const scrollLeft = this.vtableInstance!.getScrollLeft();
-      const scrollTop = this.vtableInstance!.getScrollTop();
-
-      this.onScroll({
-        translateX: scrollLeft,
-        translateY: scrollTop,
-        scale: this.currentScale,
-      });
-
-      // Check if scrolled to bottom
-      const allRowsHeight = this.vtableInstance!.getAllRowsHeight();
-      const isEnd = scrollTop + this.componentHeight >= allRowsHeight - 1;
-      this.onScrollEnd({ isEnd });
-    });
-  }
-
-  /**
-   * Report total content dimensions to RN.
-   */
-  private reportContentSize(): void {
-    if (!this.vtableInstance) return;
-    try {
-      const width = this.vtableInstance.getAllColsWidth();
-      const height = this.vtableInstance.getAllRowsHeight();
-      this.onContentSize({ width, height });
-    } catch (e) {
-      // ignore
+    } else if (commandName === 'updateData' && args.length > 0) {
+      this.controller.updateOption(args[0] as Record<string, Object>);
+    } else if (commandName === 'frozenToCol' && args.length > 0) {
+      this.controller.frozenToCol(args[0] as number);
     }
   }
 
-  /**
-   * Update VTable when props change.
-   */
-  private updateVTableData(): void {
-    if (!this.vtableInstance) return;
-
-    try {
-      const parsedRecords = JSON.parse(this.records);
-      const parsedColumns = JSON.parse(this.columns);
-      const parsedTheme = JSON.parse(this.theme);
-
-      this.vtableInstance.updateColumns(parsedColumns);
-      this.vtableInstance.setRecords(parsedRecords);
-      this.vtableInstance.updateTheme(parsedTheme);
-
-      // Update frozen columns
-      if (this.frozenColCount >= 0) {
-        this.vtableInstance.frozenColCount = this.frozenColCount;
-        this.vtableInstance.renderWithRecreateCells();
-      }
-
-      this.reportContentSize();
-    } catch (e) {
-      console.error('[ReportTableComponent] updateVTableData failed:', JSON.stringify(e));
-    }
-  }
-
-  // ---- Public methods for command handling ----
-
-  scrollTo(lineX: number, lineY: number, offsetX: number, offsetY: number): void {
-    if (!this.vtableInstance) return;
-
-    if (lineX >= 0 && lineY >= 0) {
-      this.vtableInstance.scrollToCell({ col: lineX, row: lineY });
-    }
-    if (offsetX !== 0) {
-      const currentLeft = this.vtableInstance.getScrollLeft();
-      this.vtableInstance.setScrollLeft(currentLeft + offsetX);
-    }
-    if (offsetY !== 0) {
-      const currentTop = this.vtableInstance.getScrollTop();
-      this.vtableInstance.setScrollTop(currentTop + offsetY);
-    }
-  }
-
-  scrollToBottom(): void {
-    if (!this.vtableInstance) return;
-    const allRowsHeight = this.vtableInstance.getAllRowsHeight();
-    const targetTop = Math.max(0, allRowsHeight - this.componentHeight);
-    this.vtableInstance.setScrollTop(targetTop);
-  }
-
-  changeCellValues(startCol: number, startRow: number, values: string[][]): void {
-    if (!this.vtableInstance) return;
-    this.vtableInstance.changeCellValues(startCol, startRow, values);
-    this.reportContentSize();
-  }
-
-  deleteRecords(indices: number[]): void {
-    if (!this.vtableInstance) return;
-    this.vtableInstance.deleteRecords(indices);
-    this.reportContentSize();
-  }
-
-  addRecords(records: object[], index: number): void {
-    if (!this.vtableInstance) return;
-    this.vtableInstance.addRecords(records, index);
-    this.reportContentSize();
+  private getOnEvent(): VTableOnEvent {
+    const tagVal: number = this.tag;
+    const ctxRef: RNOHContext = this.ctx;
+    const onEvent: VTableOnEvent = {
+      onClickCell: (event: CellClickData): void => {
+        const payloadStr: string = '{"keyIndex":0,"rowIndex":' + event.row.toString() +
+          ',"columnIndex":' + event.col.toString() + '}';
+        ctxRef.rnInstance.emitComponentEvent(tagVal, 'onClickEvent', JSON.parse(payloadStr) as Object);
+      },
+      onScroll: (event: ScrollEventData): void => {
+        const payloadStr: string = '{"translateX":' + event.scrollLeft.toString() +
+          ',"translateY":' + event.scrollTop.toString() +
+          ',"scrollHeight":' + event.scrollHeight.toString() +
+          ',"scrollWidth":' + event.scrollWidth.toString() + '}';
+        ctxRef.rnInstance.emitComponentEvent(tagVal, 'onScroll', JSON.parse(payloadStr) as Object);
+      },
+      onScrollVerticalEnd: (event: ScrollEventData): void => {
+        const payloadStr: string = '{"isEnd":true,"scrollTop":' + event.scrollTop.toString() + '}';
+        ctxRef.rnInstance.emitComponentEvent(tagVal, 'onScrollEnd', JSON.parse(payloadStr) as Object);
+      },
+      onInitialized: (): void => {
+        ctxRef.rnInstance.emitComponentEvent(tagVal, 'onContentSize', JSON.parse('{"width":0,"height":0}') as Object);
+      },
+    };
+    return onEvent;
   }
 
   build() {
-    Stack() {
-      XComponent({
-        id: this.xComponentId,
-        type: XComponentType.SURFACE,
+    Column() {
+      VTable({
+        controller: this.controller,
+        option: this.option,
+        onEvent: this.getOnEvent(),
       })
-        .onLoad((context) => {
-          this.initVTable(context as CanvasRenderingContext2D);
-        })
-        .width('100%')
-        .height('100%')
     }
     .width('100%')
     .height('100%')
-    .scale({ x: this.currentScale, y: this.currentScale })
-    .gesture(
-      GestureGroup(GestureMode.Exclusive,
-        // Pinch-to-zoom gesture
-        PinchGesture({ fingers: 2 })
-          .onActionUpdate((event: GestureEvent) => {
-            if (!this.disableZoom) {
-              this.currentScale = Math.max(0.5, Math.min(3.0, event.scale));
-            }
-          })
-          .onActionEnd(() => {
-            // Emit scroll with current scale
-            if (this.vtableInstance) {
-              this.onScroll({
-                translateX: this.vtableInstance.getScrollLeft(),
-                translateY: this.vtableInstance.getScrollTop(),
-                scale: this.currentScale,
-              });
-            }
-          }),
-        // Double-tap zoom toggle
-        TapGesture({ count: 2 })
-          .onAction(() => {
-            if (!this.disableZoom && this.doubleClickZoom) {
-              this.currentScale = this.currentScale === 1.0 ? 1.5 : 1.0;
-              if (this.vtableInstance) {
-                this.onScroll({
-                  translateX: this.vtableInstance.getScrollLeft(),
-                  translateY: this.vtableInstance.getScrollTop(),
-                  scale: this.currentScale,
-                });
-              }
-            }
-          })
-      )
-    )
-    .onAreaChange((oldArea, newArea) => {
-      this.componentWidth = newArea.width as number;
-      this.componentHeight = newArea.height as number;
-      if (this.vtableInstance) {
-        this.vtableInstance.setCanvasSize(this.componentWidth, this.componentHeight);
-      }
-    })
   }
 }

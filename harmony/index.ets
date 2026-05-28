@@ -1,13 +1,2 @@
-/**
- * index.ets
- *
- * Re-export from standard HAR entry point.
- */
-export {
-  RNReportTablePackage,
-  RNReportTableViewManager,
-  ReportTableComponent,
-  buildRNReportTableComponent,
-  createCustomCellLayout,
-  createHeaderCustomLayout,
-} from './src/main/ets/Index';
+export { RNReportTablePackage } from './src/main/ets/RNReportTablePackage';
+export { ReportTableComponent, ReportTableVTableController, RN_REPORT_TABLE_NAME } from './src/main/ets/ReportTableComponent';

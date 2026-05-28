@@ -2,10 +2,11 @@
   "name": "react-native-report-table",
   "version": "1.0.3",
   "description": "React Native Report Table - HarmonyOS native module",
-  "main": "./src/main/ets/Index.ets",
+  "main": "index.ets",
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@rnoh/react-native-openharmony": ">=0.72.0",
     "@ohos/vtable": "^1.0.0"
   },
   "devDependencies": {}
