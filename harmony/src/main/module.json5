@@ -1,6 +1,6 @@
 {
   "module": {
-    "name": "react-native-report-table",
+    "name": "react_native_report_table",
     "type": "har",
     "deviceTypes": [
       "default"
