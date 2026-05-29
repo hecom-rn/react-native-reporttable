@@ -71,6 +71,7 @@
 
 - (NSMutableArray<ForzenRange *> *)generateMergeRange:(NSArray<NSArray<ItemModel *> *>*)dataSource {
     NSMutableArray<ForzenRange *> *frozenArray = [NSMutableArray array];
+    if (dataSource.count == 0) return frozenArray;
     NSInteger rowCount = dataSource[0].count;
     for (int i = 0; i < dataSource.count; i++) { // i columnIndex
         for (int j = 0; j < rowCount; j ++) { // j = rowIndex
@@ -93,6 +94,7 @@
 }
 
 - (NSInteger)SameRowLength:(NSInteger)columnIndex:(NSInteger)rowIndex {
+    if (self.dataSource.count == 0) return 1;
     NSInteger rowCount = self.dataSource[0].count;
     NSInteger sameLenth = 0;
     NSInteger keyIndex = self.dataSource[columnIndex][rowIndex].keyIndex;
@@ -420,6 +422,7 @@
 
 - (void)integratedDataSource {
     NSMutableArray<NSArray *> *dataSource = [NSMutableArray arrayWithArray: self.reportTableModel.data];
+    if (dataSource.count == 0) return;
     NSInteger rowCount = dataSource[0].count;
     NSMutableArray *cloumsHight = [NSMutableArray arrayWithCapacity: dataSource.count];
     NSMutableArray *rowsWidth = [NSMutableArray arrayWithCapacity: rowCount];

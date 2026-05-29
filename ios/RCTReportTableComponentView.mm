@@ -59,7 +59,12 @@ using namespace facebook::react;
 - (void)prepareForRecycle
 {
     [super prepareForRecycle];
-    // Fabric 可能复用视图实例；复用前重置滚动状态，避免旧偏移量残留
+    // 先取消所有挂起的延迟渲染，再清空数据。
+    // 若不取消，updateProps: 调度的 afterDelay:0 任务可能在 resetForRecycle
+    // 清空 data 之后才触发，导致 integratedDataSource 访问空数组越界崩溃。
+    [NSObject cancelPreviousPerformRequestsWithTarget:_viewModel
+                                             selector:@selector(integratedDataSource)
+                                               object:nil];
     [_viewModel resetForRecycle];
 }
 
