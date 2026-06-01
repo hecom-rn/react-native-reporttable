@@ -5,22 +5,28 @@
  * This is the bridge between react-native-harmony's component system
  * and the actual ArkTS ReportTableComponent.
  */
-import { ComponentBuilderContext, RNComponentContext } from '@rnoh/react-native-openharmony/ts';
-import { ReportTableComponent } from './ReportTableComponent';
+import { ComponentBuilderContext } from '@rnoh/react-native-openharmony/ts';
+import { ReportTableComponent, ReportTableVTableController } from './ReportTableComponent';
+
+/**
+ * Wrapper component that owns the @State controller so that
+ * ReportTableComponent's @ObjectLink controller is satisfied.
+ */
+@Component
+struct RNReportTableComponentWrapper {
+  ctx!: ComponentBuilderContext;
+  @State controller: ReportTableVTableController = new ReportTableVTableController();
+
+  build() {
+    ReportTableComponent({
+      ctx: this.ctx.rnComponentContext,
+      tag: this.ctx.tag,
+      controller: this.controller,
+    })
+  }
+}
 
 @Builder
 export function buildRNReportTableComponent(ctx: ComponentBuilderContext) {
-  ReportTableComponent({
-    records: ctx.descriptor.rawProps?.records ?? '[]',
-    columns: ctx.descriptor.rawProps?.columns ?? '[]',
-    theme: ctx.descriptor.rawProps?.theme ?? '{}',
-    frozenColCount: ctx.descriptor.rawProps?.frozenColCount ?? 0,
-    frozenRowCount: ctx.descriptor.rawProps?.frozenRowCount ?? 1,
-    lineColor: ctx.descriptor.rawProps?.lineColor ?? '#e8e8e8',
-    disableZoom: ctx.descriptor.rawProps?.disableZoom ?? false,
-    showBorder: ctx.descriptor.rawProps?.showBorder ?? false,
-    doubleClickZoom: ctx.descriptor.rawProps?.doubleClickZoom ?? true,
-    itemConfig: ctx.descriptor.rawProps?.itemConfig ?? '{}',
-    progressStyle: ctx.descriptor.rawProps?.progressStyle ?? '{}',
-  })
+  RNReportTableComponentWrapper({ ctx: ctx })
 }
