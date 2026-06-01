@@ -5,7 +5,7 @@
  * This is the bridge between react-native-harmony's component system
  * and the actual ArkTS ReportTableComponent.
  */
-import { ComponentBuilderContext } from '@rnoh/react-native-openharmony/ts';
+import { ComponentBuilderContext } from '@rnoh/react-native-openharmony';
 import { ReportTableComponent } from './ReportTableComponent';
 
 @Builder
