@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, ScrollView, UIManager, findNodeHandle, requireNativeComponent } from 'react-native';
+import { View, ScrollView, UIManager, findNodeHandle } from 'react-native';
+import NativeComponentRegistry from 'react-native/Libraries/NativeComponent/NativeComponentRegistry';
 import {
     convertDataSourceToVTable,
     buildVTableTheme,
@@ -7,7 +8,44 @@ import {
     convertSpliceData,
 } from './vtableDataConverter';
 
-const NativeReportTable = requireNativeComponent('RNReportTable');
+const COMPONENT_NAME = 'RNReportTable';
+
+const __INTERNAL_VIEW_CONFIG = {
+    uiViewClassName: COMPONENT_NAME,
+    bubblingEventTypes: {},
+    directEventTypes: {
+        topClickEvent: { registrationName: 'onClickEvent' },
+        topScroll: { registrationName: 'onScroll' },
+        topScrollEnd: { registrationName: 'onScrollEnd' },
+        topContentSize: { registrationName: 'onContentSize' },
+    },
+    validAttributes: {
+        records: true,
+        columns: true,
+        theme: true,
+        frozenColCount: true,
+        frozenRowCount: true,
+        lineColor: true,
+        disableZoom: true,
+        showBorder: true,
+        permutable: true,
+        frozenAbility: true,
+        ignoreLocks: true,
+        doubleClickZoom: true,
+        itemConfig: true,
+        progressStyle: true,
+        replenishColumnsWidthConfig: true,
+        onClickEvent: true,
+        onScroll: true,
+        onScrollEnd: true,
+        onContentSize: true,
+    },
+};
+
+const NativeReportTable = NativeComponentRegistry.get(
+    COMPONENT_NAME,
+    () => __INTERNAL_VIEW_CONFIG,
+);
 
 export default class ReportTableWrapper extends React.Component {
     constructor(props) {

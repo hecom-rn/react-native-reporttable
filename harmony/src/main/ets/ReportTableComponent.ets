@@ -23,7 +23,7 @@ export struct ReportTableComponent {
   ctx: RNOHContext = {} as RNOHContext;
   tag: number = 0;
 
-  @ObjectLink controller: ReportTableVTableController;
+  @State controller: ReportTableVTableController = new ReportTableVTableController();
   @State option: Record<string, Object> = {} as Record<string, Object>;
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
   private cleanupCommandCallback: (() => void) | undefined = undefined;
@@ -111,17 +111,12 @@ export struct ReportTableComponent {
   }
 
   private handleCommand(commandName: string, args: Object[]): void {
-    if (commandName === 'scrollTo' && args.length > 0) {
-      const paramsStr: string = JSON.stringify(args[0]);
-      const params: Record<string, Object> = JSON.parse(paramsStr) as Record<string, Object>;
-      const rowVal: Object | undefined = params['row'];
-      const colVal: Object | undefined = params['col'];
-      if (rowVal !== undefined) {
-        this.controller.scrollToRow(rowVal as number);
-      }
-      if (colVal !== undefined) {
-        this.controller.scrollToCol(colVal as number);
-      }
+    if (commandName === 'scrollTo' && args.length >= 2) {
+      // args: [lineX, lineY, offsetX, offsetY, animated]
+      const lineX: number = args[0] as number;
+      const lineY: number = args[1] as number;
+      this.controller.scrollToRow(lineY);
+      this.controller.scrollToCol(lineX);
     } else if (commandName === 'scrollToBottom') {
       const recordsVal: Object | undefined = this.option['records'];
       if (recordsVal !== undefined) {
@@ -131,7 +126,13 @@ export struct ReportTableComponent {
         }
       }
     } else if (commandName === 'updateData' && args.length > 0) {
-      this.controller.updateOption(args[0] as Record<string, Object>);
+      try {
+        const dataStr: string = args[0] as string;
+        const dataObj: Record<string, Object> = JSON.parse(dataStr) as Record<string, Object>;
+        this.controller.updateOption(dataObj);
+      } catch (e) {
+        console.error('[ReportTableComponent] updateData parse failed');
+      }
     } else if (commandName === 'frozenToCol' && args.length > 0) {
       this.controller.frozenToCol(args[0] as number);
     }
@@ -144,21 +145,21 @@ export struct ReportTableComponent {
       onClickCell: (event: CellClickData): void => {
         const payloadStr: string = '{"keyIndex":0,"rowIndex":' + event.row.toString() +
           ',"columnIndex":' + event.col.toString() + '}';
-        ctxRef.rnInstance.emitComponentEvent(tagVal, 'onClickEvent', JSON.parse(payloadStr) as Object);
+        ctxRef.rnInstance.emitComponentEvent(tagVal, 'clickEvent', JSON.parse(payloadStr) as Object);
       },
       onScroll: (event: ScrollEventData): void => {
         const payloadStr: string = '{"translateX":' + event.scrollLeft.toString() +
           ',"translateY":' + event.scrollTop.toString() +
           ',"scrollHeight":' + event.scrollHeight.toString() +
           ',"scrollWidth":' + event.scrollWidth.toString() + '}';
-        ctxRef.rnInstance.emitComponentEvent(tagVal, 'onScroll', JSON.parse(payloadStr) as Object);
+        ctxRef.rnInstance.emitComponentEvent(tagVal, 'scroll', JSON.parse(payloadStr) as Object);
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
         const payloadStr: string = '{"isEnd":true,"scrollTop":' + event.scrollTop.toString() + '}';
-        ctxRef.rnInstance.emitComponentEvent(tagVal, 'onScrollEnd', JSON.parse(payloadStr) as Object);
+        ctxRef.rnInstance.emitComponentEvent(tagVal, 'scrollEnd', JSON.parse(payloadStr) as Object);
       },
       onInitialized: (): void => {
-        ctxRef.rnInstance.emitComponentEvent(tagVal, 'onContentSize', JSON.parse('{"width":0,"height":0}') as Object);
+        ctxRef.rnInstance.emitComponentEvent(tagVal, 'contentSize', JSON.parse('{"width":0,"height":0}') as Object);
       },
     };
     return onEvent;
