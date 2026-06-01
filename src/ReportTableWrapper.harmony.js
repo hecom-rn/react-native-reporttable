@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ScrollView, UIManager, findNodeHandle } from 'react-native';
-import NativeComponentRegistry from 'react-native/Libraries/NativeComponent/NativeComponentRegistry';
+import * as NativeComponentRegistry from 'react-native/Libraries/NativeComponent/NativeComponentRegistry';
 import {
     convertDataSourceToVTable,
     buildVTableTheme,
