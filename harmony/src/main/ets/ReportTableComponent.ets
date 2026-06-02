@@ -25,6 +25,8 @@ export struct ReportTableComponent {
 
   @State controller: ReportTableVTableController = new ReportTableVTableController();
   @State option: Record<string, Object> = {} as Record<string, Object>;
+  @State currentZoom: number = 1.0;
+  private disableZoom: boolean = false;
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
   private cleanupCommandCallback: (() => void) | undefined = undefined;
   private currentRawProps: string = '{}';
@@ -92,17 +94,63 @@ export struct ReportTableComponent {
       const recordsVal: Object | undefined = rawProps['records'];
       const columnsVal: Object | undefined = rawProps['columns'];
       const themeVal: Object | undefined = rawProps['theme'];
+      const mergedCellsVal: Object | undefined = rawProps['mergedCells'];
       const frozenColCountVal: Object | undefined = rawProps['frozenColCount'];
+      const frozenRowCountVal: Object | undefined = rawProps['frozenRowCount'];
+      const disableZoomVal: Object | undefined = rawProps['disableZoom'];
+      const permutableVal: Object | undefined = rawProps['permutable'];
 
       const recordsStr: string = (recordsVal !== undefined) ? (recordsVal as string) : '[]';
       const columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
       const themeStr: string = (themeVal !== undefined) ? (themeVal as string) : '{}';
+      const mergedCellsStr: string = (mergedCellsVal !== undefined) ? (mergedCellsVal as string) : '[]';
       const frozenColCount: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
+      const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 1;
+      const disableZoom: boolean = (disableZoomVal !== undefined) ? (disableZoomVal as boolean) : false;
+      const permutable: boolean = (permutableVal !== undefined) ? (permutableVal as boolean) : false;
 
-      const optionStr: string = '{"records":' + recordsStr + ',"columns":' + columnsStr +
-        ',"theme":' + themeStr + ',"frozenColCount":' + frozenColCount.toString() +
-        ',"autoWrapText":false,"widthMode":"standard","heightMode":"standard"}';
+      // Determine allowFrozenColCount for lock icon display
+      // Parse columns to count how many have __lockInfo
+      let allowFrozenColCount: number = 0;
+      if (permutable) {
+        // In permutable mode, all columns (except permanently frozen) can show lock icon
+        const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
+        allowFrozenColCount = columnsArr.length;
+      } else {
+        // Count columns with __lockInfo from frozenAbility
+        const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
+        for (let i: number = 0; i < columnsArr.length; i++) {
+          const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
+          if (col['__lockInfo'] !== undefined) {
+            allowFrozenColCount = i + 1;
+          }
+        }
+      }
+
+      // Build option with all necessary configurations
+      const optionStr: string = '{"records":' + recordsStr +
+        ',"columns":' + columnsStr +
+        ',"theme":' + themeStr +
+        ',"customMergeCell":' + mergedCellsStr +
+        ',"frozenColCount":' + frozenColCount.toString() +
+        ',"frozenRowCount":' + frozenRowCount.toString() +
+        ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
+        ',"showFrozenIcon":' + (allowFrozenColCount > 0 ? 'true' : 'false') +
+        ',"autoWrapText":false' +
+        ',"widthMode":"standard"' +
+        ',"heightMode":"standard"' +
+        ',"autoFillWidth":true' +
+        ',"autoFillHeight":false' +
+        ',"hover":{"disableHover":true}' +
+        ',"select":{"disableSelect":true}' +
+        ',"editor":""' +
+        ',"editCellTrigger":"api"' +
+        '}';
       const newOption: Record<string, Object> = JSON.parse(optionStr) as Record<string, Object>;
+
+      // Store disableZoom state for gesture handling
+      this.disableZoom = disableZoom;
+
       this.option = newOption;
       this.controller.updateOption(newOption);
     } catch (e) {
@@ -150,8 +198,7 @@ export struct ReportTableComponent {
       onScroll: (event: ScrollEventData): void => {
         const payloadStr: string = '{"translateX":' + event.scrollLeft.toString() +
           ',"translateY":' + event.scrollTop.toString() +
-          ',"scrollHeight":' + event.scrollHeight.toString() +
-          ',"scrollWidth":' + event.scrollWidth.toString() + '}';
+          ',"scale":1}';
         ctxRef.rnInstance.emitComponentEvent(tagVal, 'scroll', JSON.parse(payloadStr) as Object);
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
@@ -175,5 +222,36 @@ export struct ReportTableComponent {
     }
     .width('100%')
     .height('100%')
+    .gesture(
+      PinchGesture({ fingers: 2, distance: 1 })
+        .onActionUpdate((event: GestureEvent): void => {
+          if (this.disableZoom) {
+            return;
+          }
+          // Clamp zoom between 0.5 and 2.0 (matching iOS min/max zoom scale)
+          let newZoom: number = this.currentZoom * event.scale;
+          if (newZoom < 0.5) {
+            newZoom = 0.5;
+          }
+          if (newZoom > 2.0) {
+            newZoom = 2.0;
+          }
+          this.controller.setZoom(newZoom);
+        })
+        .onActionEnd((event: GestureEvent): void => {
+          if (this.disableZoom) {
+            return;
+          }
+          // Persist the final zoom level
+          let finalZoom: number = this.currentZoom * event.scale;
+          if (finalZoom < 0.5) {
+            finalZoom = 0.5;
+          }
+          if (finalZoom > 2.0) {
+            finalZoom = 2.0;
+          }
+          this.currentZoom = finalZoom;
+        })
+    )
   }
 }

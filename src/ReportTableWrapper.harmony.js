@@ -23,6 +23,7 @@ const __INTERNAL_VIEW_CONFIG = {
         records: true,
         columns: true,
         theme: true,
+        mergedCells: true,
         frozenColCount: true,
         frozenRowCount: true,
         lineColor: true,
@@ -83,7 +84,7 @@ export default class ReportTableWrapper extends React.Component {
             return { records: '[]', columns: '[]', theme: '{}' };
         }
 
-        const { records, columns } = convertDataSourceToVTable(data, {
+        const { records, columns, mergedCells } = convertDataSourceToVTable(data, {
             frozenRows,
             itemConfig,
             columnsWidthMap,
@@ -101,6 +102,7 @@ export default class ReportTableWrapper extends React.Component {
             records: JSON.stringify(records),
             columns: JSON.stringify(columns),
             theme: JSON.stringify(theme),
+            mergedCells: JSON.stringify(mergedCells),
         };
     };
 
@@ -204,7 +206,7 @@ export default class ReportTableWrapper extends React.Component {
             showBorder,
         } = this.props;
 
-        const { records, columns, theme } = this._vtableData;
+        const { records, columns, theme, mergedCells } = this._vtableData;
 
         return (
             <ScrollView
@@ -240,6 +242,7 @@ export default class ReportTableWrapper extends React.Component {
                     records={records}
                     columns={columns}
                     theme={theme}
+                    mergedCells={mergedCells}
                     frozenColCount={frozenColumns || 0}
                     frozenRowCount={frozenRows || 1}
                     lineColor={lineColor || '#e8e8e8'}

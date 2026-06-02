@@ -84,6 +84,96 @@ function buildCellMeta(cell) {
 }
 
 /**
+ * Compute merged cells from keyIndex.
+ * Adjacent cells (horizontally or vertically) with the same keyIndex are merged.
+ * Follows the same merging logic as iOS (ReportTableViewModel generateMergeRange).
+ *
+ * Data layout: dataSource[rowIndex][colIndex] (row-major, matching RN props).
+ * VTable row indices: In ListTable, row 0..headerRowCount-1 are headers,
+ * body rows start from headerRowCount.
+ *
+ * @param {Array<Array<object>>} dataSource - Full 2D data matrix (including header rows).
+ * @param {number} headerRowCount - Number of header rows.
+ * @returns {Array<object>} Array of VTable merge rules: { range: { start: {col, row}, end: {col, row} } }
+ */
+function computeMergedCells(dataSource, headerRowCount) {
+    if (!dataSource || dataSource.length === 0) return [];
+
+    const rowCount = dataSource.length;
+    const colCount = dataSource[0]?.length ?? 0;
+    if (colCount === 0) return [];
+
+    // Track which cells have been consumed by a merge
+    const used = Array.from({ length: rowCount }, () => new Array(colCount).fill(false));
+    const mergedCells = [];
+
+    for (let rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+        for (let colIdx = 0; colIdx < colCount; colIdx++) {
+            if (used[rowIdx][colIdx]) continue;
+
+            const cell = dataSource[rowIdx]?.[colIdx];
+            if (!cell) continue;
+
+            const keyIndex = cell.keyIndex;
+            if (keyIndex == null) continue;
+
+            // Find horizontal span (same row, consecutive columns with same keyIndex)
+            let horSpan = 1;
+            for (let c = colIdx + 1; c < colCount; c++) {
+                const neighbor = dataSource[rowIdx]?.[c];
+                if (neighbor && neighbor.keyIndex === keyIndex && !used[rowIdx][c]) {
+                    horSpan++;
+                } else {
+                    break;
+                }
+            }
+
+            // Find vertical span (same column range, consecutive rows with same keyIndex)
+            let verSpan = 1;
+            for (let r = rowIdx + 1; r < rowCount; r++) {
+                // Check if all columns in the horizontal span have the same keyIndex
+                let allMatch = true;
+                for (let c = colIdx; c < colIdx + horSpan; c++) {
+                    const neighbor = dataSource[r]?.[c];
+                    if (!neighbor || neighbor.keyIndex !== keyIndex || used[r][c]) {
+                        allMatch = false;
+                        break;
+                    }
+                }
+                if (allMatch) {
+                    verSpan++;
+                } else {
+                    break;
+                }
+            }
+
+            // Only create a merge rule if there's actual merging (span > 1)
+            if (horSpan > 1 || verSpan > 1) {
+                // Mark all cells in the merged region as used
+                for (let r = rowIdx; r < rowIdx + verSpan; r++) {
+                    for (let c = colIdx; c < colIdx + horSpan; c++) {
+                        used[r][c] = true;
+                    }
+                }
+
+                // VTable absolute row index: header rows are 0..headerRowCount-1,
+                // body rows start from headerRowCount.
+                // Our dataSource rowIdx maps directly since the first headerRowCount rows
+                // are the header, and VTable also indexes them starting from 0.
+                mergedCells.push({
+                    range: {
+                        start: { col: colIdx, row: rowIdx },
+                        end: { col: colIdx + horSpan - 1, row: rowIdx + verSpan - 1 },
+                    },
+                });
+            }
+        }
+    }
+
+    return mergedCells;
+}
+
+/**
  * Convert DataSource[][] to VTable { records, columns } format.
  *
  * @param {Array<Array<object>>} dataSource - 2D array of DataSource cells.
@@ -97,11 +187,11 @@ function buildCellMeta(cell) {
  * @param {boolean} [options.permutable=false] - Whether all columns show lock icons.
  * @param {object} [options.frozenAbility] - Per-column lock ability config { [col]: { locked } }.
  * @param {number[]} [options.ignoreLocks] - Columns that should not show lock icons (1-based).
- * @returns {{ records: Array<object>, columns: Array<object>, headerRecords: Array<object> }}
+ * @returns {{ records: Array<object>, columns: Array<object>, headerRecords: Array<object>, mergedCells: Array<object> }}
  */
 export function convertDataSourceToVTable(dataSource, options = {}) {
     if (!dataSource || dataSource.length === 0) {
-        return { records: [], columns: [], headerRecords: [] };
+        return { records: [], columns: [], headerRecords: [], mergedCells: [] };
     }
 
     const {
@@ -143,13 +233,19 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             }
         }
 
+        // Width: use maxWidth as the actual width (matching iOS behavior where columns render at maxWidth)
+        // If columnsWidthMap provides explicit widths, use those
+        const colWidth = colWidthConfig?.maxWidth ?? maxWidth;
+        const colMinWidth = colWidthConfig?.minWidth ?? minWidth;
+        const colMaxWidth = colWidthConfig?.maxWidth ?? maxWidth;
+
         const column = {
             field: String(colIdx),
             title: headerCell.title ?? '',
-            // Width configuration
-            width: colWidthConfig?.minWidth ?? minWidth,
-            minWidth: colWidthConfig?.minWidth ?? minWidth,
-            maxWidth: colWidthConfig?.maxWidth ?? maxWidth,
+            // Width configuration - use maxWidth as default width
+            width: colWidth,
+            minWidth: colMinWidth,
+            maxWidth: colMaxWidth,
             // Style from header cell
             style: buildColumnStyle(headerCell, itemConfig),
             // Header style
@@ -194,7 +290,10 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         headerRecords.push(record);
     }
 
-    return { records, columns, headerRecords };
+    // --- Compute merged cells from keyIndex ---
+    const mergedCells = computeMergedCells(dataSource, headerRowCount);
+
+    return { records, columns, headerRecords, mergedCells };
 }
 
 /**
