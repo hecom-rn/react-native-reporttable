@@ -183,8 +183,8 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
     const customCellStyleArrangement = [];
     const styleCache = new Map();
 
-    // If itemConfig has global isOverstriking, we need a base bold style for all cells
-    const globalBold = !!itemConfig?.isOverstriking;
+    // Column style already handles global isOverstriking from itemConfig.
+    // Only generate per-cell arrangements for cells that DIFFER from column defaults.
 
     for (let rowIdx = 0; rowIdx < dataSource.length; rowIdx++) {
         const row = dataSource[rowIdx];
@@ -209,8 +209,13 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
                 cellStyle.fontSize = cell.fontSize;
                 hasOverride = true;
             }
-            if (cell.isOverstriking || globalBold) {
+            // Only add fontWeight if cell explicitly sets isOverstriking
+            if (cell.isOverstriking === true) {
                 cellStyle.fontWeight = 'bold';
+                hasOverride = true;
+            } else if (cell.isOverstriking === false && itemConfig?.isOverstriking) {
+                // Cell explicitly un-bolds while global is bold
+                cellStyle.fontWeight = 'normal';
                 hasOverride = true;
             }
             if (cell.textAlignment != null) {

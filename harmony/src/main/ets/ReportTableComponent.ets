@@ -34,8 +34,6 @@ export struct ReportTableComponent {
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
   private cleanupCommandCallback: (() => void) | undefined = undefined;
   private currentRawProps: string = '{}';
-  // Store customCellStyle arrangements for post-init re-application via customRender
-  private pendingCustomStyles: Object[] = [];
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -165,10 +163,6 @@ export struct ReportTableComponent {
       // Styling is handled via column `style` property and customCellStyle/customCellStyleArrangement.
       // Lock icons use VTable's native showFrozenIcon feature.
 
-      // Store custom styles for post-init re-application via customRender API
-      // This ensures styles are applied even if option-level customCellStyle has issues
-      this.pendingCustomStyles = this.buildPendingCustomStyles(customCellStyleStr, customCellStyleArrangementStr);
-
       this.disableZoom = disableZoom;
       this.option = newOption;
       this.controller.updateOption(newOption);
@@ -181,8 +175,13 @@ export struct ReportTableComponent {
     if (commandName === 'scrollTo' && args.length >= 2) {
       const lineX: number = args[0] as number;
       const lineY: number = args[1] as number;
-      this.controller.scrollToRow(lineY);
-      this.controller.scrollToCol(lineX);
+      // Negative values mean "keep current position"
+      if (lineY >= 0) {
+        this.controller.scrollToRow(lineY);
+      }
+      if (lineX >= 0) {
+        this.controller.scrollToCol(lineX);
+      }
     } else if (commandName === 'scrollToBottom') {
       const recordsVal: Object | undefined = this.option['records'];
       if (recordsVal !== undefined) {
@@ -192,80 +191,108 @@ export struct ReportTableComponent {
         }
       }
     } else if (commandName === 'updateData' && args.length > 0) {
-      try {
-        const dataStr: string = args[0] as string;
-        const dataObj: Record<string, Object> = JSON.parse(dataStr) as Record<string, Object>;
-        this.controller.updateOption(dataObj);
-      } catch (e) {
-        console.error('[ReportTableComponent] updateData parse failed');
-      }
+      this.handleUpdateData(args);
     } else if (commandName === 'frozenToCol' && args.length > 0) {
       this.controller.frozenToCol(args[0] as number);
+    } else if (commandName === 'spliceData' && args.length > 0) {
+      this.handleSpliceData(args);
     }
   }
 
-  /**
-   * Parse customCellStyle + arrangement into a list of {styleId, style, col, row} entries
-   * for post-init application via controller.customRender().
-   */
-  private buildPendingCustomStyles(customCellStyleStr: string, arrangementStr: string): Object[] {
-    const styles: Object[] = JSON.parse(customCellStyleStr) as Object[];
-    const arrangements: Object[] = JSON.parse(arrangementStr) as Object[];
-    if (styles.length === 0 || arrangements.length === 0) {
-      return [];
-    }
+  private handleUpdateData(args: Object[]): void {
+    try {
+      const dataStr: string = args[0] as string;
+      const dataObj: Record<string, Object> = JSON.parse(dataStr) as Record<string, Object>;
+      const startCol: number = (dataObj['startCol'] !== undefined) ? (dataObj['startCol'] as number) : 0;
+      const startRow: number = (dataObj['startRow'] !== undefined) ? (dataObj['startRow'] as number) : 0;
+      const values: Object[] = (dataObj['values'] !== undefined) ? (dataObj['values'] as Object[]) : [];
 
-    // Build id → style map
-    const styleMap: Record<string, Object> = {} as Record<string, Object>;
-    for (let i: number = 0; i < styles.length; i++) {
-      const entry: Record<string, Object> = styles[i] as Record<string, Object>;
-      const id: string = entry['id'] as string;
-      styleMap[id] = entry['style'] as Object;
-    }
-
-    // Build pending items: each has { id, style, col, row }
-    const pending: Object[] = [];
-    for (let i: number = 0; i < arrangements.length; i++) {
-      const arr: Record<string, Object> = arrangements[i] as Record<string, Object>;
-      const styleId: string = arr['customStyleId'] as string;
-      const pos: Record<string, Object> = arr['cellPosition'] as Record<string, Object>;
-      if (pos !== undefined && styleMap[styleId] !== undefined) {
-        const item: Record<string, Object> = {} as Record<string, Object>;
-        item['id'] = styleId as Object;
-        item['style'] = styleMap[styleId] as Object;
-        item['col'] = pos['col'] as Object;
-        item['row'] = pos['row'] as Object;
-        pending.push(item as Object);
+      const recordsVal: Object | undefined = this.option['records'];
+      if (recordsVal === undefined) {
+        return;
       }
+      const records: Object[] = recordsVal as Object[];
+
+      // VTable records start after header row(s). startRow already includes frozenRows offset.
+      // Record index = startRow - headerRows (1 for VTable built-in header)
+      const headerRows: number = 1;
+      for (let rowIdx: number = 0; rowIdx < values.length; rowIdx++) {
+        const rowValues: Object[] = values[rowIdx] as Object[];
+        const recordIdx: number = startRow - headerRows + rowIdx;
+        if (recordIdx < 0 || recordIdx >= records.length) {
+          continue;
+        }
+        const record: Record<string, Object> = records[recordIdx] as Record<string, Object>;
+        for (let colIdx: number = 0; colIdx < rowValues.length; colIdx++) {
+          const fieldKey: string = (startCol + colIdx).toString();
+          record[fieldKey] = rowValues[colIdx] as Object;
+        }
+      }
+
+      // Re-render with updated records
+      this.option['records'] = records as Object;
+      this.controller.updateOption(this.option);
+    } catch (e) {
+      console.error('[ReportTableComponent] updateData failed: ' + (e as Error).message);
     }
-    return pending;
   }
 
-  /**
-   * Apply pending custom styles via controller.customRender() after table init.
-   * This is a fallback that ensures styles are applied even if option-level
-   * customCellStyle/customCellStyleArrangement doesn't work in this VTable version.
-   */
-  private applyPendingCustomStyles(): void {
-    if (this.pendingCustomStyles.length === 0) {
-      return;
-    }
-
-    // Deduplicate: register each unique style once, then apply per cell
-    const registered: Record<string, boolean> = {} as Record<string, boolean>;
-    for (let i: number = 0; i < this.pendingCustomStyles.length; i++) {
-      const item: Record<string, Object> = this.pendingCustomStyles[i] as Record<string, Object>;
-      const id: string = item['id'] as string;
-      const style: Record<string, Object> = item['style'] as Record<string, Object>;
-      const col: number = item['col'] as number;
-      const row: number = item['row'] as number;
-
-      if (registered[id] === undefined) {
-        // First time seeing this style id — register and apply in one call
-        registered[id] = true;
+  private handleSpliceData(args: Object[]): void {
+    try {
+      const opsStr: string = args[0] as string;
+      const operations: Object[] = JSON.parse(opsStr) as Object[];
+      // Each operation has { deleteIndices, addAtIndex, newRecords }
+      // VTable doesn't have native splice. Re-build the full option with updated records.
+      const recordsVal: Object | undefined = this.option['records'];
+      if (recordsVal === undefined) {
+        return;
       }
-      // Apply style to single cell (startCol=endCol, startRow=endRow)
-      this.controller.customRender(col, row, col, row, id, style);
+      const records: Object[] = recordsVal as Object[];
+
+      for (let opIdx: number = 0; opIdx < operations.length; opIdx++) {
+        const op: Record<string, Object> = operations[opIdx] as Record<string, Object>;
+        const deleteIndices: Object[] = (op['deleteIndices'] !== undefined) ? (op['deleteIndices'] as Object[]) : [];
+        const addAtIndex: number = (op['addAtIndex'] !== undefined) ? (op['addAtIndex'] as number) : 0;
+        const newRecords: Object[] = (op['newRecords'] !== undefined) ? (op['newRecords'] as Object[]) : [];
+
+        // Delete rows (from high to low to preserve indices)
+        const sortedDeleteIndices: number[] = [];
+        for (let i: number = 0; i < deleteIndices.length; i++) {
+          sortedDeleteIndices.push(deleteIndices[i] as number);
+        }
+        // Sort descending
+        for (let i: number = 0; i < sortedDeleteIndices.length - 1; i++) {
+          for (let j: number = i + 1; j < sortedDeleteIndices.length; j++) {
+            if (sortedDeleteIndices[j] > sortedDeleteIndices[i]) {
+              const tmp: number = sortedDeleteIndices[i];
+              sortedDeleteIndices[i] = sortedDeleteIndices[j];
+              sortedDeleteIndices[j] = tmp;
+            }
+          }
+        }
+        for (let i: number = 0; i < sortedDeleteIndices.length; i++) {
+          const delIdx: number = sortedDeleteIndices[i];
+          if (delIdx >= 0 && delIdx < records.length) {
+            records.splice(delIdx, 1);
+          }
+        }
+
+        // Insert new records at addAtIndex
+        for (let i: number = 0; i < newRecords.length; i++) {
+          const insertIdx: number = addAtIndex + i;
+          if (insertIdx <= records.length) {
+            records.splice(insertIdx, 0, newRecords[i]);
+          } else {
+            records.push(newRecords[i]);
+          }
+        }
+      }
+
+      // Update option with modified records and re-render
+      this.option['records'] = records as Object;
+      this.controller.updateOption(this.option);
+    } catch (e) {
+      console.error('[ReportTableComponent] spliceData failed: ' + (e as Error).message);
     }
   }
 
@@ -314,28 +341,45 @@ export struct ReportTableComponent {
           ',"translateY":' + event.scrollTop.toString() +
           ',"scale":' + self.currentZoom.toString() + '}';
         self.emitEvent('scroll', JSON.parse(payloadStr) as Object);
-
-        // Report accurate content size from scroll event data
-        // scrollHeight/scrollWidth represent the actual total content dimensions
-        if (event.scrollHeight > 0 || event.scrollWidth > 0) {
-          const csPayload: string = '{"width":' + event.scrollWidth.toString() +
-            ',"height":' + event.scrollHeight.toString() + '}';
-          self.emitEvent('contentSize', JSON.parse(csPayload) as Object);
-        }
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
         const payloadStr: string = '{"isEnd":true}';
         self.emitEvent('scrollEnd', JSON.parse(payloadStr) as Object);
       },
       onInitialized: (): void => {
-        // Apply custom cell styles via customRender API after table is fully initialized
-        // This ensures styles work even if option-level customCellStyle has issues
-        self.applyPendingCustomStyles();
+        // Calculate content size from option data
+        // VTable default row height is ~40px
+        const defaultRowHeight: number = 40;
+        let contentHeight: number = 0;
+        let contentWidth: number = 0;
 
-        // Initial content size will be reported on first scroll event
-        // Send a placeholder to indicate table is ready
-        const payloadStr: string = '{"width":0,"height":0}';
-        self.emitEvent('contentSize', JSON.parse(payloadStr) as Object);
+        const recordsVal: Object | undefined = self.option['records'];
+        const columnsVal: Object | undefined = self.option['columns'];
+        const frozenRowCountVal: Object | undefined = self.option['frozenRowCount'];
+        const headerRows: number = 1 + ((frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0);
+
+        if (recordsVal !== undefined) {
+          const recordsArr: Object[] = recordsVal as Object[];
+          contentHeight = (recordsArr.length + headerRows) * defaultRowHeight;
+        }
+        if (columnsVal !== undefined) {
+          const colsArr: Object[] = columnsVal as Object[];
+          // Estimate width from column count * average column width
+          for (let i: number = 0; i < colsArr.length; i++) {
+            const col: Record<string, Object> = colsArr[i] as Record<string, Object>;
+            const minW: Object | undefined = col['minWidth'];
+            const maxW: Object | undefined = col['maxWidth'];
+            const minWidth: number = (minW !== undefined) ? (minW as number) : 50;
+            const maxWidth: number = (maxW !== undefined) ? (maxW as number) : 120;
+            contentWidth += (minWidth + maxWidth) / 2;
+          }
+        }
+
+        if (contentHeight > 0 || contentWidth > 0) {
+          const csPayload: string = '{"width":' + contentWidth.toString() +
+            ',"height":' + contentHeight.toString() + '}';
+          self.emitEvent('contentSize', JSON.parse(csPayload) as Object);
+        }
       },
     };
     return onEvent;
