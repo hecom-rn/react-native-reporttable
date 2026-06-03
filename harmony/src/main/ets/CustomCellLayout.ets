@@ -28,29 +28,38 @@ const UNLOCK_ICON_PATH = 'M12 2C9.24 2 7 4.24 7 7H9C9 5.34 10.34 4 12 4S15 5.34 
  * @param {object} columnLockInfoMap - Map of { [colIndex]: { showLock, isLocked } }
  * @param {function} onLockToggle - Callback when lock icon is tapped: (colIndex, newLocked) => void
  */
-export function createHeaderCustomLayout(columnLockInfoMap: any, onLockToggle: (col: number, locked: boolean) => void) {
-  return (args: any) => {
-    const { table, row, col, rect } = args;
-    const { width, height } = rect;
+export function createHeaderCustomLayout(columnLockInfoMap: ESObject, onLockToggle: (col: number, locked: boolean) => void) {
+  return (args: ESObject): ESObject | null => {
+    const table: ESObject = args.table;
+    const row: number = args.row;
+    const col: number = args.col;
+    const rect: ESObject = args.rect;
+    const width: number = rect.width;
+    const height: number = rect.height;
 
-    const lockInfo = columnLockInfoMap[col];
+    const lockInfo: ESObject = columnLockInfoMap[col];
     if (!lockInfo || !lockInfo.showLock) return null;
 
-    const { Group, Text, Image, Rect, Path } = args.VRender ?? {};
+    const VRender: ESObject = args.VRender ?? {};
+    const Group: ESObject = VRender.Group;
+    const Text: ESObject = VRender.Text;
+    const Image: ESObject = VRender.Image;
+    const Rect: ESObject = VRender.Rect;
+    const Path: ESObject = VRender.Path;
     if (!Group) return null;
 
-    const group = new Group({ x: 0, y: 0, width, height });
+    const group: ESObject = new Group({ x: 0, y: 0, width, height });
 
     // Get header text to calculate lock icon position
-    const cellValue = table.getCellValue(col, row) ?? '';
-    const headerStyle = table.getCellStyle(col, row) ?? {};
-    const fontSize = headerStyle.fontSize ?? 14;
-    const textColor = headerStyle.color ?? '#222222';
-    const fontWeight = headerStyle.fontWeight ?? 'normal';
-    const textAlign = headerStyle.textAlign ?? 'left';
-    const padding = headerStyle.padding ?? [0, 12];
-    const paddingLeft = Array.isArray(padding) ? (padding[1] ?? 12) : 12;
-    const paddingRight = Array.isArray(padding) ? (padding[1] ?? 12) : 12;
+    const cellValue: string = (table.getCellValue(col, row) ?? '') as string;
+    const headerStyle: ESObject = table.getCellStyle(col, row) ?? {};
+    const fontSize: number = (headerStyle.fontSize ?? 14) as number;
+    const textColor: string = (headerStyle.color ?? '#222222') as string;
+    const fontWeight: string = (headerStyle.fontWeight ?? 'normal') as string;
+    const textAlign: string = (headerStyle.textAlign ?? 'left') as string;
+    const padding: ESObject = headerStyle.padding ?? [0, 12];
+    const paddingLeft: number = Array.isArray(padding) ? ((padding[1] ?? 12) as number) : 12;
+    const paddingRight: number = Array.isArray(padding) ? ((padding[1] ?? 12) as number) : 12;
 
     // Lock icon dimensions (matching iOS: width=13, height=14)
     const lockIconWidth = 13;
@@ -137,20 +146,29 @@ export function createHeaderCustomLayout(columnLockInfoMap: any, onLockToggle: (
  * VTable calls it for each cell, providing the cell context and expecting
  * a group of VRender primitives in return.
  */
-export function createCustomCellLayout(defaultItemConfig: any) {
-  return (args: any) => {
-    const { table, row, col, rect } = args;
-    const { width, height } = rect;
-    const record = table.getRecordByCell(col, row);
+export function createCustomCellLayout(defaultItemConfig: ESObject) {
+  return (args: ESObject): ESObject | null => {
+    const table: ESObject = args.table;
+    const row: number = args.row;
+    const col: number = args.col;
+    const rect: ESObject = args.rect;
+    const width: number = rect.width;
+    const height: number = rect.height;
+    const record: ESObject = table.getRecordByCell(col, row);
     if (!record) return null;
 
-    const meta = record[`__meta_${col}`];
+    const meta: ESObject = record[`__meta_${col}`];
     if (!meta) return null;
 
-    const { Group, Text, Rect, Line, Image } = args.VRender ?? {};
+    const VRender: ESObject = args.VRender ?? {};
+    const Group: ESObject = VRender.Group;
+    const Text: ESObject = VRender.Text;
+    const Rect: ESObject = VRender.Rect;
+    const Line: ESObject = VRender.Line;
+    const Image: ESObject = VRender.Image;
     if (!Group) return null;
 
-    const group = new Group({
+    const group: ESObject = new Group({
       x: 0,
       y: 0,
       width,
@@ -159,8 +177,10 @@ export function createCustomCellLayout(defaultItemConfig: any) {
 
     // ---- 1. Gradient background ----
     if (meta.gradient) {
-      const { colors, start, end } = meta.gradient;
-      const gradRect = new Rect({
+      const colors: ESObject = meta.gradient.colors;
+      const start: ESObject = meta.gradient.start;
+      const end: ESObject = meta.gradient.end;
+      const gradRect: ESObject = new Rect({
         x: 0,
         y: 0,
         width,

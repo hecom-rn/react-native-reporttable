@@ -29,14 +29,14 @@ export class RNReportTableViewManager extends ViewManager {
     return 'RNReportTable';
   }
 
-  createView(ctx: RNComponentContext): any {
+  createView(ctx: RNComponentContext): ESObject {
     return new RNReportTableView(ctx);
   }
 }
 
 export class RNReportTableView {
   private ctx: RNComponentContext;
-  private vtableInstance: any = null;
+  private vtableInstance: ESObject = null;
   private currentProps: Partial<RNReportTableProps> = {};
   private currentScale: number = 1.0;
   private componentWidth: number = 0;
@@ -76,7 +76,7 @@ export class RNReportTableView {
   /**
    * Handle commands dispatched from JS (UIManager.dispatchViewManagerCommand).
    */
-  onCommand(commandName: string, args: any[]): void {
+  onCommand(commandName: string, args: ESObject[]): void {
     switch (commandName) {
       case 'scrollTo':
         this.handleScrollTo(args);
@@ -111,7 +111,7 @@ export class RNReportTableView {
       const theme = JSON.parse(props.theme || '{}');
 
       // Apply frozen configuration
-      const option: any = {
+      const option: ESObject = {
         records,
         columns,
         theme,
@@ -133,17 +133,17 @@ export class RNReportTableView {
    * Called when the XComponent canvas is ready.
    * Creates the VTable ListTable instance.
    */
-  onCanvasReady(canvas: any): void {
+  onCanvasReady(canvas: ESObject): void {
     try {
       // Import and create VTable ListTable
-      const vtable = require('@ohos/vtable');
+      const vtable: ESObject = require('@ohos/vtable');
       const props = this.currentProps;
 
-      const records = JSON.parse(props.records || '[]');
-      const columns = JSON.parse(props.columns || '[]');
-      const theme = JSON.parse(props.theme || '{}');
+      const records: ESObject = JSON.parse(props.records || '[]');
+      const columns: ESObject = JSON.parse(props.columns || '[]');
+      const theme: ESObject = JSON.parse(props.theme || '{}');
 
-      const option: any = {
+      const option: ESObject = {
         records,
         columns,
         theme,
@@ -171,12 +171,13 @@ export class RNReportTableView {
     if (!this.vtableInstance) return;
 
     // Click cell event
-    this.vtableInstance.on('click_cell', (event: any) => {
-      const { col, row } = event;
-      const record = this.vtableInstance.getRecordByCell(col, row);
-      const keyIndex = record?.[`__meta_${col}`]?.keyIndex ?? 0;
-      const rowCount = this.vtableInstance.rowCount || 0;
-      const colCount = this.vtableInstance.colCount || 0;
+    this.vtableInstance.on('click_cell', (event: ESObject) => {
+      const col: number = event.col;
+      const row: number = event.row;
+      const record: ESObject = this.vtableInstance.getRecordByCell(col, row);
+      const keyIndex: number = record?.[`__meta_${col}`]?.keyIndex ?? 0;
+      const rowCount: number = this.vtableInstance.rowCount || 0;
+      const colCount: number = this.vtableInstance.colCount || 0;
 
       this.ctx.emitEvent('onClickEvent', {
         keyIndex,
@@ -188,9 +189,9 @@ export class RNReportTableView {
     });
 
     // Scroll event
-    this.vtableInstance.on('scroll', (event: any) => {
-      const scrollLeft = event.scrollLeft ?? this.vtableInstance.getScrollLeft();
-      const scrollTop = event.scrollTop ?? this.vtableInstance.getScrollTop();
+    this.vtableInstance.on('scroll', (event: ESObject) => {
+      const scrollLeft: number = event.scrollLeft ?? this.vtableInstance.getScrollLeft();
+      const scrollTop: number = event.scrollTop ?? this.vtableInstance.getScrollTop();
 
       this.ctx.emitEvent('onScroll', {
         translateX: scrollLeft,
@@ -236,10 +237,13 @@ export class RNReportTableView {
   /**
    * scrollTo command: [lineX, lineY, offsetX, offsetY, animated]
    */
-  private handleScrollTo(args: any[]): void {
+  private handleScrollTo(args: ESObject[]): void {
     if (!this.vtableInstance) return;
 
-    const [lineX = 0, lineY = 0, offsetX = 0, offsetY = 0] = args;
+    const lineX: number = (args[0] ?? 0) as number;
+    const lineY: number = (args[1] ?? 0) as number;
+    const offsetX: number = (args[2] ?? 0) as number;
+    const offsetY: number = (args[3] ?? 0) as number;
 
     // Scroll to the specified cell first
     if (lineX >= 0 && lineY >= 0) {
@@ -273,11 +277,14 @@ export class RNReportTableView {
    * updateData command: [jsonString]
    * JSON format: { startCol, startRow, values: string[][] }
    */
-  private handleUpdateData(args: any[]): void {
+  private handleUpdateData(args: ESObject[]): void {
     if (!this.vtableInstance || !args[0]) return;
 
     try {
-      const { startCol, startRow, values } = JSON.parse(args[0]);
+      const parsed: ESObject = JSON.parse(args[0] as string);
+      const startCol: number = parsed.startCol;
+      const startRow: number = parsed.startRow;
+      const values: ESObject = parsed.values;
       this.vtableInstance.changeCellValues(startCol, startRow, values);
       this.reportContentSize();
     } catch (e) {
@@ -289,7 +296,7 @@ export class RNReportTableView {
    * spliceData command: [jsonString]
    * JSON format: [{ deleteIndices, addAtIndex, newRecords }]
    */
-  private handleSpliceData(args: any[]): void {
+  private handleSpliceData(args: ESObject[]): void {
     if (!this.vtableInstance || !args[0]) return;
 
     try {
