@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanResponder, ScrollView, UIManager, findNodeHandle } from 'react-native';
+import { PanResponder, ScrollView, UIManager, findNodeHandle, DeviceEventEmitter } from 'react-native';
 import * as NativeComponentRegistry from 'react-native/Libraries/NativeComponent/NativeComponentRegistry';
 import {
     convertDataSourceToVTable,
@@ -14,12 +14,7 @@ const COMPONENT_NAME = 'RNReportTable';
 const __INTERNAL_VIEW_CONFIG = {
     uiViewClassName: COMPONENT_NAME,
     bubblingEventTypes: {},
-    directEventTypes: {
-        topClickEvent: { registrationName: 'onClickEvent' },
-        topScroll: { registrationName: 'onScroll' },
-        topScrollEnd: { registrationName: 'onScrollEnd' },
-        topContentSize: { registrationName: 'onContentSize' },
-    },
+    directEventTypes: {},
     validAttributes: {
         records: true,
         columns: true,
@@ -40,10 +35,6 @@ const __INTERNAL_VIEW_CONFIG = {
         itemConfig: true,
         progressStyle: true,
         replenishColumnsWidthConfig: true,
-        onClickEvent: true,
-        onScroll: true,
-        onScrollEnd: true,
-        onContentSize: true,
     },
 };
 
@@ -60,27 +51,122 @@ export default class ReportTableWrapper extends React.Component {
         };
         this.showHeader = true;
         this.scrollY = 0;
+        this._nativeTag = null;
+        this._eventSubscriptions = [];
         this._vtableData = this._buildVTableData(props);
 
         // PanResponder to link table area swipes to outer ScrollView (hide header)
         this.panResponder = PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
-            onPanResponderGrant: () => {},
+            onStartShouldSetPanResponder: () => false,
+            onMoveShouldSetPanResponder: (evt, gs) => {
+                // Only intercept vertical swipes when header is still visible
+                if (this.state.headerHeight === 0) return false;
+                if (!this.showHeader) return false;
+                return Math.abs(gs.dy) > Math.abs(gs.dx) && gs.dy < -5;
+            },
             onPanResponderMove: (evt, gs) => {
                 if (this.state.headerHeight === 0) return;
                 if (gs.dy < 0 && this.showHeader) {
                     this._scrollView &&
-                        this._scrollView.scrollTo({ x: 0, y: -gs.dy + this.scrollY, animated: true });
+                        this._scrollView.scrollTo({ x: 0, y: -gs.dy + this.scrollY, animated: false });
                 }
             },
             onPanResponderRelease: () => {},
         });
     }
 
+    componentDidMount() {
+        this._setupEventListeners();
+    }
+
+    componentWillUnmount() {
+        this._removeEventListeners();
+    }
+
     UNSAFE_componentWillReceiveProps(nextProps) {
         this._vtableData = this._buildVTableData(nextProps);
     }
+
+    componentDidUpdate() {
+        // Re-setup listeners if native tag changed (e.g., after re-render)
+        const tag = this._tableRef ? findNodeHandle(this._tableRef) : null;
+        if (tag !== this._nativeTag) {
+            this._removeEventListeners();
+            this._nativeTag = tag;
+            this._setupEventListeners();
+        }
+    }
+
+    _setupEventListeners = () => {
+        const tag = this._tableRef ? findNodeHandle(this._tableRef) : null;
+        if (!tag) return;
+        this._nativeTag = tag;
+
+        this._eventSubscriptions = [
+            DeviceEventEmitter.addListener(
+                `RNReportTable_clickEvent_${tag}`,
+                (data) => {
+                    this.props.onClickEvent && this.props.onClickEvent({
+                        keyIndex: data.keyIndex ?? 0,
+                        rowIndex: data.rowIndex ?? 0,
+                        columnIndex: data.columnIndex ?? 0,
+                        verticalCount: data.verticalCount ?? 1,
+                        horizontalCount: data.horizontalCount ?? 1,
+                    });
+                }
+            ),
+            DeviceEventEmitter.addListener(
+                `RNReportTable_scroll_${tag}`,
+                (data) => {
+                    this.props.onScroll && this.props.onScroll({
+                        translateX: data.translateX ?? 0,
+                        translateY: data.translateY ?? 0,
+                        scale: data.scale ?? 1.0,
+                    });
+                }
+            ),
+            DeviceEventEmitter.addListener(
+                `RNReportTable_scrollEnd_${tag}`,
+                (data) => {
+                    this.props.onScrollEnd && this.props.onScrollEnd(data.isEnd !== false);
+                }
+            ),
+            DeviceEventEmitter.addListener(
+                `RNReportTable_contentSize_${tag}`,
+                (data) => {
+                    this.props.onContentSize && this.props.onContentSize({
+                        width: data.width ?? 0,
+                        height: data.height ?? 0,
+                    });
+                }
+            ),
+            DeviceEventEmitter.addListener(
+                `RNReportTable_lockToggle_${tag}`,
+                (data) => {
+                    // Handle lock toggle: update frozenAbility and frozenColCount
+                    this._handleLockToggle(data.col, data.locked);
+                }
+            ),
+        ];
+    };
+
+    _removeEventListeners = () => {
+        this._eventSubscriptions.forEach(sub => sub && sub.remove());
+        this._eventSubscriptions = [];
+    };
+
+    _handleLockToggle = (col, locked) => {
+        // Emit click event with lock info - the parent component handles frozen logic
+        // Following iOS pattern: clicking lock toggles frozenAbility state
+        this.props.onClickEvent && this.props.onClickEvent({
+            keyIndex: 0,
+            rowIndex: 0,
+            columnIndex: col,
+            verticalCount: 1,
+            horizontalCount: 1,
+            lockToggle: { col, locked },
+        });
+    };
 
     /**
      * Build VTable-compatible data from ReportTable props.
@@ -100,11 +186,15 @@ export default class ReportTableWrapper extends React.Component {
         } = props;
 
         if (!data || data.length === 0) {
-            return { records: '[]', columns: '[]', theme: '{}', mergedCells: '[]', customCellStyle: '[]', customCellStyleArrangement: '[]', widthMode: 'autoWidth', frozenColCount: 0, frozenRowCount: 0 };
+            return {
+                records: '[]', columns: '[]', theme: '{}', mergedCells: '[]',
+                customCellStyle: '[]', customCellStyleArrangement: '[]',
+                widthMode: 'autoWidth', frozenColCount: 0, frozenRowCount: 0,
+            };
         }
 
         const { records, columns, mergedCells, customCellStyle, customCellStyleArrangement } = convertDataSourceToVTable(data, {
-            frozenRows: frozenRows || 1, // at least 1 header row for conversion
+            frozenRows: frozenRows || 1,
             itemConfig,
             columnsWidthMap,
             minWidth,
@@ -117,14 +207,12 @@ export default class ReportTableWrapper extends React.Component {
 
         const theme = buildVTableTheme(props);
 
-        // Compute effective frozenColCount from frozenAbility initial locked state
+        // Compute effective frozenColCount
         const colCount = data[0]?.length ?? 0;
         const effectiveFrozenColCount = computeInitialFrozenColCount(frozenAbility, frozenColumns, colCount);
 
-        // VTable frozenRowCount: column titles are always the header (from frozenRows=1 in converter).
-        // VTable's frozenRowCount means additional body rows to freeze.
-        // If user wants frozenRows=1 (just header), VTable should freeze 0 body rows.
-        // If user wants frozenRows=2, VTable should freeze 1 body row.
+        // frozenRowCount: VTable column titles are the header row.
+        // Additional frozen body rows = frozenRows - 1 (since 1 is the header itself)
         const vtableFrozenRowCount = Math.max(0, (frozenRows || 1) - 1);
 
         return {
@@ -184,38 +272,6 @@ export default class ReportTableWrapper extends React.Component {
         );
     };
 
-    // ---- Event handlers ----
-
-    _onClickEvent = (event) => {
-        const { keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount } = event.nativeEvent;
-        this.props.onClickEvent && this.props.onClickEvent({
-            keyIndex: keyIndex ?? 0,
-            rowIndex: rowIndex ?? 0,
-            columnIndex: columnIndex ?? 0,
-            verticalCount: verticalCount ?? 1,
-            horizontalCount: horizontalCount ?? 1,
-        });
-    };
-
-    _onScroll = (event) => {
-        const { translateX, translateY, scale } = event.nativeEvent;
-        this.props.onScroll && this.props.onScroll({
-            translateX: translateX ?? 0,
-            translateY: translateY ?? 0,
-            scale: scale ?? 1.0,
-        });
-    };
-
-    _onScrollEnd = (event) => {
-        const { isEnd } = event.nativeEvent;
-        this.props.onScrollEnd && this.props.onScrollEnd(isEnd !== false);
-    };
-
-    _onContentSize = (event) => {
-        const { width, height } = event.nativeEvent;
-        this.props.onContentSize && this.props.onContentSize({ width: width ?? 0, height: height ?? 0 });
-    };
-
     // ---- Private helpers ----
 
     _getTableHandle = () => {
@@ -250,6 +306,42 @@ export default class ReportTableWrapper extends React.Component {
             widthMode, frozenColCount, frozenRowCount,
         } = this._vtableData;
 
+        const tableView = (
+            <NativeReportTable
+                ref={(ref) => (this._tableRef = ref)}
+                style={{ width: size?.width || '100%', height: size?.height || 300 }}
+                records={records}
+                columns={columns}
+                theme={theme}
+                mergedCells={mergedCells}
+                customCellStyle={customCellStyle}
+                customCellStyleArrangement={customCellStyleArrangement}
+                widthMode={widthMode}
+                frozenColCount={frozenColCount}
+                frozenRowCount={frozenRowCount}
+                lineColor={lineColor || '#e8e8e8'}
+                disableZoom={disableZoom || false}
+                showBorder={showBorder || false}
+                permutable={permutable || false}
+                frozenAbility={frozenAbility ? JSON.stringify(frozenAbility) : '{}'}
+                ignoreLocks={ignoreLocks || []}
+                doubleClickZoom={doubleClickZoom !== false}
+                itemConfig={itemConfig ? JSON.stringify(itemConfig) : '{}'}
+                progressStyle={progressStyle ? JSON.stringify(progressStyle) : '{}'}
+                replenishColumnsWidthConfig={
+                    replenishColumnsWidthConfig ? JSON.stringify(replenishColumnsWidthConfig) : '{}'
+                }
+                {...this.panResponder.panHandlers}
+            />
+        );
+
+        if (!headerView) {
+            // No header: render table directly without outer ScrollView
+            return tableView;
+        }
+
+        // With header: use ScrollView + stickyHeaderIndices pattern (like Android)
+        // Index 0 = header, Index 1 = table (sticky)
         return (
             <ScrollView
                 ref={(ref) => (this._scrollView = ref)}
@@ -258,7 +350,7 @@ export default class ReportTableWrapper extends React.Component {
                 bounces={false}
                 showsVerticalScrollIndicator={false}
                 showsHorizontalScrollIndicator={false}
-                stickyHeaderIndices={headerView ? [1] : undefined}
+                stickyHeaderIndices={[1]}
                 onScroll={(event) => {
                     this.scrollY = event.nativeEvent.contentOffset.y;
                     if (this.state.headerHeight > 0) {
@@ -278,39 +370,10 @@ export default class ReportTableWrapper extends React.Component {
                         }
                     }}
                 >
-                    {headerView && headerView()}
+                    {headerView()}
                 </HeaderComponent>
 
-                <NativeReportTable
-                    ref={(ref) => (this._tableRef = ref)}
-                    style={{ width: size?.width || '100%', height: size?.height || 300 }}
-                    records={records}
-                    columns={columns}
-                    theme={theme}
-                    mergedCells={mergedCells}
-                    customCellStyle={customCellStyle}
-                    customCellStyleArrangement={customCellStyleArrangement}
-                    widthMode={widthMode}
-                    frozenColCount={frozenColCount}
-                    frozenRowCount={frozenRowCount}
-                    lineColor={lineColor || '#e8e8e8'}
-                    disableZoom={disableZoom || false}
-                    showBorder={showBorder || false}
-                    permutable={permutable || false}
-                    frozenAbility={frozenAbility ? JSON.stringify(frozenAbility) : '{}'}
-                    ignoreLocks={ignoreLocks || []}
-                    doubleClickZoom={doubleClickZoom !== false}
-                    itemConfig={itemConfig ? JSON.stringify(itemConfig) : '{}'}
-                    progressStyle={progressStyle ? JSON.stringify(progressStyle) : '{}'}
-                    replenishColumnsWidthConfig={
-                        replenishColumnsWidthConfig ? JSON.stringify(replenishColumnsWidthConfig) : '{}'
-                    }
-                    onClickEvent={this._onClickEvent}
-                    onScroll={this._onScroll}
-                    onScrollEnd={this._onScrollEnd}
-                    onContentSize={this._onContentSize}
-                    {...this.panResponder.panHandlers}
-                />
+                {tableView}
             </ScrollView>
         );
     }

@@ -3,6 +3,7 @@
  *
  * ArkTS UI component that renders a VTable.
  * Bridges RN props/events to @ohos/vtable.
+ * Events use emitDeviceEvent (DeviceEventEmitter) since there's no C++ codegen.
  */
 import { VTable, VTableController } from '@ohos/vtable';
 import type { VTableOnEvent, CellClickData, ScrollEventData } from '@ohos/vtable';
@@ -10,6 +11,7 @@ import {
   RNOHContext,
   ViewDescriptorWrapperBase,
 } from '@rnoh/react-native-openharmony/ts';
+import { createHeaderCustomLayout, createCustomCellLayout } from './CustomCellLayout';
 
 export const RN_REPORT_TABLE_NAME: string = 'RNReportTable';
 
@@ -33,6 +35,8 @@ export struct ReportTableComponent {
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
   private cleanupCommandCallback: (() => void) | undefined = undefined;
   private currentRawProps: string = '{}';
+  private columnLockInfoMap: Record<string, Object> = {} as Record<string, Object>;
+  private itemConfig: Record<string, Object> = {} as Record<string, Object>;
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -105,6 +109,7 @@ export struct ReportTableComponent {
       const frozenRowCountVal: Object | undefined = rawProps['frozenRowCount'];
       const disableZoomVal: Object | undefined = rawProps['disableZoom'];
       const permutableVal: Object | undefined = rawProps['permutable'];
+      const itemConfigVal: Object | undefined = rawProps['itemConfig'];
 
       const recordsStr: string = (recordsVal !== undefined) ? (recordsVal as string) : '[]';
       const columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
@@ -118,22 +123,31 @@ export struct ReportTableComponent {
       const disableZoom: boolean = (disableZoomVal !== undefined) ? (disableZoomVal as boolean) : false;
       const permutable: boolean = (permutableVal !== undefined) ? (permutableVal as boolean) : false;
 
-      // Determine allowFrozenColCount for lock icon display
+      // Parse itemConfig for customLayout defaults
+      if (itemConfigVal !== undefined) {
+        this.itemConfig = JSON.parse(itemConfigVal as string) as Record<string, Object>;
+      }
+
+      // Parse columns to extract lock info and prepare customLayout
+      const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
+      const lockInfoMap: Record<string, Object> = {} as Record<string, Object>;
       let allowFrozenColCount: number = 0;
-      if (permutable) {
-        const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
-        allowFrozenColCount = columnsArr.length;
-      } else {
-        const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
-        for (let i: number = 0; i < columnsArr.length; i++) {
-          const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
-          if (col['__lockInfo'] !== undefined) {
-            allowFrozenColCount = i + 1;
-          }
+
+      for (let i: number = 0; i < columnsArr.length; i++) {
+        const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
+        if (col['__lockInfo'] !== undefined) {
+          lockInfoMap[i.toString()] = col['__lockInfo'] as Object;
+          allowFrozenColCount = i + 1;
         }
       }
 
-      // Build option with all necessary configurations
+      if (permutable) {
+        allowFrozenColCount = columnsArr.length;
+      }
+
+      this.columnLockInfoMap = lockInfoMap;
+
+      // Build option JSON
       const optionStr: string = '{"records":' + recordsStr +
         ',"columns":' + columnsStr +
         ',"theme":' + themeStr +
@@ -157,13 +171,45 @@ export struct ReportTableComponent {
         '}';
       const newOption: Record<string, Object> = JSON.parse(optionStr) as Record<string, Object>;
 
-      // Store disableZoom state for gesture handling
-      this.disableZoom = disableZoom;
+      // Attach customLayout functions (these can't be serialized to JSON)
+      // customLayout for body cells
+      const customCellLayoutFn: Object = createCustomCellLayout(this.itemConfig) as Object;
+      // Apply customLayout to each column
+      const optColumns: Object[] = newOption['columns'] as Object[];
+      for (let i: number = 0; i < optColumns.length; i++) {
+        const colObj: Record<string, Object> = optColumns[i] as Record<string, Object>;
+        colObj['customLayout'] = customCellLayoutFn;
+      }
 
+      // Header customLayout if there are lock icons
+      if (allowFrozenColCount > 0) {
+        const tagVal: number = this.tag;
+        const ctxRef: RNOHContext = this.ctx;
+        const headerLayoutFn: Object = createHeaderCustomLayout(
+          this.columnLockInfoMap,
+          (col: number, locked: boolean): void => {
+            // Emit lock toggle event
+            const payloadStr: string = '{"col":' + col.toString() + ',"locked":' + (locked ? 'true' : 'false') + '}';
+            ctxRef.rnInstance.emitDeviceEvent(
+              'RNReportTable_lockToggle_' + tagVal.toString(),
+              JSON.parse(payloadStr) as Object
+            );
+          }
+        ) as Object;
+        // Apply header customLayout to columns that have lock info
+        for (let i: number = 0; i < optColumns.length; i++) {
+          const colObj: Record<string, Object> = optColumns[i] as Record<string, Object>;
+          if (lockInfoMap[i.toString()] !== undefined || permutable) {
+            colObj['headerCustomLayout'] = headerLayoutFn;
+          }
+        }
+      }
+
+      this.disableZoom = disableZoom;
       this.option = newOption;
       this.controller.updateOption(newOption);
     } catch (e) {
-      console.error('[ReportTableComponent] updateVTable failed');
+      console.error('[ReportTableComponent] updateVTable failed: ' + (e as Error).message);
     }
   }
 
@@ -194,69 +240,58 @@ export struct ReportTableComponent {
     }
   }
 
-  private emitClickEvent(row: number, col: number): void {
-    // Extract keyIndex from the record metadata if available
-    let keyIndex: number = 0;
-    const recordsVal: Object | undefined = this.option['records'];
-    if (recordsVal !== undefined) {
-      const recordsArr: Object[] = recordsVal as Object[];
-      // VTable row includes header rows. Body rows start after frozenRowCount + 1 (header).
-      const frozenRowCountVal: Object | undefined = this.option['frozenRowCount'];
-      const headerOffset: number = 1 + ((frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0);
-      const recordIdx: number = row - headerOffset;
-      if (recordIdx >= 0 && recordIdx < recordsArr.length) {
-        const record: Record<string, Object> = recordsArr[recordIdx] as Record<string, Object>;
-        const metaKey: string = '__meta_' + col.toString();
-        const metaVal: Object | undefined = record[metaKey];
-        if (metaVal !== undefined) {
-          const meta: Record<string, Object> = metaVal as Record<string, Object>;
-          const ki: Object | undefined = meta['keyIndex'];
-          if (ki !== undefined) {
-            keyIndex = ki as number;
-          }
-        }
-      }
-    }
-
-    const payloadStr: string = '{"keyIndex":' + keyIndex.toString() +
-      ',"rowIndex":' + row.toString() +
-      ',"columnIndex":' + col.toString() +
-      ',"verticalCount":1' +
-      ',"horizontalCount":1}';
-    this.ctx.rnInstance.emitComponentEvent(this.tag, 'topClickEvent', JSON.parse(payloadStr) as Object);
-  }
-
-  private emitScrollEvent(scrollLeft: number, scrollTop: number): void {
-    const payloadStr: string = '{"translateX":' + scrollLeft.toString() +
-      ',"translateY":' + scrollTop.toString() +
-      ',"scale":' + this.currentZoom.toString() + '}';
-    this.ctx.rnInstance.emitComponentEvent(this.tag, 'topScroll', JSON.parse(payloadStr) as Object);
-  }
-
-  private emitScrollEndEvent(scrollTop: number): void {
-    const payloadStr: string = '{"isEnd":true,"scrollTop":' + scrollTop.toString() + '}';
-    this.ctx.rnInstance.emitComponentEvent(this.tag, 'topScrollEnd', JSON.parse(payloadStr) as Object);
-  }
-
-  private emitContentSizeEvent(width: number, height: number): void {
-    const payloadStr: string = '{"width":' + width.toString() + ',"height":' + height.toString() + '}';
-    this.ctx.rnInstance.emitComponentEvent(this.tag, 'topContentSize', JSON.parse(payloadStr) as Object);
+  private emitEvent(eventType: string, payload: Object): void {
+    this.ctx.rnInstance.emitDeviceEvent(
+      'RNReportTable_' + eventType + '_' + this.tag.toString(),
+      payload
+    );
   }
 
   private getOnEvent(): VTableOnEvent {
     const self = this;
     const onEvent: VTableOnEvent = {
       onClickCell: (event: CellClickData): void => {
-        self.emitClickEvent(event.row, event.col);
+        // Extract keyIndex from record metadata
+        let keyIndex: number = 0;
+        const recordsVal: Object | undefined = self.option['records'];
+        if (recordsVal !== undefined) {
+          const recordsArr: Object[] = recordsVal as Object[];
+          const frozenRowCountVal: Object | undefined = self.option['frozenRowCount'];
+          const headerOffset: number = 1 + ((frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0);
+          const recordIdx: number = event.row - headerOffset;
+          if (recordIdx >= 0 && recordIdx < recordsArr.length) {
+            const record: Record<string, Object> = recordsArr[recordIdx] as Record<string, Object>;
+            const metaKey: string = '__meta_' + event.col.toString();
+            const metaVal: Object | undefined = record[metaKey];
+            if (metaVal !== undefined) {
+              const meta: Record<string, Object> = metaVal as Record<string, Object>;
+              const ki: Object | undefined = meta['keyIndex'];
+              if (ki !== undefined) {
+                keyIndex = ki as number;
+              }
+            }
+          }
+        }
+
+        const payloadStr: string = '{"keyIndex":' + keyIndex.toString() +
+          ',"rowIndex":' + event.row.toString() +
+          ',"columnIndex":' + event.col.toString() +
+          ',"verticalCount":1' +
+          ',"horizontalCount":1}';
+        self.emitEvent('clickEvent', JSON.parse(payloadStr) as Object);
       },
       onScroll: (event: ScrollEventData): void => {
-        self.emitScrollEvent(event.scrollLeft, event.scrollTop);
+        const payloadStr: string = '{"translateX":' + event.scrollLeft.toString() +
+          ',"translateY":' + event.scrollTop.toString() +
+          ',"scale":' + self.currentZoom.toString() + '}';
+        self.emitEvent('scroll', JSON.parse(payloadStr) as Object);
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
-        self.emitScrollEndEvent(event.scrollTop);
+        const payloadStr: string = '{"isEnd":true}';
+        self.emitEvent('scrollEnd', JSON.parse(payloadStr) as Object);
       },
       onInitialized: (): void => {
-        // Compute content size from columns and records
+        // Estimate content size from columns and records
         let totalWidth: number = 0;
         let totalHeight: number = 0;
         const columnsVal: Object | undefined = self.option['columns'];
@@ -265,9 +300,12 @@ export struct ReportTableComponent {
           const cols: Object[] = columnsVal as Object[];
           for (let i: number = 0; i < cols.length; i++) {
             const col: Record<string, Object> = cols[i] as Record<string, Object>;
-            const w: Object | undefined = col['maxWidth'];
-            if (w !== undefined) {
-              totalWidth = totalWidth + (w as number);
+            const maxW: Object | undefined = col['maxWidth'];
+            const minW: Object | undefined = col['minWidth'];
+            if (maxW !== undefined) {
+              totalWidth = totalWidth + (maxW as number);
+            } else if (minW !== undefined) {
+              totalWidth = totalWidth + (minW as number);
             } else {
               totalWidth = totalWidth + 100;
             }
@@ -275,41 +313,35 @@ export struct ReportTableComponent {
         }
         if (recordsVal !== undefined) {
           const recs: Object[] = recordsVal as Object[];
-          // Estimate: header(40) + each row(40)
           totalHeight = 40 + recs.length * 40;
         }
-        self.emitContentSizeEvent(totalWidth, totalHeight);
+        const payloadStr: string = '{"width":' + totalWidth.toString() + ',"height":' + totalHeight.toString() + '}';
+        self.emitEvent('contentSize', JSON.parse(payloadStr) as Object);
       },
     };
     return onEvent;
   }
 
-  private getInnerWidth(): number {
-    if (this.componentWidth <= 0 || this.currentZoom <= 0) {
-      return 0;
-    }
-    return this.componentWidth / this.currentZoom;
-  }
-
-  private getInnerHeight(): number {
-    if (this.componentHeight <= 0 || this.currentZoom <= 0) {
-      return 0;
-    }
-    return this.componentHeight / this.currentZoom;
-  }
-
   build() {
-    Column() {
-      Stack({ alignContent: Alignment.TopStart }) {
-        VTable({
-          controller: this.controller,
-          option: this.option,
-          onEvent: this.getOnEvent(),
+    Stack({ alignContent: Alignment.TopStart }) {
+      VTable({
+        controller: this.controller,
+        option: this.option,
+        onEvent: this.getOnEvent(),
+      })
+        .width(this.componentWidth > 0 && this.currentZoom > 0
+          ? this.componentWidth / this.currentZoom
+          : '100%')
+        .height(this.componentHeight > 0 && this.currentZoom > 0
+          ? this.componentHeight / this.currentZoom
+          : '100%')
+        .scale({
+          x: this.currentZoom,
+          y: this.currentZoom,
+          centerX: 0,
+          centerY: 0
         })
-      }
-      .width(this.getInnerWidth())
-      .height(this.getInnerHeight())
-      .scale({ x: this.currentZoom, y: this.currentZoom, centerX: 0, centerY: 0 })
+        .position({ x: 0, y: 0 })
     }
     .width('100%')
     .height('100%')
