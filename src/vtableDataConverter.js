@@ -30,13 +30,13 @@ function buildColumnStyle(cell, itemConfig) {
     const textColor = cell.textColor ?? itemConfig?.textColor;
     const bgColor = cell.backgroundColor ?? itemConfig?.backgroundColor;
     const textAlign = mapTextAlign(cell.textAlignment ?? itemConfig?.textAlignment ?? 0);
-    const fontWeight = (cell.isOverstriking ?? itemConfig?.isOverstriking) ? 'bold' : 'normal';
+    const isBold = cell.isOverstriking ?? itemConfig?.isOverstriking ?? false;
 
     style.fontSize = fontSize;
     if (textColor) style.color = textColor;
     if (bgColor) style.bgColor = bgColor;
     style.textAlign = textAlign;
-    style.fontWeight = fontWeight;
+    style.fontWeight = isBold ? 'bold' : 'normal';
     style.padding = [0, cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12];
     style.autoWrapText = false;
 
@@ -183,6 +183,9 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
     const customCellStyleArrangement = [];
     const styleCache = new Map();
 
+    // If itemConfig has global isOverstriking, we need a base bold style for all cells
+    const globalBold = !!itemConfig?.isOverstriking;
+
     for (let rowIdx = 0; rowIdx < dataSource.length; rowIdx++) {
         const row = dataSource[rowIdx];
         if (!row) continue;
@@ -206,7 +209,7 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
                 cellStyle.fontSize = cell.fontSize;
                 hasOverride = true;
             }
-            if (cell.isOverstriking) {
+            if (cell.isOverstriking || globalBold) {
                 cellStyle.fontWeight = 'bold';
                 hasOverride = true;
             }
@@ -377,7 +380,8 @@ export function buildVTableTheme(props) {
     const fontSize = itemConfig.fontSize || 14;
     const textColor = itemConfig.textColor || '#222222';
     const textAlign = mapTextAlign(itemConfig.textAlignment ?? 0);
-    const fontWeight = itemConfig.isOverstriking ? 'bold' : 'normal';
+    const isBold = !!itemConfig.isOverstriking;
+    const fontWeight = isBold ? 'bold' : 'normal';
     const padding = [0, itemConfig.textPaddingHorizontal ?? 12];
 
     return {
@@ -396,6 +400,11 @@ export function buildVTableTheme(props) {
         frameStyle: {
             borderColor,
             borderLineWidth: showBorder ? 1 : 0,
+        },
+        scrollStyle: {
+            visible: 'none',
+            barWidth: 0,
+            hoverOn: false,
         },
     };
 }

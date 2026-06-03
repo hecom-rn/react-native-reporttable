@@ -1,12 +1,12 @@
 import React from 'react';
-import { PanResponder, ScrollView, UIManager, findNodeHandle, DeviceEventEmitter } from 'react-native';
+import { DeviceEventEmitter, PanResponder, ScrollView, UIManager, findNodeHandle } from 'react-native';
 import * as NativeComponentRegistry from 'react-native/Libraries/NativeComponent/NativeComponentRegistry';
 import {
-    convertDataSourceToVTable,
     buildVTableTheme,
-    convertUpdateData,
-    convertSpliceData,
     computeInitialFrozenColCount,
+    convertDataSourceToVTable,
+    convertSpliceData,
+    convertUpdateData,
 } from './vtableDataConverter';
 
 const COMPONENT_NAME = 'RNReportTable';
@@ -118,11 +118,11 @@ export default class ReportTableWrapper extends React.Component {
             DeviceEventEmitter.addListener(
                 `RNReportTable_scroll_${tag}`,
                 (data) => {
-                    this.props.onScroll && this.props.onScroll({
+                    this.props.onScroll && this.props.onScroll({nativeEvent: {
                         translateX: data.translateX ?? 0,
                         translateY: data.translateY ?? 0,
                         scale: data.scale ?? 1.0,
-                    });
+                    }});
                 }
             ),
             DeviceEventEmitter.addListener(
@@ -134,10 +134,10 @@ export default class ReportTableWrapper extends React.Component {
             DeviceEventEmitter.addListener(
                 `RNReportTable_contentSize_${tag}`,
                 (data) => {
-                    this.props.onContentSize && this.props.onContentSize({
+                    this.props.onContentSize && this.props.onContentSize({nativeEvent:{
                         width: data.width ?? 0,
                         height: data.height ?? 0,
-                    });
+                    }});
                 }
             ),
             DeviceEventEmitter.addListener(

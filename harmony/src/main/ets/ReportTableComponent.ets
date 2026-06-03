@@ -11,7 +11,6 @@ import {
   RNOHContext,
   ViewDescriptorWrapperBase,
 } from '@rnoh/react-native-openharmony/ts';
-import { createHeaderCustomLayout, createCustomCellLayout } from './CustomCellLayout';
 
 export const RN_REPORT_TABLE_NAME: string = 'RNReportTable';
 
@@ -35,8 +34,8 @@ export struct ReportTableComponent {
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
   private cleanupCommandCallback: (() => void) | undefined = undefined;
   private currentRawProps: string = '{}';
-  private columnLockInfoMap: Record<string, Object> = {} as Record<string, Object>;
-  private itemConfig: Record<string, Object> = {} as Record<string, Object>;
+  // Store customCellStyle arrangements for post-init re-application via customRender
+  private pendingCustomStyles: Object[] = [];
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -109,7 +108,6 @@ export struct ReportTableComponent {
       const frozenRowCountVal: Object | undefined = rawProps['frozenRowCount'];
       const disableZoomVal: Object | undefined = rawProps['disableZoom'];
       const permutableVal: Object | undefined = rawProps['permutable'];
-      const itemConfigVal: Object | undefined = rawProps['itemConfig'];
 
       const recordsStr: string = (recordsVal !== undefined) ? (recordsVal as string) : '[]';
       const columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
@@ -123,20 +121,13 @@ export struct ReportTableComponent {
       const disableZoom: boolean = (disableZoomVal !== undefined) ? (disableZoomVal as boolean) : false;
       const permutable: boolean = (permutableVal !== undefined) ? (permutableVal as boolean) : false;
 
-      // Parse itemConfig for customLayout defaults
-      if (itemConfigVal !== undefined) {
-        this.itemConfig = JSON.parse(itemConfigVal as string) as Record<string, Object>;
-      }
-
-      // Parse columns to extract lock info and prepare customLayout
+      // Parse columns to extract lock info for allowFrozenColCount
       const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
-      const lockInfoMap: Record<string, Object> = {} as Record<string, Object>;
       let allowFrozenColCount: number = 0;
 
       for (let i: number = 0; i < columnsArr.length; i++) {
         const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
         if (col['__lockInfo'] !== undefined) {
-          lockInfoMap[i.toString()] = col['__lockInfo'] as Object;
           allowFrozenColCount = i + 1;
         }
       }
@@ -144,8 +135,6 @@ export struct ReportTableComponent {
       if (permutable) {
         allowFrozenColCount = columnsArr.length;
       }
-
-      this.columnLockInfoMap = lockInfoMap;
 
       // Build option JSON
       const optionStr: string = '{"records":' + recordsStr +
@@ -165,45 +154,20 @@ export struct ReportTableComponent {
         ',"autoFillHeight":false' +
         ',"hover":{"disableHover":true}' +
         ',"select":{"disableSelect":true}' +
-        ',"scrollBar":{"visible":"none"}' +
+        ',"scrollBar":{"visible":"none","barWidth":0,"hoverOn":false}' +
         ',"editor":""' +
         ',"editCellTrigger":"api"' +
         '}';
       const newOption: Record<string, Object> = JSON.parse(optionStr) as Record<string, Object>;
 
-      // Attach customLayout functions (these can't be serialized to JSON)
-      // customLayout for body cells
-      const customCellLayoutFn: Object = createCustomCellLayout(this.itemConfig) as Object;
-      // Apply customLayout to each column
-      const optColumns: Object[] = newOption['columns'] as Object[];
-      for (let i: number = 0; i < optColumns.length; i++) {
-        const colObj: Record<string, Object> = optColumns[i] as Record<string, Object>;
-        colObj['customLayout'] = customCellLayoutFn;
-      }
+      // NOTE: customLayout/headerCustomLayout CANNOT work with @ohos/vtable
+      // because VTable uses a WebView internally and functions can't be serialized to JSON.
+      // Styling is handled via column `style` property and customCellStyle/customCellStyleArrangement.
+      // Lock icons use VTable's native showFrozenIcon feature.
 
-      // Header customLayout if there are lock icons
-      if (allowFrozenColCount > 0) {
-        const tagVal: number = this.tag;
-        const ctxRef: RNOHContext = this.ctx;
-        const headerLayoutFn: Object = createHeaderCustomLayout(
-          this.columnLockInfoMap,
-          (col: number, locked: boolean): void => {
-            // Emit lock toggle event
-            const payloadStr: string = '{"col":' + col.toString() + ',"locked":' + (locked ? 'true' : 'false') + '}';
-            ctxRef.rnInstance.emitDeviceEvent(
-              'RNReportTable_lockToggle_' + tagVal.toString(),
-              JSON.parse(payloadStr) as Object
-            );
-          }
-        ) as Object;
-        // Apply header customLayout to columns that have lock info
-        for (let i: number = 0; i < optColumns.length; i++) {
-          const colObj: Record<string, Object> = optColumns[i] as Record<string, Object>;
-          if (lockInfoMap[i.toString()] !== undefined || permutable) {
-            colObj['headerCustomLayout'] = headerLayoutFn;
-          }
-        }
-      }
+      // Store custom styles for post-init re-application via customRender API
+      // This ensures styles are applied even if option-level customCellStyle has issues
+      this.pendingCustomStyles = this.buildPendingCustomStyles(customCellStyleStr, customCellStyleArrangementStr);
 
       this.disableZoom = disableZoom;
       this.option = newOption;
@@ -237,6 +201,71 @@ export struct ReportTableComponent {
       }
     } else if (commandName === 'frozenToCol' && args.length > 0) {
       this.controller.frozenToCol(args[0] as number);
+    }
+  }
+
+  /**
+   * Parse customCellStyle + arrangement into a list of {styleId, style, col, row} entries
+   * for post-init application via controller.customRender().
+   */
+  private buildPendingCustomStyles(customCellStyleStr: string, arrangementStr: string): Object[] {
+    const styles: Object[] = JSON.parse(customCellStyleStr) as Object[];
+    const arrangements: Object[] = JSON.parse(arrangementStr) as Object[];
+    if (styles.length === 0 || arrangements.length === 0) {
+      return [];
+    }
+
+    // Build id → style map
+    const styleMap: Record<string, Object> = {} as Record<string, Object>;
+    for (let i: number = 0; i < styles.length; i++) {
+      const entry: Record<string, Object> = styles[i] as Record<string, Object>;
+      const id: string = entry['id'] as string;
+      styleMap[id] = entry['style'] as Object;
+    }
+
+    // Build pending items: each has { id, style, col, row }
+    const pending: Object[] = [];
+    for (let i: number = 0; i < arrangements.length; i++) {
+      const arr: Record<string, Object> = arrangements[i] as Record<string, Object>;
+      const styleId: string = arr['customStyleId'] as string;
+      const pos: Record<string, Object> = arr['cellPosition'] as Record<string, Object>;
+      if (pos !== undefined && styleMap[styleId] !== undefined) {
+        const item: Record<string, Object> = {} as Record<string, Object>;
+        item['id'] = styleId as Object;
+        item['style'] = styleMap[styleId] as Object;
+        item['col'] = pos['col'] as Object;
+        item['row'] = pos['row'] as Object;
+        pending.push(item as Object);
+      }
+    }
+    return pending;
+  }
+
+  /**
+   * Apply pending custom styles via controller.customRender() after table init.
+   * This is a fallback that ensures styles are applied even if option-level
+   * customCellStyle/customCellStyleArrangement doesn't work in this VTable version.
+   */
+  private applyPendingCustomStyles(): void {
+    if (this.pendingCustomStyles.length === 0) {
+      return;
+    }
+
+    // Deduplicate: register each unique style once, then apply per cell
+    const registered: Record<string, boolean> = {} as Record<string, boolean>;
+    for (let i: number = 0; i < this.pendingCustomStyles.length; i++) {
+      const item: Record<string, Object> = this.pendingCustomStyles[i] as Record<string, Object>;
+      const id: string = item['id'] as string;
+      const style: Record<string, Object> = item['style'] as Record<string, Object>;
+      const col: number = item['col'] as number;
+      const row: number = item['row'] as number;
+
+      if (registered[id] === undefined) {
+        // First time seeing this style id — register and apply in one call
+        registered[id] = true;
+      }
+      // Apply style to single cell (startCol=endCol, startRow=endRow)
+      this.controller.customRender(col, row, col, row, id, style);
     }
   }
 
@@ -285,37 +314,27 @@ export struct ReportTableComponent {
           ',"translateY":' + event.scrollTop.toString() +
           ',"scale":' + self.currentZoom.toString() + '}';
         self.emitEvent('scroll', JSON.parse(payloadStr) as Object);
+
+        // Report accurate content size from scroll event data
+        // scrollHeight/scrollWidth represent the actual total content dimensions
+        if (event.scrollHeight > 0 || event.scrollWidth > 0) {
+          const csPayload: string = '{"width":' + event.scrollWidth.toString() +
+            ',"height":' + event.scrollHeight.toString() + '}';
+          self.emitEvent('contentSize', JSON.parse(csPayload) as Object);
+        }
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
         const payloadStr: string = '{"isEnd":true}';
         self.emitEvent('scrollEnd', JSON.parse(payloadStr) as Object);
       },
       onInitialized: (): void => {
-        // Estimate content size from columns and records
-        let totalWidth: number = 0;
-        let totalHeight: number = 0;
-        const columnsVal: Object | undefined = self.option['columns'];
-        const recordsVal: Object | undefined = self.option['records'];
-        if (columnsVal !== undefined) {
-          const cols: Object[] = columnsVal as Object[];
-          for (let i: number = 0; i < cols.length; i++) {
-            const col: Record<string, Object> = cols[i] as Record<string, Object>;
-            const maxW: Object | undefined = col['maxWidth'];
-            const minW: Object | undefined = col['minWidth'];
-            if (maxW !== undefined) {
-              totalWidth = totalWidth + (maxW as number);
-            } else if (minW !== undefined) {
-              totalWidth = totalWidth + (minW as number);
-            } else {
-              totalWidth = totalWidth + 100;
-            }
-          }
-        }
-        if (recordsVal !== undefined) {
-          const recs: Object[] = recordsVal as Object[];
-          totalHeight = 40 + recs.length * 40;
-        }
-        const payloadStr: string = '{"width":' + totalWidth.toString() + ',"height":' + totalHeight.toString() + '}';
+        // Apply custom cell styles via customRender API after table is fully initialized
+        // This ensures styles work even if option-level customCellStyle has issues
+        self.applyPendingCustomStyles();
+
+        // Initial content size will be reported on first scroll event
+        // Send a placeholder to indicate table is ready
+        const payloadStr: string = '{"width":0,"height":0}';
         self.emitEvent('contentSize', JSON.parse(payloadStr) as Object);
       },
     };
