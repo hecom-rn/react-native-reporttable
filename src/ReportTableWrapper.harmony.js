@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, ScrollView, UIManager, findNodeHandle } from 'react-native';
+import { PanResponder, ScrollView, UIManager, findNodeHandle } from 'react-native';
 import * as NativeComponentRegistry from 'react-native/Libraries/NativeComponent/NativeComponentRegistry';
 import {
     convertDataSourceToVTable,
     buildVTableTheme,
     convertUpdateData,
     convertSpliceData,
+    computeInitialFrozenColCount,
 } from './vtableDataConverter';
 
 const COMPONENT_NAME = 'RNReportTable';
@@ -60,6 +61,21 @@ export default class ReportTableWrapper extends React.Component {
         this.showHeader = true;
         this.scrollY = 0;
         this._vtableData = this._buildVTableData(props);
+
+        // PanResponder to link table area swipes to outer ScrollView (hide header)
+        this.panResponder = PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => {},
+            onPanResponderMove: (evt, gs) => {
+                if (this.state.headerHeight === 0) return;
+                if (gs.dy < 0 && this.showHeader) {
+                    this._scrollView &&
+                        this._scrollView.scrollTo({ x: 0, y: -gs.dy + this.scrollY, animated: true });
+                }
+            },
+            onPanResponderRelease: () => {},
+        });
     }
 
     UNSAFE_componentWillReceiveProps(nextProps) {
@@ -72,7 +88,7 @@ export default class ReportTableWrapper extends React.Component {
     _buildVTableData = (props) => {
         const {
             data,
-            frozenRows = 1,
+            frozenRows = 0,
             itemConfig,
             columnsWidthMap,
             minWidth,
@@ -84,11 +100,11 @@ export default class ReportTableWrapper extends React.Component {
         } = props;
 
         if (!data || data.length === 0) {
-            return { records: '[]', columns: '[]', theme: '{}' };
+            return { records: '[]', columns: '[]', theme: '{}', mergedCells: '[]', customCellStyle: '[]', customCellStyleArrangement: '[]', widthMode: 'autoWidth', frozenColCount: 0, frozenRowCount: 0 };
         }
 
         const { records, columns, mergedCells, customCellStyle, customCellStyleArrangement } = convertDataSourceToVTable(data, {
-            frozenRows,
+            frozenRows: frozenRows || 1, // at least 1 header row for conversion
             itemConfig,
             columnsWidthMap,
             minWidth,
@@ -101,6 +117,16 @@ export default class ReportTableWrapper extends React.Component {
 
         const theme = buildVTableTheme(props);
 
+        // Compute effective frozenColCount from frozenAbility initial locked state
+        const colCount = data[0]?.length ?? 0;
+        const effectiveFrozenColCount = computeInitialFrozenColCount(frozenAbility, frozenColumns, colCount);
+
+        // VTable frozenRowCount: column titles are always the header (from frozenRows=1 in converter).
+        // VTable's frozenRowCount means additional body rows to freeze.
+        // If user wants frozenRows=1 (just header), VTable should freeze 0 body rows.
+        // If user wants frozenRows=2, VTable should freeze 1 body row.
+        const vtableFrozenRowCount = Math.max(0, (frozenRows || 1) - 1);
+
         return {
             records: JSON.stringify(records),
             columns: JSON.stringify(columns),
@@ -109,6 +135,8 @@ export default class ReportTableWrapper extends React.Component {
             customCellStyle: JSON.stringify(customCellStyle),
             customCellStyleArrangement: JSON.stringify(customCellStyleArrangement),
             widthMode: 'autoWidth',
+            frozenColCount: effectiveFrozenColCount,
+            frozenRowCount: vtableFrozenRowCount,
         };
     };
 
@@ -161,27 +189,31 @@ export default class ReportTableWrapper extends React.Component {
     _onClickEvent = (event) => {
         const { keyIndex, rowIndex, columnIndex, verticalCount, horizontalCount } = event.nativeEvent;
         this.props.onClickEvent && this.props.onClickEvent({
-            keyIndex,
-            rowIndex,
-            columnIndex,
-            verticalCount,
-            horizontalCount,
+            keyIndex: keyIndex ?? 0,
+            rowIndex: rowIndex ?? 0,
+            columnIndex: columnIndex ?? 0,
+            verticalCount: verticalCount ?? 1,
+            horizontalCount: horizontalCount ?? 1,
         });
     };
 
     _onScroll = (event) => {
         const { translateX, translateY, scale } = event.nativeEvent;
-        this.props.onScroll && this.props.onScroll({ translateX, translateY, scale: scale ?? 1.0 });
+        this.props.onScroll && this.props.onScroll({
+            translateX: translateX ?? 0,
+            translateY: translateY ?? 0,
+            scale: scale ?? 1.0,
+        });
     };
 
     _onScrollEnd = (event) => {
         const { isEnd } = event.nativeEvent;
-        this.props.onScrollEnd && this.props.onScrollEnd(isEnd);
+        this.props.onScrollEnd && this.props.onScrollEnd(isEnd !== false);
     };
 
     _onContentSize = (event) => {
         const { width, height } = event.nativeEvent;
-        this.props.onContentSize && this.props.onContentSize({ width, height });
+        this.props.onContentSize && this.props.onContentSize({ width: width ?? 0, height: height ?? 0 });
     };
 
     // ---- Private helpers ----
@@ -212,34 +244,42 @@ export default class ReportTableWrapper extends React.Component {
             showBorder,
         } = this.props;
 
-        const { records, columns, theme, mergedCells, customCellStyle, customCellStyleArrangement, widthMode } = this._vtableData;
+        const {
+            records, columns, theme, mergedCells,
+            customCellStyle, customCellStyleArrangement,
+            widthMode, frozenColCount, frozenRowCount,
+        } = this._vtableData;
 
         return (
             <ScrollView
                 ref={(ref) => (this._scrollView = ref)}
                 style={{ flex: 1 }}
                 scrollEventThrottle={1}
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+                stickyHeaderIndices={headerView ? [1] : undefined}
                 onScroll={(event) => {
                     this.scrollY = event.nativeEvent.contentOffset.y;
                     if (this.state.headerHeight > 0) {
                         this.showHeader = event.nativeEvent.contentOffset.y < this.state.headerHeight;
+                    } else {
+                        this.showHeader = false;
                     }
                 }}
             >
-                {headerView && (
-                    <HeaderComponent
-                        horizontal={headerViewOrientation !== 'vertical'}
-                        showsHorizontalScrollIndicator={false}
-                        onLayout={(event) => {
-                            const { height } = event.nativeEvent.layout;
-                            if (height !== this.state.headerHeight) {
-                                this.setState({ headerHeight: height });
-                            }
-                        }}
-                    >
-                        {headerView()}
-                    </HeaderComponent>
-                )}
+                <HeaderComponent
+                    horizontal={headerViewOrientation !== 'vertical'}
+                    showsHorizontalScrollIndicator={false}
+                    onLayout={(event) => {
+                        const { height } = event.nativeEvent.layout;
+                        if (height !== this.state.headerHeight) {
+                            this.setState({ headerHeight: height });
+                        }
+                    }}
+                >
+                    {headerView && headerView()}
+                </HeaderComponent>
 
                 <NativeReportTable
                     ref={(ref) => (this._tableRef = ref)}
@@ -251,8 +291,8 @@ export default class ReportTableWrapper extends React.Component {
                     customCellStyle={customCellStyle}
                     customCellStyleArrangement={customCellStyleArrangement}
                     widthMode={widthMode}
-                    frozenColCount={frozenColumns || 0}
-                    frozenRowCount={frozenRows || 1}
+                    frozenColCount={frozenColCount}
+                    frozenRowCount={frozenRowCount}
                     lineColor={lineColor || '#e8e8e8'}
                     disableZoom={disableZoom || false}
                     showBorder={showBorder || false}
@@ -269,6 +309,7 @@ export default class ReportTableWrapper extends React.Component {
                     onScroll={this._onScroll}
                     onScrollEnd={this._onScrollEnd}
                     onContentSize={this._onContentSize}
+                    {...this.panResponder.panHandlers}
                 />
             </ScrollView>
         );

@@ -339,6 +339,34 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
 }
 
 /**
+ * Compute the effective initial frozenColCount from frozenAbility + frozenColumns.
+ * Logic matches iOS: frozenColumns are permanently frozen, frozenAbility columns
+ * with locked:true extend the frozen range consecutively.
+ *
+ * @param {object} frozenAbility - { [colIndex]: { locked: boolean } }
+ * @param {number} frozenColumns - Number of permanently frozen columns
+ * @param {number} colCount - Total number of columns
+ * @returns {number} Effective initial frozen column count
+ */
+export function computeInitialFrozenColCount(frozenAbility, frozenColumns, colCount) {
+    let frozenColCount = frozenColumns || 0;
+    if (!frozenAbility || typeof frozenAbility !== 'object') return frozenColCount;
+
+    // Scan from frozenColumns outward, find consecutive locked columns
+    for (let i = frozenColCount; i < colCount; i++) {
+        const entry = frozenAbility[String(i)];
+        if (entry && entry.locked) {
+            frozenColCount = i + 1;
+        } else if (entry) {
+            // Has frozenAbility entry but not locked → stop here
+            break;
+        }
+    }
+
+    return frozenColCount;
+}
+
+/**
  * Build VTable theme object from ReportTable props.
  */
 export function buildVTableTheme(props) {

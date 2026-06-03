@@ -26,6 +26,9 @@ export struct ReportTableComponent {
   @State controller: ReportTableVTableController = new ReportTableVTableController();
   @State option: Record<string, Object> = {} as Record<string, Object>;
   @State currentZoom: number = 1.0;
+  @State componentWidth: number = 0;
+  @State componentHeight: number = 0;
+  private baseZoom: number = 1.0;
   private disableZoom: boolean = false;
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
   private cleanupCommandCallback: (() => void) | undefined = undefined;
@@ -111,7 +114,7 @@ export struct ReportTableComponent {
       const customCellStyleArrangementStr: string = (customCellStyleArrangementVal !== undefined) ? (customCellStyleArrangementVal as string) : '[]';
       const widthMode: string = (widthModeVal !== undefined) ? (widthModeVal as string) : 'autoWidth';
       const frozenColCount: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
-      const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 1;
+      const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0;
       const disableZoom: boolean = (disableZoomVal !== undefined) ? (disableZoomVal as boolean) : false;
       const permutable: boolean = (permutableVal !== undefined) ? (permutableVal as boolean) : false;
 
@@ -148,6 +151,7 @@ export struct ReportTableComponent {
         ',"autoFillHeight":false' +
         ',"hover":{"disableHover":true}' +
         ',"select":{"disableSelect":true}' +
+        ',"scrollBar":{"visible":"none"}' +
         ',"editor":""' +
         ',"editCellTrigger":"api"' +
         '}';
@@ -165,7 +169,6 @@ export struct ReportTableComponent {
 
   private handleCommand(commandName: string, args: Object[]): void {
     if (commandName === 'scrollTo' && args.length >= 2) {
-      // args: [lineX, lineY, offsetX, offsetY, animated]
       const lineX: number = args[0] as number;
       const lineY: number = args[1] as number;
       this.controller.scrollToRow(lineY);
@@ -191,30 +194,108 @@ export struct ReportTableComponent {
     }
   }
 
+  private emitClickEvent(row: number, col: number): void {
+    // Extract keyIndex from the record metadata if available
+    let keyIndex: number = 0;
+    const recordsVal: Object | undefined = this.option['records'];
+    if (recordsVal !== undefined) {
+      const recordsArr: Object[] = recordsVal as Object[];
+      // VTable row includes header rows. Body rows start after frozenRowCount + 1 (header).
+      const frozenRowCountVal: Object | undefined = this.option['frozenRowCount'];
+      const headerOffset: number = 1 + ((frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0);
+      const recordIdx: number = row - headerOffset;
+      if (recordIdx >= 0 && recordIdx < recordsArr.length) {
+        const record: Record<string, Object> = recordsArr[recordIdx] as Record<string, Object>;
+        const metaKey: string = '__meta_' + col.toString();
+        const metaVal: Object | undefined = record[metaKey];
+        if (metaVal !== undefined) {
+          const meta: Record<string, Object> = metaVal as Record<string, Object>;
+          const ki: Object | undefined = meta['keyIndex'];
+          if (ki !== undefined) {
+            keyIndex = ki as number;
+          }
+        }
+      }
+    }
+
+    const payloadStr: string = '{"keyIndex":' + keyIndex.toString() +
+      ',"rowIndex":' + row.toString() +
+      ',"columnIndex":' + col.toString() +
+      ',"verticalCount":1' +
+      ',"horizontalCount":1}';
+    this.ctx.rnInstance.emitComponentEvent(this.tag, 'topClickEvent', JSON.parse(payloadStr) as Object);
+  }
+
+  private emitScrollEvent(scrollLeft: number, scrollTop: number): void {
+    const payloadStr: string = '{"translateX":' + scrollLeft.toString() +
+      ',"translateY":' + scrollTop.toString() +
+      ',"scale":' + this.currentZoom.toString() + '}';
+    this.ctx.rnInstance.emitComponentEvent(this.tag, 'topScroll', JSON.parse(payloadStr) as Object);
+  }
+
+  private emitScrollEndEvent(scrollTop: number): void {
+    const payloadStr: string = '{"isEnd":true,"scrollTop":' + scrollTop.toString() + '}';
+    this.ctx.rnInstance.emitComponentEvent(this.tag, 'topScrollEnd', JSON.parse(payloadStr) as Object);
+  }
+
+  private emitContentSizeEvent(width: number, height: number): void {
+    const payloadStr: string = '{"width":' + width.toString() + ',"height":' + height.toString() + '}';
+    this.ctx.rnInstance.emitComponentEvent(this.tag, 'topContentSize', JSON.parse(payloadStr) as Object);
+  }
+
   private getOnEvent(): VTableOnEvent {
-    const tagVal: number = this.tag;
-    const ctxRef: RNOHContext = this.ctx;
+    const self = this;
     const onEvent: VTableOnEvent = {
       onClickCell: (event: CellClickData): void => {
-        const payloadStr: string = '{"keyIndex":0,"rowIndex":' + event.row.toString() +
-          ',"columnIndex":' + event.col.toString() + '}';
-        ctxRef.rnInstance.emitComponentEvent(tagVal, 'clickEvent', JSON.parse(payloadStr) as Object);
+        self.emitClickEvent(event.row, event.col);
       },
       onScroll: (event: ScrollEventData): void => {
-        const payloadStr: string = '{"translateX":' + event.scrollLeft.toString() +
-          ',"translateY":' + event.scrollTop.toString() +
-          ',"scale":1}';
-        ctxRef.rnInstance.emitComponentEvent(tagVal, 'scroll', JSON.parse(payloadStr) as Object);
+        self.emitScrollEvent(event.scrollLeft, event.scrollTop);
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
-        const payloadStr: string = '{"isEnd":true,"scrollTop":' + event.scrollTop.toString() + '}';
-        ctxRef.rnInstance.emitComponentEvent(tagVal, 'scrollEnd', JSON.parse(payloadStr) as Object);
+        self.emitScrollEndEvent(event.scrollTop);
       },
       onInitialized: (): void => {
-        ctxRef.rnInstance.emitComponentEvent(tagVal, 'contentSize', JSON.parse('{"width":0,"height":0}') as Object);
+        // Compute content size from columns and records
+        let totalWidth: number = 0;
+        let totalHeight: number = 0;
+        const columnsVal: Object | undefined = self.option['columns'];
+        const recordsVal: Object | undefined = self.option['records'];
+        if (columnsVal !== undefined) {
+          const cols: Object[] = columnsVal as Object[];
+          for (let i: number = 0; i < cols.length; i++) {
+            const col: Record<string, Object> = cols[i] as Record<string, Object>;
+            const w: Object | undefined = col['maxWidth'];
+            if (w !== undefined) {
+              totalWidth = totalWidth + (w as number);
+            } else {
+              totalWidth = totalWidth + 100;
+            }
+          }
+        }
+        if (recordsVal !== undefined) {
+          const recs: Object[] = recordsVal as Object[];
+          // Estimate: header(40) + each row(40)
+          totalHeight = 40 + recs.length * 40;
+        }
+        self.emitContentSizeEvent(totalWidth, totalHeight);
       },
     };
     return onEvent;
+  }
+
+  private getInnerWidth(): number {
+    if (this.componentWidth <= 0 || this.currentZoom <= 0) {
+      return 0;
+    }
+    return this.componentWidth / this.currentZoom;
+  }
+
+  private getInnerHeight(): number {
+    if (this.componentHeight <= 0 || this.currentZoom <= 0) {
+      return 0;
+    }
+    return this.componentHeight / this.currentZoom;
   }
 
   build() {
@@ -226,20 +307,31 @@ export struct ReportTableComponent {
           onEvent: this.getOnEvent(),
         })
       }
-      .width('100%')
-      .height('100%')
-      .scale({ x: this.currentZoom, y: this.currentZoom, centerX: '0%', centerY: '0%' })
+      .width(this.getInnerWidth())
+      .height(this.getInnerHeight())
+      .scale({ x: this.currentZoom, y: this.currentZoom, centerX: 0, centerY: 0 })
     }
     .width('100%')
     .height('100%')
     .clip(true)
+    .onAreaChange((oldArea: Area, newArea: Area): void => {
+      const w: number = newArea.width as number;
+      const h: number = newArea.height as number;
+      if (w > 0 && h > 0 && (w !== this.componentWidth || h !== this.componentHeight)) {
+        this.componentWidth = w;
+        this.componentHeight = h;
+      }
+    })
     .gesture(
       PinchGesture({ fingers: 2, distance: 1 })
+        .onActionStart((): void => {
+          this.baseZoom = this.currentZoom;
+        })
         .onActionUpdate((event: GestureEvent): void => {
           if (this.disableZoom) {
             return;
           }
-          let newZoom: number = this.currentZoom * event.scale;
+          let newZoom: number = this.baseZoom * event.scale;
           if (newZoom < 0.5) {
             newZoom = 0.5;
           }
@@ -248,18 +340,8 @@ export struct ReportTableComponent {
           }
           this.currentZoom = newZoom;
         })
-        .onActionEnd((event: GestureEvent): void => {
-          if (this.disableZoom) {
-            return;
-          }
-          let finalZoom: number = this.currentZoom * event.scale;
-          if (finalZoom < 0.5) {
-            finalZoom = 0.5;
-          }
-          if (finalZoom > 2.0) {
-            finalZoom = 2.0;
-          }
-          this.currentZoom = finalZoom;
+        .onActionEnd((): void => {
+          // Zoom is already set during update
         })
     )
   }
