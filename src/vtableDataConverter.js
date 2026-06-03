@@ -84,17 +84,20 @@ function buildCellMeta(cell) {
 }
 
 /**
- * Compute merged cells from keyIndex.
- * Adjacent cells (horizontally or vertically) with the same keyIndex are merged.
- * Follows the same merging logic as iOS (ReportTableViewModel generateMergeRange).
+ * Compute merged cells from keyIndex (matching iOS generateMergeRange logic).
  *
- * Data layout: dataSource[rowIndex][colIndex] (row-major, matching RN props).
- * VTable row indices: In ListTable, row 0..headerRowCount-1 are headers,
- * body rows start from headerRowCount.
+ * iOS merging logic:
+ * - SameRowLength: consecutive cells in the same row with same keyIndex → horizontal merge
+ * - SameColumnLength: consecutive cells in the same column with same keyIndex → vertical merge
  *
- * @param {Array<Array<object>>} dataSource - Full 2D data matrix (including header rows).
+ * VTable customMergeCell array format:
+ *   [{ range: { start: { col, row }, end: { col, row } }, text: '...' }]
+ *
+ * VTable row indices: row 0 is first header row, body rows start at headerRowCount.
+ *
+ * @param {Array<Array<object>>} dataSource - Full 2D data matrix.
  * @param {number} headerRowCount - Number of header rows.
- * @returns {Array<object>} Array of VTable merge rules: { range: { start: {col, row}, end: {col, row} } }
+ * @returns {Array<object>} Array of VTable merge rules.
  */
 function computeMergedCells(dataSource, headerRowCount) {
     if (!dataSource || dataSource.length === 0) return [];
@@ -103,7 +106,6 @@ function computeMergedCells(dataSource, headerRowCount) {
     const colCount = dataSource[0]?.length ?? 0;
     if (colCount === 0) return [];
 
-    // Track which cells have been consumed by a merge
     const used = Array.from({ length: rowCount }, () => new Array(colCount).fill(false));
     const mergedCells = [];
 
@@ -117,7 +119,7 @@ function computeMergedCells(dataSource, headerRowCount) {
             const keyIndex = cell.keyIndex;
             if (keyIndex == null) continue;
 
-            // Find horizontal span (same row, consecutive columns with same keyIndex)
+            // Horizontal span: consecutive cells in same row with same keyIndex
             let horSpan = 1;
             for (let c = colIdx + 1; c < colCount; c++) {
                 const neighbor = dataSource[rowIdx]?.[c];
@@ -128,10 +130,9 @@ function computeMergedCells(dataSource, headerRowCount) {
                 }
             }
 
-            // Find vertical span (same column range, consecutive rows with same keyIndex)
+            // Vertical span: consecutive rows where ALL cols in horSpan have same keyIndex
             let verSpan = 1;
             for (let r = rowIdx + 1; r < rowCount; r++) {
-                // Check if all columns in the horizontal span have the same keyIndex
                 let allMatch = true;
                 for (let c = colIdx; c < colIdx + horSpan; c++) {
                     const neighbor = dataSource[r]?.[c];
@@ -147,24 +148,19 @@ function computeMergedCells(dataSource, headerRowCount) {
                 }
             }
 
-            // Only create a merge rule if there's actual merging (span > 1)
             if (horSpan > 1 || verSpan > 1) {
-                // Mark all cells in the merged region as used
                 for (let r = rowIdx; r < rowIdx + verSpan; r++) {
                     for (let c = colIdx; c < colIdx + horSpan; c++) {
                         used[r][c] = true;
                     }
                 }
 
-                // VTable absolute row index: header rows are 0..headerRowCount-1,
-                // body rows start from headerRowCount.
-                // Our dataSource rowIdx maps directly since the first headerRowCount rows
-                // are the header, and VTable also indexes them starting from 0.
                 mergedCells.push({
                     range: {
                         start: { col: colIdx, row: rowIdx },
                         end: { col: colIdx + horSpan - 1, row: rowIdx + verSpan - 1 },
                     },
+                    text: cell.title ?? '',
                 });
             }
         }
@@ -174,24 +170,87 @@ function computeMergedCells(dataSource, headerRowCount) {
 }
 
 /**
- * Convert DataSource[][] to VTable { records, columns } format.
+ * Generate per-cell style arrangements for VTable.
+ * Uses customCellStyle (style definitions) + customCellStyleArrangement (cell→style mapping).
+ * DataSource per-cell styles (backgroundColor, textColor, fontSize, etc.) override column defaults.
+ *
+ * @param {Array<Array<object>>} dataSource - Full 2D data matrix.
+ * @param {object} itemConfig - Global default config.
+ * @returns {{ customCellStyle: Array, customCellStyleArrangement: Array }}
+ */
+function buildCellStyleArrangements(dataSource, itemConfig) {
+    const customCellStyle = [];
+    const customCellStyleArrangement = [];
+    const styleCache = new Map();
+
+    for (let rowIdx = 0; rowIdx < dataSource.length; rowIdx++) {
+        const row = dataSource[rowIdx];
+        if (!row) continue;
+
+        for (let colIdx = 0; colIdx < row.length; colIdx++) {
+            const cell = row[colIdx];
+            if (!cell) continue;
+
+            const cellStyle = {};
+            let hasOverride = false;
+
+            if (cell.backgroundColor != null) {
+                cellStyle.bgColor = cell.backgroundColor;
+                hasOverride = true;
+            }
+            if (cell.textColor != null) {
+                cellStyle.color = cell.textColor;
+                hasOverride = true;
+            }
+            if (cell.fontSize != null) {
+                cellStyle.fontSize = cell.fontSize;
+                hasOverride = true;
+            }
+            if (cell.isOverstriking) {
+                cellStyle.fontWeight = 'bold';
+                hasOverride = true;
+            }
+            if (cell.textAlignment != null) {
+                cellStyle.textAlign = mapTextAlign(cell.textAlignment);
+                hasOverride = true;
+            }
+            if (cell.textPaddingHorizontal != null) {
+                cellStyle.padding = [0, cell.textPaddingHorizontal];
+                hasOverride = true;
+            }
+
+            if (!hasOverride) continue;
+
+            const styleKey = JSON.stringify(cellStyle);
+            let styleId;
+            if (styleCache.has(styleKey)) {
+                styleId = styleCache.get(styleKey);
+            } else {
+                styleId = `cs_${customCellStyle.length}`;
+                styleCache.set(styleKey, styleId);
+                customCellStyle.push({ id: styleId, style: cellStyle });
+            }
+
+            customCellStyleArrangement.push({
+                cellPosition: { col: colIdx, row: rowIdx },
+                customStyleId: styleId,
+            });
+        }
+    }
+
+    return { customCellStyle, customCellStyleArrangement };
+}
+
+/**
+ * Convert DataSource[][] to VTable format.
  *
  * @param {Array<Array<object>>} dataSource - 2D array of DataSource cells.
  * @param {object} options
- * @param {number} [options.frozenRows=1] - Number of header rows to use as column titles.
- * @param {object} [options.itemConfig] - Global default item configuration.
- * @param {object} [options.columnsWidthMap] - Per-column width overrides { [index]: { minWidth, maxWidth } }.
- * @param {number} [options.minWidth=50] - Global minimum column width.
- * @param {number} [options.maxWidth=120] - Global maximum column width.
- * @param {number} [options.frozenColumns=0] - Number of permanently frozen columns.
- * @param {boolean} [options.permutable=false] - Whether all columns show lock icons.
- * @param {object} [options.frozenAbility] - Per-column lock ability config { [col]: { locked } }.
- * @param {number[]} [options.ignoreLocks] - Columns that should not show lock icons (1-based).
- * @returns {{ records: Array<object>, columns: Array<object>, headerRecords: Array<object>, mergedCells: Array<object> }}
+ * @returns {{ records, columns, mergedCells, customCellStyle, customCellStyleArrangement }}
  */
 export function convertDataSourceToVTable(dataSource, options = {}) {
     if (!dataSource || dataSource.length === 0) {
-        return { records: [], columns: [], headerRecords: [], mergedCells: [] };
+        return { records: [], columns: [], mergedCells: [], customCellStyle: [], customCellStyleArrangement: [] };
     }
 
     const {
@@ -209,50 +268,45 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
     const colCount = dataSource[0]?.length ?? 0;
     const headerRowCount = Math.min(frozenRows, dataSource.length);
 
-    // --- Build columns from header rows ---
+    // --- Build columns ---
     const columns = [];
-    // Build ignoreLocks set (convert from 1-based to 0-based)
     const ignoreLocksSet = new Set((ignoreLocks || []).map(i => i - 1));
 
     for (let colIdx = 0; colIdx < colCount; colIdx++) {
         const headerCell = dataSource[0]?.[colIdx] ?? {};
         const colWidthConfig = columnsWidthMap[String(colIdx)];
 
-        // Determine lock icon state for this column
-        let lockInfo = null; // null = no lock icon
+        let lockInfo = null;
         const isPermanentlyFrozen = colIdx < frozenColumns;
         const isIgnored = ignoreLocksSet.has(colIdx);
 
         if (!isPermanentlyFrozen && !isIgnored) {
             if (frozenAbility && frozenAbility[String(colIdx)] != null) {
-                // frozenAbility explicitly configures this column
                 lockInfo = { showLock: true, isLocked: !!frozenAbility[String(colIdx)].locked };
             } else if (permutable) {
-                // permutable mode: all non-frozen columns show lock icon (initially unlocked)
                 lockInfo = { showLock: true, isLocked: false };
             }
         }
 
-        // Width: use maxWidth as the actual width (matching iOS behavior where columns render at maxWidth)
-        // If columnsWidthMap provides explicit widths, use those
-        const colWidth = colWidthConfig?.maxWidth ?? maxWidth;
         const colMinWidth = colWidthConfig?.minWidth ?? minWidth;
         const colMaxWidth = colWidthConfig?.maxWidth ?? maxWidth;
 
         const column = {
             field: String(colIdx),
             title: headerCell.title ?? '',
-            // Width configuration - use maxWidth as default width
-            width: colWidth,
+            // 'auto': VTable calculates width based on content, clamped by min/max
+            width: 'auto',
             minWidth: colMinWidth,
             maxWidth: colMaxWidth,
-            // Style from header cell
             style: buildColumnStyle(headerCell, itemConfig),
-            // Header style
             headerStyle: buildColumnStyle(headerCell, itemConfig),
+            // Disable interaction effects
+            disableHover: true,
+            disableSelect: true,
+            disableHeaderHover: true,
+            disableHeaderSelect: true,
         };
 
-        // Attach lock info to column for native side to render
         if (lockInfo) {
             column.__lockInfo = lockInfo;
         }
@@ -260,7 +314,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         columns.push(column);
     }
 
-    // --- Build records from data rows (skip header rows) ---
+    // --- Build records (body rows, skip header rows) ---
     const records = [];
     for (let rowIdx = headerRowCount; rowIdx < dataSource.length; rowIdx++) {
         const row = dataSource[rowIdx];
@@ -268,39 +322,24 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
 
         for (let colIdx = 0; colIdx < colCount; colIdx++) {
             const cell = row?.[colIdx] ?? {};
-            // The display value
             record[String(colIdx)] = cell.title ?? '';
-            // Store full cell metadata for custom rendering
             record[`__meta_${colIdx}`] = buildCellMeta(cell);
         }
 
         records.push(record);
     }
 
-    // --- Build header records (for multi-row headers) ---
-    const headerRecords = [];
-    for (let rowIdx = 0; rowIdx < headerRowCount; rowIdx++) {
-        const row = dataSource[rowIdx];
-        const record = {};
-        for (let colIdx = 0; colIdx < colCount; colIdx++) {
-            const cell = row?.[colIdx] ?? {};
-            record[String(colIdx)] = cell.title ?? '';
-            record[`__meta_${colIdx}`] = buildCellMeta(cell);
-        }
-        headerRecords.push(record);
-    }
-
-    // --- Compute merged cells from keyIndex ---
+    // --- Compute merged cells ---
     const mergedCells = computeMergedCells(dataSource, headerRowCount);
 
-    return { records, columns, headerRecords, mergedCells };
+    // --- Compute per-cell style overrides ---
+    const { customCellStyle, customCellStyleArrangement } = buildCellStyleArrangements(dataSource, itemConfig);
+
+    return { records, columns, mergedCells, customCellStyle, customCellStyleArrangement };
 }
 
 /**
  * Build VTable theme object from ReportTable props.
- *
- * @param {object} props - ReportTable component props.
- * @returns {object} VTable ITableThemeDefine object.
  */
 export function buildVTableTheme(props) {
     const { lineColor, itemConfig = {}, showBorder = false } = props;
@@ -313,54 +352,28 @@ export function buildVTableTheme(props) {
     const fontWeight = itemConfig.isOverstriking ? 'bold' : 'normal';
     const padding = [0, itemConfig.textPaddingHorizontal ?? 12];
 
-    const theme = {
+    return {
         defaultStyle: {
-            fontSize,
-            color: textColor,
-            bgColor,
-            textAlign,
-            fontWeight,
-            padding,
-            borderColor,
-            borderLineWidth: 1,
+            fontSize, color: textColor, bgColor, textAlign, fontWeight, padding,
+            borderColor, borderLineWidth: 1,
         },
         headerStyle: {
-            fontSize,
-            color: textColor,
-            bgColor,
-            textAlign,
-            fontWeight,
-            padding,
-            borderColor,
-            borderLineWidth: 1,
+            fontSize, color: textColor, bgColor, textAlign, fontWeight, padding,
+            borderColor, borderLineWidth: 1,
         },
         bodyStyle: {
-            fontSize,
-            color: textColor,
-            bgColor,
-            textAlign,
-            fontWeight,
-            padding,
-            borderColor,
-            borderLineWidth: 1,
+            fontSize, color: textColor, bgColor, textAlign, fontWeight, padding,
+            borderColor, borderLineWidth: 1,
         },
         frameStyle: {
             borderColor,
             borderLineWidth: showBorder ? 1 : 0,
         },
     };
-
-    return theme;
 }
 
 /**
  * Convert updateData params to VTable changeCellValues format.
- *
- * @param {Array<Array<object>>} data - Sub-matrix of DataSource cells.
- * @param {number} x - Start column.
- * @param {number} y - Start row.
- * @param {number} frozenRows - Number of frozen header rows.
- * @returns {{ startCol: number, startRow: number, values: string[][] }}
  */
 export function convertUpdateData(data, x, y, frozenRows) {
     const values = [];
@@ -374,17 +387,13 @@ export function convertUpdateData(data, x, y, frozenRows) {
     }
     return {
         startCol: x,
-        startRow: y + frozenRows, // VTable row index includes header rows
+        startRow: y + frozenRows,
         values,
     };
 }
 
 /**
  * Convert spliceData params to VTable addRecords/deleteRecords format.
- *
- * @param {Array<{data?: DataSource[][], l?: number, y?: number}>} params
- * @param {number} colCount - Number of columns.
- * @returns {{ deleteIndices: number[], addAtIndex: number, newRecords: object[] }[]}
  */
 export function convertSpliceData(params, colCount) {
     const operations = [];

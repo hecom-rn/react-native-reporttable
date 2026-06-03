@@ -95,6 +95,9 @@ export struct ReportTableComponent {
       const columnsVal: Object | undefined = rawProps['columns'];
       const themeVal: Object | undefined = rawProps['theme'];
       const mergedCellsVal: Object | undefined = rawProps['mergedCells'];
+      const customCellStyleVal: Object | undefined = rawProps['customCellStyle'];
+      const customCellStyleArrangementVal: Object | undefined = rawProps['customCellStyleArrangement'];
+      const widthModeVal: Object | undefined = rawProps['widthMode'];
       const frozenColCountVal: Object | undefined = rawProps['frozenColCount'];
       const frozenRowCountVal: Object | undefined = rawProps['frozenRowCount'];
       const disableZoomVal: Object | undefined = rawProps['disableZoom'];
@@ -104,20 +107,20 @@ export struct ReportTableComponent {
       const columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
       const themeStr: string = (themeVal !== undefined) ? (themeVal as string) : '{}';
       const mergedCellsStr: string = (mergedCellsVal !== undefined) ? (mergedCellsVal as string) : '[]';
+      const customCellStyleStr: string = (customCellStyleVal !== undefined) ? (customCellStyleVal as string) : '[]';
+      const customCellStyleArrangementStr: string = (customCellStyleArrangementVal !== undefined) ? (customCellStyleArrangementVal as string) : '[]';
+      const widthMode: string = (widthModeVal !== undefined) ? (widthModeVal as string) : 'autoWidth';
       const frozenColCount: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
       const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 1;
       const disableZoom: boolean = (disableZoomVal !== undefined) ? (disableZoomVal as boolean) : false;
       const permutable: boolean = (permutableVal !== undefined) ? (permutableVal as boolean) : false;
 
       // Determine allowFrozenColCount for lock icon display
-      // Parse columns to count how many have __lockInfo
       let allowFrozenColCount: number = 0;
       if (permutable) {
-        // In permutable mode, all columns (except permanently frozen) can show lock icon
         const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
         allowFrozenColCount = columnsArr.length;
       } else {
-        // Count columns with __lockInfo from frozenAbility
         const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
         for (let i: number = 0; i < columnsArr.length; i++) {
           const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
@@ -132,12 +135,14 @@ export struct ReportTableComponent {
         ',"columns":' + columnsStr +
         ',"theme":' + themeStr +
         ',"customMergeCell":' + mergedCellsStr +
+        ',"customCellStyle":' + customCellStyleStr +
+        ',"customCellStyleArrangement":' + customCellStyleArrangementStr +
         ',"frozenColCount":' + frozenColCount.toString() +
         ',"frozenRowCount":' + frozenRowCount.toString() +
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
         ',"showFrozenIcon":' + (allowFrozenColCount > 0 ? 'true' : 'false') +
         ',"autoWrapText":false' +
-        ',"widthMode":"standard"' +
+        ',"widthMode":"' + widthMode + '"' +
         ',"heightMode":"standard"' +
         ',"autoFillWidth":true' +
         ',"autoFillHeight":false' +
@@ -214,21 +219,26 @@ export struct ReportTableComponent {
 
   build() {
     Column() {
-      VTable({
-        controller: this.controller,
-        option: this.option,
-        onEvent: this.getOnEvent(),
-      })
+      Stack({ alignContent: Alignment.TopStart }) {
+        VTable({
+          controller: this.controller,
+          option: this.option,
+          onEvent: this.getOnEvent(),
+        })
+      }
+      .width('100%')
+      .height('100%')
+      .scale({ x: this.currentZoom, y: this.currentZoom, centerX: '0%', centerY: '0%' })
     }
     .width('100%')
     .height('100%')
+    .clip(true)
     .gesture(
       PinchGesture({ fingers: 2, distance: 1 })
         .onActionUpdate((event: GestureEvent): void => {
           if (this.disableZoom) {
             return;
           }
-          // Clamp zoom between 0.5 and 2.0 (matching iOS min/max zoom scale)
           let newZoom: number = this.currentZoom * event.scale;
           if (newZoom < 0.5) {
             newZoom = 0.5;
@@ -236,13 +246,12 @@ export struct ReportTableComponent {
           if (newZoom > 2.0) {
             newZoom = 2.0;
           }
-          this.controller.setZoom(newZoom);
+          this.currentZoom = newZoom;
         })
         .onActionEnd((event: GestureEvent): void => {
           if (this.disableZoom) {
             return;
           }
-          // Persist the final zoom level
           let finalZoom: number = this.currentZoom * event.scale;
           if (finalZoom < 0.5) {
             finalZoom = 0.5;

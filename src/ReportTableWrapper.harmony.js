@@ -24,6 +24,9 @@ const __INTERNAL_VIEW_CONFIG = {
         columns: true,
         theme: true,
         mergedCells: true,
+        customCellStyle: true,
+        customCellStyleArrangement: true,
+        widthMode: true,
         frozenColCount: true,
         frozenRowCount: true,
         lineColor: true,
@@ -84,7 +87,7 @@ export default class ReportTableWrapper extends React.Component {
             return { records: '[]', columns: '[]', theme: '{}' };
         }
 
-        const { records, columns, mergedCells } = convertDataSourceToVTable(data, {
+        const { records, columns, mergedCells, customCellStyle, customCellStyleArrangement } = convertDataSourceToVTable(data, {
             frozenRows,
             itemConfig,
             columnsWidthMap,
@@ -103,6 +106,9 @@ export default class ReportTableWrapper extends React.Component {
             columns: JSON.stringify(columns),
             theme: JSON.stringify(theme),
             mergedCells: JSON.stringify(mergedCells),
+            customCellStyle: JSON.stringify(customCellStyle),
+            customCellStyleArrangement: JSON.stringify(customCellStyleArrangement),
+            widthMode: 'autoWidth',
         };
     };
 
@@ -206,14 +212,13 @@ export default class ReportTableWrapper extends React.Component {
             showBorder,
         } = this.props;
 
-        const { records, columns, theme, mergedCells } = this._vtableData;
+        const { records, columns, theme, mergedCells, customCellStyle, customCellStyleArrangement, widthMode } = this._vtableData;
 
         return (
             <ScrollView
                 ref={(ref) => (this._scrollView = ref)}
                 style={{ flex: 1 }}
                 scrollEventThrottle={1}
-                stickyHeaderIndices={headerView ? [1] : undefined}
                 onScroll={(event) => {
                     this.scrollY = event.nativeEvent.contentOffset.y;
                     if (this.state.headerHeight > 0) {
@@ -243,6 +248,9 @@ export default class ReportTableWrapper extends React.Component {
                     columns={columns}
                     theme={theme}
                     mergedCells={mergedCells}
+                    customCellStyle={customCellStyle}
+                    customCellStyleArrangement={customCellStyleArrangement}
+                    widthMode={widthMode}
                     frozenColCount={frozenColumns || 0}
                     frozenRowCount={frozenRows || 1}
                     lineColor={lineColor || '#e8e8e8'}
