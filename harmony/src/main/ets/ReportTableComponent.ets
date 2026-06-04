@@ -341,30 +341,32 @@ export struct ReportTableComponent {
           ',"translateY":' + event.scrollTop.toString() +
           ',"scale":' + self.currentZoom.toString() + '}';
         self.emitEvent('scroll', JSON.parse(payloadStr) as Object);
+
+        // Update contentSize with accurate values from the scroll event
+        const sh: number = event.scrollHeight;
+        const sw: number = event.scrollWidth;
+        if (sh > 0 || sw > 0) {
+          const csPayload: string = '{"width":' + sw.toString() + ',"height":' + sh.toString() + '}';
+          self.emitEvent('contentSize', JSON.parse(csPayload) as Object);
+        }
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
         const payloadStr: string = '{"isEnd":true}';
         self.emitEvent('scrollEnd', JSON.parse(payloadStr) as Object);
       },
       onInitialized: (): void => {
-        // vtable_util.js overwrites the theme on init (sets frozenColumnLine.shadow.width=0).
-        // Re-apply the frozen column shadow by updating the theme after initialization.
+        // Re-apply frozen column shadow (vtable_util.js overwrites theme on init).
         const shadowPatchStr: string = '{"theme":{"frozenColumnLine":{"shadow":{"width":6,"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}}}';
         const shadowPatch: Record<string, Object> = JSON.parse(shadowPatchStr) as Record<string, Object>;
         self.controller.updateOption(shadowPatch);
 
-        // Use VTable's actual scroll size after rendering
-        const scrollHeight: number = self.controller.getScrollHeight();
-        const scrollWidth: number = self.controller.getScrollWidth();
-
-        const contentHeight: number = scrollHeight > 0 ? scrollHeight : 0;
-        const contentWidth: number = scrollWidth > 0 ? scrollWidth : 0;
-
-        if (contentHeight > 0 || contentWidth > 0) {
-          const csPayload: string = '{"width":' + contentWidth.toString() +
-            ',"height":' + contentHeight.toString() + '}';
-          self.emitEvent('contentSize', JSON.parse(csPayload) as Object);
-        }
+        // Trigger scrollToRowCol(0,0) to force an onScroll event.
+        // onScroll carries the accurate scrollHeight/scrollWidth from VTable's WebView,
+        // which is the only way to get real content dimensions without a getScrollHeight() API.
+        const cellAddr: Record<string, number> = {} as Record<string, number>;
+        cellAddr['col'] = 0;
+        cellAddr['row'] = 0;
+        self.controller.scrollToRowCol(cellAddr);
       },
     };
     return onEvent;
