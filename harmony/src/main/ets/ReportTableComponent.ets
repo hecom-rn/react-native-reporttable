@@ -11,6 +11,7 @@ import {
   RNOHContext,
   ViewDescriptorWrapperBase,
 } from '@rnoh/react-native-openharmony/ts';
+import measure from '@ohos.measure';
 
 export const RN_REPORT_TABLE_NAME: string = 'RNReportTable';
 
@@ -34,6 +35,8 @@ export struct ReportTableComponent {
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
   private cleanupCommandCallback: (() => void) | undefined = undefined;
   private currentRawProps: string = '{}';
+  private cachedContentSize: string = '{}';
+  private vtableInitialized: boolean = false;
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -92,6 +95,170 @@ export struct ReportTableComponent {
     this.updateVTable(rawPropsStr);
   }
 
+  /**
+   * Emit the cached contentSize to the JS side (called from onInitialized and updateVTable).
+   */
+  private emitCachedContentSize(): void {
+    if (this.cachedContentSize === '{}') {
+      return;
+    }
+    const cs: Record<string, Object> = JSON.parse(this.cachedContentSize) as Record<string, Object>;
+    const csW: number = (cs['width'] !== undefined) ? (cs['width'] as number) : 0;
+    const csH: number = (cs['height'] !== undefined) ? (cs['height'] as number) : 0;
+    if (csW > 0 || csH > 0) {
+      const csPayload: string = '{"width":' + csW.toString() + ',"height":' + csH.toString() + '}';
+      this.emitEvent('contentSize', JSON.parse(csPayload) as Object);
+    }
+  }
+
+  /**
+   * Compute the total content size (width × height) of the table by measuring each cell's text
+   * using the ArkTS native measure API — the same approach as iOS (NSString sizeWithAttributes)
+   * and Android (Paint.measureText). Results are in vp.
+   *
+   * Algorithm:
+   *   1. For each column: measure the single-line text width of every header/body cell.
+   *      Effective column width = clamp(max measured, minWidth, maxWidth).
+   *   2. For each row: compute line count = ceil(singleLineWidth / availableColWidth).
+   *      Row height = lineCount × fontSize × 1.4 + verticalPadding.
+   *   3. Sum column widths (+ border lines) → contentWidth.
+   *      Sum row heights (+ border lines) → contentHeight.
+   */
+  private computeContentSizeNative(
+    columnsArr: Object[],
+    recordsArr: Object[],
+    itemConfigStr: string
+  ): string {
+    try {
+      let defaultFontSize: number = 14;
+      let defaultPadH: number = 12;
+      try {
+        const ic: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
+        if (ic['fontSize'] !== undefined) { defaultFontSize = ic['fontSize'] as number; }
+        if (ic['textPaddingHorizontal'] !== undefined) { defaultPadH = ic['textPaddingHorizontal'] as number; }
+      } catch (e2) {}
+
+      // dpRatio converts the measureText px return value to vp (the unit used everywhere else)
+      const dpRatio: number = vp2px(1);
+      if (dpRatio <= 0) { return '{}'; }
+      const borderPx: number = 1;
+      const colCount: number = columnsArr.length;
+      if (colCount === 0) { return '{}'; }
+
+      // ── Step 1: effective column widths ─────────────────────────────────
+      const colWidths: number[] = [];
+      for (let c: number = 0; c < colCount; c++) {
+        const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
+        const minW: number = (col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 50;
+        const maxW: number = (col['maxWidth'] !== undefined) ? (col['maxWidth'] as number) : 120;
+        const colStyle: Record<string, Object> = (col['style'] !== undefined)
+          ? (col['style'] as Record<string, Object>)
+          : {} as Record<string, Object>;
+        const colFontSize: number = (colStyle['fontSize'] !== undefined)
+          ? (colStyle['fontSize'] as number) : defaultFontSize;
+        const colPaddingVal: Object | undefined = colStyle['padding'];
+        const colPadH: number = ((colPaddingVal !== undefined)
+          && ((colPaddingVal as number[]).length > 1))
+          ? (colPaddingVal as number[])[1] : defaultPadH;
+        // Use absolute px font size to bypass system fontSizeScale (same as VTable canvas)
+        const fontSizePxStr: string = (colFontSize * dpRatio).toString() + 'px';
+
+        let maxContentW: number = 0;
+        // Header title
+        const headerTitle: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
+        if (headerTitle.length > 0) {
+          const wPx: number = measure.measureText({ textContent: headerTitle, fontSize: fontSizePxStr });
+          maxContentW = Math.max(maxContentW, wPx / dpRatio + colPadH * 2);
+        }
+        // Body cells
+        for (let r: number = 0; r < recordsArr.length; r++) {
+          const rec: Record<string, Object> = recordsArr[r] as Record<string, Object>;
+          const metaKey: string = '__meta_' + c.toString();
+          const metaVal: Object | undefined = rec[metaKey];
+          const meta: Record<string, Object> = (metaVal !== undefined)
+            ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
+          const cellFontSize: number = (meta['fontSize'] !== undefined)
+            ? (meta['fontSize'] as number) : defaultFontSize;
+          const cellPadH: number = (meta['textPaddingHorizontal'] !== undefined)
+            ? (meta['textPaddingHorizontal'] as number)
+            : ((meta['textPaddingLeft'] !== undefined) ? (meta['textPaddingLeft'] as number) : defaultPadH);
+          const cellFontSizePxStr: string = (cellFontSize * dpRatio).toString() + 'px';
+          const cellText: string = (rec[c.toString()] !== undefined)
+            ? (rec[c.toString()] as string) : '';
+          if (cellText.length > 0) {
+            const wPx: number = measure.measureText({ textContent: cellText, fontSize: cellFontSizePxStr });
+            maxContentW = Math.max(maxContentW, wPx / dpRatio + cellPadH * 2);
+          }
+        }
+        colWidths.push(Math.max(minW, Math.min(maxContentW > 0 ? maxContentW : minW, maxW)));
+      }
+
+      let contentWidth: number = borderPx;
+      for (let c: number = 0; c < colCount; c++) {
+        contentWidth += colWidths[c] + borderPx;
+      }
+
+      // ── Step 2: row heights from line counts ─────────────────────────────
+      let contentHeight: number = borderPx;
+
+      // Header row (VTable built-in header = data row 0, displayed via columns[c].title)
+      let maxHeaderH: number = 0;
+      for (let c: number = 0; c < colCount; c++) {
+        const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
+        const headerStyle: Record<string, Object> = (col['headerStyle'] !== undefined)
+          ? (col['headerStyle'] as Record<string, Object>) : {} as Record<string, Object>;
+        const fontSize: number = (headerStyle['fontSize'] !== undefined)
+          ? (headerStyle['fontSize'] as number) : defaultFontSize;
+        const padArrVal: Object | undefined = headerStyle['padding'];
+        const padH: number = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
+          ? (padArrVal as number[])[1] : defaultPadH;
+        const fontSizePxStr: string = (fontSize * dpRatio).toString() + 'px';
+        const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
+        if (title.length > 0) {
+          const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
+          const wPx: number = measure.measureText({ textContent: title, fontSize: fontSizePxStr });
+          const lineCount: number = Math.max(1, Math.ceil(wPx / dpRatio / availW));
+          maxHeaderH = Math.max(maxHeaderH, lineCount * fontSize * 1.4);
+        }
+      }
+      contentHeight += Math.max(maxHeaderH, defaultFontSize * 1.4) + 16 + borderPx;
+
+      // Body rows
+      for (let r: number = 0; r < recordsArr.length; r++) {
+        const rec: Record<string, Object> = recordsArr[r] as Record<string, Object>;
+        let maxRowH: number = 0;
+        for (let c: number = 0; c < colCount; c++) {
+          const metaKey: string = '__meta_' + c.toString();
+          const metaVal: Object | undefined = rec[metaKey];
+          const meta: Record<string, Object> = (metaVal !== undefined)
+            ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
+          const fontSize: number = (meta['fontSize'] !== undefined)
+            ? (meta['fontSize'] as number) : defaultFontSize;
+          const padH: number = (meta['textPaddingHorizontal'] !== undefined)
+            ? (meta['textPaddingHorizontal'] as number)
+            : ((meta['textPaddingLeft'] !== undefined)
+              ? (meta['textPaddingLeft'] as number) : defaultPadH);
+          const fontSizePxStr: string = (fontSize * dpRatio).toString() + 'px';
+          const cellText: string = (rec[c.toString()] !== undefined)
+            ? (rec[c.toString()] as string) : '';
+          if (cellText.length > 0) {
+            const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
+            const wPx: number = measure.measureText({ textContent: cellText, fontSize: fontSizePxStr });
+            const lineCount: number = Math.max(1, Math.ceil(wPx / dpRatio / availW));
+            maxRowH = Math.max(maxRowH, lineCount * fontSize * 1.4);
+          }
+        }
+        contentHeight += Math.max(maxRowH, defaultFontSize * 1.4) + 16 + borderPx;
+      }
+
+      return '{"width":' + Math.round(contentWidth).toString() +
+        ',"height":' + Math.round(contentHeight).toString() + '}';
+    } catch (e) {
+      console.error('[ReportTableComponent] computeContentSizeNative error: ' + (e as Error).message);
+      return '{}';
+    }
+  }
+
   private updateVTable(rawPropsStr: string): void {
     try {
       const rawProps: Record<string, Object> = JSON.parse(rawPropsStr) as Record<string, Object>;
@@ -119,8 +286,22 @@ export struct ReportTableComponent {
       const disableZoom: boolean = (disableZoomVal !== undefined) ? (disableZoomVal as boolean) : false;
       const permutable: boolean = (permutableVal !== undefined) ? (permutableVal as boolean) : false;
 
-      // Parse columns to extract lock info for allowFrozenColCount
+      // Parse columns and records for native contentSize measurement
       const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
+      const recordsArrForSize: Object[] = JSON.parse(recordsStr) as Object[];
+      const itemConfigPropVal: Object | undefined = rawProps['itemConfig'];
+      const itemConfigStr: string = (itemConfigPropVal !== undefined)
+        ? (itemConfigPropVal as string) : '{}';
+
+      // Compute contentSize using ArkTS native text measurement.
+      // mirrors iOS (NSString sizeWithAttributes) and Android (Paint.measureText).
+      this.cachedContentSize = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr);
+
+      // If VTable is already initialized (i.e., this is a data update, not initial load),
+      // emit contentSize immediately since onInitialized will not fire again.
+      if (this.vtableInitialized) {
+        this.emitCachedContentSize();
+      }
       let allowFrozenColCount: number = 0;
 
       for (let i: number = 0; i < columnsArr.length; i++) {
@@ -360,13 +541,12 @@ export struct ReportTableComponent {
         const shadowPatch: Record<string, Object> = JSON.parse(shadowPatchStr) as Record<string, Object>;
         self.controller.updateOption(shadowPatch);
 
-        // Trigger scrollToRowCol(0,0) to force an onScroll event.
-        // onScroll carries the accurate scrollHeight/scrollWidth from VTable's WebView,
-        // which is the only way to get real content dimensions without a getScrollHeight() API.
-        const cellAddr: Record<string, number> = {} as Record<string, number>;
-        cellAddr['col'] = 0;
-        cellAddr['row'] = 0;
-        self.controller.scrollToRowCol(cellAddr);
+        // Mark initialized so subsequent updateVTable calls emit contentSize directly.
+        self.vtableInitialized = true;
+
+        // Emit natively-measured contentSize. Listeners are ready by this point
+        // (JS componentDidMount runs before VTable's WebView finishes loading).
+        self.emitCachedContentSize();
       },
     };
     return onEvent;
