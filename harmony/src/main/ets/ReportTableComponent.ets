@@ -40,8 +40,6 @@ export struct ReportTableComponent {
   // Mutable option cache — updated by updateVTable/handleUpdateData/handleSpliceData.
   // NOT @State to avoid triggering VTable WebView re-init on every data update.
   private currentOption: Record<string, Object> = {} as Record<string, Object>;
-  // Track whether the frozen-column shadow is currently visible (shown only when scrollLeft > 0).
-  private frozenShadowVisible: boolean = false;
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -331,6 +329,7 @@ export struct ReportTableComponent {
       if (this.vtableInitialized) {
         this.emitCachedContentSize();
       }
+
       let allowFrozenColCount: number = 0;
 
       for (let i: number = 0; i < columnsArr.length; i++) {
@@ -344,8 +343,9 @@ export struct ReportTableComponent {
         allowFrozenColCount = columnsArr.length;
       }
 
-      // Build option JSON
-      const optionStr: string = '{"records":' + recordsStr +
+      // Build option JSON.
+      // VTable's WebView uses CSS logical pixels, which equal vp. No unit conversion needed.
+      const optionStr: string = '"records":' + recordsStr +
         ',"columns":' + columnsStr +
         ',"theme":' + themeStr +
         ',"customMergeCell":' + mergedCellsStr +
@@ -366,9 +366,21 @@ export struct ReportTableComponent {
         ',"select":{"disableSelect":true}' +
         ',"scrollBar":{"visible":"none","barWidth":0,"hoverOn":false}' +
         ',"editor":""' +
-        ',"editCellTrigger":"api"' +
-        '}';
-      const newOption: Record<string, Object> = JSON.parse(optionStr) as Record<string, Object>;
+        ',"editCellTrigger":"api"';
+      const newOption: Record<string, Object> = JSON.parse('{' + optionStr + '}') as Record<string, Object>;
+
+      // Inject frozen-column drop shadow into theme only when frozen columns exist.
+      // VTable renders the shadow at the exact frozen-boundary position automatically.
+      // No shadow when frozenColCount == 0 (unlocked).
+      if (frozenColCount > 0) {
+        const themeObjVal: Object | undefined = newOption['theme'];
+        if (themeObjVal !== undefined) {
+          const themeObj: Record<string, Object> = themeObjVal as Record<string, Object>;
+          const shadowPatch: string = '{"shadow":{"width":6,"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}' ;
+          themeObj['frozenColumnLine'] = JSON.parse(shadowPatch) as Record<string, Object>;
+          newOption['theme'] = themeObj as Object;
+        }
+      }
 
       // NOTE: customLayout/headerCustomLayout CANNOT work with @ohos/vtable
       // because VTable uses a WebView internally and functions can't be serialized to JSON.
@@ -388,11 +400,7 @@ export struct ReportTableComponent {
         // Data update: use controller directly — do NOT replace @State option reference,
         // as that would destroy and recreate the VTable WebView (causing flash → blank).
         this.controller.updateOption(newOption);
-        // Re-apply shadow if the user had scrolled horizontally before the update.
-        if (this.frozenShadowVisible) {
-          const sP: string = '{"theme":{"frozenColumnLine":{"shadow":{"width":6,"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}}}';
-          this.controller.updateOption(JSON.parse(sP) as Record<string, Object>);
-        }
+
       }
     } catch (e) {
       console.error('[ReportTableComponent] updateVTable failed: ' + (e as Error).message);
@@ -588,14 +596,6 @@ export struct ReportTableComponent {
         self.emitEvent('clickEvent', JSON.parse(payloadStr) as Object);
       },
       onScroll: (event: ScrollEventData): void => {
-        // Toggle frozen-column shadow: visible only when table has horizontal offset.
-        const hasOffset: boolean = event.scrollLeft > 0;
-        if (hasOffset !== self.frozenShadowVisible) {
-          self.frozenShadowVisible = hasOffset;
-          const sw: number = hasOffset ? 6 : 0;
-          const sp: string = '{"theme":{"frozenColumnLine":{"shadow":{"width":' + sw.toString() + ',"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}}}' ;
-          self.controller.updateOption(JSON.parse(sp) as Record<string, Object>);
-        }
         const payloadStr: string = '{"translateX":' + event.scrollLeft.toString() +
           ',"translateY":' + event.scrollTop.toString() +
           ',"scale":' + self.currentZoom.toString() + '}';
@@ -606,11 +606,6 @@ export struct ReportTableComponent {
         self.emitEvent('scrollEnd', JSON.parse(payloadStr) as Object);
       },
       onInitialized: (): void => {
-        // VTable's WebView initialization may reset theme-related styles.
-        // Ensure frozen-column shadow starts hidden (shown only on horizontal scroll).
-        const hideShadow: string = '{"theme":{"frozenColumnLine":{"shadow":{"width":0,"startColor":"rgba(0,0,0,0)","endColor":"rgba(0,0,0,0)"}}}}' ;
-        self.controller.updateOption(JSON.parse(hideShadow) as Record<string, Object>);
-
         // Mark initialized so subsequent updateVTable calls emit contentSize directly.
         self.vtableInitialized = true;
 
@@ -654,7 +649,9 @@ export struct ReportTableComponent {
         this.componentHeight = h;
       }
     })
-    .gesture(
+    // priorityGesture + IgnoreInternal: intercept pinch before VTable's inner WebView,
+    // so that when disableZoom=true the WebView never receives the gesture at all.
+    .priorityGesture(
       PinchGesture({ fingers: 2, distance: 1 })
         .onActionStart((): void => {
           this.baseZoom = this.currentZoom;
@@ -674,7 +671,8 @@ export struct ReportTableComponent {
         })
         .onActionEnd((): void => {
           // Zoom is already set during update
-        })
+        }),
+      GestureMask.IgnoreInternal
     )
   }
 }

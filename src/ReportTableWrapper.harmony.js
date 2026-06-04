@@ -53,18 +53,37 @@ export default class ReportTableWrapper extends React.Component {
         this.scrollY = 0;
         this._nativeTag = null;
         this._eventSubscriptions = [];
+        this._gestureStartScrollY = 0;
         this._vtableData = this._buildVTableData(props);
 
-        // PanResponder to link table area swipes to outer ScrollView (hide header)
+        // PanResponder: intercept vertical-upward gestures to push header out first.
+        // When the header is visible, capture the gesture before VTable's WebView gets it,
+        // so only the outer ScrollView scrolls. Once the header is gone, don't claim —
+        // VTable's WebView handles scrolling freely.
         this.panResponder = PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
-            onPanResponderGrant: () => {},
+            onStartShouldSetPanResponder: () => false,
+            onMoveShouldSetPanResponderCapture: (evt, gs) => {
+                // Only capture primarily-vertical upward swipes while header is still visible.
+                if (!this.showHeader || this.state.headerHeight === 0) return false;
+                return gs.dy < -3 && Math.abs(gs.dy) > Math.abs(gs.dx);
+            },
+            onPanResponderGrant: () => {
+                // Snapshot scroll position at the moment the gesture is captured.
+                this._gestureStartScrollY = this.scrollY;
+            },
             onPanResponderMove: (evt, gs) => {
                 if (this.state.headerHeight === 0) return;
                 if (gs.dy < 0 && this.showHeader) {
+                    const newY = Math.min(
+                        -gs.dy + this._gestureStartScrollY,
+                        this.state.headerHeight,
+                    );
                     this._scrollView &&
-                        this._scrollView.scrollTo({ x: 0, y: -gs.dy + this.scrollY, animated: true });
+                        this._scrollView.scrollTo({ x: 0, y: newY, animated: false });
+                    // Update local state immediately — programmatic scrollTo may not
+                    // trigger the ScrollView's onScroll callback synchronously.
+                    this.scrollY = newY;
+                    this.showHeader = this.scrollY < this.state.headerHeight;
                 }
             },
             onPanResponderRelease: () => {},
@@ -117,7 +136,7 @@ export default class ReportTableWrapper extends React.Component {
                     const translateY = data.translateY ?? 0;
                     // When VTable scrolls back to top, reveal the header
                     if (translateY === 0 && this._scrollView && this.state.headerHeight > 0) {
-                        this._scrollView.scrollTo({ x: 0, y: 0, animated: true });
+                    this._scrollView.scrollTo({ x: 0, y: 0, animated: false });
                     }
                     this.props.onScroll && this.props.onScroll({nativeEvent: {
                         translateX: data.translateX ?? 0,
