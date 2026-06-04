@@ -38,7 +38,8 @@ function buildColumnStyle(cell, itemConfig) {
     style.textAlign = textAlign;
     style.fontWeight = isBold ? 'bold' : 'normal';
     style.padding = [0, cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12];
-    style.autoWrapText = false;
+    style.autoWrapText = true;
+    style.lineBreakMode = 'normal';
 
     return style;
 }
@@ -405,6 +406,13 @@ export function buildVTableTheme(props) {
         frameStyle: {
             borderColor,
             borderLineWidth: showBorder ? 1 : 0,
+        },
+        frozenColumnLine: {
+            shadow: {
+                width: 6,
+                startColor: 'rgba(0,0,0,0.18)',
+                endColor: 'rgba(0,0,0,0)',
+            },
         },
         scrollStyle: {
             visible: 'none',

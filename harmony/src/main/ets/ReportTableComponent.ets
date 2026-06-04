@@ -145,9 +145,9 @@ export struct ReportTableComponent {
         ',"frozenRowCount":' + frozenRowCount.toString() +
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
         ',"showFrozenIcon":' + (allowFrozenColCount > 0 ? 'true' : 'false') +
-        ',"autoWrapText":false' +
+        ',"autoWrapText":true' +
         ',"widthMode":"' + widthMode + '"' +
-        ',"heightMode":"standard"' +
+        ',"heightMode":"autoHeight"' +
         ',"autoFillWidth":true' +
         ',"autoFillHeight":false' +
         ',"hover":{"disableHover":true}' +
@@ -347,33 +347,18 @@ export struct ReportTableComponent {
         self.emitEvent('scrollEnd', JSON.parse(payloadStr) as Object);
       },
       onInitialized: (): void => {
-        // Calculate content size from option data
-        // VTable default row height is ~40px
-        const defaultRowHeight: number = 40;
-        let contentHeight: number = 0;
-        let contentWidth: number = 0;
+        // vtable_util.js overwrites the theme on init (sets frozenColumnLine.shadow.width=0).
+        // Re-apply the frozen column shadow by updating the theme after initialization.
+        const shadowPatchStr: string = '{"theme":{"frozenColumnLine":{"shadow":{"width":6,"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}}}';
+        const shadowPatch: Record<string, Object> = JSON.parse(shadowPatchStr) as Record<string, Object>;
+        self.controller.updateOption(shadowPatch);
 
-        const recordsVal: Object | undefined = self.option['records'];
-        const columnsVal: Object | undefined = self.option['columns'];
-        const frozenRowCountVal: Object | undefined = self.option['frozenRowCount'];
-        const headerRows: number = 1 + ((frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0);
+        // Use VTable's actual scroll size after rendering
+        const scrollHeight: number = self.controller.getScrollHeight();
+        const scrollWidth: number = self.controller.getScrollWidth();
 
-        if (recordsVal !== undefined) {
-          const recordsArr: Object[] = recordsVal as Object[];
-          contentHeight = (recordsArr.length + headerRows) * defaultRowHeight;
-        }
-        if (columnsVal !== undefined) {
-          const colsArr: Object[] = columnsVal as Object[];
-          // Estimate width from column count * average column width
-          for (let i: number = 0; i < colsArr.length; i++) {
-            const col: Record<string, Object> = colsArr[i] as Record<string, Object>;
-            const minW: Object | undefined = col['minWidth'];
-            const maxW: Object | undefined = col['maxWidth'];
-            const minWidth: number = (minW !== undefined) ? (minW as number) : 50;
-            const maxWidth: number = (maxW !== undefined) ? (maxW as number) : 120;
-            contentWidth += (minWidth + maxWidth) / 2;
-          }
-        }
+        const contentHeight: number = scrollHeight > 0 ? scrollHeight : 0;
+        const contentWidth: number = scrollWidth > 0 ? scrollWidth : 0;
 
         if (contentHeight > 0 || contentWidth > 0) {
           const csPayload: string = '{"width":' + contentWidth.toString() +

@@ -57,18 +57,14 @@ export default class ReportTableWrapper extends React.Component {
 
         // PanResponder to link table area swipes to outer ScrollView (hide header)
         this.panResponder = PanResponder.create({
-            onStartShouldSetPanResponder: () => false,
-            onMoveShouldSetPanResponder: (evt, gs) => {
-                // Only intercept vertical swipes when header is still visible
-                if (this.state.headerHeight === 0) return false;
-                if (!this.showHeader) return false;
-                return Math.abs(gs.dy) > Math.abs(gs.dx) && gs.dy < -5;
-            },
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => {},
             onPanResponderMove: (evt, gs) => {
                 if (this.state.headerHeight === 0) return;
                 if (gs.dy < 0 && this.showHeader) {
                     this._scrollView &&
-                        this._scrollView.scrollTo({ x: 0, y: -gs.dy + this.scrollY, animated: false });
+                        this._scrollView.scrollTo({ x: 0, y: -gs.dy + this.scrollY, animated: true });
                 }
             },
             onPanResponderRelease: () => {},
@@ -118,9 +114,14 @@ export default class ReportTableWrapper extends React.Component {
             DeviceEventEmitter.addListener(
                 `RNReportTable_scroll_${tag}`,
                 (data) => {
+                    const translateY = data.translateY ?? 0;
+                    // When VTable scrolls back to top, reveal the header
+                    if (translateY === 0 && this._scrollView && this.state.headerHeight > 0) {
+                        this._scrollView.scrollTo({ x: 0, y: 0, animated: true });
+                    }
                     this.props.onScroll && this.props.onScroll({nativeEvent: {
                         translateX: data.translateX ?? 0,
-                        translateY: data.translateY ?? 0,
+                        translateY,
                         scale: data.scale ?? 1.0,
                     }});
                 }
@@ -194,7 +195,7 @@ export default class ReportTableWrapper extends React.Component {
         }
 
         const { records, columns, mergedCells, customCellStyle, customCellStyleArrangement } = convertDataSourceToVTable(data, {
-            frozenRows: frozenRows || 1,
+            frozenRows: frozenRows > 0 ? frozenRows : 1,
             itemConfig,
             columnsWidthMap,
             minWidth,
@@ -211,9 +212,10 @@ export default class ReportTableWrapper extends React.Component {
         const colCount = data[0]?.length ?? 0;
         const effectiveFrozenColCount = computeInitialFrozenColCount(frozenAbility, frozenColumns, colCount);
 
-        // frozenRowCount: VTable column titles are the header row.
-        // Additional frozen body rows = frozenRows - 1 (since 1 is the header itself)
-        const vtableFrozenRowCount = Math.max(0, (frozenRows || 1) - 1);
+        // frozenRowCount: data[0] always maps to VTable header (column titles).
+        // frozenRows=0 or not set => no frozen body rows (vtableFrozenRowCount=0).
+        // frozenRows=N => freeze N-1 additional body rows (N>=1 means data[0] is already the header).
+        const vtableFrozenRowCount = frozenRows > 0 ? Math.max(0, frozenRows - 1) : 0;
 
         return {
             records: JSON.stringify(records),
