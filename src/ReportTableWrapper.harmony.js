@@ -300,6 +300,7 @@ export default class ReportTableWrapper extends React.Component {
             progressStyle,
             itemConfig,
             showBorder,
+            minHeight = 40,
         } = this.props;
 
         const {
@@ -328,7 +329,7 @@ export default class ReportTableWrapper extends React.Component {
                 frozenAbility={frozenAbility ? JSON.stringify(frozenAbility) : '{}'}
                 ignoreLocks={ignoreLocks || []}
                 doubleClickZoom={doubleClickZoom !== false}
-                itemConfig={itemConfig ? JSON.stringify(itemConfig) : '{}'}
+                itemConfig={JSON.stringify(Object.assign({}, itemConfig || {}, { __minHeight: minHeight ?? 40 }))}
                 progressStyle={progressStyle ? JSON.stringify(progressStyle) : '{}'}
                 replenishColumnsWidthConfig={
                     replenishColumnsWidthConfig ? JSON.stringify(replenishColumnsWidthConfig) : '{}'

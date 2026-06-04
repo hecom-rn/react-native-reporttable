@@ -120,7 +120,7 @@ export struct ReportTableComponent {
    *   1. For each column: measure the single-line text width of every header/body cell.
    *      Effective column width = clamp(max measured, minWidth, maxWidth).
    *   2. For each row: compute line count = ceil(singleLineWidth / availableColWidth).
-   *      Row height = lineCount × fontSize × 1.4 + verticalPadding.
+   *      Row height = max(lines × fontSize + (minHeight - fontSize - 3), minHeight)  — matches iOS exactly.
    *   3. Sum column widths (+ border lines) → contentWidth.
    *      Sum row heights (+ border lines) → contentHeight.
    */
@@ -132,10 +132,12 @@ export struct ReportTableComponent {
     try {
       let defaultFontSize: number = 14;
       let defaultPadH: number = 12;
+      let minHeight: number = 40;
       try {
         const ic: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
         if (ic['fontSize'] !== undefined) { defaultFontSize = ic['fontSize'] as number; }
         if (ic['textPaddingHorizontal'] !== undefined) { defaultPadH = ic['textPaddingHorizontal'] as number; }
+        if (ic['__minHeight'] !== undefined) { minHeight = ic['__minHeight'] as number; }
       } catch (e2) {}
 
       // dpRatio converts the measureText px return value to vp (the unit used everywhere else)
@@ -199,10 +201,12 @@ export struct ReportTableComponent {
       }
 
       // ── Step 2: row heights from line counts ─────────────────────────────
+      // iOS formula: rowHeight = max(lines × fontSize + (minHeight - fontSize - 3), minHeight)
+      // where (minHeight - fontSize - 3) is the total vertical padding (top + bottom margin).
       let contentHeight: number = borderPx;
 
       // Header row (VTable built-in header = data row 0, displayed via columns[c].title)
-      let maxHeaderH: number = 0;
+      let maxHeaderH: number = minHeight; // rows are at least minHeight
       for (let c: number = 0; c < colCount; c++) {
         const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
         const headerStyle: Record<string, Object> = (col['headerStyle'] !== undefined)
@@ -218,15 +222,17 @@ export struct ReportTableComponent {
           const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
           const wPx: number = measure.measureText({ textContent: title, fontSize: fontSizePxStr });
           const lineCount: number = Math.max(1, Math.ceil(wPx / dpRatio / availW));
-          maxHeaderH = Math.max(maxHeaderH, lineCount * fontSize * 1.4);
+          const vertPad: number = minHeight - fontSize - 3;
+          const cellH: number = Math.max(lineCount * fontSize + vertPad, minHeight);
+          maxHeaderH = Math.max(maxHeaderH, cellH);
         }
       }
-      contentHeight += Math.max(maxHeaderH, defaultFontSize * 1.4) + 16 + borderPx;
+      contentHeight += maxHeaderH + borderPx;
 
       // Body rows
       for (let r: number = 0; r < recordsArr.length; r++) {
         const rec: Record<string, Object> = recordsArr[r] as Record<string, Object>;
-        let maxRowH: number = 0;
+        let maxRowH: number = minHeight; // rows are at least minHeight
         for (let c: number = 0; c < colCount; c++) {
           const metaKey: string = '__meta_' + c.toString();
           const metaVal: Object | undefined = rec[metaKey];
@@ -245,10 +251,12 @@ export struct ReportTableComponent {
             const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
             const wPx: number = measure.measureText({ textContent: cellText, fontSize: fontSizePxStr });
             const lineCount: number = Math.max(1, Math.ceil(wPx / dpRatio / availW));
-            maxRowH = Math.max(maxRowH, lineCount * fontSize * 1.4);
+            const vertPad: number = minHeight - fontSize - 3;
+            const cellH: number = Math.max(lineCount * fontSize + vertPad, minHeight);
+            maxRowH = Math.max(maxRowH, cellH);
           }
         }
-        contentHeight += Math.max(maxRowH, defaultFontSize * 1.4) + 16 + borderPx;
+        contentHeight += maxRowH + borderPx;
       }
 
       return '{"width":' + Math.round(contentWidth).toString() +
@@ -522,14 +530,6 @@ export struct ReportTableComponent {
           ',"translateY":' + event.scrollTop.toString() +
           ',"scale":' + self.currentZoom.toString() + '}';
         self.emitEvent('scroll', JSON.parse(payloadStr) as Object);
-
-        // Update contentSize with accurate values from the scroll event
-        const sh: number = event.scrollHeight;
-        const sw: number = event.scrollWidth;
-        if (sh > 0 || sw > 0) {
-          const csPayload: string = '{"width":' + sw.toString() + ',"height":' + sh.toString() + '}';
-          self.emitEvent('contentSize', JSON.parse(csPayload) as Object);
-        }
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
         const payloadStr: string = '{"isEnd":true}';
