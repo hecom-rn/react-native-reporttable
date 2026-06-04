@@ -37,6 +37,11 @@ export struct ReportTableComponent {
   private currentRawProps: string = '{}';
   private cachedContentSize: string = '{}';
   private vtableInitialized: boolean = false;
+  // Mutable option cache — updated by updateVTable/handleUpdateData/handleSpliceData.
+  // NOT @State to avoid triggering VTable WebView re-init on every data update.
+  private currentOption: Record<string, Object> = {} as Record<string, Object>;
+  // Track whether the frozen-column shadow is currently visible (shown only when scrollLeft > 0).
+  private frozenShadowVisible: boolean = false;
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -371,8 +376,24 @@ export struct ReportTableComponent {
       // Lock icons use VTable's native showFrozenIcon feature.
 
       this.disableZoom = disableZoom;
-      this.option = newOption;
-      this.controller.updateOption(newOption);
+      // Cache option for command handlers (handleUpdateData, handleSpliceData, etc.)
+      // without triggering a @State re-render.
+      this.currentOption = newOption;
+
+      if (!this.vtableInitialized) {
+        // First render: set @State to give VTable its initial option.
+        // Changing @State here is fine because VTable hasn't rendered yet.
+        this.option = newOption;
+      } else {
+        // Data update: use controller directly — do NOT replace @State option reference,
+        // as that would destroy and recreate the VTable WebView (causing flash → blank).
+        this.controller.updateOption(newOption);
+        // Re-apply shadow if the user had scrolled horizontally before the update.
+        if (this.frozenShadowVisible) {
+          const sP: string = '{"theme":{"frozenColumnLine":{"shadow":{"width":6,"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}}}';
+          this.controller.updateOption(JSON.parse(sP) as Record<string, Object>);
+        }
+      }
     } catch (e) {
       console.error('[ReportTableComponent] updateVTable failed: ' + (e as Error).message);
     }
@@ -390,7 +411,7 @@ export struct ReportTableComponent {
         this.controller.scrollToCol(lineX);
       }
     } else if (commandName === 'scrollToBottom') {
-      const recordsVal: Object | undefined = this.option['records'];
+      const recordsVal: Object | undefined = this.currentOption['records'];
       if (recordsVal !== undefined) {
         const recordsArr: Object[] = recordsVal as Object[];
         if (recordsArr.length > 0) {
@@ -414,7 +435,7 @@ export struct ReportTableComponent {
       const startRow: number = (dataObj['startRow'] !== undefined) ? (dataObj['startRow'] as number) : 0;
       const values: Object[] = (dataObj['values'] !== undefined) ? (dataObj['values'] as Object[]) : [];
 
-      const recordsVal: Object | undefined = this.option['records'];
+      const recordsVal: Object | undefined = this.currentOption['records'];
       if (recordsVal === undefined) {
         return;
       }
@@ -437,8 +458,8 @@ export struct ReportTableComponent {
       }
 
       // Re-render with updated records
-      this.option['records'] = records as Object;
-      this.controller.updateOption(this.option);
+      this.currentOption['records'] = records as Object;
+      this.controller.updateOption(this.currentOption);
     } catch (e) {
       console.error('[ReportTableComponent] updateData failed: ' + (e as Error).message);
     }
@@ -450,7 +471,7 @@ export struct ReportTableComponent {
       const operations: Object[] = JSON.parse(opsStr) as Object[];
       // Each operation has { deleteIndices, addAtIndex, newRecords }
       // VTable doesn't have native splice. Re-build the full option with updated records.
-      const recordsVal: Object | undefined = this.option['records'];
+      const recordsVal: Object | undefined = this.currentOption['records'];
       if (recordsVal === undefined) {
         return;
       }
@@ -496,8 +517,8 @@ export struct ReportTableComponent {
       }
 
       // Update option with modified records and re-render
-      this.option['records'] = records as Object;
-      this.controller.updateOption(this.option);
+      this.currentOption['records'] = records as Object;
+      this.controller.updateOption(this.currentOption);
     } catch (e) {
       console.error('[ReportTableComponent] spliceData failed: ' + (e as Error).message);
     }
@@ -514,14 +535,37 @@ export struct ReportTableComponent {
     const self = this;
     const onEvent: VTableOnEvent = {
       onClickCell: (event: CellClickData): void => {
-        // Extract keyIndex from record metadata
+        // --- Lock toggle detection: header row click on a lockable column ---
+        const frozenRowCountV: Object | undefined = self.currentOption['frozenRowCount'];
+        const headerRows: number = 1 + ((frozenRowCountV !== undefined) ? (frozenRowCountV as number) : 0);
+        if (event.row < headerRows) {
+          // This is a header cell click. Check if the column has a lock icon.
+          const colsVal: Object | undefined = self.currentOption['columns'];
+          if (colsVal !== undefined) {
+            const cols: Object[] = colsVal as Object[];
+            if (event.col >= 0 && event.col < cols.length) {
+              const col: Record<string, Object> = cols[event.col] as Record<string, Object>;
+              if (col['__lockInfo'] !== undefined) {
+                // Determine toggle direction from current frozenColCount.
+                const curFrozen: number = (self.currentOption['frozenColCount'] !== undefined)
+                  ? (self.currentOption['frozenColCount'] as number) : 0;
+                const isLocked: boolean = event.col < curFrozen;
+                const newLocked: boolean = !isLocked;
+                const lp: string = '{"col":' + event.col.toString() + ',"locked":' + (newLocked ? 'true' : 'false') + '}';
+                self.emitEvent('lockToggle', JSON.parse(lp) as Object);
+                return; // Lock header click — don't emit regular clickEvent
+              }
+            }
+          }
+          return; // Other header clicks — suppress clickEvent (not a data row)
+        }
+
+        // --- Body cell click: extract keyIndex from record metadata ---
         let keyIndex: number = 0;
-        const recordsVal: Object | undefined = self.option['records'];
+        const recordsVal: Object | undefined = self.currentOption['records'];
         if (recordsVal !== undefined) {
           const recordsArr: Object[] = recordsVal as Object[];
-          const frozenRowCountVal: Object | undefined = self.option['frozenRowCount'];
-          const headerOffset: number = 1 + ((frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0);
-          const recordIdx: number = event.row - headerOffset;
+          const recordIdx: number = event.row - headerRows;
           if (recordIdx >= 0 && recordIdx < recordsArr.length) {
             const record: Record<string, Object> = recordsArr[recordIdx] as Record<string, Object>;
             const metaKey: string = '__meta_' + event.col.toString();
@@ -544,6 +588,14 @@ export struct ReportTableComponent {
         self.emitEvent('clickEvent', JSON.parse(payloadStr) as Object);
       },
       onScroll: (event: ScrollEventData): void => {
+        // Toggle frozen-column shadow: visible only when table has horizontal offset.
+        const hasOffset: boolean = event.scrollLeft > 0;
+        if (hasOffset !== self.frozenShadowVisible) {
+          self.frozenShadowVisible = hasOffset;
+          const sw: number = hasOffset ? 6 : 0;
+          const sp: string = '{"theme":{"frozenColumnLine":{"shadow":{"width":' + sw.toString() + ',"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}}}' ;
+          self.controller.updateOption(JSON.parse(sp) as Record<string, Object>);
+        }
         const payloadStr: string = '{"translateX":' + event.scrollLeft.toString() +
           ',"translateY":' + event.scrollTop.toString() +
           ',"scale":' + self.currentZoom.toString() + '}';
@@ -554,10 +606,10 @@ export struct ReportTableComponent {
         self.emitEvent('scrollEnd', JSON.parse(payloadStr) as Object);
       },
       onInitialized: (): void => {
-        // Re-apply frozen column shadow (vtable_util.js overwrites theme on init).
-        const shadowPatchStr: string = '{"theme":{"frozenColumnLine":{"shadow":{"width":6,"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}}}';
-        const shadowPatch: Record<string, Object> = JSON.parse(shadowPatchStr) as Record<string, Object>;
-        self.controller.updateOption(shadowPatch);
+        // VTable's WebView initialization may reset theme-related styles.
+        // Ensure frozen-column shadow starts hidden (shown only on horizontal scroll).
+        const hideShadow: string = '{"theme":{"frozenColumnLine":{"shadow":{"width":0,"startColor":"rgba(0,0,0,0)","endColor":"rgba(0,0,0,0)"}}}}' ;
+        self.controller.updateOption(JSON.parse(hideShadow) as Record<string, Object>);
 
         // Mark initialized so subsequent updateVTable calls emit contentSize directly.
         self.vtableInitialized = true;

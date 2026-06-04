@@ -302,8 +302,8 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             }
         }
 
-        const colMinWidth = colWidthConfig?.minWidth ?? minWidth;
         const colMaxWidth = colWidthConfig?.maxWidth ?? maxWidth;
+        const colMinWidth = Math.min(colWidthConfig?.minWidth ?? minWidth, colMaxWidth);
 
         const column = {
             field: String(colIdx),
@@ -328,6 +328,23 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         columns.push(column);
     }
 
+    // --- Compute merged cells (before records so we can clear non-anchor covered cells) ---
+    const mergedCells = computeMergedCells(dataSource, headerRowCount);
+
+    // Build set of non-anchor merged cell positions (row_col) to avoid text overlap.
+    // VTable renders merged cell content via customMergeCell; underlying cells must be empty.
+    const mergedCoveredSet = new Set();
+    for (const mc of mergedCells) {
+        const { start, end } = mc.range;
+        for (let r = start.row; r <= end.row; r++) {
+            for (let c = start.col; c <= end.col; c++) {
+                if (r !== start.row || c !== start.col) {
+                    mergedCoveredSet.add(`${r}_${c}`);
+                }
+            }
+        }
+    }
+
     // --- Build records (body rows, skip header rows) ---
     const records = [];
     for (let rowIdx = headerRowCount; rowIdx < dataSource.length; rowIdx++) {
@@ -336,15 +353,15 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
 
         for (let colIdx = 0; colIdx < colCount; colIdx++) {
             const cell = row?.[colIdx] ?? {};
-            record[String(colIdx)] = cell.title ?? '';
-            record[`__meta_${colIdx}`] = buildCellMeta(cell);
+            // Clear text for cells covered by a vertical/horizontal merge (non-anchor)
+            // to prevent content overlap when VTable renders the merged cell on top.
+            const isCovered = mergedCoveredSet.has(`${rowIdx}_${colIdx}`);
+            record[String(colIdx)] = isCovered ? '' : (cell.title ?? '');
+            record[`__meta_${colIdx}`] = isCovered ? { title: '', keyIndex: cell.keyIndex ?? 0 } : buildCellMeta(cell);
         }
 
         records.push(record);
     }
-
-    // --- Compute merged cells ---
-    const mergedCells = computeMergedCells(dataSource, headerRowCount);
 
     // --- Compute per-cell style overrides ---
     const { customCellStyle, customCellStyleArrangement } = buildCellStyleArrangements(dataSource, itemConfig);
@@ -413,11 +430,8 @@ export function buildVTableTheme(props) {
             borderLineWidth: showBorder ? 1 : 0,
         },
         frozenColumnLine: {
-            shadow: {
-                width: 6,
-                startColor: 'rgba(0,0,0,0.18)',
-                endColor: 'rgba(0,0,0,0)',
-            },
+            // Shadow is controlled dynamically in ArkTS based on horizontal scroll offset.
+            // It is applied via controller.updateOption when scrollLeft > 0.
         },
         scrollStyle: {
             visible: 'none',
