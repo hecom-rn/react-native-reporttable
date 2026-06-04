@@ -37,7 +37,12 @@ function buildColumnStyle(cell, itemConfig) {
     if (bgColor) style.bgColor = bgColor;
     style.textAlign = textAlign;
     style.fontWeight = isBold ? 'bold' : 'normal';
-    style.padding = [0, cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12];
+    // Vertical padding ensures single-line rows are exactly minHeight tall.
+    // VTable autoHeight row height = paddingTop + lineCount*fontSize + paddingBottom.
+    // So: vertPad = (minHeight - fontSize) / 2  →  1-line height = minHeight.
+    const minHeight = itemConfig?.__minHeight ?? 40;
+    const vertPad = Math.max(0, Math.floor((minHeight - fontSize) / 2));
+    style.padding = [vertPad, cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12];
     style.autoWrapText = true;
     style.lineBreakMode = 'normal';
 

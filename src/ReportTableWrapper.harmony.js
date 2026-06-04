@@ -184,6 +184,7 @@ export default class ReportTableWrapper extends React.Component {
             permutable = false,
             frozenAbility,
             ignoreLocks = [],
+            minHeight = 40,
         } = props;
 
         if (!data || data.length === 0) {
@@ -194,9 +195,12 @@ export default class ReportTableWrapper extends React.Component {
             };
         }
 
+        // Inject __minHeight so buildColumnStyle can compute correct vertical padding.
+        const itemConfigWithMinHeight = Object.assign({}, itemConfig || {}, { __minHeight: minHeight ?? 40 });
+
         const { records, columns, mergedCells, customCellStyle, customCellStyleArrangement } = convertDataSourceToVTable(data, {
             frozenRows: frozenRows > 0 ? frozenRows : 1,
-            itemConfig,
+            itemConfig: itemConfigWithMinHeight,
             columnsWidthMap,
             minWidth,
             maxWidth,

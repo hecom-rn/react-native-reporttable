@@ -153,6 +153,9 @@ export struct ReportTableComponent {
         const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
         const minW: number = (col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 50;
         const maxW: number = (col['maxWidth'] !== undefined) ? (col['maxWidth'] as number) : 120;
+        // Hard floor: column must be at least 1vp wide to avoid zero-width collapse
+        const safeMinW: number = minW > 0 ? minW : 50;
+        const safeMaxW: number = maxW > safeMinW ? maxW : safeMinW;
         const colStyle: Record<string, Object> = (col['style'] !== undefined)
           ? (col['style'] as Record<string, Object>)
           : {} as Record<string, Object>;
@@ -162,15 +165,16 @@ export struct ReportTableComponent {
         const colPadH: number = ((colPaddingVal !== undefined)
           && ((colPaddingVal as number[]).length > 1))
           ? (colPaddingVal as number[])[1] : defaultPadH;
-        // Use absolute px font size to bypass system fontSizeScale (same as VTable canvas)
-        const fontSizePxStr: string = (colFontSize * dpRatio).toString() + 'px';
 
         let maxContentW: number = 0;
         // Header title
         const headerTitle: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
         if (headerTitle.length > 0) {
-          const wPx: number = measure.measureText({ textContent: headerTitle, fontSize: fontSizePxStr });
-          maxContentW = Math.max(maxContentW, wPx / dpRatio + colPadH * 2);
+          // Pass fontSize as a number (in fp ≈ vp units). measureText returns px.
+          const wPx: number = measure.measureText({ textContent: headerTitle, fontSize: colFontSize });
+          // Fallback to char-width estimate when measureText returns 0 (font not loaded yet)
+          const wVp: number = wPx > 0 ? wPx / dpRatio : headerTitle.length * colFontSize * 0.65;
+          maxContentW = Math.max(maxContentW, wVp + colPadH * 2);
         }
         // Body cells
         for (let r: number = 0; r < recordsArr.length; r++) {
@@ -184,15 +188,15 @@ export struct ReportTableComponent {
           const cellPadH: number = (meta['textPaddingHorizontal'] !== undefined)
             ? (meta['textPaddingHorizontal'] as number)
             : ((meta['textPaddingLeft'] !== undefined) ? (meta['textPaddingLeft'] as number) : defaultPadH);
-          const cellFontSizePxStr: string = (cellFontSize * dpRatio).toString() + 'px';
           const cellText: string = (rec[c.toString()] !== undefined)
             ? (rec[c.toString()] as string) : '';
           if (cellText.length > 0) {
-            const wPx: number = measure.measureText({ textContent: cellText, fontSize: cellFontSizePxStr });
-            maxContentW = Math.max(maxContentW, wPx / dpRatio + cellPadH * 2);
+            const wPx: number = measure.measureText({ textContent: cellText, fontSize: cellFontSize });
+            const wVp: number = wPx > 0 ? wPx / dpRatio : cellText.length * cellFontSize * 0.65;
+            maxContentW = Math.max(maxContentW, wVp + cellPadH * 2);
           }
         }
-        colWidths.push(Math.max(minW, Math.min(maxContentW > 0 ? maxContentW : minW, maxW)));
+        colWidths.push(Math.max(safeMinW, Math.min(maxContentW > 0 ? maxContentW : safeMinW, safeMaxW)));
       }
 
       let contentWidth: number = borderPx;
@@ -203,10 +207,11 @@ export struct ReportTableComponent {
       // ── Step 2: row heights from line counts ─────────────────────────────
       // iOS formula: rowHeight = max(lines × fontSize + (minHeight - fontSize - 3), minHeight)
       // where (minHeight - fontSize - 3) is the total vertical padding (top + bottom margin).
+      const safeMinHeight: number = minHeight > 0 ? minHeight : 40;
       let contentHeight: number = borderPx;
 
-      // Header row (VTable built-in header = data row 0, displayed via columns[c].title)
-      let maxHeaderH: number = minHeight; // rows are at least minHeight
+      // Header row
+      let maxHeaderH: number = safeMinHeight;
       for (let c: number = 0; c < colCount; c++) {
         const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
         const headerStyle: Record<string, Object> = (col['headerStyle'] !== undefined)
@@ -216,14 +221,16 @@ export struct ReportTableComponent {
         const padArrVal: Object | undefined = headerStyle['padding'];
         const padH: number = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
           ? (padArrVal as number[])[1] : defaultPadH;
-        const fontSizePxStr: string = (fontSize * dpRatio).toString() + 'px';
         const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
         if (title.length > 0) {
           const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
-          const wPx: number = measure.measureText({ textContent: title, fontSize: fontSizePxStr });
-          const lineCount: number = Math.max(1, Math.ceil(wPx / dpRatio / availW));
-          const vertPad: number = minHeight - fontSize - 3;
-          const cellH: number = Math.max(lineCount * fontSize + vertPad, minHeight);
+          const wPx: number = measure.measureText({ textContent: title, fontSize: fontSize });
+          const wVp: number = wPx > 0 ? wPx / dpRatio : title.length * fontSize * 0.65;
+          const lineCount: number = Math.max(1, Math.ceil(wVp / availW));
+          // vertPad = top+bottom padding = minHeight - fontSize (constant regardless of line count)
+          // So: 1 line → minHeight; N lines → (N-1)*fontSize + minHeight
+          const vertPad: number = safeMinHeight - fontSize;
+          const cellH: number = lineCount * fontSize + vertPad;
           maxHeaderH = Math.max(maxHeaderH, cellH);
         }
       }
@@ -232,7 +239,7 @@ export struct ReportTableComponent {
       // Body rows
       for (let r: number = 0; r < recordsArr.length; r++) {
         const rec: Record<string, Object> = recordsArr[r] as Record<string, Object>;
-        let maxRowH: number = minHeight; // rows are at least minHeight
+        let maxRowH: number = safeMinHeight;
         for (let c: number = 0; c < colCount; c++) {
           const metaKey: string = '__meta_' + c.toString();
           const metaVal: Object | undefined = rec[metaKey];
@@ -244,15 +251,17 @@ export struct ReportTableComponent {
             ? (meta['textPaddingHorizontal'] as number)
             : ((meta['textPaddingLeft'] !== undefined)
               ? (meta['textPaddingLeft'] as number) : defaultPadH);
-          const fontSizePxStr: string = (fontSize * dpRatio).toString() + 'px';
           const cellText: string = (rec[c.toString()] !== undefined)
             ? (rec[c.toString()] as string) : '';
           if (cellText.length > 0) {
             const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
-            const wPx: number = measure.measureText({ textContent: cellText, fontSize: fontSizePxStr });
-            const lineCount: number = Math.max(1, Math.ceil(wPx / dpRatio / availW));
-            const vertPad: number = minHeight - fontSize - 3;
-            const cellH: number = Math.max(lineCount * fontSize + vertPad, minHeight);
+            const wPx: number = measure.measureText({ textContent: cellText, fontSize: fontSize });
+            const wVp: number = wPx > 0 ? wPx / dpRatio : cellText.length * fontSize * 0.65;
+            const lineCount: number = Math.max(1, Math.ceil(wVp / availW));
+            // vertPad = top+bottom padding = minHeight - fontSize (constant regardless of line count)
+            // So: 1 line → minHeight; N lines → (N-1)*fontSize + minHeight
+            const vertPad: number = safeMinHeight - fontSize;
+            const cellH: number = lineCount * fontSize + vertPad;
             maxRowH = Math.max(maxRowH, cellH);
           }
         }
@@ -305,6 +314,13 @@ export struct ReportTableComponent {
       // mirrors iOS (NSString sizeWithAttributes) and Android (Paint.measureText).
       this.cachedContentSize = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr);
 
+      // Read minHeight (vp) from itemConfig — used as VTable defaultRowHeight (CSS px = vp in WebView).
+      let rowMinHeight: number = 40;
+      try {
+        const icObj: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
+        if (icObj['__minHeight'] !== undefined) { rowMinHeight = icObj['__minHeight'] as number; }
+      } catch (_e) {}
+
       // If VTable is already initialized (i.e., this is a data update, not initial load),
       // emit contentSize immediately since onInitialized will not fire again.
       if (this.vtableInitialized) {
@@ -334,6 +350,8 @@ export struct ReportTableComponent {
         ',"frozenRowCount":' + frozenRowCount.toString() +
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
         ',"showFrozenIcon":' + (allowFrozenColCount > 0 ? 'true' : 'false') +
+        ',"defaultRowHeight":' + rowMinHeight.toString() +
+        ',"defaultHeaderRowHeight":' + rowMinHeight.toString() +
         ',"autoWrapText":true' +
         ',"widthMode":"' + widthMode + '"' +
         ',"heightMode":"autoHeight"' +
