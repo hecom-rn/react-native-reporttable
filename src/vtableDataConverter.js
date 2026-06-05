@@ -6,6 +6,30 @@
  */
 
 /**
+ * Normalize a color string to CSS-compatible format.
+ * Supports:
+ *   - 6-digit hex  #RRGGBB  → passed as-is (valid CSS)
+ *   - 8-digit hex  #AARRGGBB (Android / iOS format) → converted to rgba(R,G,B,A)
+ *   - Other strings (rgba, named, etc.) → passed as-is
+ *
+ * @param {string|*} color
+ * @returns {string|*}
+ */
+function normalizeColor(color) {
+    if (!color || typeof color !== 'string') return color;
+    const raw = color.startsWith('#') ? color.slice(1) : color;
+    if (raw.length === 8 && /^[0-9a-fA-F]{8}$/.test(raw)) {
+        // AARRGGBB → rgba()
+        const a = (parseInt(raw.slice(0, 2), 16) / 255).toFixed(3);
+        const r = parseInt(raw.slice(2, 4), 16);
+        const g = parseInt(raw.slice(4, 6), 16);
+        const b = parseInt(raw.slice(6, 8), 16);
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+    }
+    return color; // 6-digit hex or other formats are already valid CSS
+}
+
+/**
  * Map textAlignment enum to VTable textAlign string.
  * @param {0|1|2} alignment
  * @returns {'left'|'center'|'right'}
@@ -27,8 +51,8 @@ function mapTextAlign(alignment) {
 function buildColumnStyle(cell, itemConfig) {
     const style = {};
     const fontSize = cell.fontSize ?? itemConfig?.fontSize ?? 14;
-    const textColor = cell.textColor ?? itemConfig?.textColor;
-    const bgColor = cell.backgroundColor ?? itemConfig?.backgroundColor;
+    const textColor = normalizeColor(cell.textColor ?? itemConfig?.textColor);
+    const bgColor = normalizeColor(cell.backgroundColor ?? itemConfig?.backgroundColor);
     const textAlign = mapTextAlign(cell.textAlignment ?? itemConfig?.textAlignment ?? 0);
     const isBold = cell.isOverstriking ?? itemConfig?.isOverstriking ?? false;
 
@@ -63,8 +87,8 @@ function buildCellMeta(cell) {
 
     // Basic text styling
     if (cell.fontSize != null) meta.fontSize = cell.fontSize;
-    if (cell.textColor != null) meta.textColor = cell.textColor;
-    if (cell.backgroundColor != null) meta.backgroundColor = cell.backgroundColor;
+    if (cell.textColor != null) meta.textColor = normalizeColor(cell.textColor);
+    if (cell.backgroundColor != null) meta.backgroundColor = normalizeColor(cell.backgroundColor);
     if (cell.textAlignment != null) meta.textAlign = mapTextAlign(cell.textAlignment);
     if (cell.isOverstriking) meta.fontWeight = 'bold';
     if (cell.textPaddingHorizontal != null) meta.textPaddingHorizontal = cell.textPaddingHorizontal;
@@ -204,11 +228,11 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
             let hasOverride = false;
 
             if (cell.backgroundColor != null) {
-                cellStyle.bgColor = cell.backgroundColor;
+                cellStyle.bgColor = normalizeColor(cell.backgroundColor);
                 hasOverride = true;
             }
             if (cell.textColor != null) {
-                cellStyle.color = cell.textColor;
+                cellStyle.color = normalizeColor(cell.textColor);
                 hasOverride = true;
             }
             if (cell.fontSize != null) {
@@ -403,10 +427,10 @@ export function computeInitialFrozenColCount(frozenAbility, frozenColumns, colCo
 export function buildVTableTheme(props) {
     const { lineColor, itemConfig = {}, showBorder = false } = props;
 
-    const borderColor = lineColor || '#e8e8e8';
-    const bgColor = itemConfig.backgroundColor || '#FFFFFF';
+    const borderColor = normalizeColor(lineColor || '#e8e8e8');
+    const bgColor = normalizeColor(itemConfig.backgroundColor || '#FFFFFF');
     const fontSize = itemConfig.fontSize || 14;
-    const textColor = itemConfig.textColor || '#222222';
+    const textColor = normalizeColor(itemConfig.textColor || '#222222');
     const textAlign = mapTextAlign(itemConfig.textAlignment ?? 0);
     const isBold = !!itemConfig.isOverstriking;
     const fontWeight = isBold ? 'bold' : 'normal';
