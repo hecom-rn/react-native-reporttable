@@ -43,6 +43,10 @@ export struct ReportTableComponent {
   // Extra frozen row count (NOT counting the column-title header row that VTable always has).
   // Used to compute the global VTable row index: globalRow = bodyRow + 1 + extraFrozenRows.
   private currentFrozenRowCount: number = 0;
+  // Frozen column shadow state — toggled in onScroll (no updateOption → no blank).
+  @State hasFrozenScroll: boolean = false;
+  @State frozenShadowX: number = 0;
+  private currentFrozenColCount: number = 0;
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -374,17 +378,24 @@ export struct ReportTableComponent {
         ',"editCellTrigger":"api"';
       const newOption: Record<string, Object> = JSON.parse('{' + optionStr + '}') as Record<string, Object>;
 
-      // Inject VTable native frozen-column shadow when columns are frozen.
-      // VTable renders the shadow at the EXACT frozen boundary — no ArkTS position calculation needed.
-      // Only added when frozenColCount > 0; absent when unlocked so no shadow appears.
+      // Compute ArkTS frozen-column shadow position from column minWidths.
+      // The shadow overlay is conditionally shown in build() when scrollLeft > 0.
       if (frozenColCount > 0) {
-        const themeObjVal: Object | undefined = newOption['theme'];
-        if (themeObjVal !== undefined) {
-          const themeObj: Record<string, Object> = themeObjVal as Record<string, Object>;
-          const shadowPatch: string = '{"shadow":{"width":6,"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}' ;
-          themeObj['frozenColumnLine'] = JSON.parse(shadowPatch) as Record<string, Object>;
-          newOption['theme'] = themeObj as Object;
+        let shadowX: number = 0;
+        for (let i: number = 0; i < frozenColCount && i < columnsArr.length; i++) {
+          const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
+          shadowX += (col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 50;
         }
+        // Add 1px per column border
+        this.frozenShadowX = shadowX + frozenColCount;
+        this.currentFrozenColCount = frozenColCount;
+        // Bug2 fix: always reset shadow visibility on props/data update.
+        // The scroll event will set it to true again if scrollLeft > 0.
+        this.hasFrozenScroll = false;
+      } else {
+        this.frozenShadowX = 0;
+        this.currentFrozenColCount = 0;
+        this.hasFrozenScroll = false;
       }
 
       // NOTE: customLayout/headerCustomLayout CANNOT work with @ohos/vtable
@@ -419,6 +430,8 @@ export struct ReportTableComponent {
       // VTable global row index = 1 (column-title header) + currentFrozenRowCount (extra frozen body rows) + lineY.
       // lineX is a column index and is already a global column index (no offset needed).
       if (lineY >= 0) {
+        // VTableController.scrollToRow uses global row index (0 = column-title header row).
+        // Body row lineY maps to global index: 1 (header) + currentFrozenRowCount + lineY.
         this.controller.scrollToRow(1 + this.currentFrozenRowCount + lineY);
       }
       if (lineX >= 0) {
@@ -429,7 +442,8 @@ export struct ReportTableComponent {
       if (recordsVal !== undefined) {
         const recordsArr: Object[] = recordsVal as Object[];
         if (recordsArr.length > 0) {
-          this.controller.scrollToRow(recordsArr.length - 1 + 1 + this.currentFrozenRowCount);
+          // Global row index of last body row = 1 (header) + currentFrozenRowCount + (records.length - 1).
+          this.controller.scrollToRow(1 + this.currentFrozenRowCount + recordsArr.length - 1);
         }
       }
     } else if (commandName === 'updateData' && args.length > 0) {
@@ -606,6 +620,10 @@ export struct ReportTableComponent {
           ',"translateY":' + event.scrollTop.toString() +
           ',"scale":' + self.currentZoom.toString() + '}';
         self.emitEvent('scroll', JSON.parse(payloadStr) as Object);
+        // Update frozen-column shadow visibility based on scroll position.
+        if (self.currentFrozenColCount > 0) {
+          self.hasFrozenScroll = event.scrollLeft > 0;
+        }
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
         const payloadStr: string = '{"isEnd":true}';
@@ -643,6 +661,22 @@ export struct ReportTableComponent {
           centerY: 0
         })
         .position({ x: 0, y: 0 })
+
+      // Frozen-column shadow overlay — only visible when scrollLeft > 0.
+      // Position is computed from column minWidths in updateVTable.
+      // hitTestBehavior.None so touch events pass through to VTable.
+      if (this.hasFrozenScroll && this.frozenShadowX > 0) {
+        Column() {}
+          .width(8)
+          .height('100%')
+          .position({ x: this.frozenShadowX, y: 0 })
+          .linearGradient({
+            angle: 90,
+            colors: [['rgba(0,0,0,0.18)', 0.0], ['rgba(0,0,0,0)', 1.0]]
+          })
+          .hitTestBehavior(HitTestMode.None)
+      }
+
     }
     .width('100%')
     .height('100%')
@@ -655,12 +689,18 @@ export struct ReportTableComponent {
         this.componentHeight = h;
       }
     })
-    .gesture(
+    // priorityGesture ensures the outer Stack always wins the pinch gesture before
+    // the VTable WebView can claim it. When disableZoom=true the handler exits early
+    // so currentZoom never changes; when false it applies the ArkTS scale transform.
+    .priorityGesture(
       PinchGesture({ fingers: 2, distance: 1 })
         .onActionStart((): void => {
           this.baseZoom = this.currentZoom;
         })
         .onActionUpdate((event: GestureEvent): void => {
+          if (this.disableZoom) {
+            return;
+          }
           let newZoom: number = this.baseZoom * event.scale;
           if (newZoom < 0.5) {
             newZoom = 0.5;
@@ -672,16 +712,5 @@ export struct ReportTableComponent {
         })
         .onActionEnd((): void => {})
     )
-
-    // When disableZoom=true, overlay a transparent blocker over the entire component.
-    // hitTestBehavior.Block consumes ALL touch events (including multi-finger pinch)
-    // before they reach the VTable WebView, effectively disabling zoom.
-    if (this.disableZoom) {
-      Stack() {}
-        .width('100%')
-        .height('100%')
-        .position({ x: 0, y: 0 })
-        .hitTestBehavior(HitTestMode.Block)
-    }
   }
 }

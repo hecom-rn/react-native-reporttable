@@ -63,7 +63,10 @@ function buildColumnStyle(cell, itemConfig) {
     style.fontSize = fontSize;
     if (textColor) style.color = textColor;
     style.textAlign = textAlign;
-    style.fontWeight = isBold ? 'bold' : 'normal';
+    // NOTE: fontWeight is intentionally NOT set on column.style.
+    // column.style takes priority over customCellStyle/customCellStyleArrangement in VTable,
+    // so setting it here would prevent per-cell isOverstriking overrides from working.
+    // fontWeight is applied exclusively via customCellStyleArrangement (see buildCellStyleArrangements).
     // Vertical padding ensures single-line rows are exactly minHeight tall.
     // VTable autoHeight row height = paddingTop + lineCount*fontSize + paddingBottom.
     // So: vertPad = (minHeight - fontSize) / 2  →  1-line height = minHeight.
@@ -216,8 +219,16 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
     const customCellStyleArrangement = [];
     const styleCache = new Map();
 
-    // Column style already handles global isOverstriking from itemConfig.
-    // Only generate per-cell arrangements for cells that DIFFER from column defaults.
+    // Precompute per-column bold default from the header row (row 0).
+    // Body cells without explicit isOverstriking inherit the header cell's setting.
+    // NOTE: fontWeight is NOT set in column.style (column.style > customCellStyle in VTable),
+    // so ALL fontWeight must come from customCellStyleArrangement entries.
+    const colCount = dataSource[0]?.length ?? 0;
+    const colDefaultBold = [];
+    for (let c = 0; c < colCount; c++) {
+        const headerCell = dataSource[0]?.[c] ?? {};
+        colDefaultBold[c] = !!(headerCell.isOverstriking ?? itemConfig?.isOverstriking ?? false);
+    }
 
     for (let rowIdx = 0; rowIdx < dataSource.length; rowIdx++) {
         const row = dataSource[rowIdx];
@@ -242,13 +253,11 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
                 cellStyle.fontSize = cell.fontSize;
                 hasOverride = true;
             }
-            // Only add fontWeight if cell explicitly sets isOverstriking
-            if (cell.isOverstriking === true) {
+            // Effective bold: cell explicit setting > column header default > itemConfig default.
+            // Emit 'bold' for any bold cell; no need to emit 'normal' since VTable DEFAULT is normal.
+            const effectiveBold = cell.isOverstriking != null ? !!cell.isOverstriking : colDefaultBold[colIdx];
+            if (effectiveBold) {
                 cellStyle.fontWeight = 'bold';
-                hasOverride = true;
-            } else if (cell.isOverstriking === false && itemConfig?.isOverstriking) {
-                // Cell explicitly un-bolds while global is bold
-                cellStyle.fontWeight = 'normal';
                 hasOverride = true;
             }
             if (cell.textAlignment != null) {
