@@ -278,8 +278,17 @@ export struct ReportTableComponent {
         contentHeight += maxRowH + borderPx;
       }
 
+      // Encode colWidths into the returned JSON so updateVTable can use actual widths
+      // for frozenShadowX instead of the inaccurate minWidth estimate.
+      let colWidthsStr: string = '[';
+      for (let c: number = 0; c < colCount; c++) {
+        if (c > 0) { colWidthsStr += ','; }
+        colWidthsStr += Math.round(colWidths[c]).toString();
+      }
+      colWidthsStr += ']';
       return '{"width":' + Math.round(contentWidth).toString() +
-        ',"height":' + Math.round(contentHeight).toString() + '}';
+        ',"height":' + Math.round(contentHeight).toString() +
+        ',"colWidths":' + colWidthsStr + '}';
     } catch (e) {
       console.error('[ReportTableComponent] computeContentSizeNative error: ' + (e as Error).message);
       return '{}';
@@ -378,19 +387,32 @@ export struct ReportTableComponent {
         ',"editCellTrigger":"api"';
       const newOption: Record<string, Object> = JSON.parse('{' + optionStr + '}') as Record<string, Object>;
 
-      // Compute ArkTS frozen-column shadow position from column minWidths.
-      // The shadow overlay is conditionally shown in build() when scrollLeft > 0.
+      // Compute frozen-column shadow X using actual measured column widths (not minWidth).
+      // colWidths are embedded in cachedContentSize by computeContentSizeNative, so they
+      // reflect the autoWidth-expanded widths and put the shadow at the correct position.
       if (frozenColCount > 0) {
         let shadowX: number = 0;
+        let actualColWidths: number[] = [];
+        try {
+          const csObj: Record<string, Object> = JSON.parse(this.cachedContentSize) as Record<string, Object>;
+          if (csObj['colWidths'] !== undefined) {
+            actualColWidths = csObj['colWidths'] as number[];
+          }
+        } catch (_parseErr) {}
         for (let i: number = 0; i < frozenColCount && i < columnsArr.length; i++) {
-          const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
-          shadowX += (col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 50;
+          const actualW: number = (i < actualColWidths.length)
+            ? (actualColWidths[i] as number) : 0;
+          if (actualW > 0) {
+            shadowX += actualW;
+          } else {
+            // Fallback: minWidth before first measurement completes
+            const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
+            shadowX += (col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 50;
+          }
         }
-        // Add 1px per column border
-        this.frozenShadowX = shadowX + frozenColCount;
+        this.frozenShadowX = shadowX + frozenColCount; // +1px per border
         this.currentFrozenColCount = frozenColCount;
-        // Bug2 fix: always reset shadow visibility on props/data update.
-        // The scroll event will set it to true again if scrollLeft > 0.
+        // Reset visibility; onScroll re-enables when scrollLeft > 0.
         this.hasFrozenScroll = false;
       } else {
         this.frozenShadowX = 0;
@@ -427,14 +449,18 @@ export struct ReportTableComponent {
     if (commandName === 'scrollTo' && args.length >= 2) {
       const lineX: number = args[0] as number;
       const lineY: number = args[1] as number;
-      // VTable global row index = 1 (column-title header) + currentFrozenRowCount (extra frozen body rows) + lineY.
-      // lineX is a column index and is already a global column index (no offset needed).
-      if (lineY >= 0) {
-        // VTableController.scrollToRow uses global row index (0 = column-title header row).
-        // Body row lineY maps to global index: 1 (header) + currentFrozenRowCount + lineY.
+      // lineY==0 means scroll to the very top: use setScrollTop(0) for pixel-perfect positioning.
+      // scrollToRow only ensures the target row is "visible", not necessarily at the top.
+      // For lineY>0 we still use scrollToRow (global row index) since we don't know row heights.
+      if (lineY === 0) {
+        this.controller.setScrollTop(0);
+      } else if (lineY > 0) {
         this.controller.scrollToRow(1 + this.currentFrozenRowCount + lineY);
       }
-      if (lineX >= 0) {
+      // lineX==0 means scroll to the leftmost position: use setScrollLeft(0) for accuracy.
+      if (lineX === 0) {
+        this.controller.setScrollLeft(0);
+      } else if (lineX > 0) {
         this.controller.scrollToCol(lineX);
       }
     } else if (commandName === 'scrollToBottom') {
