@@ -52,13 +52,16 @@ function buildColumnStyle(cell, itemConfig) {
     const style = {};
     const fontSize = cell.fontSize ?? itemConfig?.fontSize ?? 14;
     const textColor = normalizeColor(cell.textColor ?? itemConfig?.textColor);
-    const bgColor = normalizeColor(cell.backgroundColor ?? itemConfig?.backgroundColor);
+    // NOTE: bgColor is intentionally NOT set on column.style.
+    // Setting it here would override per-cell customCellStyleArrangement bgColor entries,
+    // because column.style takes priority over customCellStyle in VTable.
+    // Background color is applied via theme.defaultStyle/bodyStyle/headerStyle instead,
+    // where per-cell customCellStyle correctly overrides it.
     const textAlign = mapTextAlign(cell.textAlignment ?? itemConfig?.textAlignment ?? 0);
     const isBold = cell.isOverstriking ?? itemConfig?.isOverstriking ?? false;
 
     style.fontSize = fontSize;
     if (textColor) style.color = textColor;
-    if (bgColor) style.bgColor = bgColor;
     style.textAlign = textAlign;
     style.fontWeight = isBold ? 'bold' : 'normal';
     // Vertical padding ensures single-line rows are exactly minHeight tall.

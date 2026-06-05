@@ -40,13 +40,9 @@ export struct ReportTableComponent {
   // Mutable option cache — updated by updateVTable/handleUpdateData/handleSpliceData.
   // NOT @State to avoid triggering VTable WebView re-init on every data update.
   private currentOption: Record<string, Object> = {} as Record<string, Object>;
-  // Track horizontal scroll state to show/hide frozen-column shadow overlay.
-  @State hasFrozenScroll: boolean = false;
-  // Actual X position of the frozen-column right edge (vp), refined after VTable init.
-  @State frozenShadowX: number = 0;
-  private currentFrozenColCount: number = 0;
-  // Header row count — used to convert body row index → VTable global row index.
-  private currentFrozenRowCount: number = 1;
+  // Extra frozen row count (NOT counting the column-title header row that VTable always has).
+  // Used to compute the global VTable row index: globalRow = bodyRow + 1 + extraFrozenRows.
+  private currentFrozenRowCount: number = 0;
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -350,19 +346,7 @@ export struct ReportTableComponent {
         allowFrozenColCount = columnsArr.length;
       }
 
-      // Pre-compute frozen shadow X position from column maxWidth (upper-bound estimate).
-      // Refined with actual rendered widths after VTable initializes via getColWidth.
-      let computedShadowX: number = 0;
-      for (let si: number = 0; si < frozenColCount && si < columnsArr.length; si++) {
-        const scol: Record<string, Object> = columnsArr[si] as Record<string, Object>;
-        const maxW: number = (scol['maxWidth'] !== undefined) ? (scol['maxWidth'] as number) : 120;
-        computedShadowX += maxW;
-      }
-      computedShadowX += frozenColCount; // +1 px per frozen column border
-      this.frozenShadowX = computedShadowX;
-      this.currentFrozenColCount = frozenColCount;
       this.currentFrozenRowCount = frozenRowCount;
-      this.hasFrozenScroll = false; // reset: new option means scroll is back at origin
 
       // Build option JSON.
       // VTable's WebView uses CSS logical pixels, which equal vp. No unit conversion needed.
@@ -389,6 +373,19 @@ export struct ReportTableComponent {
         ',"editor":""' +
         ',"editCellTrigger":"api"';
       const newOption: Record<string, Object> = JSON.parse('{' + optionStr + '}') as Record<string, Object>;
+
+      // Inject VTable native frozen-column shadow when columns are frozen.
+      // VTable renders the shadow at the EXACT frozen boundary — no ArkTS position calculation needed.
+      // Only added when frozenColCount > 0; absent when unlocked so no shadow appears.
+      if (frozenColCount > 0) {
+        const themeObjVal: Object | undefined = newOption['theme'];
+        if (themeObjVal !== undefined) {
+          const themeObj: Record<string, Object> = themeObjVal as Record<string, Object>;
+          const shadowPatch: string = '{"shadow":{"width":6,"startColor":"rgba(0,0,0,0.18)","endColor":"rgba(0,0,0,0)"}}' ;
+          themeObj['frozenColumnLine'] = JSON.parse(shadowPatch) as Record<string, Object>;
+          newOption['theme'] = themeObj as Object;
+        }
+      }
 
       // NOTE: customLayout/headerCustomLayout CANNOT work with @ohos/vtable
       // because VTable uses a WebView internally and functions can't be serialized to JSON.
@@ -419,11 +416,10 @@ export struct ReportTableComponent {
     if (commandName === 'scrollTo' && args.length >= 2) {
       const lineX: number = args[0] as number;
       const lineY: number = args[1] as number;
-      // scrollToRow/scrollToCol in @ohos/vtable use the GLOBAL table row/col index
-      // (which includes header rows). Convert body-row index lineY → global row index
-      // by adding currentFrozenRowCount (the header row count).
+      // VTable global row index = 1 (column-title header) + currentFrozenRowCount (extra frozen body rows) + lineY.
+      // lineX is a column index and is already a global column index (no offset needed).
       if (lineY >= 0) {
-        this.controller.scrollToRow(lineY + this.currentFrozenRowCount);
+        this.controller.scrollToRow(1 + this.currentFrozenRowCount + lineY);
       }
       if (lineX >= 0) {
         this.controller.scrollToCol(lineX);
@@ -433,7 +429,7 @@ export struct ReportTableComponent {
       if (recordsVal !== undefined) {
         const recordsArr: Object[] = recordsVal as Object[];
         if (recordsArr.length > 0) {
-          this.controller.scrollToRow(recordsArr.length - 1 + this.currentFrozenRowCount);
+          this.controller.scrollToRow(recordsArr.length - 1 + 1 + this.currentFrozenRowCount);
         }
       }
     } else if (commandName === 'updateData' && args.length > 0) {
@@ -606,10 +602,6 @@ export struct ReportTableComponent {
         self.emitEvent('clickEvent', JSON.parse(payloadStr) as Object);
       },
       onScroll: (event: ScrollEventData): void => {
-        // Update shadow overlay visibility — only @State change, no updateOption call.
-        if (self.currentFrozenColCount > 0) {
-          self.hasFrozenScroll = event.scrollLeft > 0;
-        }
         const payloadStr: string = '{"translateX":' + event.scrollLeft.toString() +
           ',"translateY":' + event.scrollTop.toString() +
           ',"scale":' + self.currentZoom.toString() + '}';
@@ -622,18 +614,6 @@ export struct ReportTableComponent {
       onInitialized: (): void => {
         // Mark initialized so subsequent updateVTable calls emit contentSize directly.
         self.vtableInitialized = true;
-
-        // Refine frozen shadow X with VTable's actual rendered column widths.
-        // getColWidth(col) returns the real width after autoWidth calculation.
-        if (self.currentFrozenColCount > 0) {
-          let actualX: number = 0;
-          for (let wi: number = 0; wi < self.currentFrozenColCount; wi++) {
-            actualX += self.controller.getColWidth(wi);
-          }
-          if (actualX > 0) {
-            self.frozenShadowX = actualX;
-          }
-        }
 
         // Emit natively-measured contentSize. Listeners are ready by this point
         // (JS componentDidMount runs before VTable's WebView finishes loading).
@@ -663,20 +643,6 @@ export struct ReportTableComponent {
           centerY: 0
         })
         .position({ x: 0, y: 0 })
-
-      // Frozen-column drop shadow — only visible when scrollLeft > 0 and columns are frozen.
-      // Position is refined by getColWidth after VTable initializes for pixel-perfect placement.
-      if (this.hasFrozenScroll && this.frozenShadowX > 0) {
-        Column() {}
-          .width(8)
-          .height('100%')
-          .position({ x: this.frozenShadowX, y: 0 })
-          .linearGradient({
-            angle: 90,
-            colors: [['rgba(0,0,0,0.18)', 0.0], ['rgba(0,0,0,0)', 1.0]]
-          })
-          .hitTestBehavior(HitTestMode.None)
-      }
     }
     .width('100%')
     .height('100%')
@@ -689,17 +655,12 @@ export struct ReportTableComponent {
         this.componentHeight = h;
       }
     })
-    // priorityGesture + IgnoreInternal: intercept pinch before VTable's inner WebView,
-    // so that when disableZoom=true the WebView never receives the gesture at all.
-    .priorityGesture(
+    .gesture(
       PinchGesture({ fingers: 2, distance: 1 })
         .onActionStart((): void => {
           this.baseZoom = this.currentZoom;
         })
         .onActionUpdate((event: GestureEvent): void => {
-          if (this.disableZoom) {
-            return;
-          }
           let newZoom: number = this.baseZoom * event.scale;
           if (newZoom < 0.5) {
             newZoom = 0.5;
@@ -709,10 +670,18 @@ export struct ReportTableComponent {
           }
           this.currentZoom = newZoom;
         })
-        .onActionEnd((): void => {
-          // Zoom is already set during update
-        }),
-      GestureMask.IgnoreInternal
+        .onActionEnd((): void => {})
     )
+
+    // When disableZoom=true, overlay a transparent blocker over the entire component.
+    // hitTestBehavior.Block consumes ALL touch events (including multi-finger pinch)
+    // before they reach the VTable WebView, effectively disabling zoom.
+    if (this.disableZoom) {
+      Stack() {}
+        .width('100%')
+        .height('100%')
+        .position({ x: 0, y: 0 })
+        .hitTestBehavior(HitTestMode.Block)
+    }
   }
 }
