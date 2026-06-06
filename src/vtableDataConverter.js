@@ -85,31 +85,65 @@ function buildColumnStyle(cell, itemConfig) {
  * @param {object} cell - A single DataSource cell object.
  * @returns {object} Metadata object for custom rendering.
  */
-function buildCellMeta(cell) {
+function buildCellMeta(cell, itemConfig) {
     const meta = {
         title: cell.title ?? '',
         keyIndex: cell.keyIndex ?? 0,
     };
 
-    // Basic text styling
-    if (cell.fontSize != null) meta.fontSize = cell.fontSize;
-    if (cell.textColor != null) meta.textColor = normalizeColor(cell.textColor);
+    // Basic text styling — merge with itemConfig defaults so vtable_util.js
+    // customRender doesn't need a separate itemConfig reference.
+    const fontSize = cell.fontSize ?? itemConfig?.fontSize;
+    const textColor = normalizeColor(cell.textColor ?? itemConfig?.textColor);
+    const isOverstriking = cell.isOverstriking ?? itemConfig?.isOverstriking ?? false;
+    const padH = cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12;
+
+    if (fontSize != null) meta.fontSize = fontSize;
+    if (textColor) meta.textColor = textColor;
     if (cell.backgroundColor != null) meta.backgroundColor = normalizeColor(cell.backgroundColor);
     if (cell.textAlignment != null) meta.textAlign = mapTextAlign(cell.textAlignment);
-    if (cell.isOverstriking) meta.fontWeight = 'bold';
-    if (cell.textPaddingHorizontal != null) meta.textPaddingHorizontal = cell.textPaddingHorizontal;
+    else if (itemConfig?.textAlignment != null) meta.textAlign = mapTextAlign(itemConfig.textAlignment);
+    if (isOverstriking) meta.fontWeight = 'bold';
+    // Always store padding so customRender can use it
+    meta.textPaddingHorizontal = cell.textPaddingLeft != null || cell.textPaddingRight != null
+        ? padH  // use default as fallback when left/right are set separately
+        : padH;
     if (cell.textPaddingLeft != null) meta.textPaddingLeft = cell.textPaddingLeft;
     if (cell.textPaddingRight != null) meta.textPaddingRight = cell.textPaddingRight;
 
-    // Special features
-    if (cell.progressStyle) meta.progressStyle = cell.progressStyle;
+    // Special features — merge itemConfig defaults into progressStyle
+    if (cell.progressStyle) {
+        const icPs = itemConfig?.progressStyle ?? {};
+        meta.progressStyle = {
+            height:          cell.progressStyle.height           ?? icPs.height          ?? 20,
+            cornerRadius:    cell.progressStyle.cornerRadius     ?? icPs.cornerRadius    ?? 1,
+            marginHorizontal:cell.progressStyle.marginHorizontal ?? icPs.marginHorizontal ?? 8,
+            startRatio:      cell.progressStyle.startRatio       ?? 0,
+            endRatio:        cell.progressStyle.endRatio         ?? 0,
+            colors:          cell.progressStyle.colors           ?? [],
+        };
+        // antsLineStyle
+        const cellAnts = cell.progressStyle.antsLineStyle;
+        const icAnts = icPs.antsLineStyle;
+        if (cellAnts || icAnts) {
+            const ants = cellAnts ?? icAnts;
+            meta.progressStyle.antsLineStyle = {
+                color:           ants.color           ?? '#222222',
+                lineWidth:       ants.lineWidth        ?? 0.5,
+                lineDashPattern: ants.lineDashPattern  ?? [4, 2],
+                lineRatio:       ants.lineRatio        ?? 0,
+            };
+        }
+    }
     if (cell.floatIcon) meta.floatIcon = cell.floatIcon;
     if (cell.extraText) meta.extraText = cell.extraText;
     if (cell.isForbidden) meta.isForbidden = true;
-    if (cell.boxLineColor) meta.boxLineColor = cell.boxLineColor;
+    if (cell.boxLineColor) meta.boxLineColor = normalizeColor(cell.boxLineColor);
     if (cell.classificationLinePosition != null) {
         meta.classificationLinePosition = cell.classificationLinePosition;
-        if (cell.classificationLineColor) meta.classificationLineColor = cell.classificationLineColor;
+        // Resolve color: cell > itemConfig > built-in default (resolved in vtable_util.js)
+        const clColor = cell.classificationLineColor ?? itemConfig?.classificationLineColor;
+        if (clColor) meta.classificationLineColor = normalizeColor(clColor);
     }
     if (cell.richText) meta.richText = cell.richText;
     if (cell.gradient) meta.gradient = cell.gradient;
@@ -393,7 +427,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             // to prevent content overlap when VTable renders the merged cell on top.
             const isCovered = mergedCoveredSet.has(`${rowIdx}_${colIdx}`);
             record[String(colIdx)] = isCovered ? '' : (cell.title ?? '');
-            record[`__meta_${colIdx}`] = isCovered ? { title: '', keyIndex: cell.keyIndex ?? 0 } : buildCellMeta(cell);
+            record[`__meta_${colIdx}`] = isCovered ? { title: '', keyIndex: cell.keyIndex ?? 0 } : buildCellMeta(cell, itemConfig);
         }
 
         records.push(record);
@@ -516,7 +550,7 @@ export function convertSpliceData(params, colCount) {
             for (let colIdx = 0; colIdx < colCount; colIdx++) {
                 const cell = row?.[colIdx] ?? {};
                 record[String(colIdx)] = cell.title ?? '';
-                record[`__meta_${colIdx}`] = buildCellMeta(cell);
+                record[`__meta_${colIdx}`] = buildCellMeta(cell, itemConfig);
             }
             newRecords.push(record);
         }
