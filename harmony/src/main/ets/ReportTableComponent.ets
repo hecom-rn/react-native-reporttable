@@ -43,10 +43,7 @@ export struct ReportTableComponent {
   // Extra frozen row count (NOT counting the column-title header row that VTable always has).
   // Used to compute the global VTable row index: globalRow = bodyRow + 1 + extraFrozenRows.
   private currentFrozenRowCount: number = 0;
-  // Frozen column shadow state — toggled in onScroll (no updateOption → no blank).
-  @State hasFrozenScroll: boolean = false;
-  @State frozenShadowX: number = 0;
-  private currentFrozenColCount: number = 0;
+
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -278,17 +275,8 @@ export struct ReportTableComponent {
         contentHeight += maxRowH + borderPx;
       }
 
-      // Encode colWidths into the returned JSON so updateVTable can use actual widths
-      // for frozenShadowX instead of the inaccurate minWidth estimate.
-      let colWidthsStr: string = '[';
-      for (let c: number = 0; c < colCount; c++) {
-        if (c > 0) { colWidthsStr += ','; }
-        colWidthsStr += Math.round(colWidths[c]).toString();
-      }
-      colWidthsStr += ']';
       return '{"width":' + Math.round(contentWidth).toString() +
-        ',"height":' + Math.round(contentHeight).toString() +
-        ',"colWidths":' + colWidthsStr + '}';
+        ',"height":' + Math.round(contentHeight).toString() + '}';
     } catch (e) {
       console.error('[ReportTableComponent] computeContentSizeNative error: ' + (e as Error).message);
       return '{}';
@@ -387,39 +375,6 @@ export struct ReportTableComponent {
         ',"editCellTrigger":"api"';
       const newOption: Record<string, Object> = JSON.parse('{' + optionStr + '}') as Record<string, Object>;
 
-      // Compute frozen-column shadow X using actual measured column widths (not minWidth).
-      // colWidths are embedded in cachedContentSize by computeContentSizeNative, so they
-      // reflect the autoWidth-expanded widths and put the shadow at the correct position.
-      if (frozenColCount > 0) {
-        let shadowX: number = 0;
-        let actualColWidths: number[] = [];
-        try {
-          const csObj: Record<string, Object> = JSON.parse(this.cachedContentSize) as Record<string, Object>;
-          if (csObj['colWidths'] !== undefined) {
-            actualColWidths = csObj['colWidths'] as number[];
-          }
-        } catch (_parseErr) {}
-        for (let i: number = 0; i < frozenColCount && i < columnsArr.length; i++) {
-          const actualW: number = (i < actualColWidths.length)
-            ? (actualColWidths[i] as number) : 0;
-          if (actualW > 0) {
-            shadowX += actualW;
-          } else {
-            // Fallback: minWidth before first measurement completes
-            const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
-            shadowX += (col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 50;
-          }
-        }
-        this.frozenShadowX = shadowX + frozenColCount; // +1px per border
-        this.currentFrozenColCount = frozenColCount;
-        // Reset visibility; onScroll re-enables when scrollLeft > 0.
-        this.hasFrozenScroll = false;
-      } else {
-        this.frozenShadowX = 0;
-        this.currentFrozenColCount = 0;
-        this.hasFrozenScroll = false;
-      }
-
       // NOTE: customLayout/headerCustomLayout CANNOT work with @ohos/vtable
       // because VTable uses a WebView internally and functions can't be serialized to JSON.
       // Styling is handled via column `style` property and customCellStyle/customCellStyleArrangement.
@@ -449,20 +404,12 @@ export struct ReportTableComponent {
     if (commandName === 'scrollTo' && args.length >= 2) {
       const lineX: number = args[0] as number;
       const lineY: number = args[1] as number;
-      // lineY==0 means scroll to the very top: use setScrollTop(0) for pixel-perfect positioning.
-      // scrollToRow only ensures the target row is "visible", not necessarily at the top.
-      // For lineY>0 we still use scrollToRow (global row index) since we don't know row heights.
-      if (lineY === 0) {
-        this.controller.setScrollTop(0);
-      } else if (lineY > 0) {
-        this.controller.scrollToRow(1 + this.currentFrozenRowCount + lineY);
-      }
-      // lineX==0 means scroll to the leftmost position: use setScrollLeft(0) for accuracy.
-      if (lineX === 0) {
-        this.controller.setScrollLeft(0);
-      } else if (lineX > 0) {
-        this.controller.scrollToCol(lineX);
-      }
+      // const addr: Record<string, number> = {} as Record<string, number>;
+      // addr['row'] = lineX;
+      // addr['col'] = lineY;
+      // this.controller.scrollToRowCol(addr);
+      this.controller.scrollToRow(lineX);
+      this.controller.scrollToCol(lineY);
     } else if (commandName === 'scrollToBottom') {
       const recordsVal: Object | undefined = this.currentOption['records'];
       if (recordsVal !== undefined) {
@@ -646,10 +593,6 @@ export struct ReportTableComponent {
           ',"translateY":' + event.scrollTop.toString() +
           ',"scale":' + self.currentZoom.toString() + '}';
         self.emitEvent('scroll', JSON.parse(payloadStr) as Object);
-        // Update frozen-column shadow visibility based on scroll position.
-        if (self.currentFrozenColCount > 0) {
-          self.hasFrozenScroll = event.scrollLeft > 0;
-        }
       },
       onScrollVerticalEnd: (event: ScrollEventData): void => {
         const payloadStr: string = '{"isEnd":true}';
@@ -687,21 +630,6 @@ export struct ReportTableComponent {
           centerY: 0
         })
         .position({ x: 0, y: 0 })
-
-      // Frozen-column shadow overlay — only visible when scrollLeft > 0.
-      // Position is computed from column minWidths in updateVTable.
-      // hitTestBehavior.None so touch events pass through to VTable.
-      if (this.hasFrozenScroll && this.frozenShadowX > 0) {
-        Column() {}
-          .width(8)
-          .height('100%')
-          .position({ x: this.frozenShadowX, y: 0 })
-          .linearGradient({
-            angle: 90,
-            colors: [['rgba(0,0,0,0.18)', 0.0], ['rgba(0,0,0,0)', 1.0]]
-          })
-          .hitTestBehavior(HitTestMode.None)
-      }
 
     }
     .width('100%')
