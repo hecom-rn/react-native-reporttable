@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Tabulator Test</title>
+<!--    <link rel="stylesheet" href="./tabulator.css" />-->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            height: 100%;
+            width: 100%;
+            font-family: Arial, sans-serif;
+            background: white;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            background: white;
+        }
+
+        #test-table {
+            flex: 1;
+            overflow: auto;
+            background: white;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <div id="test-title"></div>
+    <div id="tableContainer" style=" width:100% ;height:100%;"></div>
+</div>
+<script src="./vtable.min.js"></script>
+<script src="./vtable_util.js"></script>
+<script src="./vtable-editors.min.js"></script>
+</body>
+
+</html>
