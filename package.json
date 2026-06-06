@@ -22,6 +22,15 @@
       }
     }
   },
+  "files": [
+    "android",
+    "harmony",
+    "ios",
+    "src",
+    "index.js",
+    "index.d.ts",
+    "hecom-rn-reportTable.podspec"
+  ],
   "harmony": {
     "alias": "react-native-report-table",
     "codegenConfig": {
