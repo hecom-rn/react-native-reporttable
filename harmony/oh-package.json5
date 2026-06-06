@@ -7,7 +7,7 @@
   "license": "MIT",
   "dependencies": {
     "@rnoh/react-native-openharmony": ">=0.72.0",
-    "@ohos/vtable": "https://gitee.com/VampireGod/ohos_VTable.git#b43bbe0de1dd90e11745bd182c6febead41316f6&subPath=library"
+    "@ohos/vtable": "file:./vtable_library"
   },
   "devDependencies": {}
 }
