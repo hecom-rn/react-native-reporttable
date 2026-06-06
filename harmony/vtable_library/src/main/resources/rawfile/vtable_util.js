@@ -1,6 +1,33 @@
 var h5Port;
 var output = document.querySelector('.output');
 
+// ---- Lock icon SVG data URI helpers ----
+var _lockLockedSvgUrl = null;
+var _lockUnlockedSvgUrl = null;
+function getLockIconUrl(locked) {
+    if (locked) {
+        if (!_lockLockedSvgUrl) {
+            _lockLockedSvgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+                '<path fill="#555555" d="M12 2C9.24 2 7 4.24 7 7V10H5V20H19V10H17V7C17 4.24 14.76 2 12 2Z' +
+                'M9 7C9 5.34 10.34 4 12 4S15 5.34 15 7V10H9V7ZM12 17C10.9 17 10 16.1 10 15S' +
+                '10.9 13 12 13 14 13.9 14 15 13.1 17 12 17Z"/></svg>'
+            );
+        }
+        return _lockLockedSvgUrl;
+    } else {
+        if (!_lockUnlockedSvgUrl) {
+            _lockUnlockedSvgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+                '<path fill="#aaaaaa" d="M18 8H17V6C17 3.24 14.76 1 12 1S7 3.24 7 6H9C9 4.34 10.34 3 12 3S' +
+                '15 4.34 15 6V8H6C4.9 8 4 8.9 4 10V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V10' +
+                'C20 8.9 19.1 8 18 8ZM12 17C10.9 17 10 16.1 10 15S10.9 13 12 13 14 13.9 14 15 13.1 17 12 17Z"/></svg>'
+            );
+        }
+        return _lockUnlockedSvgUrl;
+    }
+}
+
 var eventMap = {
     "INITIALIZED": eventCallback,
     "UPDATED": eventCallback,
@@ -284,9 +311,51 @@ function buildCellRender() {
         var w = args.rect.width;
         var h = args.rect.height;
 
-        // getRecordByCell returns null for header rows — let VTable handle them.
+        // getRecordByCell returns null for header rows.
         var record = args.table.getRecordByCell(col, row);
-        if (!record) return { renderDefault: true };
+        if (!record) {
+            // Check if this is a covered (non-anchor) cell inside a merge — skip.
+            var hCellRange = args.table.getCellRange(col, row);
+            if (hCellRange && (hCellRange.start.col !== col || hCellRange.start.row !== row)) {
+                return { renderDefault: true };
+            }
+            // Check if this column has a lock icon to render.
+            var hCols = args.table.options && args.table.options.columns;
+            if (!hCols || col >= hCols.length || !hCols[col]) return { renderDefault: true };
+            var colLockInfo = hCols[col]['__lockInfo'];
+            if (!colLockInfo || !colLockInfo.showLock) return { renderDefault: true };
+
+            // Draw header cell: text + lock icon (replaces native showFrozenIcon).
+            var hStyle = args.table.getCellStyle(col, row) || {};
+            var hFontSize = hStyle.fontSize || 14;
+            var hColor = hStyle.color || '#222222';
+            var hFontWeight = hStyle.fontWeight || 'normal';
+            var hTextAlign = hStyle.textAlign || 'left';
+            var hPad = hStyle.padding;
+            var hPadH = Array.isArray(hPad) ? (hPad[1] || 12) : 12;
+            var hCellValue = String(args.table.getCellValue(col, row) || '');
+            var hIsLocked = col < (args.table.frozenColCount || 0);
+            var hIconW = 13, hIconH = 14, hIconPad = 4;
+            var hMaxTextW = Math.max(0, w - hPadH * 2 - hIconW - hIconPad);
+            var hEstTextW = Math.min(hCellValue.length * hFontSize * 0.55, hMaxTextW);
+            var hTX = hPadH;
+            if (hTextAlign === 'center') hTX = Math.max(hPadH, (w - hEstTextW - hIconW - hIconPad) / 2);
+            else if (hTextAlign === 'right') hTX = Math.max(hPadH, w - hPadH - hEstTextW - hIconW - hIconPad);
+            var hLockX = hTX + hEstTextW + hIconPad;
+            var hLockY = (h - hIconH) / 2;
+            return {
+                elements: [
+                    { type: 'text', x: hTX, y: h / 2, text: hCellValue,
+                      fontSize: hFontSize, fill: hColor, fontWeight: hFontWeight,
+                      textAlign: 'left', textBaseline: 'middle',
+                      maxLineWidth: hEstTextW, ellipsis: '...', pickable: false },
+                    { type: 'image', x: hLockX, y: hLockY,
+                      width: hIconW, height: hIconH,
+                      image: getLockIconUrl(hIsLocked), pickable: false }
+                ],
+                renderDefault: false
+            };
+        }
 
         var meta = record['__meta_' + col];
         if (!meta) return { renderDefault: true };
@@ -295,7 +364,6 @@ function buildCellRender() {
         var hasOverlay = !!(
             meta.isForbidden ||
             meta.boxLineColor ||
-            (meta.classificationLinePosition && meta.classificationLinePosition > 0) ||
             meta.floatIcon ||
             meta.extraText
         );
@@ -380,7 +448,7 @@ function buildCellRender() {
                     type: 'line',
                     points: [{ x: alX, y: pBarY }, { x: alX, y: pBarY + pHeight }],
                     stroke:   al.color            || '#222222',
-                    lineWidth: al.lineWidth        || 0.5,
+                    lineWidth: al.lineWidth        || 1,
                     lineDash:  al.lineDashPattern  || [4, 2],
                     pickable: false
                 });
@@ -513,15 +581,9 @@ function buildCellRender() {
             });
         }
 
-        // Classification separator lines
-        if (meta.classificationLinePosition && meta.classificationLinePosition > 0) {
-            var clColor = meta.classificationLineColor || '#9cb3c8';
-            var clPos   = meta.classificationLinePosition;
-            if (clPos & 1) elements.push({ type: 'line', points: [{ x: 0, y: 0 },   { x: w, y: 0 }],   stroke: clColor, lineWidth: 1, pickable: false });
-            if (clPos & 2) elements.push({ type: 'line', points: [{ x: w-1, y: 0 }, { x: w-1, y: h }], stroke: clColor, lineWidth: 1, pickable: false });
-            if (clPos & 4) elements.push({ type: 'line', points: [{ x: 0, y: h-1 }, { x: w, y: h-1 }], stroke: clColor, lineWidth: 1, pickable: false });
-            if (clPos & 8) elements.push({ type: 'line', points: [{ x: 0, y: 0 },   { x: 0, y: h }],   stroke: clColor, lineWidth: 1, pickable: false });
-        }
+        // Classification separator lines are now handled via customCellStyleArrangement
+        // borderColor (set in vtableDataConverter.js) to avoid double-border artifacts.
+        // No overlay elements needed here.
 
         // Extra badge text
         if (meta.extraText) {

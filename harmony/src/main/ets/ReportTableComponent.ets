@@ -180,7 +180,11 @@ export struct ReportTableComponent {
           // Pass fontSize as a number (in fp ≈ vp units). measureText returns px.
           const wPx: number = measure.measureText({ textContent: headerTitle, fontSize: colFontSize });
           // Fallback to char-width estimate when measureText returns 0 (font not loaded yet)
-          const wVp: number = wPx > 0 ? wPx / dpRatio : headerTitle.length * colFontSize * 0.65;
+          let wVp: number = wPx > 0 ? wPx / dpRatio : headerTitle.length * colFontSize * 0.65;
+          // Add lock icon width when this column has a lock icon (drawn via customRender).
+          if (col['__lockInfo'] !== undefined) {
+            wVp += 13 + 4; // lockIconWidth(13) + lockIconPadding(4)
+          }
           maxContentW = Math.max(maxContentW, wVp + colPadH * 2);
         }
         // Body cells
@@ -199,7 +203,15 @@ export struct ReportTableComponent {
             ? (rec[c.toString()] as string) : '';
           if (cellText.length > 0) {
             const wPx: number = measure.measureText({ textContent: cellText, fontSize: cellFontSize });
-            const wVp: number = wPx > 0 ? wPx / dpRatio : cellText.length * cellFontSize * 0.65;
+            let wVp: number = wPx > 0 ? wPx / dpRatio : cellText.length * cellFontSize * 0.65;
+            // Add icon width when the cell has an icon (rendered via customRender).
+            const cellIconVal: Object | undefined = meta['icon'];
+            if (cellIconVal !== undefined) {
+              const cellIconObj: Record<string, Object> = cellIconVal as Record<string, Object>;
+              const iW: number = (cellIconObj['width'] !== undefined) ? (cellIconObj['width'] as number) : 16;
+              const iPad: number = (cellIconObj['paddingHorizontal'] !== undefined) ? (cellIconObj['paddingHorizontal'] as number) : 4;
+              wVp += iW + iPad;
+            }
             maxContentW = Math.max(maxContentW, wVp + cellPadH * 2);
           }
         }
@@ -261,10 +273,13 @@ export struct ReportTableComponent {
           const cellText: string = (rec[c.toString()] !== undefined)
             ? (rec[c.toString()] as string) : '';
           if (cellText.length > 0) {
-            const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
             const wPx: number = measure.measureText({ textContent: cellText, fontSize: fontSize });
             const wVp: number = wPx > 0 ? wPx / dpRatio : cellText.length * fontSize * 0.65;
-            const lineCount: number = Math.max(1, Math.ceil(wVp / availW));
+            // progressStyle cells never wrap — single line only.
+            const hasProgressStyle: boolean = meta['progressStyle'] !== undefined;
+            const lineCount: number = hasProgressStyle
+              ? 1
+              : Math.max(1, Math.ceil(wVp / Math.max(colWidths[c] - padH * 2, fontSize)));
             // vertPad = top+bottom padding = minHeight - fontSize (constant regardless of line count)
             // So: 1 line → minHeight; N lines → (N-1)*fontSize + minHeight
             const vertPad: number = safeMinHeight - fontSize;
@@ -360,7 +375,7 @@ export struct ReportTableComponent {
         ',"frozenColCount":' + frozenColCount.toString() +
         ',"frozenRowCount":' + frozenRowCount.toString() +
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
-        ',"showFrozenIcon":' + (allowFrozenColCount > 0 ? 'true' : 'false') +
+        '"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
         ',"defaultHeaderRowHeight":' + rowMinHeight.toString() +
         ',"autoWrapText":true' +

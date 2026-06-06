@@ -127,11 +127,13 @@ function buildCellMeta(cell, itemConfig) {
         const icAnts = icPs.antsLineStyle;
         if (cellAnts || icAnts) {
             const ants = cellAnts ?? icAnts;
+            // Merge cellAnts + icAnts: cellAnts overrides icAnts defaults
+            const mergedAnts = Object.assign({}, icAnts || {}, cellAnts || {});
             meta.progressStyle.antsLineStyle = {
-                color:           ants.color           ?? '#222222',
-                lineWidth:       ants.lineWidth        ?? 0.5,
-                lineDashPattern: ants.lineDashPattern  ?? [4, 2],
-                lineRatio:       ants.lineRatio        ?? 0,
+                color:           mergedAnts.color           ?? '#222222',
+                lineWidth:       mergedAnts.lineWidth        ?? 1,
+                lineDashPattern: mergedAnts.lineDashPattern  ?? [4, 2],
+                lineRatio:       mergedAnts.lineRatio        ?? 0,
             };
         }
     }
@@ -248,7 +250,7 @@ function computeMergedCells(dataSource, headerRowCount) {
  * @param {object} itemConfig - Global default config.
  * @returns {{ customCellStyle: Array, customCellStyleArrangement: Array }}
  */
-function buildCellStyleArrangements(dataSource, itemConfig) {
+function buildCellStyleArrangements(dataSource, itemConfig, defaultBorderColor) {
     const customCellStyle = [];
     const customCellStyleArrangement = [];
     const styleCache = new Map();
@@ -302,6 +304,20 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
                 cellStyle.padding = [0, cell.textPaddingHorizontal];
                 hasOverride = true;
             }
+            // Classification line: replace the default border color on specific edges.
+            // This avoids a double-border when combined with VTable's native border rendering.
+            if (cell.classificationLinePosition != null && cell.classificationLinePosition > 0) {
+                const clPos = cell.classificationLinePosition;
+                const clColor = normalizeColor(cell.classificationLineColor ?? itemConfig?.classificationLineColor ?? '#9cb3c8');
+                const defBC = defaultBorderColor || '#e8e8e8';
+                cellStyle.borderColor = [
+                    (clPos & 1) ? clColor : defBC,  // top
+                    (clPos & 2) ? clColor : defBC,  // right
+                    (clPos & 4) ? clColor : defBC,  // bottom
+                    (clPos & 8) ? clColor : defBC,  // left
+                ];
+                hasOverride = true;
+            }
 
             if (!hasOverride) continue;
 
@@ -347,10 +363,32 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         permutable = false,
         frozenAbility = {},
         ignoreLocks = [],
+        lineColor,
     } = options;
 
     const colCount = dataSource[0]?.length ?? 0;
     const headerRowCount = Math.min(frozenRows, dataSource.length);
+
+    // Pre-compute which columns are covered (non-anchor) in the first header row (row 0).
+    // Covered columns in merged header cells should NOT show lock icons.
+    const headerCoveredCols = new Set();
+    if (dataSource[0]) {
+        const headerRow0 = dataSource[0];
+        let hc = 0;
+        while (hc < colCount) {
+            const hCell = headerRow0[hc];
+            if (!hCell || hCell.keyIndex == null) { hc++; continue; }
+            const hKeyIndex = hCell.keyIndex;
+            let hSpan = 1;
+            while (hc + hSpan < colCount) {
+                const hn = headerRow0[hc + hSpan];
+                if (hn && hn.keyIndex === hKeyIndex) hSpan++;
+                else break;
+            }
+            for (let s = 1; s < hSpan; s++) headerCoveredCols.add(hc + s);
+            hc += hSpan;
+        }
+    }
 
     // --- Build columns ---
     const columns = [];
@@ -364,7 +402,8 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         const isPermanentlyFrozen = colIdx < frozenColumns;
         const isIgnored = ignoreLocksSet.has(colIdx);
 
-        if (!isPermanentlyFrozen && !isIgnored) {
+        const isHeaderCovered = headerCoveredCols.has(colIdx);
+        if (!isPermanentlyFrozen && !isIgnored && !isHeaderCovered) {
             if (frozenAbility && frozenAbility[String(colIdx)] != null) {
                 lockInfo = { showLock: true, isLocked: !!frozenAbility[String(colIdx)].locked };
             } else if (permutable) {
@@ -415,6 +454,40 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         }
     }
 
+    // Post-process column width constraints for progressStyle and icon cells.
+    // progressStyle cells must show full text without wrapping (break through maxWidth).
+    // Icon cells need extra width for icon + padding.
+    for (let c = 0; c < colCount; c++) {
+        let hasProgressStyle = false;
+        let maxNeededW = columns[c].maxWidth || maxWidth;
+        for (let r = headerRowCount; r < dataSource.length; r++) {
+            const cell = dataSource[r]?.[c];
+            if (!cell) continue;
+            const cFontSize = cell.fontSize ?? itemConfig?.fontSize ?? 14;
+            const cPadL = cell.textPaddingLeft ?? cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12;
+            const cPadR = cell.textPaddingRight ?? cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12;
+            const cTitle = cell.title ?? '';
+            if (cell.progressStyle) {
+                hasProgressStyle = true;
+                const needed = cTitle.length * cFontSize * 0.6 + cPadL + cPadR;
+                if (needed > maxNeededW) maxNeededW = needed;
+            }
+            if (cell.icon) {
+                const iW = cell.icon.width ?? 16;
+                const iPad = cell.icon.paddingHorizontal ?? 4;
+                const needed = cTitle.length * cFontSize * 0.6 + iW + iPad + cPadL + cPadR;
+                if (needed > maxNeededW) maxNeededW = needed;
+            }
+        }
+        if (hasProgressStyle) {
+            columns[c].maxWidth = Math.max(columns[c].minWidth || minWidth, maxNeededW);
+            columns[c].style.autoWrapText = false;
+            columns[c].style.lineBreakMode = 'none';
+        } else if (maxNeededW > (columns[c].maxWidth || maxWidth)) {
+            columns[c].maxWidth = maxNeededW;
+        }
+    }
+
     // --- Build records (body rows, skip header rows) ---
     const records = [];
     for (let rowIdx = headerRowCount; rowIdx < dataSource.length; rowIdx++) {
@@ -434,7 +507,9 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
     }
 
     // --- Compute per-cell style overrides ---
-    const { customCellStyle, customCellStyleArrangement } = buildCellStyleArrangements(dataSource, itemConfig);
+    // Default border color for classification line non-classification edges
+    const defBorderColor = normalizeColor(lineColor || '#e8e8e8');
+    const { customCellStyle, customCellStyleArrangement } = buildCellStyleArrangements(dataSource, itemConfig, defBorderColor);
 
     return { records, columns, mergedCells, customCellStyle, customCellStyleArrangement };
 }
