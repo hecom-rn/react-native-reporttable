@@ -502,8 +502,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             const cTitle = cell.title ?? '';
             if (cell.progressStyle) {
                 hasProgressStyle = true;
-                const needed = cTitle.length * cFontSize * 0.6 + cPadL + cPadR;
-                if (needed > maxNeededW) maxNeededW = needed;
+                // Width will be measured accurately in vtable_util.js via canvas.measureText().
             }
             if (cell.icon) {
                 const iW = cell.icon.width ?? 16;
@@ -513,12 +512,8 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             }
         }
         if (hasProgressStyle) {
-            // For progressStyle columns, break through maxWidth so text shows fully (no ellipsis).
-            // Multiply estimate by 1.3 as safety margin for character-width variation.
-            const fixedW = Math.max(columns[c].minWidth || minWidth, Math.ceil(maxNeededW * 1.3));
-            columns[c].width = fixedW;
-            columns[c].minWidth = fixedW;
-            columns[c].maxWidth = fixedW;
+            // Mark column so vtable_util.js can measure and set exact width via canvas.measureText().
+            columns[c].__progressStyle = true;
             columns[c].style.autoWrapText = false;
             columns[c].headerStyle.autoWrapText = false;
         } else if (maxNeededW > (columns[c].maxWidth || maxWidth)) {

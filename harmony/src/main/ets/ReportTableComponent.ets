@@ -374,8 +374,8 @@ export struct ReportTableComponent {
         ',"customCellStyleArrangement":' + customCellStyleArrangementStr +
         ',"frozenColCount":' + frozenColCount.toString() +
         ',"frozenRowCount":' + frozenRowCount.toString() +
-        ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
-        ',"showFrozenIcon":' + (allowFrozenColCount > 0 ? 'true' : 'false') +
+        '"allowFrozenColCount":0' +
+        ',"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
         ',"defaultHeaderRowHeight":' + rowMinHeight.toString() +
         ',"autoWrapText":true' +
@@ -576,11 +576,19 @@ export struct ReportTableComponent {
                   for (let fi: number = 0; fi <= event.col; fi++) {
                     if (fi >= cols.length) break;
                     const fc: Record<string, Object> = cols[fi] as Record<string, Object>;
-                    const fcMin: number = (fc['minWidth'] !== undefined) ? (fc['minWidth'] as number) : 50;
-                    const fcMax: number = (fc['maxWidth'] !== undefined) ? (fc['maxWidth'] as number) : 120;
-                    totalFrozenWidth += Math.min(fcMax, Math.max(fcMin, fcMin));
+                    // Use fixed width if set (e.g. progressStyle column), else maxWidth, else minWidth
+                    let fcW: number = 50;
+                    if (fc['width'] !== undefined && typeof (fc['width'] as Object) === 'number') {
+                      fcW = fc['width'] as number;
+                    } else if (fc['maxWidth'] !== undefined) {
+                      fcW = fc['maxWidth'] as number;
+                    } else if (fc['minWidth'] !== undefined) {
+                      fcW = fc['minWidth'] as number;
+                    }
+                    totalFrozenWidth += fcW;
                   }
-                  if (totalFrozenWidth >= self.componentWidth) {
+                  const tableWidth: number = self.componentWidth > 0 ? self.componentWidth : 360;
+                  if (totalFrozenWidth >= tableWidth) {
                     // Cannot freeze — notify JS layer
                     const fp: string = '{"col":' + event.col.toString() + '}';
                     self.emitEvent('lockFailed', JSON.parse(fp) as Object);

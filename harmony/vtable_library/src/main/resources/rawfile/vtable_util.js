@@ -1,7 +1,84 @@
 var h5Port;
 var output = document.querySelector('.output');
 
-// ---- Lock icon SVG data URI helpers ----
+// Global cell render metadata — populated in initializeTable/updateOption
+window._tableHeaderMeta = {}; // { 'vtableRow_col': { classificationLinePosition, classificationLineColor } }
+window._lockInfoMap = {};     // { colIndex: { showLock: bool } }
+
+/**
+ * Extract __headerMeta and __lockInfo from column definitions and store globally.
+ * Called before passing options to VTable so the data is always available even
+ * if VTable strips unknown column properties internally.
+ */
+function _extractColumnMeta(columns) {
+    window._tableHeaderMeta = {};
+    window._lockInfoMap = {};
+    if (!Array.isArray(columns)) return;
+    for (var _ci = 0; _ci < columns.length; _ci++) {
+        var _col = columns[_ci];
+        if (!_col) continue;
+        if (_col['__lockInfo']) {
+            window._lockInfoMap[_ci] = _col['__lockInfo'];
+        }
+        var _hm = _col['__headerMeta'];
+        if (Array.isArray(_hm)) {
+            for (var _ri = 0; _ri < _hm.length; _ri++) {
+                if (_hm[_ri]) {
+                    window._tableHeaderMeta[_ri + '_' + _ci] = _hm[_ri];
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Accurately measure text pixel width using an off-screen Canvas (WebView context only).
+ */
+var _measureCanvas = null;
+function _measureTextWidth(text, fontSize, fontWeight) {
+    if (!_measureCanvas) _measureCanvas = document.createElement('canvas');
+    var ctx = _measureCanvas.getContext('2d');
+    ctx.font = (fontWeight || 'normal') + ' ' + (fontSize || 14) + 'px sans-serif';
+    return ctx.measureText(text || '').width;
+}
+
+/**
+ * For columns marked __progressStyle:true, measure every header title and every
+ * record value via canvas.measureText() and set an exact fixed width.
+ * Must be called BEFORE passing options to new VTable.ListTable() or updateOption().
+ */
+function _fixProgressStyleWidths(options) {
+    if (!Array.isArray(options.columns)) return;
+    for (var _pi = 0; _pi < options.columns.length; _pi++) {
+        var _col = options.columns[_pi];
+        if (!_col || !_col.__progressStyle) continue;
+        var _st  = _col.style || {};
+        var _hst = _col.headerStyle || _st;
+        var _fontSize    = _st.fontSize  || 14;
+        var _fontWeight  = _st.fontWeight || 'normal';
+        var _hFontSize   = _hst.fontSize  || _fontSize;
+        var _hFontWeight = _hst.fontWeight || _fontWeight;
+        // padding is [vertPad, padH] — index 1 is the horizontal padding
+        var _padH  = Array.isArray(_st.padding)  ? (_st.padding[1]  || 12) : (_st.padding  || 12);
+        var _hPadH = Array.isArray(_hst.padding) ? (_hst.padding[1] || 12) : (_hst.padding || 12);
+        // Measure header title
+        var _maxW = _measureTextWidth(_col.title || '', _hFontSize, _hFontWeight) + _hPadH * 2;
+        // Measure all record values for this column
+        var _field = _col.field;
+        if (Array.isArray(options.records)) {
+            for (var _pr = 0; _pr < options.records.length; _pr++) {
+                var _val = String(options.records[_pr][_field] || '');
+                var _vw = _measureTextWidth(_val, _fontSize, _fontWeight) + _padH * 2;
+                if (_vw > _maxW) _maxW = _vw;
+            }
+        }
+        var _minW = _col.minWidth || 50;
+        var _fixedW = Math.max(_minW, Math.ceil(_maxW) + 2); // +2px safety
+        _col.width    = _fixedW;
+        _col.minWidth = _fixedW;
+        _col.maxWidth = _fixedW;
+    }
+}
 var _lockLockedSvgUrl = null;
 var _lockUnlockedSvgUrl = null;
 function getLockIconUrl(locked) {
@@ -311,28 +388,61 @@ function buildCellRender() {
         var w = args.rect.width;
         var h = args.rect.height;
 
-        // getRecordByCell returns null for header rows — let VTable handle them.
-        // But we still need to draw classificationLine for header cells that have it.
+        // getRecordByCell returns null for header rows.
+        // Use pre-extracted globals (_tableHeaderMeta, _lockInfoMap) to draw
+        // classification lines and/or lock icons on header cells.
         var record = args.table.getRecordByCell(col, row);
         if (!record) {
-            // Check __headerMeta in column definition for classificationLine on header rows.
-            var hCols = args.table.options && args.table.options.columns;
-            if (!hCols || col >= hCols.length || !hCols[col]) return { renderDefault: true };
-            var hHeaderMeta = hCols[col]['__headerMeta'];
-            if (!hHeaderMeta) return { renderDefault: true };
-            // row index maps to headerRowCount: VTable row 0 = frozenRowCount+1 header rows
-            // row in VTable = the VTable grid row (0 = first header row visible)
-            var hMeta = (row >= 0 && row < hHeaderMeta.length) ? hHeaderMeta[row] : null;
-            if (!hMeta || !hMeta.classificationLinePosition) return { renderDefault: true };
-            // Draw classificationLine overlay on top of default header rendering.
-            var hClColor = hMeta.classificationLineColor || '#9cb3c8';
-            var hClPos   = hMeta.classificationLinePosition;
+            var headerCL = window._tableHeaderMeta && window._tableHeaderMeta[row + '_' + col];
+            var lockInfo = window._lockInfoMap && window._lockInfoMap[col];
+            if (!headerCL && !lockInfo) return { renderDefault: true };
+
             var hElements = [];
-            if (hClPos & 1) hElements.push({ type: 'line', points: [{ x: 0, y: 0.5 },   { x: w, y: 0.5 }],   stroke: hClColor, lineWidth: 1, pickable: false });
-            if (hClPos & 2) hElements.push({ type: 'line', points: [{ x: w-0.5, y: 0 }, { x: w-0.5, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
-            if (hClPos & 4) hElements.push({ type: 'line', points: [{ x: 0, y: h-0.5 }, { x: w, y: h-0.5 }], stroke: hClColor, lineWidth: 1, pickable: false });
-            if (hClPos & 8) hElements.push({ type: 'line', points: [{ x: 0.5, y: 0 },   { x: 0.5, y: h }],   stroke: hClColor, lineWidth: 1, pickable: false });
-            return { elements: hElements, renderDefault: true };
+
+            if (lockInfo && lockInfo.showLock) {
+                // Draw header text + lock icon (VTable's showFrozenIcon is disabled).
+                var hStyle = {};
+                try { hStyle = args.table.getCellStyle(col, row) || {}; } catch(e) {}
+                var hFontSize = hStyle.fontSize || 14;
+                var hColor = hStyle.color || '#222222';
+                var hFontWeight = hStyle.fontWeight || 'normal';
+                var hTextAlign = hStyle.textAlign || 'left';
+                var hPad = hStyle.padding;
+                var hPadH = Array.isArray(hPad) ? (hPad[1] || 12) : 12;
+                var hCellValue = '';
+                try { hCellValue = String(args.table.getCellValue(col, row) || ''); } catch(e) {}
+                var hIsLocked = col < (args.table.frozenColCount || 0);
+                var hIconW = 13, hIconH = 14, hIconPad = 4;
+                var hMaxTextW = Math.max(0, w - hPadH * 2 - hIconW - hIconPad);
+                var hEstTextW = Math.min(hCellValue.length * hFontSize * 0.55, hMaxTextW);
+                var hTX = hPadH;
+                if (hTextAlign === 'center') hTX = Math.max(hPadH, (w - hEstTextW - hIconW - hIconPad) / 2);
+                else if (hTextAlign === 'right') hTX = Math.max(hPadH, w - hPadH - hEstTextW - hIconW - hIconPad);
+                var hLockX = hTX + hEstTextW + hIconPad;
+                var hLockY = (h - hIconH) / 2;
+                hElements.push({ type: 'text', x: hTX, y: h / 2, text: hCellValue,
+                    fontSize: hFontSize, fill: hColor, fontWeight: hFontWeight,
+                    textAlign: 'left', textBaseline: 'middle',
+                    maxLineWidth: hEstTextW, ellipsis: '...', pickable: false });
+                hElements.push({ type: 'image', x: hLockX, y: hLockY,
+                    width: hIconW, height: hIconH,
+                    image: getLockIconUrl(hIsLocked), pickable: false });
+            }
+
+            // Draw classification lines on top (renderDefault:true keeps VTable's text when no lock)
+            if (headerCL && headerCL.classificationLinePosition > 0) {
+                var hClPos  = headerCL.classificationLinePosition;
+                var hClColor = headerCL.classificationLineColor || '#9cb3c8';
+                if (hClPos & 1) hElements.push({ type: 'line', points: [{ x: 0, y: 0.5 }, { x: w, y: 0.5 }], stroke: hClColor, lineWidth: 1, pickable: false });
+                if (hClPos & 2) hElements.push({ type: 'line', points: [{ x: w-0.5, y: 0 }, { x: w-0.5, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
+                if (hClPos & 4) hElements.push({ type: 'line', points: [{ x: 0, y: h-0.5 }, { x: w, y: h-0.5 }], stroke: hClColor, lineWidth: 1, pickable: false });
+                if (hClPos & 8) hElements.push({ type: 'line', points: [{ x: 0.5, y: 0 }, { x: 0.5, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
+            }
+
+            if (hElements.length === 0) return { renderDefault: true };
+            // renderDefault:false when we drew the lock icon (we replace VTable's text rendering).
+            // renderDefault:true when only classification lines (VTable renders text natively).
+            return { elements: hElements, renderDefault: !lockInfo || !lockInfo.showLock };
         }
 
         var meta = record['__meta_' + col];
@@ -635,6 +745,10 @@ function customIcon() {
 function initializeTable(option) {
 
     optionTemp = option;
+    // Extract __lockInfo and __headerMeta from columns into globals BEFORE VTable
+    // processes the option. VTable may transform/strip unknown column properties.
+    _extractColumnMeta(option.columns);
+
     option.theme = VTable.themes.DEFAULT.extends({
         frozenColumnLine: {
             shadow: {
@@ -664,6 +778,7 @@ function initializeTable(option) {
     // Attach customRender to all columns before creating the table instance.
     // Functions are stripped by JSON.stringify in ArkTS, so we inject them here
     // inside the WebView where they can reference the live VRender primitives.
+    _fixProgressStyleWidths(option);
     addCustomRenderToColumns(option.columns);
 
     const tableInstance = new VTable.ListTable(document.getElementById('tableContainer'), option);
@@ -776,8 +891,9 @@ function clearSelected() {
 }
 
 function updateOption(options) {
-    // Re-attach customRender after every option update — ArkTS serializes columns
-    // to JSON which strips functions, so we must re-inject on every update.
+    // Re-extract column metadata globals and re-attach customRender.
+    _extractColumnMeta(options.columns);
+    _fixProgressStyleWidths(options);
     addCustomRenderToColumns(options.columns);
     window.tableInstance.updateOption(options);
 }
