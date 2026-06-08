@@ -589,16 +589,17 @@ export struct ReportTableComponent {
                 const curFrozen: number = (self.currentOption['frozenColCount'] !== undefined)
                   ? (self.currentOption['frozenColCount'] as number) : 0;
                 const isLocked: boolean = effectiveCol < curFrozen;
-                const newLocked: boolean = !isLocked;
 
-                // If trying to lock (freeze), check that total frozen column width does not
-                // exceed the visible component width (mirrors iOS behavior).
-                if (newLocked) {
+                let newFrozenColCount: number;
+                if (isLocked) {
+                  // Unlock: unfreeze this column (and everything above it)
+                  newFrozenColCount = effectiveCol;
+                } else {
+                  // Lock: check that total frozen width <= tableWidth - 40 (mirrors iOS boundary)
                   let totalFrozenWidth: number = 0;
                   for (let fi: number = 0; fi <= effectiveCol; fi++) {
                     if (fi >= cols.length) break;
                     const fc: Record<string, Object> = cols[fi] as Record<string, Object>;
-                    // Use fixed width if set (e.g. progressStyle column), else maxWidth, else minWidth
                     let fcW: number = 50;
                     if (fc['width'] !== undefined && typeof (fc['width'] as Object) === 'number') {
                       fcW = fc['width'] as number;
@@ -610,16 +611,18 @@ export struct ReportTableComponent {
                     totalFrozenWidth += fcW;
                   }
                   const tableWidth: number = self.componentWidth > 0 ? self.componentWidth : 360;
-                  if (totalFrozenWidth >= tableWidth) {
-                    // Cannot freeze — notify JS layer
+                  if (totalFrozenWidth > tableWidth - 40) {
+                    // Cannot freeze — notify JS layer (shows Toast)
                     const fp: string = '{"col":' + effectiveCol.toString() + '}';
                     self.emitEvent('lockFailed', JSON.parse(fp) as Object);
                     return;
                   }
+                  newFrozenColCount = effectiveCol + 1;
                 }
 
-                const lp: string = '{"col":' + effectiveCol.toString() + ',"locked":' + (newLocked ? 'true' : 'false') + '}';
-                self.emitEvent('lockToggle', JSON.parse(lp) as Object);
+                // Apply new frozen state directly — no JS roundtrip needed
+                self.currentOption['frozenColCount'] = newFrozenColCount;
+                self.controller.frozenToCol(newFrozenColCount);
                 return; // Lock header click — don't emit regular clickEvent
               }
             }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, DeviceEventEmitter, PanResponder, ScrollView, UIManager, findNodeHandle } from 'react-native';
+import { DeviceEventEmitter, PanResponder, ScrollView, StyleSheet, Text, UIManager, View, findNodeHandle } from 'react-native';
 import * as NativeComponentRegistry from 'react-native/Libraries/NativeComponent/NativeComponentRegistry';
 import {
     buildVTableTheme,
@@ -48,7 +48,10 @@ export default class ReportTableWrapper extends React.Component {
         super(props);
         this.state = {
             headerHeight: 0,
+            _toastVisible: false,
+            _toastMessage: '',
         };
+        this._toastTimer = null;
         this.showHeader = true;
         this.scrollY = 0;
         this._nativeTag = null;
@@ -161,16 +164,9 @@ export default class ReportTableWrapper extends React.Component {
                 }
             ),
             DeviceEventEmitter.addListener(
-                `RNReportTable_lockToggle_${tag}`,
-                (data) => {
-                    // Handle lock toggle: update frozenAbility and frozenColCount
-                    this._handleLockToggle(data.col, data.locked);
-                }
-            ),
-            DeviceEventEmitter.addListener(
                 `RNReportTable_lockFailed_${tag}`,
                 (_data) => {
-                    Alert.alert('', '已超出最大冻结范围');
+                    this._showToast('请缩小表格或旋转屏幕后再锁定');
                 }
             ),
         ];
@@ -179,19 +175,16 @@ export default class ReportTableWrapper extends React.Component {
     _removeEventListeners = () => {
         this._eventSubscriptions.forEach(sub => sub && sub.remove());
         this._eventSubscriptions = [];
+        if (this._toastTimer) { clearTimeout(this._toastTimer); this._toastTimer = null; }
     };
 
-    _handleLockToggle = (col, locked) => {
-        // Emit click event with lock info - the parent component handles frozen logic
-        // Following iOS pattern: clicking lock toggles frozenAbility state
-        this.props.onClickEvent && this.props.onClickEvent({
-            keyIndex: 0,
-            rowIndex: 0,
-            columnIndex: col,
-            verticalCount: 1,
-            horizontalCount: 1,
-            lockToggle: { col, locked },
-        });
+    _showToast = (msg) => {
+        if (this._toastTimer) clearTimeout(this._toastTimer);
+        this.setState({ _toastVisible: true, _toastMessage: msg });
+        this._toastTimer = setTimeout(() => {
+            this.setState({ _toastVisible: false });
+            this._toastTimer = null;
+        }, 2000);
     };
 
     /**
@@ -369,12 +362,21 @@ export default class ReportTableWrapper extends React.Component {
 
         if (!headerView) {
             // No header: render table directly without outer ScrollView
-            return tableView;
+            return (
+                <View style={{ flex: 1 }}>
+                    {tableView}
+                    {this.state._toastVisible && (
+                        <View style={styles.toastContainer} pointerEvents="none">
+                            <Text style={styles.toastText}>{this.state._toastMessage}</Text>
+                        </View>
+                    )}
+                </View>
+            );
         }
 
         // With header: use ScrollView + stickyHeaderIndices pattern (like Android)
         // Index 0 = header, Index 1 = table (sticky)
-        return (
+        const scrollView = (
             <ScrollView
                 ref={(ref) => (this._scrollView = ref)}
                 style={{ flex: 1 }}
@@ -408,5 +410,33 @@ export default class ReportTableWrapper extends React.Component {
                 {tableView}
             </ScrollView>
         );
+
+        // With header: wrap in a View so the Toast overlay can be positioned absolutely
+        return (
+            <View style={{ flex: 1 }}>
+                {scrollView}
+                {this.state._toastVisible && (
+                    <View style={styles.toastContainer} pointerEvents="none">
+                        <Text style={styles.toastText}>{this.state._toastMessage}</Text>
+                    </View>
+                )}
+            </View>
+        );
     }
 }
+
+const styles = StyleSheet.create({
+    toastContainer: {
+        position: 'absolute',
+        bottom: 40,
+        alignSelf: 'center',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        borderRadius: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+    },
+    toastText: {
+        color: '#fff',
+        fontSize: 13,
+    },
+});
