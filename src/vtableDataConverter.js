@@ -250,7 +250,7 @@ function computeMergedCells(dataSource, headerRowCount) {
  * @param {object} itemConfig - Global default config.
  * @returns {{ customCellStyle: Array, customCellStyleArrangement: Array }}
  */
-function buildCellStyleArrangements(dataSource, itemConfig, defaultBorderColor) {
+function buildCellStyleArrangements(dataSource, itemConfig) {
     const customCellStyle = [];
     const customCellStyleArrangement = [];
     const styleCache = new Map();
@@ -302,20 +302,6 @@ function buildCellStyleArrangements(dataSource, itemConfig, defaultBorderColor) 
             }
             if (cell.textPaddingHorizontal != null) {
                 cellStyle.padding = [0, cell.textPaddingHorizontal];
-                hasOverride = true;
-            }
-            // Classification line: replace the default border color on specific edges.
-            // This avoids a double-border when combined with VTable's native border rendering.
-            if (cell.classificationLinePosition != null && cell.classificationLinePosition > 0) {
-                const clPos = cell.classificationLinePosition;
-                const clColor = normalizeColor(cell.classificationLineColor ?? itemConfig?.classificationLineColor ?? '#9cb3c8');
-                const defBC = defaultBorderColor || '#e8e8e8';
-                cellStyle.borderColor = [
-                    (clPos & 1) ? clColor : defBC,  // top
-                    (clPos & 2) ? clColor : defBC,  // right
-                    (clPos & 4) ? clColor : defBC,  // bottom
-                    (clPos & 8) ? clColor : defBC,  // left
-                ];
                 hasOverride = true;
             }
 
@@ -482,7 +468,6 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         if (hasProgressStyle) {
             columns[c].maxWidth = Math.max(columns[c].minWidth || minWidth, maxNeededW);
             columns[c].style.autoWrapText = false;
-            columns[c].style.lineBreakMode = 'none';
         } else if (maxNeededW > (columns[c].maxWidth || maxWidth)) {
             columns[c].maxWidth = maxNeededW;
         }
@@ -507,9 +492,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
     }
 
     // --- Compute per-cell style overrides ---
-    // Default border color for classification line non-classification edges
-    const defBorderColor = normalizeColor(lineColor || '#e8e8e8');
-    const { customCellStyle, customCellStyleArrangement } = buildCellStyleArrangements(dataSource, itemConfig, defBorderColor);
+    const { customCellStyle, customCellStyleArrangement } = buildCellStyleArrangements(dataSource, itemConfig);
 
     return { records, columns, mergedCells, customCellStyle, customCellStyleArrangement };
 }

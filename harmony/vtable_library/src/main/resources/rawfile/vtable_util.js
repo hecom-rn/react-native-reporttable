@@ -311,51 +311,9 @@ function buildCellRender() {
         var w = args.rect.width;
         var h = args.rect.height;
 
-        // getRecordByCell returns null for header rows.
+        // getRecordByCell returns null for header rows — let VTable handle them.
         var record = args.table.getRecordByCell(col, row);
-        if (!record) {
-            // Check if this is a covered (non-anchor) cell inside a merge — skip.
-            var hCellRange = args.table.getCellRange(col, row);
-            if (hCellRange && (hCellRange.start.col !== col || hCellRange.start.row !== row)) {
-                return { renderDefault: true };
-            }
-            // Check if this column has a lock icon to render.
-            var hCols = args.table.options && args.table.options.columns;
-            if (!hCols || col >= hCols.length || !hCols[col]) return { renderDefault: true };
-            var colLockInfo = hCols[col]['__lockInfo'];
-            if (!colLockInfo || !colLockInfo.showLock) return { renderDefault: true };
-
-            // Draw header cell: text + lock icon (replaces native showFrozenIcon).
-            var hStyle = args.table.getCellStyle(col, row) || {};
-            var hFontSize = hStyle.fontSize || 14;
-            var hColor = hStyle.color || '#222222';
-            var hFontWeight = hStyle.fontWeight || 'normal';
-            var hTextAlign = hStyle.textAlign || 'left';
-            var hPad = hStyle.padding;
-            var hPadH = Array.isArray(hPad) ? (hPad[1] || 12) : 12;
-            var hCellValue = String(args.table.getCellValue(col, row) || '');
-            var hIsLocked = col < (args.table.frozenColCount || 0);
-            var hIconW = 13, hIconH = 14, hIconPad = 4;
-            var hMaxTextW = Math.max(0, w - hPadH * 2 - hIconW - hIconPad);
-            var hEstTextW = Math.min(hCellValue.length * hFontSize * 0.55, hMaxTextW);
-            var hTX = hPadH;
-            if (hTextAlign === 'center') hTX = Math.max(hPadH, (w - hEstTextW - hIconW - hIconPad) / 2);
-            else if (hTextAlign === 'right') hTX = Math.max(hPadH, w - hPadH - hEstTextW - hIconW - hIconPad);
-            var hLockX = hTX + hEstTextW + hIconPad;
-            var hLockY = (h - hIconH) / 2;
-            return {
-                elements: [
-                    { type: 'text', x: hTX, y: h / 2, text: hCellValue,
-                      fontSize: hFontSize, fill: hColor, fontWeight: hFontWeight,
-                      textAlign: 'left', textBaseline: 'middle',
-                      maxLineWidth: hEstTextW, ellipsis: '...', pickable: false },
-                    { type: 'image', x: hLockX, y: hLockY,
-                      width: hIconW, height: hIconH,
-                      image: getLockIconUrl(hIsLocked), pickable: false }
-                ],
-                renderDefault: false
-            };
-        }
+        if (!record) return { renderDefault: true };
 
         var meta = record['__meta_' + col];
         if (!meta) return { renderDefault: true };
@@ -364,6 +322,7 @@ function buildCellRender() {
         var hasOverlay = !!(
             meta.isForbidden ||
             meta.boxLineColor ||
+            (meta.classificationLinePosition && meta.classificationLinePosition > 0) ||
             meta.floatIcon ||
             meta.extraText
         );
@@ -581,9 +540,15 @@ function buildCellRender() {
             });
         }
 
-        // Classification separator lines are now handled via customCellStyleArrangement
-        // borderColor (set in vtableDataConverter.js) to avoid double-border artifacts.
-        // No overlay elements needed here.
+        // Classification separator lines
+        if (meta.classificationLinePosition && meta.classificationLinePosition > 0) {
+            var clColor = meta.classificationLineColor || '#9cb3c8';
+            var clPos   = meta.classificationLinePosition;
+            if (clPos & 1) elements.push({ type: 'line', points: [{ x: 0, y: 0 },   { x: w, y: 0 }],   stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 2) elements.push({ type: 'line', points: [{ x: w-1, y: 0 }, { x: w-1, y: h }], stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 4) elements.push({ type: 'line', points: [{ x: 0, y: h-1 }, { x: w, y: h-1 }], stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 8) elements.push({ type: 'line', points: [{ x: 0, y: 0 },   { x: 0, y: h }],   stroke: clColor, lineWidth: 1, pickable: false });
+        }
 
         // Extra badge text
         if (meta.extraText) {
