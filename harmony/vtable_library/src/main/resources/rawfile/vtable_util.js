@@ -361,7 +361,8 @@ function frozenToCol(index) {
         return;
     }
     window.tableInstance.setFrozenColCount(index);
-    console.log("=====> frozenToCol", JSON.stringify(window.tableInstance.options.frozenRowCount))
+    window.tableInstance.renderWithRecreateCells();
+    console.log("=====> frozenToCol", index)
 }
 
 // 冻结指定行数，使上方指定数量的行固定不动
@@ -559,17 +560,19 @@ function buildCellRender() {
                 try { hCellValue = String(args.table.getCellValue(col, row) || ''); } catch(e) {}
                 var hIsLocked = col < (args.table.frozenColCount || 0);
                 var hIconW = 13, hIconH = 14, hIconPad = 4;
+                // Use canvas measurement for accurate text width; cap at available space
                 var hMaxTextW = Math.max(0, w - hPadH * 2 - hIconW - hIconPad);
-                var hEstTextW = Math.min(hCellValue.length * hFontSize * 0.55, hMaxTextW);
+                var hMeasuredW = _measureTextWidth(hCellValue, hFontSize, hFontWeight);
+                var hActualTextW = Math.min(hMeasuredW, hMaxTextW);
                 var hTX = hPadH;
-                if (hTextAlign === 'center') hTX = Math.max(hPadH, (w - hEstTextW - hIconW - hIconPad) / 2);
-                else if (hTextAlign === 'right') hTX = Math.max(hPadH, w - hPadH - hEstTextW - hIconW - hIconPad);
-                var hLockX = hTX + hEstTextW + hIconPad;
+                if (hTextAlign === 'center') hTX = Math.max(hPadH, (w - hActualTextW - hIconW - hIconPad) / 2);
+                else if (hTextAlign === 'right') hTX = Math.max(hPadH, w - hPadH - hActualTextW - hIconW - hIconPad);
+                var hLockX = hTX + hActualTextW + hIconPad;
                 var hLockY = (h - hIconH) / 2;
                 hElements.push({ type: 'text', x: hTX, y: h / 2, text: hCellValue,
                     fontSize: hFontSize, fill: hColor, fontWeight: hFontWeight,
                     textAlign: 'left', textBaseline: 'middle',
-                    maxLineWidth: hEstTextW, ellipsis: '...', pickable: false });
+                    maxLineWidth: hActualTextW, ellipsis: '...', pickable: false });
                 _pushLockIcon(hElements, hLockX, hLockY, hIconW, hIconH, hIsLocked);
             }
 

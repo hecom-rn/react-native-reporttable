@@ -595,7 +595,8 @@ export struct ReportTableComponent {
                   // Unlock: unfreeze this column (and everything above it)
                   newFrozenColCount = effectiveCol;
                 } else {
-                  // Lock: check that total frozen width <= tableWidth - 40 (mirrors iOS boundary)
+                  // Lock: check that scaled frozen width <= componentWidth - 40 (mirrors iOS)
+                  // iOS: frozenWidth * zoomScale > tableRect.width - 40 → show toast
                   let totalFrozenWidth: number = 0;
                   for (let fi: number = 0; fi <= effectiveCol; fi++) {
                     if (fi >= cols.length) break;
@@ -610,8 +611,11 @@ export struct ReportTableComponent {
                     }
                     totalFrozenWidth += fcW;
                   }
+                  // VTable renders at logical size (componentWidth/zoom); frozenWidth is in logical px.
+                  // Multiply by zoom to get physical pixels, then compare against physical componentWidth.
+                  const scaledFrozenWidth: number = totalFrozenWidth * self.currentZoom;
                   const tableWidth: number = self.componentWidth > 0 ? self.componentWidth : 360;
-                  if (totalFrozenWidth > tableWidth - 40) {
+                  if (scaledFrozenWidth > tableWidth - 40) {
                     // Cannot freeze — notify JS layer (shows Toast)
                     const fp: string = '{"col":' + effectiveCol.toString() + '}';
                     self.emitEvent('lockFailed', JSON.parse(fp) as Object);
