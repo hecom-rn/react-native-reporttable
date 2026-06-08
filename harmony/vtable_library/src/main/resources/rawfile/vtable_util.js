@@ -80,6 +80,87 @@ function _fixProgressStyleWidths(options) {
     }
 }
 /**
+ * Parse a CSS color string to [r, g, b, a].
+ * Supports rgba(), #RRGGBB, #RGB.
+ */
+function _parseColorRGBA(color) {
+    if (!color) return [0, 0, 0, 1];
+    var m = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/.exec(color);
+    if (m) return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3]), m[4] != null ? parseFloat(m[4]) : 1];
+    var h6 = /^#([0-9a-fA-F]{6})$/.exec(color);
+    if (h6) { var v = h6[1]; return [parseInt(v.slice(0,2),16), parseInt(v.slice(2,4),16), parseInt(v.slice(4,6),16), 1]; }
+    var h3 = /^#([0-9a-fA-F]{3})$/.exec(color);
+    if (h3) { var c = h3[1]; return [parseInt(c[0]+c[0],16), parseInt(c[1]+c[1],16), parseInt(c[2]+c[2],16), 1]; }
+    return [0, 0, 0, 1];
+}
+
+/**
+ * Build rect elements that simulate a horizontal linear gradient.
+ * VRender's { gradient:'linear', ... } fill format is not supported in HarmonyOS WebView,
+ * so we draw multiple thin vertical strips with interpolated solid colors.
+ * @param {number}   x       left edge
+ * @param {number}   y       top edge
+ * @param {number}   w       width
+ * @param {number}   h       height
+ * @param {number}   r       corner radius
+ * @param {string[]} colors  2+ CSS color strings
+ * @returns {Array}  VRender rect elements
+ */
+function _buildGradientRects(x, y, w, h, r, colors) {
+    if (!colors || colors.length === 0) return [];
+    if (colors.length === 1 || w < 1) {
+        return [{ type: 'rect', x: x, y: y, width: w, height: h, cornerRadius: r,
+            fill: colors[0], lineWidth: 0, pickable: false }];
+    }
+    var parsed = [];
+    for (var _gi = 0; _gi < colors.length; _gi++) parsed.push(_parseColorRGBA(colors[_gi]));
+    // 1 strip per pixel, max 64 strips for performance
+    var N = Math.max(2, Math.min(Math.ceil(w), 64));
+    var totalSegs = parsed.length - 1;
+    var els = [];
+    for (var _si = 0; _si < N; _si++) {
+        var t = _si / (N - 1);
+        var sf = t * totalSegs;
+        var si = Math.min(Math.floor(sf), totalSegs - 1);
+        var st = sf - si;
+        var c1 = parsed[si], c2 = parsed[si + 1];
+        var rr = Math.round(c1[0] + (c2[0] - c1[0]) * st);
+        var gg = Math.round(c1[1] + (c2[1] - c1[1]) * st);
+        var bb = Math.round(c1[2] + (c2[2] - c1[2]) * st);
+        var aa = (c1[3] + (c2[3] - c1[3]) * st).toFixed(3);
+        var sx = x + (_si / N) * w;
+        var sw = w / N + 0.5;  // +0.5 to avoid hairline gaps
+        // Apply corner radius only to outermost strips to approximate rounded corners
+        var cr = (_si === 0 || _si === N - 1) ? r : 0;
+        els.push({ type: 'rect', x: sx, y: y, width: sw, height: h, cornerRadius: cr,
+            fill: 'rgba(' + rr + ',' + gg + ',' + bb + ',' + aa + ')',
+            lineWidth: 0, pickable: false });
+    }
+    return els;
+}
+
+/**
+ * Inject customRender into customMergeCell items whose anchor is in the header row (row 0).
+ * VTable does NOT call the column's customRender for merged cells — the merged cell item
+ * must have its own customRender. We reuse buildCellRender() which already handles headers.
+ */
+function _injectMergedHeaderRenders(options) {
+    var mc = options.customMergeCell;
+    if (!Array.isArray(mc)) return;
+    for (var _mi = 0; _mi < mc.length; _mi++) {
+        var _item = mc[_mi];
+        if (!_item || !_item.range || !_item.range.start) continue;
+        if (_item.range.start.row !== 0) continue;  // only VTable header row
+        var _ac = _item.range.start.col;
+        var _hasLock = window._lockInfoMap && window._lockInfoMap[_ac];
+        var _hasCL   = window._tableHeaderMeta && window._tableHeaderMeta['0_' + _ac];
+        if (!_hasLock && !_hasCL) continue;
+        // buildCellRender() handles the header branch (record==null) using globals
+        _item.customRender = buildCellRender();
+    }
+}
+
+/**
  * Push lock-icon rect-only elements into an array.
  * Avoids type:'image' + SVG data URL which is not supported by HarmonyOS WebView canvas.
  * @param {Array}   els      target elements array
@@ -494,21 +575,25 @@ function buildCellRender() {
             var gColors = meta.gradient.colors;
             var gStart  = meta.gradient.start;
             var gEnd    = meta.gradient.end;
-            var gStops  = [];
-            for (var gi = 0; gi < gColors.length; gi++) {
-                gStops.push({ offset: gi / Math.max(gColors.length - 1, 1), color: gColors[gi] });
+            // Determine if gradient is predominantly horizontal or vertical
+            var gDX = (gEnd.x - gStart.x) * w;
+            var gDY = (gEnd.y - gStart.y) * h;
+            var gGradEls;
+            if (Math.abs(gDX) >= Math.abs(gDY)) {
+                // Horizontal gradient: use vertical strips
+                gGradEls = _buildGradientRects(0, 0, w, h, 0, gColors);
+            } else {
+                // Vertical gradient: use horizontal strips (reuse function with transposed coords)
+                var tmpEls = _buildGradientRects(0, 0, h, w, 0, gColors);
+                gGradEls = [];
+                for (var _tgi = 0; _tgi < tmpEls.length; _tgi++) {
+                    var te = tmpEls[_tgi];
+                    // swap x↔y, width↔height to draw horizontal strips
+                    gGradEls.push({ type: 'rect', x: 0, y: te.x, width: w, height: te.width,
+                        fill: te.fill, lineWidth: 0, pickable: false });
+                }
             }
-            elements.push({
-                type: 'rect',
-                x: 0, y: 0, width: w, height: h,
-                fill: {
-                    gradient: 'linear',
-                    x0: gStart.x * w, y0: gStart.y * h,
-                    x1: gEnd.x * w,   y1: gEnd.y * h,
-                    stops: gStops
-                },
-                pickable: false
-            });
+            for (var _ggi = 0; _ggi < gGradEls.length; _ggi++) elements.push(gGradEls[_ggi]);
         }
 
         // ---- 2. Progress bar ----
@@ -524,23 +609,8 @@ function buildCellRender() {
             var pBarY    = (h - pHeight) / 2;
 
             if (ps.colors && ps.colors.length > 0) {
-                var pFill;
-                if (ps.colors.length === 1) {
-                    pFill = ps.colors[0];
-                } else {
-                    var pStops = [];
-                    for (var pi = 0; pi < ps.colors.length; pi++) {
-                        pStops.push({ offset: pi / Math.max(ps.colors.length - 1, 1), color: ps.colors[pi] });
-                    }
-                    pFill = { gradient: 'linear', x0: 0, y0: 0, x1: pW, y1: 0, stops: pStops };
-                }
-                elements.push({
-                    type: 'rect',
-                    x: pStartX, y: pBarY, width: pW, height: pHeight,
-                    cornerRadius: pRadius,
-                    fill: pFill,
-                    pickable: false
-                });
+                var pGradEls = _buildGradientRects(pStartX, pBarY, pW, pHeight, pRadius, ps.colors);
+                for (var _pgr = 0; _pgr < pGradEls.length; _pgr++) elements.push(pGradEls[_pgr]);
             }
 
             // Ants dashed line — drawn as short rect segments (lineDash ignored by HarmonyOS WebView canvas)
@@ -793,6 +863,7 @@ function initializeTable(option) {
     // Functions are stripped by JSON.stringify in ArkTS, so we inject them here
     // inside the WebView where they can reference the live VRender primitives.
     _fixProgressStyleWidths(option);
+    _injectMergedHeaderRenders(option);
     addCustomRenderToColumns(option.columns);
 
     const tableInstance = new VTable.ListTable(document.getElementById('tableContainer'), option);
@@ -908,6 +979,7 @@ function updateOption(options) {
     // Re-extract column metadata globals and re-attach customRender.
     _extractColumnMeta(options.columns);
     _fixProgressStyleWidths(options);
+    _injectMergedHeaderRenders(options);
     addCustomRenderToColumns(options.columns);
     window.tableInstance.updateOption(options);
 }
