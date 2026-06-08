@@ -120,7 +120,7 @@ function buildCellMeta(cell, itemConfig) {
             marginHorizontal:cell.progressStyle.marginHorizontal ?? icPs.marginHorizontal ?? 8,
             startRatio:      cell.progressStyle.startRatio       ?? 0,
             endRatio:        cell.progressStyle.endRatio         ?? 0,
-            colors:          cell.progressStyle.colors           ?? [],
+            colors:          (cell.progressStyle.colors ?? []).map(normalizeColor),
         };
         // antsLineStyle
         const cellAnts = cell.progressStyle.antsLineStyle;
@@ -130,7 +130,7 @@ function buildCellMeta(cell, itemConfig) {
             // Merge cellAnts + icAnts: cellAnts overrides icAnts defaults
             const mergedAnts = Object.assign({}, icAnts || {}, cellAnts || {});
             meta.progressStyle.antsLineStyle = {
-                color:           mergedAnts.color           ?? '#222222',
+                color:           normalizeColor(mergedAnts.color           ?? '#222222'),
                 lineWidth:       mergedAnts.lineWidth        ?? 1,
                 lineDashPattern: mergedAnts.lineDashPattern  ?? [4, 2],
                 lineRatio:       mergedAnts.lineRatio        ?? 0,

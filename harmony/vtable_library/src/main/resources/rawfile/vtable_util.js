@@ -79,29 +79,45 @@ function _fixProgressStyleWidths(options) {
         _col.maxWidth = _fixedW;
     }
 }
-var _lockLockedSvgUrl = null;
-var _lockUnlockedSvgUrl = null;
-function getLockIconUrl(locked) {
-    if (locked) {
-        if (!_lockLockedSvgUrl) {
-            _lockLockedSvgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-                '<path fill="#555555" d="M12 2C9.24 2 7 4.24 7 7V10H5V20H19V10H17V7C17 4.24 14.76 2 12 2Z' +
-                'M9 7C9 5.34 10.34 4 12 4S15 5.34 15 7V10H9V7ZM12 17C10.9 17 10 16.1 10 15S' +
-                '10.9 13 12 13 14 13.9 14 15 13.1 17 12 17Z"/></svg>'
-            );
-        }
-        return _lockLockedSvgUrl;
+/**
+ * Push lock-icon rect-only elements into an array.
+ * Avoids type:'image' + SVG data URL which is not supported by HarmonyOS WebView canvas.
+ * @param {Array}   els      target elements array
+ * @param {number}  lx       left-x of icon bounding box
+ * @param {number}  ly       top-y  of icon bounding box
+ * @param {number}  iW       icon width  (≈ 13)
+ * @param {number}  iH       icon height (≈ 14)
+ * @param {boolean} isLocked
+ */
+function _pushLockElements(els, lx, ly, iW, iH, isLocked) {
+    var c   = isLocked ? '#555555' : '#aaaaaa';
+    var bY  = ly + iH * 0.40;          // top edge of lock body
+    var bH  = iH - iH * 0.40;          // body height
+    var sW  = Math.max(2, iW * 0.20);  // shackle bar width
+    var sOX = iW * 0.18;               // shackle inset from each edge
+    // Body rectangle
+    els.push({ type: 'rect', x: lx, y: bY, width: iW, height: bH,
+        cornerRadius: 2, fill: c, stroke: c, lineWidth: 0, pickable: false });
+    if (isLocked) {
+        // Closed U-shackle: left bar + right bar + connecting top bridge
+        var sH = bY - ly + sW;  // bar extends slightly into body
+        els.push({ type: 'rect', x: lx + sOX, y: ly, width: sW, height: sH,
+            fill: c, stroke: c, lineWidth: 0, pickable: false });
+        els.push({ type: 'rect', x: lx + iW - sOX - sW, y: ly, width: sW, height: sH,
+            fill: c, stroke: c, lineWidth: 0, pickable: false });
+        els.push({ type: 'rect', x: lx + sOX, y: ly, width: iW - sOX * 2, height: sW,
+            cornerRadius: 1, fill: c, stroke: c, lineWidth: 0, pickable: false });
     } else {
-        if (!_lockUnlockedSvgUrl) {
-            _lockUnlockedSvgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-                '<path fill="#aaaaaa" d="M18 8H17V6C17 3.24 14.76 1 12 1S7 3.24 7 6H9C9 4.34 10.34 3 12 3S' +
-                '15 4.34 15 6V8H6C4.9 8 4 8.9 4 10V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V10' +
-                'C20 8.9 19.1 8 18 8ZM12 17C10.9 17 10 16.1 10 15S10.9 13 12 13 14 13.9 14 15 13.1 17 12 17Z"/></svg>'
-            );
-        }
-        return _lockUnlockedSvgUrl;
+        // Open shackle: left bar taller (raised), no right bar, bridge at top
+        var uOY = ly - iH * 0.20;                 // raised top-y
+        var uSH = bY - uOY + sW;                  // tall left bar
+        els.push({ type: 'rect', x: lx + sOX, y: uOY, width: sW, height: uSH,
+            fill: c, stroke: c, lineWidth: 0, pickable: false });
+        // Right bar: short stub just at body top level (visually open)
+        els.push({ type: 'rect', x: lx + iW - sOX - sW, y: bY, width: sW, height: sW,
+            fill: c, stroke: c, lineWidth: 0, pickable: false });
+        els.push({ type: 'rect', x: lx + sOX, y: uOY, width: iW - sOX * 2, height: sW,
+            cornerRadius: 1, fill: c, stroke: c, lineWidth: 0, pickable: false });
     }
 }
 
@@ -424,9 +440,7 @@ function buildCellRender() {
                     fontSize: hFontSize, fill: hColor, fontWeight: hFontWeight,
                     textAlign: 'left', textBaseline: 'middle',
                     maxLineWidth: hEstTextW, ellipsis: '...', pickable: false });
-                hElements.push({ type: 'image', x: hLockX, y: hLockY,
-                    width: hIconW, height: hIconH,
-                    image: getLockIconUrl(hIsLocked), pickable: false });
+                _pushLockElements(hElements, hLockX, hLockY, hIconW, hIconH, hIsLocked);
             }
 
             // Draw classification lines on top (renderDefault:true keeps VTable's text when no lock)
