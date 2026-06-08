@@ -195,8 +195,8 @@ var _androidImgMap = {
 };
 
 /**
- * Resolve an android icon name to a lazily-cached Image object.
- * Falls back gracefully to null if the name is not in the map.
+ * Resolve an android icon name to its base64 data URL string.
+ * VTable's type:'image' element accepts URL strings via loadImage internally.
  */
 var _androidImgCache = {};
 function _resolveAndroidImg(name) {
@@ -204,10 +204,8 @@ function _resolveAndroidImg(name) {
     if (_androidImgCache[name]) return _androidImgCache[name];
     var b64 = _androidImgMap[name];
     if (!b64) return null;
-    var img = new Image();
-    img.src = b64;
-    _androidImgCache[name] = img;
-    return img;
+    _androidImgCache[name] = b64;  // cache the data URL string directly
+    return b64;
 }
 
 /**
@@ -216,15 +214,15 @@ function _resolveAndroidImg(name) {
 var _lockImgCache = null;
 function _initLockIcons() {
     if (_lockImgCache) return;
-    var lockedB64   = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAC' + 'shmLzAAACaUlEQVRYCe1Wz4vTQBRukk1yqC6LaHXrBg+yIuuCCPoPeJLIevBcLBTSykL3sjfxtKwH7wtSmlKQHqqHhTUHPSgInpaFgoKiVz2KKOJB0x/xG8mEoclMMhs8dQeGeX0/vvfNm5nXFApHY9YroMgWoNPpHB+Px/eDILiF2HOYPuZHRVEeO47zCGsggylFwHXdK0j+BAmWOUle6Lp+p1arfeXYY2o1puEout3uwmQyeQnzv+TY6W/Md/j9idn1jdFo1OdAJKozE/B9/x7KfiJEeWWa5lK9Xr/caDQuQr8C/Wdig3y93W7boV/qkolAq9XSgbQRon0pFou3q9XqN4oOEuQO2LQSILFJbWlrJgIAOY9phmBPK5XKz2lgVOM9dPuh/tK0nfc7EwHs7AIFUFX1gMoJ61uiQwVO93q9+QR7TJWJAKKWaCTAf1B5eoXtO9XhzkQxVJe0ZiIA4MgPMved0ztAEuHFRDFJialO2AeQS8HbXwfYXQSshkEfkCixCvAnjeks8YPPGyz9tOakEWfeKJfLWwB9CHuJ8TkF2eJM9twJmZuDwUDxPO815MSRViYnMUpCiQ0IMdIInJHIxXNd5BmIPo2AKJbYSD+I9YS0INaeh8CuZVklMnHh9lhQGTkPgR3btv+QiYQ7MklZ3zwErlEgXLSrVJZd52QDGP8H6BEuvg9UHME2SDCm7GIeAnOaphlIruIbQNhPRHTyEChg9ycxhd1UlJzYchFAi34OjP9KgLxxtr0S0tHAuWf5xxP2ibRX8CzKdnhBiCE8AsMwmsPhUMNO15D/mCSHX7igHr6Sm5JxR+4zVoG/PZK5+yMLIkEAAAAASUVORK5CYII=';
-    var unlockedB64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAC' + 'shmLzAAACh0lEQVRYCe1WO2vbUBS2JbsNdaHOkIYkpHQotKRDp/YPJFPJksUZDB38pItLH0OhdHBKxgyZCo5sQ4cEvGXND0imDIGEEih0yVD6wMpU/JL7HaFrrnWvpCtXWyIQ59zz+j4d3Vcsdv1c9Q7E/RpgGMbyYDB4FY/HnyFuejgc/oF+qOv6Vj6fP/LLVfVJCbRarRumaW6iyFuACjEgMYBvI51Ob2YyGdInfjRZZrvdrgL4HQf+A6DHiP1J8bDreKsg+VqWH8YmfF2z2bzf6/W+AmCKvhTyRalU2oMOdajhtxQsy/oMECJ/ifdBuVz+HQaUjxU6APAKgTtB71F8l8BpDGkVi8Ua1E+O/w5k2dEnEgIBgD92KvVSqVRdVlXTNIMjxeJloYE2gQAKP6QsyG/ZbLYtq4AuXMButx2E7XhZnIpNIICke5SIwmZAAUbOjg+I9XQn3B4A2xOTtdjtZ2P4X0K/jd/RZbZJpEDAq0ij0Vjs9/sf4F/CS8vQDsWKiNVqtY9eeY7dBOH9QqGw4/4wgUAikXhESQD7y4piaaa73S7tfAvMFlaC8HMs4TnkVflcgQC22HM+gHSQWYWYGJzVQ7doyY4RkE1CFj+SSJwfDf5PoQ6MPUoExjK8B7RNd7zdck9UBN5gx5xNJpOLmGRncii5NQoCHZwV21Q+l8v9wmRryqHk1igI3KzX60+48k85PVCNgkAMlxaDkLAfrECsB6JyAZEQQL2UU/MWV1tJjYrANG5ROibgjBIqFyRsRJwvjHoXt6MTJIQ+mFQJ0M3H98HsV7kXCHWUfgFOvAOgj84GXyY+TjqQ3G4lAriAfEfyGpJP8VruIgrjS+R/QZcqCrHXIVesA/8AVBnOjBS6GOwAAAAASUVORK5CYII=';
-    var li = new Image(); li.src = lockedB64;
-    var ui = new Image(); ui.src = unlockedB64;
-    _lockImgCache = { locked: li, unlocked: ui };
+    // Reuse from _androidImgMap so there's no duplicate storage
+    _lockImgCache = {
+        locked:   _androidImgMap['icon_lock'],
+        unlocked: _androidImgMap['icon_unlock']
+    };
 }
 
 /**
- * Push a lock icon element (type:'image') using pre-loaded Image objects.
+ * Push a lock icon element (type:'image') using data URL strings.
  */
 function _pushLockIcon(els, lx, ly, iW, iH, isLocked) {
     if (!_lockImgCache) _initLockIcons();
