@@ -557,23 +557,45 @@ export struct ReportTableComponent {
         const headerRows: number = 1 + ((frozenRowCountV !== undefined) ? (frozenRowCountV as number) : 0);
         if (event.row < headerRows) {
           // This is a header cell click. Check if the column has a lock icon.
+          // For merged header cells, event.col may be any column within the merge;
+          // find the anchor (start.col of the merge range that contains this cell).
           const colsVal: Object | undefined = self.currentOption['columns'];
           if (colsVal !== undefined) {
             const cols: Object[] = colsVal as Object[];
-            if (event.col >= 0 && event.col < cols.length) {
-              const col: Record<string, Object> = cols[event.col] as Record<string, Object>;
+            let effectiveCol: number = event.col;
+            // Resolve anchor column for merged header cells
+            const mergeCellsVal: Object | undefined = self.currentOption['customMergeCell'];
+            if (mergeCellsVal !== undefined && (cols[event.col] as Record<string, Object>)['__lockInfo'] === undefined) {
+              const merges: Object[] = mergeCellsVal as Object[];
+              for (let _mi: number = 0; _mi < merges.length; _mi++) {
+                const mrg: Record<string, Object> = merges[_mi] as Record<string, Object>;
+                const rng: Record<string, Object> = mrg['range'] as Record<string, Object>;
+                const rs: Record<string, Object> = rng['start'] as Record<string, Object>;
+                const re: Record<string, Object> = rng['end'] as Record<string, Object>;
+                const r0: number = rs['row'] as number;
+                const r1: number = re['row'] as number;
+                const c0: number = rs['col'] as number;
+                const c1: number = re['col'] as number;
+                if (r0 <= event.row && event.row <= r1 && c0 <= event.col && event.col <= c1) {
+                  effectiveCol = c0;
+                  break;
+                }
+              }
+            }
+            if (effectiveCol >= 0 && effectiveCol < cols.length) {
+              const col: Record<string, Object> = cols[effectiveCol] as Record<string, Object>;
               if (col['__lockInfo'] !== undefined) {
                 // Determine toggle direction from current frozenColCount.
                 const curFrozen: number = (self.currentOption['frozenColCount'] !== undefined)
                   ? (self.currentOption['frozenColCount'] as number) : 0;
-                const isLocked: boolean = event.col < curFrozen;
+                const isLocked: boolean = effectiveCol < curFrozen;
                 const newLocked: boolean = !isLocked;
 
                 // If trying to lock (freeze), check that total frozen column width does not
                 // exceed the visible component width (mirrors iOS behavior).
                 if (newLocked) {
                   let totalFrozenWidth: number = 0;
-                  for (let fi: number = 0; fi <= event.col; fi++) {
+                  for (let fi: number = 0; fi <= effectiveCol; fi++) {
                     if (fi >= cols.length) break;
                     const fc: Record<string, Object> = cols[fi] as Record<string, Object>;
                     // Use fixed width if set (e.g. progressStyle column), else maxWidth, else minWidth
@@ -590,13 +612,13 @@ export struct ReportTableComponent {
                   const tableWidth: number = self.componentWidth > 0 ? self.componentWidth : 360;
                   if (totalFrozenWidth >= tableWidth) {
                     // Cannot freeze — notify JS layer
-                    const fp: string = '{"col":' + event.col.toString() + '}';
+                    const fp: string = '{"col":' + effectiveCol.toString() + '}';
                     self.emitEvent('lockFailed', JSON.parse(fp) as Object);
                     return;
                   }
                 }
 
-                const lp: string = '{"col":' + event.col.toString() + ',"locked":' + (newLocked ? 'true' : 'false') + '}';
+                const lp: string = '{"col":' + effectiveCol.toString() + ',"locked":' + (newLocked ? 'true' : 'false') + '}';
                 self.emitEvent('lockToggle', JSON.parse(lp) as Object);
                 return; // Lock header click — don't emit regular clickEvent
               }
