@@ -167,6 +167,15 @@ export default class ReportTableWrapper extends React.Component {
                     this._handleLockToggle(data.col, data.locked);
                 }
             ),
+            DeviceEventEmitter.addListener(
+                `RNReportTable_lockFailed_${tag}`,
+                (_data) => {
+                    // Frozen column width would exceed the visible table width — show alert.
+                    // Mirror iOS behavior: alert the user that freezing is not possible.
+                    const { Alert } = require('react-native');
+                    Alert.alert('', '已超出最大冻结范围');
+                }
+            ),
         ];
     };
 

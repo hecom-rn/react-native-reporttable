@@ -312,8 +312,28 @@ function buildCellRender() {
         var h = args.rect.height;
 
         // getRecordByCell returns null for header rows — let VTable handle them.
+        // But we still need to draw classificationLine for header cells that have it.
         var record = args.table.getRecordByCell(col, row);
-        if (!record) return { renderDefault: true };
+        if (!record) {
+            // Check __headerMeta in column definition for classificationLine on header rows.
+            var hCols = args.table.options && args.table.options.columns;
+            if (!hCols || col >= hCols.length || !hCols[col]) return { renderDefault: true };
+            var hHeaderMeta = hCols[col]['__headerMeta'];
+            if (!hHeaderMeta) return { renderDefault: true };
+            // row index maps to headerRowCount: VTable row 0 = frozenRowCount+1 header rows
+            // row in VTable = the VTable grid row (0 = first header row visible)
+            var hMeta = (row >= 0 && row < hHeaderMeta.length) ? hHeaderMeta[row] : null;
+            if (!hMeta || !hMeta.classificationLinePosition) return { renderDefault: true };
+            // Draw classificationLine overlay on top of default header rendering.
+            var hClColor = hMeta.classificationLineColor || '#9cb3c8';
+            var hClPos   = hMeta.classificationLinePosition;
+            var hElements = [];
+            if (hClPos & 1) hElements.push({ type: 'line', points: [{ x: 0, y: 0.5 },   { x: w, y: 0.5 }],   stroke: hClColor, lineWidth: 1, pickable: false });
+            if (hClPos & 2) hElements.push({ type: 'line', points: [{ x: w-0.5, y: 0 }, { x: w-0.5, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
+            if (hClPos & 4) hElements.push({ type: 'line', points: [{ x: 0, y: h-0.5 }, { x: w, y: h-0.5 }], stroke: hClColor, lineWidth: 1, pickable: false });
+            if (hClPos & 8) hElements.push({ type: 'line', points: [{ x: 0.5, y: 0 },   { x: 0.5, y: h }],   stroke: hClColor, lineWidth: 1, pickable: false });
+            return { elements: hElements, renderDefault: true };
+        }
 
         var meta = record['__meta_' + col];
         if (!meta) return { renderDefault: true };
@@ -399,18 +419,28 @@ function buildCellRender() {
                 });
             }
 
-            // Ants dashed line
+            // Ants dashed line — drawn as short rect segments (lineDash ignored by HarmonyOS WebView canvas)
             if (ps.antsLineStyle && ps.antsLineStyle.lineRatio != null) {
                 var al    = ps.antsLineStyle;
                 var alX   = pMarginH + pBarW * al.lineRatio;
-                elements.push({
-                    type: 'line',
-                    points: [{ x: alX, y: pBarY }, { x: alX, y: pBarY + pHeight }],
-                    stroke:   al.color            || '#222222',
-                    lineWidth: al.lineWidth        || 1,
-                    lineDash:  al.lineDashPattern  || [4, 2],
-                    pickable: false
-                });
+                var alColor    = al.color      || '#222222';
+                var alLW       = al.lineWidth  || 1;
+                var alPattern  = al.lineDashPattern || [4, 2];
+                var alDash     = alPattern[0] || 4;
+                var alGap      = alPattern[1] || 2;
+                var alY        = pBarY;
+                var alEnd      = pBarY + pHeight;
+                while (alY < alEnd) {
+                    var segEnd = Math.min(alY + alDash, alEnd);
+                    elements.push({
+                        type: 'rect',
+                        x: alX - alLW / 2, y: alY,
+                        width: alLW, height: segEnd - alY,
+                        fill: alColor,
+                        pickable: false
+                    });
+                    alY = segEnd + alGap;
+                }
             }
         }
 

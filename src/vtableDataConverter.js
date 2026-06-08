@@ -440,6 +440,53 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         }
     }
 
+    // Aggregate classificationLine from all cells in each merged range into the anchor cell.
+    // This handles vertical/horizontal merges where classificationLine may be on covered cells.
+    const mergedAnchorClassif = new Map(); // key: "rowIdx_colIdx", value: { pos, color }
+    for (const mc of mergedCells) {
+        const { start, end } = mc.range;
+        let combinedPos = 0;
+        let combinedColor = null;
+        for (let r = start.row; r <= end.row; r++) {
+            for (let c = start.col; c <= end.col; c++) {
+                const mcCell = dataSource[r]?.[c];
+                if (!mcCell) continue;
+                if (mcCell.classificationLinePosition) combinedPos |= mcCell.classificationLinePosition;
+                if (!combinedColor) combinedColor = mcCell.classificationLineColor || itemConfig?.classificationLineColor || null;
+            }
+        }
+        if (combinedPos > 0) {
+            mergedAnchorClassif.set(`${start.row}_${start.col}`, { pos: combinedPos, color: combinedColor });
+        }
+    }
+
+    // Store __headerMeta in each column so vtable_util.js can draw classificationLine
+    // for header rows (where getRecordByCell returns null).
+    for (let colIdx = 0; colIdx < colCount; colIdx++) {
+        const hMetaArr = [];
+        for (let rowIdx = 0; rowIdx < headerRowCount; rowIdx++) {
+            const hCell = dataSource[rowIdx]?.[colIdx] ?? {};
+            const isCoveredH = mergedCoveredSet.has(`${rowIdx}_${colIdx}`);
+            if (isCoveredH) {
+                hMetaArr.push(null);
+            } else {
+                const hm = { classificationLinePosition: 0, classificationLineColor: null };
+                if (hCell.classificationLinePosition) hm.classificationLinePosition = hCell.classificationLinePosition;
+                const clColor = hCell.classificationLineColor ?? itemConfig?.classificationLineColor;
+                if (clColor) hm.classificationLineColor = normalizeColor(clColor);
+                // Aggregate from merged span (covers both this cell and covered cells)
+                const anchorKey = `${rowIdx}_${colIdx}`;
+                if (mergedAnchorClassif.has(anchorKey)) {
+                    const clInfo = mergedAnchorClassif.get(anchorKey);
+                    hm.classificationLinePosition |= clInfo.pos;
+                    if (!hm.classificationLineColor && clInfo.color) hm.classificationLineColor = normalizeColor(clInfo.color);
+                }
+                hMetaArr.push(hm.classificationLinePosition > 0 ? hm : null);
+            }
+        }
+        columns[colIdx].__headerMeta = hMetaArr;
+    }
+
     // Post-process column width constraints for progressStyle and icon cells.
     // progressStyle cells must show full text without wrapping (break through maxWidth).
     // Icon cells need extra width for icon + padding.
@@ -466,8 +513,14 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             }
         }
         if (hasProgressStyle) {
-            columns[c].maxWidth = Math.max(columns[c].minWidth || minWidth, maxNeededW);
+            // For progressStyle columns, break through maxWidth so text shows fully (no ellipsis).
+            // Multiply estimate by 1.3 as safety margin for character-width variation.
+            const fixedW = Math.max(columns[c].minWidth || minWidth, Math.ceil(maxNeededW * 1.3));
+            columns[c].width = fixedW;
+            columns[c].minWidth = fixedW;
+            columns[c].maxWidth = fixedW;
             columns[c].style.autoWrapText = false;
+            columns[c].headerStyle.autoWrapText = false;
         } else if (maxNeededW > (columns[c].maxWidth || maxWidth)) {
             columns[c].maxWidth = maxNeededW;
         }
@@ -485,7 +538,20 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             // to prevent content overlap when VTable renders the merged cell on top.
             const isCovered = mergedCoveredSet.has(`${rowIdx}_${colIdx}`);
             record[String(colIdx)] = isCovered ? '' : (cell.title ?? '');
-            record[`__meta_${colIdx}`] = isCovered ? { title: '', keyIndex: cell.keyIndex ?? 0 } : buildCellMeta(cell, itemConfig);
+            const cellMeta = isCovered ? { title: '', keyIndex: cell.keyIndex ?? 0 } : buildCellMeta(cell, itemConfig);
+            // Aggregate classificationLine from entire merged span into the anchor cell.
+            if (!isCovered) {
+                const anchorKey = `${rowIdx}_${colIdx}`;
+                if (mergedAnchorClassif.has(anchorKey)) {
+                    const clInfo = mergedAnchorClassif.get(anchorKey);
+                    const existingPos = cellMeta.classificationLinePosition || 0;
+                    cellMeta.classificationLinePosition = existingPos | clInfo.pos;
+                    if (!cellMeta.classificationLineColor && clInfo.color) {
+                        cellMeta.classificationLineColor = normalizeColor(clInfo.color);
+                    }
+                }
+            }
+            record[`__meta_${colIdx}`] = cellMeta;
         }
 
         records.push(record);

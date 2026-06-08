@@ -383,6 +383,7 @@ export struct ReportTableComponent {
         ',"heightMode":"autoHeight"' +
         ',"autoFillWidth":true' +
         ',"autoFillHeight":false' +
+        ',"columnResizeMode":"none"' +
         ',"hover":{"disableHover":true}' +
         ',"select":{"disableSelect":true}' +
         ',"scrollBar":{"visible":"none","barWidth":0,"hoverOn":false}' +
@@ -567,6 +568,26 @@ export struct ReportTableComponent {
                   ? (self.currentOption['frozenColCount'] as number) : 0;
                 const isLocked: boolean = event.col < curFrozen;
                 const newLocked: boolean = !isLocked;
+
+                // If trying to lock (freeze), check that total frozen column width does not
+                // exceed the visible component width (mirrors iOS behavior).
+                if (newLocked) {
+                  let totalFrozenWidth: number = 0;
+                  for (let fi: number = 0; fi <= event.col; fi++) {
+                    if (fi >= cols.length) break;
+                    const fc: Record<string, Object> = cols[fi] as Record<string, Object>;
+                    const fcMin: number = (fc['minWidth'] !== undefined) ? (fc['minWidth'] as number) : 50;
+                    const fcMax: number = (fc['maxWidth'] !== undefined) ? (fc['maxWidth'] as number) : 120;
+                    totalFrozenWidth += Math.min(fcMax, Math.max(fcMin, fcMin));
+                  }
+                  if (totalFrozenWidth >= self.componentWidth) {
+                    // Cannot freeze — notify JS layer
+                    const fp: string = '{"col":' + event.col.toString() + '}';
+                    self.emitEvent('lockFailed', JSON.parse(fp) as Object);
+                    return;
+                  }
+                }
+
                 const lp: string = '{"col":' + event.col.toString() + ',"locked":' + (newLocked ? 'true' : 'false') + '}';
                 self.emitEvent('lockToggle', JSON.parse(lp) as Object);
                 return; // Lock header click — don't emit regular clickEvent
