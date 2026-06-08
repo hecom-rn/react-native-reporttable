@@ -516,8 +516,18 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             columns[c].__progressStyle = true;
             columns[c].style.autoWrapText = false;
             columns[c].headerStyle.autoWrapText = false;
-        } else if (maxNeededW > (columns[c].maxWidth || maxWidth)) {
-            columns[c].maxWidth = maxNeededW;
+        } else {
+            // Also account for header lock icon when present
+            if (columns[c].__lockInfo && columns[c].__lockInfo.showLock) {
+                const hTitle = columns[c].title || '';
+                const hFontSize = columns[c].headerStyle?.fontSize ?? itemConfig?.fontSize ?? 14;
+                const hPadH = 12; // default header padding
+                const lockNeeded = hTitle.length * hFontSize * 0.6 + 4 + 13 + hPadH * 2; // iPad=4, iW=13
+                if (lockNeeded > maxNeededW) maxNeededW = lockNeeded;
+            }
+            if (maxNeededW > (columns[c].maxWidth || maxWidth)) {
+                columns[c].maxWidth = maxNeededW;
+            }
         }
     }
 

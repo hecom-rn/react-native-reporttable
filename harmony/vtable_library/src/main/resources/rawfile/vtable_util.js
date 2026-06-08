@@ -197,6 +197,19 @@ var _androidImgMap = {
 };
 
 /**
+ * Extract a bare icon name from any URI format.
+ * Examples:
+ *   'asset://up.png'                    → 'up'
+ *   'hap://com.x/resources/rawfile/expanded_icon.png' → 'expanded_icon'
+ *   'up'                                → 'up'
+ */
+function _nameFromUri(uri) {
+    if (!uri) return '';
+    // strip query string, then take the last path segment, then remove extension
+    return uri.replace(/\?.*$/, '').replace(/^.*[\/\\]/, '').replace(/\.[^.]+$/, '');
+}
+
+/**
  * Resolve an android icon name to its base64 data URL string.
  * VTable's type:'image' element accepts URL strings via loadImage internally.
  */
@@ -231,7 +244,7 @@ function _pushLockIcon(els, lx, ly, iW, iH, isLocked) {
     els.push({
         type: 'image',
         x: lx, y: ly, width: iW, height: iH,
-        image: isLocked ? _lockImgCache.locked : _lockImgCache.unlocked,
+        src: isLocked ? _lockImgCache.locked : _lockImgCache.unlocked,
         pickable: false
     });
 }
@@ -748,20 +761,14 @@ function buildCellRender() {
                 var _iconSrc;
                 if (icon.path && icon.path.uri) {
                     var _iUri = icon.path.uri;
-                    if (_iUri.indexOf('asset://') === 0) {
-                        // RN bundler asset — extract basename without extension
-                        var _iBase = _iUri.replace('asset://', '').replace(/\.[^.]+$/, '');
-                        _iconSrc = _resolveAndroidImg(_iBase) || _iUri;
-                    } else {
-                        _iconSrc = _iUri;
-                    }
+                    _iconSrc = _resolveAndroidImg(_nameFromUri(_iUri)) || _iUri;
                 } else {
                     _iconSrc = _resolveAndroidImg(icon.name) || icon.name || '';
                 }
                 elements.push({
                     type: 'image',
                     x: iconX, y: iY, width: iW, height: iH,
-                    image: _iconSrc,
+                    src: _iconSrc,
                     pickable: false
                 });
                 elements.push({
@@ -770,7 +777,7 @@ function buildCellRender() {
                     text: iText,
                     fontSize: fontSize, fill: textColor, fontWeight: fontWeight,
                     textBaseline: 'middle',
-                    maxLineWidth: maxLineWidth - iW - iPad,
+                    maxLineWidth: Math.max(0, maxLineWidth - iW - iPad),
                     ellipsis: '...',
                     pickable: false
                 });
@@ -862,19 +869,14 @@ function buildCellRender() {
             var _fiSrc;
             if (fi.path && fi.path.uri) {
                 var _fiUri = fi.path.uri;
-                if (_fiUri.indexOf('asset://') === 0) {
-                    var _fiBase = _fiUri.replace('asset://', '').replace(/\.[^.]+$/, '');
-                    _fiSrc = _resolveAndroidImg(_fiBase) || _fiUri;
-                } else {
-                    _fiSrc = _fiUri;
-                }
+                _fiSrc = _resolveAndroidImg(_nameFromUri(_fiUri)) || _fiUri;
             } else {
                 _fiSrc = _resolveAndroidImg(fi.name) || fi.name || '';
             }
             elements.push({
                 type: 'image',
                 x: fiX, y: fiY, width: fi.width || 16, height: fi.height || 16,
-                image: _fiSrc,
+                src: _fiSrc,
                 pickable: false
             });
         }
@@ -886,6 +888,34 @@ function buildCellRender() {
 }
 
 function customIcon() {
+}
+
+/**
+ * Ensure columns that show a lock icon in the header have enough minWidth to
+ * display both the header title and the lock icon side-by-side.
+ * Uses canvas.measureText() for accuracy.
+ * Must be called AFTER _extractColumnMeta() so _lockInfoMap is populated.
+ */
+function _fixLockIconColumnWidths(options) {
+    if (!Array.isArray(options.columns)) return;
+    var LOCK_W = 13, LOCK_PAD = 4; // must match _pushLockIcon dims in buildCellRender
+    for (var _li = 0; _li < options.columns.length; _li++) {
+        if (!window._lockInfoMap || !window._lockInfoMap[_li]) continue;
+        var _lcol = options.columns[_li];
+        var _lhst = _lcol.headerStyle || _lcol.style || {};
+        var _lFs  = _lhst.fontSize  || 14;
+        var _lFw  = _lhst.fontWeight || 'normal';
+        var _lPad = Array.isArray(_lhst.padding) ? (_lhst.padding[1] || 12) : (_lhst.padding || 12);
+        var _lTitleW = _measureTextWidth(_lcol.title || '', _lFs, _lFw);
+        var _lNeeded = Math.ceil(_lTitleW) + LOCK_PAD + LOCK_W + _lPad * 2 + 2;
+        if (_lNeeded > (_lcol.minWidth || 0)) {
+            _lcol.minWidth = _lNeeded;
+        }
+        // Also bump maxWidth so VTable auto-sizing can actually use this space
+        if (_lcol.maxWidth && _lNeeded > _lcol.maxWidth) {
+            _lcol.maxWidth = _lNeeded;
+        }
+    }
 }
 
 function initializeTable(option) {
@@ -927,6 +957,7 @@ function initializeTable(option) {
     // Functions are stripped by JSON.stringify in ArkTS, so we inject them here
     // inside the WebView where they can reference the live VRender primitives.
     _fixProgressStyleWidths(option);
+    _fixLockIconColumnWidths(option);
     _injectMergedHeaderRenders(option);
     addCustomRenderToColumns(option.columns);
 
@@ -1043,6 +1074,7 @@ function updateOption(options) {
     // Re-extract column metadata globals and re-attach customRender.
     _extractColumnMeta(options.columns);
     _fixProgressStyleWidths(options);
+    _fixLockIconColumnWidths(options);
     _injectMergedHeaderRenders(options);
     addCustomRenderToColumns(options.columns);
     window.tableInstance.updateOption(options);
