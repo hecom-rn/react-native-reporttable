@@ -374,7 +374,7 @@ export struct ReportTableComponent {
         ',"customCellStyleArrangement":' + customCellStyleArrangementStr +
         ',"frozenColCount":' + frozenColCount.toString() +
         ',"frozenRowCount":' + frozenRowCount.toString() +
-        '"allowFrozenColCount":0' +
+        ',"allowFrozenColCount":0' +
         ',"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
         ',"defaultHeaderRowHeight":' + rowMinHeight.toString() +
