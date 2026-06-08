@@ -156,7 +156,9 @@ function _injectMergedHeaderRenders(options) {
         var _hasCL   = window._tableHeaderMeta && window._tableHeaderMeta['0_' + _ac];
         if (!_hasLock && !_hasCL) continue;
         // buildCellRender() handles the header branch (record==null) using globals
-        _item.customRender = buildCellRender();
+        var _fn = buildCellRender();
+        _item.customRender = _fn;
+        _item.headerCustomRender = _fn;
     }
 }
 
@@ -499,7 +501,9 @@ var optionTemp
 function addCustomRenderToColumns(columns) {
     if (!Array.isArray(columns)) return;
     for (var i = 0; i < columns.length; i++) {
-        columns[i].customRender = buildCellRender();
+        var fn = buildCellRender();
+        columns[i].customRender = fn;
+        columns[i].headerCustomRender = fn;  // VTable uses headerCustomRender for header rows
     }
 }
 
@@ -741,10 +745,23 @@ function buildCellRender() {
                     tX    = iStartX;
                     iconX = iStartX + iTextW + iPad;
                 }
+                var _iconSrc;
+                if (icon.path && icon.path.uri) {
+                    var _iUri = icon.path.uri;
+                    if (_iUri.indexOf('asset://') === 0) {
+                        // RN bundler asset — extract basename without extension
+                        var _iBase = _iUri.replace('asset://', '').replace(/\.[^.]+$/, '');
+                        _iconSrc = _resolveAndroidImg(_iBase) || _iUri;
+                    } else {
+                        _iconSrc = _iUri;
+                    }
+                } else {
+                    _iconSrc = _resolveAndroidImg(icon.name) || icon.name || '';
+                }
                 elements.push({
                     type: 'image',
                     x: iconX, y: iY, width: iW, height: iH,
-                    image: (icon.path && icon.path.uri) ? icon.path.uri : (_resolveAndroidImg(icon.name) || icon.name || ''),
+                    image: _iconSrc,
                     pickable: false
                 });
                 elements.push({
@@ -842,10 +859,22 @@ function buildCellRender() {
             else if (fi.right != null)  fiX = w - fi.right  - (fi.width  || 16);
             if (fi.top   != null) fiY = fi.top;
             else if (fi.bottom != null) fiY = h - fi.bottom - (fi.height || 16);
+            var _fiSrc;
+            if (fi.path && fi.path.uri) {
+                var _fiUri = fi.path.uri;
+                if (_fiUri.indexOf('asset://') === 0) {
+                    var _fiBase = _fiUri.replace('asset://', '').replace(/\.[^.]+$/, '');
+                    _fiSrc = _resolveAndroidImg(_fiBase) || _fiUri;
+                } else {
+                    _fiSrc = _fiUri;
+                }
+            } else {
+                _fiSrc = _resolveAndroidImg(fi.name) || fi.name || '';
+            }
             elements.push({
                 type: 'image',
                 x: fiX, y: fiY, width: fi.width || 16, height: fi.height || 16,
-                image: (fi.path && fi.path.uri) ? fi.path.uri : (_resolveAndroidImg(fi.name) || fi.name || ''),
+                image: _fiSrc,
                 pickable: false
             });
         }
