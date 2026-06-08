@@ -122,13 +122,13 @@ function buildCellMeta(cell, itemConfig) {
             endRatio:        cell.progressStyle.endRatio         ?? 0,
             colors:          (cell.progressStyle.colors ?? []).map(normalizeColor),
         };
-        // antsLineStyle
+        // antsLineStyle — only inherit from itemConfig if cell explicitly sets antsLineStyle.
+        // If cell has no antsLineStyle, do NOT apply itemConfig default (per spec).
         const cellAnts = cell.progressStyle.antsLineStyle;
-        const icAnts = icPs.antsLineStyle;
-        if (cellAnts || icAnts) {
-            const ants = cellAnts ?? icAnts;
-            // Merge cellAnts + icAnts: cellAnts overrides icAnts defaults
-            const mergedAnts = Object.assign({}, icAnts || {}, cellAnts || {});
+        if (cellAnts) {
+            const icAnts = icPs.antsLineStyle || {};
+            // cellAnts overrides icAnts defaults
+            const mergedAnts = Object.assign({}, icAnts, cellAnts);
             meta.progressStyle.antsLineStyle = {
                 color:           normalizeColor(mergedAnts.color           ?? '#222222'),
                 lineWidth:       mergedAnts.lineWidth        ?? 1,

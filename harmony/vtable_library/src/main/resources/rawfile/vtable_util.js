@@ -647,7 +647,8 @@ function buildCellRender() {
                 for (var _pgr = 0; _pgr < pGradEls.length; _pgr++) elements.push(pGradEls[_pgr]);
             }
 
-            // Ants dashed line — drawn as short rect segments (lineDash ignored by HarmonyOS WebView canvas)
+            // Ants dashed line — spans full cell height (0→h), ignores progress bar margin.
+            // Drawn as short rect segments (lineDash not supported in HarmonyOS WebView canvas).
             if (ps.antsLineStyle && ps.antsLineStyle.lineRatio != null) {
                 var al    = ps.antsLineStyle;
                 var alX   = pMarginH + pBarW * al.lineRatio;
@@ -656,8 +657,8 @@ function buildCellRender() {
                 var alPattern  = al.lineDashPattern || [4, 2];
                 var alDash     = alPattern[0] || 4;
                 var alGap      = alPattern[1] || 2;
-                var alY        = pBarY;
-                var alEnd      = pBarY + pHeight;
+                var alY        = 0;   // start at cell top
+                var alEnd      = h;   // end at cell bottom
                 while (alY < alEnd) {
                     var segEnd = Math.min(alY + alDash, alEnd);
                     elements.push({
