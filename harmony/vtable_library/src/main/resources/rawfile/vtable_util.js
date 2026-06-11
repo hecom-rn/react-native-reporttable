@@ -387,9 +387,11 @@ function frozenToCol(index) {
         console.error('表格实例未找到');
         return;
     }
-    window.tableInstance.setFrozenColCount(index);
-    window.tableInstance.renderWithRecreateCells();
-    console.log("=====> frozenToCol", index)
+    // VTable's setFrozenColCount alone doesn't always refresh the frozen column layout.
+    // Use updateOption to ensure the full option (including frozenColCount) is re-applied.
+    window.tableInstance.options.frozenColCount = index;
+    updateOption(window.tableInstance.options);
+    console.log("=====> frozenToCol via updateOption", index)
 }
 
 // 冻结指定行数，使上方指定数量的行固定不动
@@ -539,12 +541,62 @@ var optionTemp
  * Attach a customRender function to every column in the option.
  * Must be called before new VTable.ListTable() and before updateOption().
  */
-function addCustomRenderToColumns(columns) {
+/**
+ * Determine whether a column needs customRender based on its header/body features.
+ * Only columns with lock icons, classification lines, or body cells with
+ * icon/progress/gradient/richText/overlays need customRender.
+ */
+function _shouldColumnHaveCustomRender(colIdx, columns, records) {
+    var col = columns[colIdx];
+    if (!col) return false;
+    // Header features: lock icon or classification lines
+    if (col.__lockInfo) return true;
+    if (col.__headerMeta) {
+        for (var hi = 0; hi < col.__headerMeta.length; hi++) {
+            var hm = col.__headerMeta[hi];
+            if (hm && hm.classificationLinePosition > 0) return true;
+        }
+    }
+    // Body features: check all records for this column
+    if (Array.isArray(records)) {
+        for (var ri = 0; ri < records.length; ri++) {
+            var meta = records[ri]['__meta_' + colIdx];
+            if (meta && (
+                meta.icon ||
+                meta.progressStyle ||
+                meta.gradient ||
+                (meta.richText && meta.richText.length > 0) ||
+                meta.isForbidden ||
+                meta.boxLineColor ||
+                (meta.classificationLinePosition && meta.classificationLinePosition > 0) ||
+                meta.floatIcon ||
+                meta.extraText
+            )) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Attach a customRender function only to columns that actually need it.
+ * Reduces per-cell function-call overhead for large datasets.
+ */
+function addCustomRenderToColumns(options) {
+    var columns = options.columns;
+    var records = options.records;
     if (!Array.isArray(columns)) return;
+    var fn = buildCellRender();
     for (var i = 0; i < columns.length; i++) {
-        var fn = buildCellRender();
-        columns[i].customRender = fn;
-        columns[i].headerCustomRender = fn;  // VTable uses headerCustomRender for header rows
+        if (_shouldColumnHaveCustomRender(i, columns, records)) {
+            columns[i].customRender = fn;
+            columns[i].headerCustomRender = fn;
+        } else {
+            // Explicitly remove any stale customRender from previous updateOption
+            delete columns[i].customRender;
+            delete columns[i].headerCustomRender;
+        }
     }
 }
 
@@ -775,8 +827,8 @@ function buildCellRender() {
             } else if (meta.icon) {
                 // Icon + text
                 var icon     = meta.icon;
-                var iW       = icon.width  || 16;
-                var iH       = icon.height || 16;
+                var iW       = Number(icon.width)  || 16;
+                var iH       = Number(icon.height) || 16;
                 var iPad     = icon.paddingHorizontal != null ? icon.paddingHorizontal : 4;
                 var iAlign   = icon.imageAlignment || 3; // 1=left, 3=right(default)
                 var iText    = meta.title || '';
@@ -802,9 +854,15 @@ function buildCellRender() {
                 } else {
                     _iconSrc = _resolveAndroidImg(icon.name) || icon.name || '';
                 }
-                // Clamp icon position inside cell bounds to avoid negative coords or overflow
-                var _safeIconX = Math.max(0, Math.min(Math.round(iconX), Math.round(w - iW)));
-                var _safeIconY = Math.max(0, Math.min(Math.round(iY), Math.round(h - iH)));
+                // Clamp icon position inside cell bounds; cap rendered size to cell size
+                var _renderIW = Math.min(iW, Math.max(1, w));
+                var _renderIH = Math.min(iH, Math.max(1, h));
+                var _safeIconX = Math.max(0, Math.min(Math.round(iconX), Math.round(w - _renderIW)));
+                var _safeIconY = Math.max(0, Math.min(Math.round(iY), Math.round(h - _renderIH)));
+                // Debug: log icon render info for troubleshooting invisible icons
+                if (!_iconSrc) {
+                    console.warn('[buildCellRender] icon src empty for col=' + col + ' name=' + (icon.name || ''));
+                }
                 elements.push({
                     type: 'text',
                     x: tX, y: textY,
@@ -818,7 +876,7 @@ function buildCellRender() {
                 if (_iconSrc) {
                     elements.push({
                         type: 'image',
-                        x: _safeIconX, y: _safeIconY, width: iW, height: iH,
+                        x: _safeIconX, y: _safeIconY, width: _renderIW, height: _renderIH,
                         src: _iconSrc,
                         pickable: false
                     });
@@ -1049,7 +1107,7 @@ function initializeTable(option) {
     _fixLockIconColumnWidths(option);
     _fixIconColumnWidths(option);
     _injectMergedCellRenders(option);
-    addCustomRenderToColumns(option.columns);
+    addCustomRenderToColumns(option);
 
     const tableInstance = new VTable.ListTable(document.getElementById('tableContainer'), option);
     eventList.forEach(eventName => {
@@ -1167,7 +1225,7 @@ function updateOption(options) {
     _fixLockIconColumnWidths(options);
     _fixIconColumnWidths(options);
     _injectMergedCellRenders(options);
-    addCustomRenderToColumns(options.columns);
+    addCustomRenderToColumns(options);
     window.tableInstance.updateOption(options);
 }
 

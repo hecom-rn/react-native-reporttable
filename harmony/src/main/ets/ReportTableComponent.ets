@@ -329,8 +329,24 @@ export struct ReportTableComponent {
       const disableZoomVal: Object | undefined = rawProps['disableZoom'];
       const permutableVal: Object | undefined = rawProps['permutable'];
 
-      const recordsStr: string = (recordsVal !== undefined) ? (recordsVal as string) : '[]';
+      let recordsStr: string = (recordsVal !== undefined) ? (recordsVal as string) : '[]';
       const columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
+
+      // If native layer has modified records (via spliceData/updateData) and the
+      // incoming props records haven't caught up, preserve native records to avoid
+      // flicker / row duplication.
+      if (this.vtableInitialized) {
+        const currentRecords: Object | undefined = this.currentOption['records'];
+        if (currentRecords !== undefined) {
+          try {
+            const currentArr: Object[] = currentRecords as Object[];
+            const propsArr: Object[] = JSON.parse(recordsStr) as Object[];
+            if (currentArr.length !== propsArr.length) {
+              recordsStr = JSON.stringify(currentArr);
+            }
+          } catch (_e) {}
+        }
+      }
       const themeStr: string = (themeVal !== undefined) ? (themeVal as string) : '{}';
       const mergedCellsStr: string = (mergedCellsVal !== undefined) ? (mergedCellsVal as string) : '[]';
       const customCellStyleStr: string = (customCellStyleVal !== undefined) ? (customCellStyleVal as string) : '[]';
@@ -382,18 +398,9 @@ export struct ReportTableComponent {
         this.emitCachedContentSize();
       }
 
-      let allowFrozenColCount: number = 0;
-
-      for (let i: number = 0; i < columnsArr.length; i++) {
-        const col: Record<string, Object> = columnsArr[i] as Record<string, Object>;
-        if (col['__lockInfo'] !== undefined) {
-          allowFrozenColCount = i + 1;
-        }
-      }
-
-      if (permutable) {
-        allowFrozenColCount = columnsArr.length;
-      }
+      // allowFrozenColCount controls the max columns a user can freeze via UI.
+      // We set it to the full column count so programmatic frozenToCol never hits the limit.
+      const allowFrozenColCount: number = columnsArr.length;
 
       this.currentFrozenRowCount = frozenRowCount;
 
@@ -534,6 +541,7 @@ export struct ReportTableComponent {
         const deleteIndices: Object[] = (op['deleteIndices'] !== undefined) ? (op['deleteIndices'] as Object[]) : [];
         const addAtIndex: number = (op['addAtIndex'] !== undefined) ? (op['addAtIndex'] as number) : 0;
         const newRecords: Object[] = (op['newRecords'] !== undefined) ? (op['newRecords'] as Object[]) : [];
+        const beforeLen: number = records.length;
 
         // Delete rows (from high to low to preserve indices)
         const sortedDeleteIndices: number[] = [];
@@ -566,10 +574,13 @@ export struct ReportTableComponent {
             records.push(newRecords[i]);
           }
         }
+        console.log('[ReportTableComponent] spliceData op=' + opIdx + ': before=' + beforeLen +
+          ' del=' + deleteIndices.length + ' add=' + newRecords.length + ' after=' + records.length);
       }
 
-      // Update option with modified records and re-render
-      this.currentOption['records'] = records as Object;
+      // Update option with modified records and re-render.
+      // Create a new array reference so VTable detects the change.
+      this.currentOption['records'] = [...records] as Object;
       this.controller.updateOption(this.currentOption);
     } catch (e) {
       console.error('[ReportTableComponent] spliceData failed: ' + (e as Error).message);
