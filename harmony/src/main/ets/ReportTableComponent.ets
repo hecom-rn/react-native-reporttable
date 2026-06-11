@@ -43,6 +43,8 @@ export struct ReportTableComponent {
   // Extra frozen row count (NOT counting the column-title header row that VTable always has).
   // Used to compute the global VTable row index: globalRow = bodyRow + 1 + extraFrozenRows.
   private currentFrozenRowCount: number = 0;
+  // Cached column widths from native measurement — used for accurate lock threshold checks.
+  private contentSizeColWidths: number[] = [];
 
 
   aboutToAppear(): void {
@@ -176,16 +178,19 @@ export struct ReportTableComponent {
         let maxContentW: number = 0;
         // Header title
         const headerTitle: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
+        let headerWVp: number = 0;
         if (headerTitle.length > 0) {
           // Pass fontSize as a number (in fp ≈ vp units). measureText returns px.
           const wPx: number = measure.measureText({ textContent: headerTitle, fontSize: colFontSize });
           // Fallback to char-width estimate when measureText returns 0 (font not loaded yet)
-          let wVp: number = wPx > 0 ? wPx / dpRatio : headerTitle.length * colFontSize * 0.65;
-          // Add lock icon width when this column has a lock icon (drawn via customRender).
-          if (col['__lockInfo'] !== undefined) {
-            wVp += 13 + 4; // lockIconWidth(13) + lockIconPadding(4)
-          }
-          maxContentW = Math.max(maxContentW, wVp + colPadH * 2);
+          headerWVp = wPx > 0 ? wPx / dpRatio : headerTitle.length * colFontSize * 0.65;
+        }
+        // Add lock icon width when this column has a lock icon (drawn via customRender).
+        if (col['__lockInfo'] !== undefined) {
+          headerWVp += 13 + 4; // lockIconWidth(13) + lockIconPadding(4)
+        }
+        if (headerWVp > 0 || (col['__lockInfo'] !== undefined)) {
+          maxContentW = Math.max(maxContentW, headerWVp + colPadH * 2);
         }
         // Body cells
         for (let r: number = 0; r < recordsArr.length; r++) {
@@ -297,6 +302,7 @@ export struct ReportTableComponent {
         contentHeight += maxRowH + borderPx;
       }
 
+      this.contentSizeColWidths = colWidths;
       return '{"width":' + Math.round(contentWidth).toString() +
         ',"height":' + Math.round(contentHeight).toString() + '}';
     } catch (e) {
@@ -445,7 +451,9 @@ export struct ReportTableComponent {
     } else if (commandName === 'updateData' && args.length > 0) {
       this.handleUpdateData(args);
     } else if (commandName === 'frozenToCol' && args.length > 0) {
-      this.controller.frozenToCol(args[0] as number);
+      const fc: number = args[0] as number;
+      this.currentOption['frozenColCount'] = fc;
+      this.controller.frozenToCol(fc);
     } else if (commandName === 'spliceData' && args.length > 0) {
       this.handleSpliceData(args);
     }
@@ -570,9 +578,10 @@ export struct ReportTableComponent {
           if (colsVal !== undefined) {
             const cols: Object[] = colsVal as Object[];
             let effectiveCol: number = event.col;
-            // Resolve anchor column for merged header cells
+            let horizontalSpan: number = 1;
+            // Resolve anchor column and horizontal span for merged header cells
             const mergeCellsVal: Object | undefined = self.currentOption['customMergeCell'];
-            if (mergeCellsVal !== undefined && (cols[event.col] as Record<string, Object>)['__lockInfo'] === undefined) {
+            if (mergeCellsVal !== undefined) {
               const merges: Object[] = mergeCellsVal as Object[];
               for (let _mi: number = 0; _mi < merges.length; _mi++) {
                 const mrg: Record<string, Object> = merges[_mi] as Record<string, Object>;
@@ -585,6 +594,7 @@ export struct ReportTableComponent {
                 const c1: number = re['col'] as number;
                 if (r0 <= event.row && event.row <= r1 && c0 <= event.col && event.col <= c1) {
                   effectiveCol = c0;
+                  horizontalSpan = c1 - c0 + 1;
                   break;
                 }
               }
@@ -593,33 +603,42 @@ export struct ReportTableComponent {
               const col: Record<string, Object> = cols[effectiveCol] as Record<string, Object>;
               if (col['__lockInfo'] !== undefined) {
                 // Determine toggle direction from current frozenColCount.
+                // targetCol is the column index AFTER the merge span (mirrors iOS newFrozenColums).
                 const curFrozen: number = (self.currentOption['frozenColCount'] !== undefined)
                   ? (self.currentOption['frozenColCount'] as number) : 0;
-                const isLocked: boolean = effectiveCol < curFrozen;
+                const targetCol: number = effectiveCol + horizontalSpan;
+                const isLocked: boolean = targetCol <= curFrozen;
 
                 let newFrozenColCount: number;
                 if (isLocked) {
-                  // Unlock: unfreeze this column (and everything above it)
-                  newFrozenColCount = effectiveCol;
+                  // Unlock: find the last column with __lockInfo that is before effectiveCol.
+                  // This matches iOS behaviour where all columns >= clicked column are unlocked,
+                  // then frozenColumns is recomputed from remaining locked columns.
+                  let nextFrozen: number = 0;
+                  for (let i: number = 0; i < effectiveCol; i++) {
+                    const c: Record<string, Object> = cols[i] as Record<string, Object>;
+                    if (c && c['__lockInfo'] !== undefined) {
+                      nextFrozen = i + 1;
+                    }
+                  }
+                  newFrozenColCount = nextFrozen;
                 } else {
                   // Lock: check that scaled frozen width <= componentWidth - 40 (mirrors iOS)
-                  // iOS: frozenWidth * zoomScale > tableRect.width - 40 → show toast
+                  // Use cached native-measured column widths when available for accuracy.
                   let totalFrozenWidth: number = 0;
-                  for (let fi: number = 0; fi <= effectiveCol; fi++) {
+                  for (let fi: number = 0; fi < targetCol; fi++) {
                     if (fi >= cols.length) break;
                     const fc: Record<string, Object> = cols[fi] as Record<string, Object>;
                     let fcW: number = 50;
-                    if (fc['width'] !== undefined && typeof (fc['width'] as Object) === 'number') {
+                    if (self.contentSizeColWidths.length > fi && self.contentSizeColWidths[fi] > 0) {
+                      fcW = self.contentSizeColWidths[fi];
+                    } else if (fc['width'] !== undefined && typeof (fc['width'] as Object) === 'number') {
                       fcW = fc['width'] as number;
-                    } else if (fc['maxWidth'] !== undefined) {
-                      fcW = fc['maxWidth'] as number;
                     } else if (fc['minWidth'] !== undefined) {
                       fcW = fc['minWidth'] as number;
                     }
                     totalFrozenWidth += fcW;
                   }
-                  // VTable renders at logical size (componentWidth/zoom); frozenWidth is in logical px.
-                  // Multiply by zoom to get physical pixels, then compare against physical componentWidth.
                   const scaledFrozenWidth: number = totalFrozenWidth * self.currentZoom;
                   const tableWidth: number = self.componentWidth > 0 ? self.componentWidth : 360;
                   if (scaledFrozenWidth > tableWidth - 40) {
@@ -628,7 +647,7 @@ export struct ReportTableComponent {
                     self.emitEvent('lockFailed', JSON.parse(fp) as Object);
                     return;
                   }
-                  newFrozenColCount = effectiveCol + 1;
+                  newFrozenColCount = targetCol;
                 }
 
                 // Apply new frozen state directly — no JS roundtrip needed

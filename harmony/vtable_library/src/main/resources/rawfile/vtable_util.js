@@ -801,12 +801,17 @@ function buildCellRender() {
                 } else {
                     _iconSrc = _resolveAndroidImg(icon.name) || icon.name || '';
                 }
-                elements.push({
-                    type: 'image',
-                    x: iconX, y: iY, width: iW, height: iH,
-                    src: _iconSrc,
-                    pickable: false
-                });
+                // Clamp icon position inside cell bounds to avoid negative coords or overflow
+                var _safeIconX = Math.max(0, Math.min(iconX, w - iW));
+                var _safeIconY = Math.max(0, Math.min(iY, h - iH));
+                if (_iconSrc) {
+                    elements.push({
+                        type: 'image',
+                        x: _safeIconX, y: _safeIconY, width: iW, height: iH,
+                        src: _iconSrc,
+                        pickable: false
+                    });
+                }
                 elements.push({
                     type: 'text',
                     x: tX, y: textY,
@@ -943,10 +948,6 @@ function _fixIconColumnWidths(options) {
         var _col = options.columns[_ci];
         if (!_col) continue;
         var _field = _col.field;
-        var _st = _col.style || {};
-        var _padH = Array.isArray(_st.padding) ? (_st.padding[1] || 12) : (_st.padding || 12);
-        var _fontSize = _st.fontSize || 14;
-        var _fontWeight = _st.fontWeight || 'normal';
         var _maxW = 0;
         var _hasIcon = false;
         for (var _ri = 0; _ri < options.records.length; _ri++) {
@@ -957,8 +958,14 @@ function _fixIconColumnWidths(options) {
             var _iW = _icon.width || 16;
             var _iPad = _icon.paddingHorizontal != null ? _icon.paddingHorizontal : 4;
             var _text = String(options.records[_ri][_field] || '');
-            var _textW = _measureTextWidth(_text, _fontSize, _fontWeight);
-            var _totalW = _textW + _iW + _iPad + _padH * 2 + 4; // +4px tolerance
+            // Use per-cell meta for accurate measurement (fontSize/padding may differ from header)
+            var _fs = _meta.fontSize || _col.style?.fontSize || 14;
+            var _fw = _meta.fontWeight || _col.style?.fontWeight || 'normal';
+            var _padH = _meta.textPaddingHorizontal != null ? _meta.textPaddingHorizontal : 12;
+            var _padL = _meta.textPaddingLeft != null ? _meta.textPaddingLeft : _padH;
+            var _padR = _meta.textPaddingRight != null ? _meta.textPaddingRight : _padH;
+            var _textW = _measureTextWidth(_text, _fs, _fw);
+            var _totalW = _textW + _iW + _iPad + _padL + _padR + 8; // +8px tolerance
             if (_totalW > _maxW) _maxW = _totalW;
         }
         if (_hasIcon && _maxW > 0) {
