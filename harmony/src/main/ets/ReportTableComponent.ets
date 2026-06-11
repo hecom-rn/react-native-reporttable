@@ -201,19 +201,22 @@ export struct ReportTableComponent {
             : ((meta['textPaddingLeft'] !== undefined) ? (meta['textPaddingLeft'] as number) : defaultPadH);
           const cellText: string = (rec[c.toString()] !== undefined)
             ? (rec[c.toString()] as string) : '';
+          let wVp: number = 0;
           if (cellText.length > 0) {
             const wPx: number = measure.measureText({ textContent: cellText, fontSize: cellFontSize });
-            let wVp: number = wPx > 0 ? wPx / dpRatio : cellText.length * cellFontSize * 0.65;
-            // Add icon width when the cell has an icon (rendered via customRender).
-            const cellIconVal: Object | undefined = meta['icon'];
-            let iconExtraW: number = 0;
-            if (cellIconVal !== undefined) {
-              const cellIconObj: Record<string, Object> = cellIconVal as Record<string, Object>;
-              const iW: number = (cellIconObj['width'] !== undefined) ? (cellIconObj['width'] as number) : 16;
-              const iPad: number = (cellIconObj['paddingHorizontal'] !== undefined) ? (cellIconObj['paddingHorizontal'] as number) : 4;
-              iconExtraW = iW + iPad;
-              wVp += iconExtraW;
-            }
+            wVp = wPx > 0 ? wPx / dpRatio : cellText.length * cellFontSize * 0.65;
+          }
+          // Add icon width when the cell has an icon (rendered via customRender).
+          const cellIconVal: Object | undefined = meta['icon'];
+          let iconExtraW: number = 0;
+          if (cellIconVal !== undefined) {
+            const cellIconObj: Record<string, Object> = cellIconVal as Record<string, Object>;
+            const iW: number = (cellIconObj['width'] !== undefined) ? (cellIconObj['width'] as number) : 16;
+            const iPad: number = (cellIconObj['paddingHorizontal'] !== undefined) ? (cellIconObj['paddingHorizontal'] as number) : 4;
+            iconExtraW = iW + iPad;
+            wVp += iconExtraW;
+          }
+          if (wVp > 0 || iconExtraW > 0) {
             // iOS/Android add ~8px tolerant for measurement inaccuracy
             const tolerant: number = 8;
             maxContentW = Math.max(maxContentW, wVp + cellPadH * 2 + tolerant);

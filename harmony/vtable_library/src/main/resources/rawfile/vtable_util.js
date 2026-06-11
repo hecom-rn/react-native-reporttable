@@ -270,7 +270,7 @@ function _pushLockIcon(els, lx, ly, iW, iH, isLocked) {
     els.push({
         type: 'image',
         x: lx, y: ly, width: iW, height: iH,
-        image: isLocked ? _lockImgCache.locked : _lockImgCache.unlocked,
+        src: isLocked ? _lockImgCache.locked : _lockImgCache.unlocked,
         pickable: false
     });
 }
@@ -613,10 +613,10 @@ function buildCellRender() {
                 if (hClPos & 2) hElements.push({ type: 'rect', x: w-1, y: 0, width: 1, height: h, fill: hBgCover, pickable: false });
                 if (hClPos & 4) hElements.push({ type: 'rect', x: 0, y: h-1, width: w, height: 1, fill: hBgCover, pickable: false });
                 if (hClPos & 8) hElements.push({ type: 'rect', x: 0, y: 0, width: 1, height: h, fill: hBgCover, pickable: false });
-                if (hClPos & 1) hElements.push({ type: 'line', points: [{ x: 0, y: 0.5 }, { x: w, y: 0.5 }], stroke: hClColor, lineWidth: 1, pickable: false });
-                if (hClPos & 2) hElements.push({ type: 'line', points: [{ x: w-0.5, y: 0 }, { x: w-0.5, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
-                if (hClPos & 4) hElements.push({ type: 'line', points: [{ x: 0, y: h-0.5 }, { x: w, y: h-0.5 }], stroke: hClColor, lineWidth: 1, pickable: false });
-                if (hClPos & 8) hElements.push({ type: 'line', points: [{ x: 0.5, y: 0 }, { x: 0.5, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
+                if (hClPos & 1) hElements.push({ type: 'line', points: [{ x: 0, y: 0 }, { x: w, y: 0 }], stroke: hClColor, lineWidth: 1, pickable: false });
+                if (hClPos & 2) hElements.push({ type: 'line', points: [{ x: w, y: 0 }, { x: w, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
+                if (hClPos & 4) hElements.push({ type: 'line', points: [{ x: 0, y: h }, { x: w, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
+                if (hClPos & 8) hElements.push({ type: 'line', points: [{ x: 0, y: 0 }, { x: 0, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
             }
 
             if (hElements.length === 0) return { renderDefault: true };
@@ -804,7 +804,7 @@ function buildCellRender() {
                 elements.push({
                     type: 'image',
                     x: iconX, y: iY, width: iW, height: iH,
-                    image: _iconSrc,
+                    src: _iconSrc,
                     pickable: false
                 });
                 elements.push({
@@ -867,10 +867,10 @@ function buildCellRender() {
             if (clPos & 2) elements.push({ type: 'rect', x: w-1, y: 0, width: 1, height: h, fill: _bgCover, pickable: false });
             if (clPos & 4) elements.push({ type: 'rect', x: 0, y: h-1, width: w, height: 1, fill: _bgCover, pickable: false });
             if (clPos & 8) elements.push({ type: 'rect', x: 0, y: 0, width: 1, height: h, fill: _bgCover, pickable: false });
-            if (clPos & 1) elements.push({ type: 'line', points: [{ x: 0, y: 0.5 },   { x: w, y: 0.5 }],   stroke: clColor, lineWidth: 1, pickable: false });
-            if (clPos & 2) elements.push({ type: 'line', points: [{ x: w-0.5, y: 0 }, { x: w-0.5, y: h }], stroke: clColor, lineWidth: 1, pickable: false });
-            if (clPos & 4) elements.push({ type: 'line', points: [{ x: 0, y: h-0.5 }, { x: w, y: h-0.5 }], stroke: clColor, lineWidth: 1, pickable: false });
-            if (clPos & 8) elements.push({ type: 'line', points: [{ x: 0.5, y: 0 },   { x: 0.5, y: h }],   stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 1) elements.push({ type: 'line', points: [{ x: 0, y: 0 },   { x: w, y: 0 }],   stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 2) elements.push({ type: 'line', points: [{ x: w, y: 0 },   { x: w, y: h }], stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 4) elements.push({ type: 'line', points: [{ x: 0, y: h },   { x: w, y: h }], stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 8) elements.push({ type: 'line', points: [{ x: 0, y: 0 },   { x: 0, y: h }],   stroke: clColor, lineWidth: 1, pickable: false });
         }
 
         // Extra badge text
@@ -918,7 +918,7 @@ function buildCellRender() {
             elements.push({
                 type: 'image',
                 x: fiX, y: fiY, width: fi.width || 16, height: fi.height || 16,
-                image: _fiSrc,
+                src: _fiSrc,
                 pickable: false
             });
         }
@@ -963,15 +963,10 @@ function _fixIconColumnWidths(options) {
         }
         if (_hasIcon && _maxW > 0) {
             var _minW = _col.minWidth || 50;
-            var _fixedW = Math.max(_minW, Math.ceil(_maxW) + 2);
-            if (_fixedW > (_col.minWidth || 0)) {
-                _col.minWidth = _fixedW;
-            }
-            if (_col.maxWidth && _fixedW > _col.maxWidth) {
-                _col.maxWidth = _fixedW;
-            } else if (!_col.maxWidth) {
-                _col.maxWidth = _fixedW;
-            }
+            var _fixedW = Math.max(_minW, Math.ceil(_maxW) + 4);
+            _col.width = _fixedW;
+            _col.minWidth = _fixedW;
+            _col.maxWidth = _fixedW;
         }
     }
 }
