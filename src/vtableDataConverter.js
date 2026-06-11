@@ -376,8 +376,6 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         }
     }
 
-    // --- Build columns ---
-    const columns = [];
     const ignoreLocksSet = new Set((ignoreLocks || []).map(i => i - 1));
 
     // Pre-fill lock info from frozenAbility/permutable (before merge propagation).
