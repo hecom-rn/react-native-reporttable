@@ -140,25 +140,51 @@ function _buildGradientRects(x, y, w, h, r, colors) {
 }
 
 /**
- * Inject customRender into customMergeCell items whose anchor is in the header row (row 0).
+ * Inject customRender into customMergeCell items that need special rendering:
+ * - Header merges with lock icons or classification lines
+ * - Body merges with classification lines, box lines, forbidden lines, etc.
  * VTable does NOT call the column's customRender for merged cells — the merged cell item
- * must have its own customRender. We reuse buildCellRender() which already handles headers.
+ * must have its own customRender.
  */
-function _injectMergedHeaderRenders(options) {
+function _injectMergedCellRenders(options) {
     var mc = options.customMergeCell;
     if (!Array.isArray(mc)) return;
     for (var _mi = 0; _mi < mc.length; _mi++) {
         var _item = mc[_mi];
         if (!_item || !_item.range || !_item.range.start) continue;
-        if (_item.range.start.row !== 0) continue;  // only VTable header row
-        var _ac = _item.range.start.col;
-        var _hasLock = window._lockInfoMap && window._lockInfoMap[_ac];
-        var _hasCL   = window._tableHeaderMeta && window._tableHeaderMeta['0_' + _ac];
-        if (!_hasLock && !_hasCL) continue;
-        // buildCellRender() handles the header branch (record==null) using globals
-        var _fn = buildCellRender();
-        _item.customRender = _fn;
-        _item.headerCustomRender = _fn;
+        var _sr = _item.range.start.row;
+        var _sc = _item.range.start.col;
+        var _er = _item.range.end.row;
+        var _ec = _item.range.end.col;
+
+        // Header row merges: lock icon + classification lines
+        if (_sr === 0) {
+            var _hasLock = window._lockInfoMap && window._lockInfoMap[_sc];
+            var _hasCL   = window._tableHeaderMeta && window._tableHeaderMeta['0_' + _sc];
+            if (_hasLock || _hasCL) {
+                var _fn = buildCellRender();
+                _item.customRender = _fn;
+                _item.headerCustomRender = _fn;
+            }
+            continue;
+        }
+
+        // Body merges: check if anchor cell has any overlay meta in records
+        if (Array.isArray(options.records) && options.records.length > 0) {
+            var _recIdx = _sr - 1; // body record index (VTable header is row 0)
+            if (_recIdx >= 0 && _recIdx < options.records.length) {
+                var _meta = options.records[_recIdx]['__meta_' + _sc];
+                if (_meta && (
+                    _meta.classificationLinePosition ||
+                    _meta.boxLineColor ||
+                    _meta.isForbidden ||
+                    _meta.floatIcon ||
+                    _meta.extraText
+                )) {
+                    _item.customRender = buildCellRender();
+                }
+            }
+        }
     }
 }
 
@@ -244,7 +270,7 @@ function _pushLockIcon(els, lx, ly, iW, iH, isLocked) {
     els.push({
         type: 'image',
         x: lx, y: ly, width: iW, height: iH,
-        src: isLocked ? _lockImgCache.locked : _lockImgCache.unlocked,
+        image: isLocked ? _lockImgCache.locked : _lockImgCache.unlocked,
         pickable: false
     });
 }
@@ -580,6 +606,13 @@ function buildCellRender() {
             if (headerCL && headerCL.classificationLinePosition > 0) {
                 var hClPos  = headerCL.classificationLinePosition;
                 var hClColor = headerCL.classificationLineColor || '#9cb3c8';
+                var hBgCover = '#FFFFFF';
+                try { hBgCover = args.table.getCellStyle(col, row)?.bgColor || hBgCover; } catch(e) {}
+                // Cover default 1px borders before drawing classification lines to avoid "double line"
+                if (hClPos & 1) hElements.push({ type: 'rect', x: 0, y: 0, width: w, height: 1, fill: hBgCover, pickable: false });
+                if (hClPos & 2) hElements.push({ type: 'rect', x: w-1, y: 0, width: 1, height: h, fill: hBgCover, pickable: false });
+                if (hClPos & 4) hElements.push({ type: 'rect', x: 0, y: h-1, width: w, height: 1, fill: hBgCover, pickable: false });
+                if (hClPos & 8) hElements.push({ type: 'rect', x: 0, y: 0, width: 1, height: h, fill: hBgCover, pickable: false });
                 if (hClPos & 1) hElements.push({ type: 'line', points: [{ x: 0, y: 0.5 }, { x: w, y: 0.5 }], stroke: hClColor, lineWidth: 1, pickable: false });
                 if (hClPos & 2) hElements.push({ type: 'line', points: [{ x: w-0.5, y: 0 }, { x: w-0.5, y: h }], stroke: hClColor, lineWidth: 1, pickable: false });
                 if (hClPos & 4) hElements.push({ type: 'line', points: [{ x: 0, y: h-0.5 }, { x: w, y: h-0.5 }], stroke: hClColor, lineWidth: 1, pickable: false });
@@ -771,7 +804,7 @@ function buildCellRender() {
                 elements.push({
                     type: 'image',
                     x: iconX, y: iY, width: iW, height: iH,
-                    src: _iconSrc,
+                    image: _iconSrc,
                     pickable: false
                 });
                 elements.push({
@@ -828,10 +861,16 @@ function buildCellRender() {
         if (meta.classificationLinePosition && meta.classificationLinePosition > 0) {
             var clColor = meta.classificationLineColor || '#9cb3c8';
             var clPos   = meta.classificationLinePosition;
-            if (clPos & 1) elements.push({ type: 'line', points: [{ x: 0, y: 0 },   { x: w, y: 0 }],   stroke: clColor, lineWidth: 1, pickable: false });
-            if (clPos & 2) elements.push({ type: 'line', points: [{ x: w-1, y: 0 }, { x: w-1, y: h }], stroke: clColor, lineWidth: 1, pickable: false });
-            if (clPos & 4) elements.push({ type: 'line', points: [{ x: 0, y: h-1 }, { x: w, y: h-1 }], stroke: clColor, lineWidth: 1, pickable: false });
-            if (clPos & 8) elements.push({ type: 'line', points: [{ x: 0, y: 0 },   { x: 0, y: h }],   stroke: clColor, lineWidth: 1, pickable: false });
+            var _bgCover = meta.backgroundColor || args.table.getCellStyle(col, row)?.bgColor || '#FFFFFF';
+            // Cover default 1px borders before drawing classification lines to avoid "double line"
+            if (clPos & 1) elements.push({ type: 'rect', x: 0, y: 0, width: w, height: 1, fill: _bgCover, pickable: false });
+            if (clPos & 2) elements.push({ type: 'rect', x: w-1, y: 0, width: 1, height: h, fill: _bgCover, pickable: false });
+            if (clPos & 4) elements.push({ type: 'rect', x: 0, y: h-1, width: w, height: 1, fill: _bgCover, pickable: false });
+            if (clPos & 8) elements.push({ type: 'rect', x: 0, y: 0, width: 1, height: h, fill: _bgCover, pickable: false });
+            if (clPos & 1) elements.push({ type: 'line', points: [{ x: 0, y: 0.5 },   { x: w, y: 0.5 }],   stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 2) elements.push({ type: 'line', points: [{ x: w-0.5, y: 0 }, { x: w-0.5, y: h }], stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 4) elements.push({ type: 'line', points: [{ x: 0, y: h-0.5 }, { x: w, y: h-0.5 }], stroke: clColor, lineWidth: 1, pickable: false });
+            if (clPos & 8) elements.push({ type: 'line', points: [{ x: 0.5, y: 0 },   { x: 0.5, y: h }],   stroke: clColor, lineWidth: 1, pickable: false });
         }
 
         // Extra badge text
@@ -879,7 +918,7 @@ function buildCellRender() {
             elements.push({
                 type: 'image',
                 x: fiX, y: fiY, width: fi.width || 16, height: fi.height || 16,
-                src: _fiSrc,
+                image: _fiSrc,
                 pickable: false
             });
         }
@@ -891,6 +930,50 @@ function buildCellRender() {
 }
 
 function customIcon() {
+}
+
+/**
+ * For columns containing cells with icons, measure the maximum content width
+ * (text + icon + padding) via canvas and set an exact minWidth/maxWidth.
+ * Mirrors _fixProgressStyleWidths.
+ */
+function _fixIconColumnWidths(options) {
+    if (!Array.isArray(options.columns) || !Array.isArray(options.records)) return;
+    for (var _ci = 0; _ci < options.columns.length; _ci++) {
+        var _col = options.columns[_ci];
+        if (!_col) continue;
+        var _field = _col.field;
+        var _st = _col.style || {};
+        var _padH = Array.isArray(_st.padding) ? (_st.padding[1] || 12) : (_st.padding || 12);
+        var _fontSize = _st.fontSize || 14;
+        var _fontWeight = _st.fontWeight || 'normal';
+        var _maxW = 0;
+        var _hasIcon = false;
+        for (var _ri = 0; _ri < options.records.length; _ri++) {
+            var _meta = options.records[_ri]['__meta_' + _ci];
+            if (!_meta || !_meta.icon) continue;
+            _hasIcon = true;
+            var _icon = _meta.icon;
+            var _iW = _icon.width || 16;
+            var _iPad = _icon.paddingHorizontal != null ? _icon.paddingHorizontal : 4;
+            var _text = String(options.records[_ri][_field] || '');
+            var _textW = _measureTextWidth(_text, _fontSize, _fontWeight);
+            var _totalW = _textW + _iW + _iPad + _padH * 2 + 4; // +4px tolerance
+            if (_totalW > _maxW) _maxW = _totalW;
+        }
+        if (_hasIcon && _maxW > 0) {
+            var _minW = _col.minWidth || 50;
+            var _fixedW = Math.max(_minW, Math.ceil(_maxW) + 2);
+            if (_fixedW > (_col.minWidth || 0)) {
+                _col.minWidth = _fixedW;
+            }
+            if (_col.maxWidth && _fixedW > _col.maxWidth) {
+                _col.maxWidth = _fixedW;
+            } else if (!_col.maxWidth) {
+                _col.maxWidth = _fixedW;
+            }
+        }
+    }
 }
 
 /**
@@ -961,7 +1044,8 @@ function initializeTable(option) {
     // inside the WebView where they can reference the live VRender primitives.
     _fixProgressStyleWidths(option);
     _fixLockIconColumnWidths(option);
-    _injectMergedHeaderRenders(option);
+    _fixIconColumnWidths(option);
+    _injectMergedCellRenders(option);
     addCustomRenderToColumns(option.columns);
 
     const tableInstance = new VTable.ListTable(document.getElementById('tableContainer'), option);
@@ -1078,7 +1162,8 @@ function updateOption(options) {
     _extractColumnMeta(options.columns);
     _fixProgressStyleWidths(options);
     _fixLockIconColumnWidths(options);
-    _injectMergedHeaderRenders(options);
+    _fixIconColumnWidths(options);
+    _injectMergedCellRenders(options);
     addCustomRenderToColumns(options.columns);
     window.tableInstance.updateOption(options);
 }

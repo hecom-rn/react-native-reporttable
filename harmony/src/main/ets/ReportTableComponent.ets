@@ -206,13 +206,17 @@ export struct ReportTableComponent {
             let wVp: number = wPx > 0 ? wPx / dpRatio : cellText.length * cellFontSize * 0.65;
             // Add icon width when the cell has an icon (rendered via customRender).
             const cellIconVal: Object | undefined = meta['icon'];
+            let iconExtraW: number = 0;
             if (cellIconVal !== undefined) {
               const cellIconObj: Record<string, Object> = cellIconVal as Record<string, Object>;
               const iW: number = (cellIconObj['width'] !== undefined) ? (cellIconObj['width'] as number) : 16;
               const iPad: number = (cellIconObj['paddingHorizontal'] !== undefined) ? (cellIconObj['paddingHorizontal'] as number) : 4;
-              wVp += iW + iPad;
+              iconExtraW = iW + iPad;
+              wVp += iconExtraW;
             }
-            maxContentW = Math.max(maxContentW, wVp + cellPadH * 2);
+            // iOS/Android add ~8px tolerant for measurement inaccuracy
+            const tolerant: number = 8;
+            maxContentW = Math.max(maxContentW, wVp + cellPadH * 2 + tolerant);
           }
         }
         colWidths.push(Math.max(safeMinW, Math.min(maxContentW > 0 ? maxContentW : safeMinW, safeMaxW)));
@@ -246,10 +250,9 @@ export struct ReportTableComponent {
           const wPx: number = measure.measureText({ textContent: title, fontSize: fontSize });
           const wVp: number = wPx > 0 ? wPx / dpRatio : title.length * fontSize * 0.65;
           const lineCount: number = Math.max(1, Math.ceil(wVp / availW));
-          // vertPad = top+bottom padding = minHeight - fontSize (constant regardless of line count)
-          // So: 1 line → minHeight; N lines → (N-1)*fontSize + minHeight
-          const vertPad: number = safeMinHeight - fontSize;
-          const cellH: number = lineCount * fontSize + vertPad;
+          const lineHeight: number = Math.ceil(fontSize * 1.2);
+          const vertPad: number = Math.max(0, safeMinHeight - lineHeight);
+          const cellH: number = lineCount * lineHeight + vertPad;
           maxHeaderH = Math.max(maxHeaderH, cellH);
         }
       }
@@ -280,10 +283,11 @@ export struct ReportTableComponent {
             const lineCount: number = hasProgressStyle
               ? 1
               : Math.max(1, Math.ceil(wVp / Math.max(colWidths[c] - padH * 2, fontSize)));
-            // vertPad = top+bottom padding = minHeight - fontSize (constant regardless of line count)
-            // So: 1 line → minHeight; N lines → (N-1)*fontSize + minHeight
-            const vertPad: number = safeMinHeight - fontSize;
-            const cellH: number = lineCount * fontSize + vertPad;
+            // VTable WebView uses CSS line-height ≈ 1.2×fontSize. Use lineHeight factor
+            // to align native contentSize measurement with actual WebView rendering.
+            const lineHeight: number = Math.ceil(fontSize * 1.2);
+            const vertPad: number = Math.max(0, safeMinHeight - lineHeight);
+            const cellH: number = lineCount * lineHeight + vertPad;
             maxRowH = Math.max(maxRowH, cellH);
           }
         }
@@ -635,14 +639,42 @@ export struct ReportTableComponent {
         }
 
         // --- Body cell click: extract keyIndex from record metadata ---
+        // Resolve merge cell: if clicked inside a merge range, use the anchor cell's meta.
+        let effectiveRow: number = event.row;
+        let effectiveCol: number = event.col;
+        let verticalCount: number = 1;
+        let horizontalCount: number = 1;
+
+        const mergeCellsVal: Object | undefined = self.currentOption['customMergeCell'];
+        if (mergeCellsVal !== undefined) {
+          const merges: Object[] = mergeCellsVal as Object[];
+          for (let _mi: number = 0; _mi < merges.length; _mi++) {
+            const mrg: Record<string, Object> = merges[_mi] as Record<string, Object>;
+            const rng: Record<string, Object> = mrg['range'] as Record<string, Object>;
+            const rs: Record<string, Object> = rng['start'] as Record<string, Object>;
+            const re: Record<string, Object> = rng['end'] as Record<string, Object>;
+            const r0: number = rs['row'] as number;
+            const r1: number = re['row'] as number;
+            const c0: number = rs['col'] as number;
+            const c1: number = re['col'] as number;
+            if (r0 <= event.row && event.row <= r1 && c0 <= event.col && event.col <= c1) {
+              effectiveRow = r0;
+              effectiveCol = c0;
+              verticalCount = r1 - r0 + 1;
+              horizontalCount = c1 - c0 + 1;
+              break;
+            }
+          }
+        }
+
         let keyIndex: number = 0;
         const recordsVal: Object | undefined = self.currentOption['records'];
         if (recordsVal !== undefined) {
           const recordsArr: Object[] = recordsVal as Object[];
-          const recordIdx: number = event.row - headerRows;
+          const recordIdx: number = effectiveRow - headerRows;
           if (recordIdx >= 0 && recordIdx < recordsArr.length) {
             const record: Record<string, Object> = recordsArr[recordIdx] as Record<string, Object>;
-            const metaKey: string = '__meta_' + event.col.toString();
+            const metaKey: string = '__meta_' + effectiveCol.toString();
             const metaVal: Object | undefined = record[metaKey];
             if (metaVal !== undefined) {
               const meta: Record<string, Object> = metaVal as Record<string, Object>;
@@ -655,10 +687,10 @@ export struct ReportTableComponent {
         }
 
         const payloadStr: string = '{"keyIndex":' + keyIndex.toString() +
-          ',"rowIndex":' + event.row.toString() +
-          ',"columnIndex":' + event.col.toString() +
-          ',"verticalCount":1' +
-          ',"horizontalCount":1}';
+          ',"rowIndex":' + effectiveRow.toString() +
+          ',"columnIndex":' + effectiveCol.toString() +
+          ',"verticalCount":' + verticalCount.toString() +
+          ',"horizontalCount":' + horizontalCount.toString() + '}';
         self.emitEvent('clickEvent', JSON.parse(payloadStr) as Object);
       },
       onScroll: (event: ScrollEventData): void => {

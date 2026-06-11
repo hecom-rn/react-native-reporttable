@@ -390,10 +390,8 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
 
         const isHeaderCovered = headerCoveredCols.has(colIdx);
         if (!isPermanentlyFrozen && !isIgnored && !isHeaderCovered) {
-            if (frozenAbility && frozenAbility[String(colIdx)] != null) {
-                lockInfo = { showLock: true, isLocked: !!frozenAbility[String(colIdx)].locked };
-            } else if (permutable) {
-                lockInfo = { showLock: true, isLocked: false };
+            if (headerLockPropagation.has(colIdx)) {
+                lockInfo = headerLockPropagation.get(colIdx);
             }
         }
 
@@ -425,6 +423,34 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
 
     // --- Compute merged cells (before records so we can clear non-anchor covered cells) ---
     const mergedCells = computeMergedCells(dataSource, headerRowCount);
+
+    // Propagate frozenAbility/permutable lock info from covered columns to anchor columns
+    // for horizontal header merges (matches iOS behavior).
+    const headerLockPropagation = new Map();
+    for (let colIdx = 0; colIdx < colCount; colIdx++) {
+        const isPermanentlyFrozen = colIdx < frozenColumns;
+        const isIgnored = ignoreLocksSet.has(colIdx);
+        if (isPermanentlyFrozen || isIgnored) continue;
+        if (frozenAbility && frozenAbility[String(colIdx)] != null) {
+            headerLockPropagation.set(colIdx, { showLock: true, isLocked: !!frozenAbility[String(colIdx)].locked });
+        } else if (permutable) {
+            headerLockPropagation.set(colIdx, { showLock: true, isLocked: false });
+        }
+    }
+    for (const mc of mergedCells) {
+        const { start, end } = mc.range;
+        if (start.row !== 0 || start.col === end.col) continue;
+        let propagated = null;
+        for (let c = start.col; c <= end.col; c++) {
+            if (headerLockPropagation.has(c)) {
+                propagated = headerLockPropagation.get(c);
+                break;
+            }
+        }
+        if (propagated) {
+            headerLockPropagation.set(start.col, propagated);
+        }
+    }
 
     // Build set of non-anchor merged cell positions (row_col) to avoid text overlap.
     // VTable renders merged cell content via customMergeCell; underlying cells must be empty.
