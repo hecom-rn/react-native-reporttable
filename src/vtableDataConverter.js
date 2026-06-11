@@ -396,18 +396,16 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
 
     // Propagate frozenAbility/permutable lock info from covered columns to anchor columns
     // for horizontal header merges (matches iOS behavior).
+    // iOS iterates all frozenAbility keys and copies values within the merge range to startY,
+    // so later keys overwrite earlier ones. We do the same: iterate left-to-right so the
+    // rightmost column's lockInfo wins (same as NSDictionary key iteration order in iOS).
     for (const mc of mergedCells) {
         const { start, end } = mc.range;
         if (start.row !== 0 || start.col === end.col) continue;
-        let propagated = null;
         for (let c = start.col; c <= end.col; c++) {
             if (headerLockPropagation.has(c)) {
-                propagated = headerLockPropagation.get(c);
-                break;
+                headerLockPropagation.set(start.col, headerLockPropagation.get(c));
             }
-        }
-        if (propagated) {
-            headerLockPropagation.set(start.col, propagated);
         }
     }
 
@@ -691,7 +689,7 @@ export function convertUpdateData(data, x, y, frozenRows) {
 /**
  * Convert spliceData params to VTable addRecords/deleteRecords format.
  */
-export function convertSpliceData(params, colCount) {
+export function convertSpliceData(params, colCount, itemConfig = {}) {
     const operations = [];
     for (const item of params) {
         const { data = [], l = 0, y = 0 } = item;

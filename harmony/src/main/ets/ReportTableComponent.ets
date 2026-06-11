@@ -45,6 +45,9 @@ export struct ReportTableComponent {
   private currentFrozenRowCount: number = 0;
   // Cached column widths from native measurement — used for accurate lock threshold checks.
   private contentSizeColWidths: number[] = [];
+  // Track the last frozenColCount received from props to distinguish JS-initiated changes
+  // from native lock toggles. When props frozenColCount hasn't changed, preserve native state.
+  private lastPropsFrozenColCount: number = 0;
 
 
   aboutToAppear(): void {
@@ -333,10 +336,27 @@ export struct ReportTableComponent {
       const customCellStyleStr: string = (customCellStyleVal !== undefined) ? (customCellStyleVal as string) : '[]';
       const customCellStyleArrangementStr: string = (customCellStyleArrangementVal !== undefined) ? (customCellStyleArrangementVal as string) : '[]';
       const widthMode: string = (widthModeVal !== undefined) ? (widthModeVal as string) : 'autoWidth';
-      const frozenColCount: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
+      const frozenColCountFromProps: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
+      let frozenColCount: number = frozenColCountFromProps;
       const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0;
       const disableZoom: boolean = (disableZoomVal !== undefined) ? (disableZoomVal as boolean) : false;
       const permutable: boolean = (permutableVal !== undefined) ? (permutableVal as boolean) : false;
+
+      // Preserve native lock toggle state when props haven't explicitly changed frozenColCount.
+      // This prevents JS re-renders (e.g. data updates) from resetting the user's lock selection.
+      if (this.vtableInitialized) {
+        if (frozenColCountFromProps === this.lastPropsFrozenColCount) {
+          const currentFrozen: Object | undefined = this.currentOption['frozenColCount'];
+          if (currentFrozen !== undefined) {
+            frozenColCount = currentFrozen as number;
+          }
+        } else {
+          // JS layer explicitly changed frozenColCount
+          this.lastPropsFrozenColCount = frozenColCountFromProps;
+        }
+      } else {
+        this.lastPropsFrozenColCount = frozenColCountFromProps;
+      }
 
       // Parse columns and records for native contentSize measurement
       const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
@@ -387,7 +407,7 @@ export struct ReportTableComponent {
         ',"customCellStyleArrangement":' + customCellStyleArrangementStr +
         ',"frozenColCount":' + frozenColCount.toString() +
         ',"frozenRowCount":' + frozenRowCount.toString() +
-        ',"allowFrozenColCount":0' +
+        ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
         ',"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
         ',"defaultHeaderRowHeight":' + rowMinHeight.toString() +

@@ -242,10 +242,11 @@ function _nameFromUri(uri) {
 var _androidImgCache = {};
 function _resolveAndroidImg(name) {
     if (!name) return null;
-    if (_androidImgCache[name]) return _androidImgCache[name];
-    var b64 = _androidImgMap[name];
+    var trimmed = String(name).trim();
+    if (_androidImgCache[trimmed]) return _androidImgCache[trimmed];
+    var b64 = _androidImgMap[trimmed];
     if (!b64) return null;
-    _androidImgCache[name] = b64;  // cache the data URL string directly
+    _androidImgCache[trimmed] = b64;  // cache the data URL string directly
     return b64;
 }
 
@@ -802,16 +803,8 @@ function buildCellRender() {
                     _iconSrc = _resolveAndroidImg(icon.name) || icon.name || '';
                 }
                 // Clamp icon position inside cell bounds to avoid negative coords or overflow
-                var _safeIconX = Math.max(0, Math.min(iconX, w - iW));
-                var _safeIconY = Math.max(0, Math.min(iY, h - iH));
-                if (_iconSrc) {
-                    elements.push({
-                        type: 'image',
-                        x: _safeIconX, y: _safeIconY, width: iW, height: iH,
-                        src: _iconSrc,
-                        pickable: false
-                    });
-                }
+                var _safeIconX = Math.max(0, Math.min(Math.round(iconX), Math.round(w - iW)));
+                var _safeIconY = Math.max(0, Math.min(Math.round(iY), Math.round(h - iH)));
                 elements.push({
                     type: 'text',
                     x: tX, y: textY,
@@ -822,6 +815,14 @@ function buildCellRender() {
                     ellipsis: '...',
                     pickable: false
                 });
+                if (_iconSrc) {
+                    elements.push({
+                        type: 'image',
+                        x: _safeIconX, y: _safeIconY, width: iW, height: iH,
+                        src: _iconSrc,
+                        pickable: false
+                    });
+                }
 
             } else {
                 // Plain text over background
