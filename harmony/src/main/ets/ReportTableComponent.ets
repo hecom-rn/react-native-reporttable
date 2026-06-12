@@ -160,19 +160,18 @@ export struct ReportTableComponent {
   private computeContentSizeNative(
     columnsArr: Object[],
     recordsArr: Object[],
-    itemConfigStr: string
+    itemConfigStr: string,
+    showHeader: boolean
   ): string {
     try {
       let defaultFontSize: number = 14;
       let defaultPadH: number = 12;
       let minHeight: number = 40;
-      let showHeader: boolean = true;
       try {
         const ic: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
         if (ic['fontSize'] !== undefined) { defaultFontSize = ic['fontSize'] as number; }
         if (ic['textPaddingHorizontal'] !== undefined) { defaultPadH = ic['textPaddingHorizontal'] as number; }
         if (ic['__minHeight'] !== undefined) { minHeight = ic['__minHeight'] as number; }
-        if (ic['__showHeader'] !== undefined) { showHeader = this.parseBoolean(ic['__showHeader'], showHeader); }
       } catch (e2) {}
 
       // dpRatio converts the measureText px return value to vp (the unit used everywhere else)
@@ -412,7 +411,7 @@ export struct ReportTableComponent {
 
       // Compute contentSize using ArkTS native text measurement.
       // mirrors iOS (NSString sizeWithAttributes) and Android (Paint.measureText).
-      this.cachedContentSize = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr);
+      this.cachedContentSize = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr, showHeader);
 
       // Read minHeight (vp) from itemConfig — used as VTable defaultRowHeight (CSS px = vp in WebView).
       let rowMinHeight: number = 40;
@@ -438,6 +437,10 @@ export struct ReportTableComponent {
 
       this.currentFrozenRowCount = frozenRowCount;
 
+      // When showHeader=false, force header row height to 0 to prevent a blank
+      // header row from being rendered by @ohos/vtable WebView.
+      const headerRowHeight: number = showHeader ? rowMinHeight : 0;
+
       // Build option JSON.
       // VTable's WebView uses CSS logical pixels, which equal vp. No unit conversion needed.
       const optionStr: string = '"records":' + recordsStr +
@@ -452,7 +455,7 @@ export struct ReportTableComponent {
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
         ',"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
-        ',"defaultHeaderRowHeight":' + rowMinHeight.toString() +
+        ',"defaultHeaderRowHeight":' + headerRowHeight.toString() +
         ',"autoWrapText":true' +
         ',"widthMode":"' + widthMode + '"' +
         ',"heightMode":"autoHeight"' +
@@ -466,10 +469,39 @@ export struct ReportTableComponent {
         ',"editCellTrigger":"api"';
       const newOption: Record<string, Object> = JSON.parse('{' + optionStr + '}') as Record<string, Object>;
 
+      // If native records were preserved (length mismatch means native splice/update
+      // hasn't propagated back to JS yet), also preserve native customCellStyle /
+      // customCellStyleArrangement so that per-cell styles (e.g. backgroundColor)
+      // stay aligned with the native record indices.
+      let preserveNativeStyles: boolean = false;
+      if (this.vtableInitialized) {
+        const currentRecords: Object | undefined = this.currentOption['records'];
+        if (currentRecords !== undefined) {
+          try {
+            const currentArr: Object[] = currentRecords as Object[];
+            const propsArr: Object[] = JSON.parse(recordsStr) as Object[];
+            if (currentArr.length !== propsArr.length) {
+              preserveNativeStyles = true;
+            }
+          } catch (_e) {}
+        }
+      }
+      if (preserveNativeStyles) {
+        const nativeStyle: Object | undefined = this.currentOption['customCellStyle'];
+        const nativeArrangement: Object | undefined = this.currentOption['customCellStyleArrangement'];
+        if (nativeStyle !== undefined) {
+          newOption['customCellStyle'] = nativeStyle;
+        }
+        if (nativeArrangement !== undefined) {
+          newOption['customCellStyleArrangement'] = nativeArrangement;
+        }
+      }
+
       console.log('[ReportTableComponent] updateVTable showHeader=' + showHeader.toString() +
         ' frozenRows=' + frozenRowCount.toString() +
         ' recordsCount=' + recordsArrForSize.length.toString() +
-        ' showHeaderChanged=' + showHeaderChanged.toString());
+        ' showHeaderChanged=' + showHeaderChanged.toString() +
+        ' preserveNativeStyles=' + preserveNativeStyles.toString());
 
       // NOTE: customLayout/headerCustomLayout CANNOT work with @ohos/vtable
       // because VTable uses a WebView internally and functions can't be serialized to JSON.
@@ -584,12 +616,28 @@ export struct ReportTableComponent {
       }
       const records: Object[] = recordsVal as Object[];
 
+      // Parse current styles so we can adjust row indices after insert/delete.
+      const customCellStyleVal: Object | undefined = this.currentOption['customCellStyle'];
+      const customCellStyleArrangementVal: Object | undefined = this.currentOption['customCellStyleArrangement'];
+      let customCellStyle: Object[] = (customCellStyleVal !== undefined) ? (customCellStyleVal as Object[]) : [];
+      let customCellStyleArrangement: Object[] = (customCellStyleArrangementVal !== undefined) ? (customCellStyleArrangementVal as Object[]) : [];
+      let nextStyleId: number = customCellStyle.length;
+
+      // Column count is needed to build styles for newly inserted rows.
+      const columnsVal: Object | undefined = this.currentOption['columns'];
+      const columns: Object[] = (columnsVal !== undefined) ? (columnsVal as Object[]) : [];
+      const colCount: number = columns.length;
+
+      const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
+      const headerRows: number = showHeader ? 1 : 0;
+
       for (let opIdx: number = 0; opIdx < operations.length; opIdx++) {
         const op: Record<string, Object> = operations[opIdx] as Record<string, Object>;
         const deleteIndices: Object[] = (op['deleteIndices'] !== undefined) ? (op['deleteIndices'] as Object[]) : [];
         const addAtIndex: number = (op['addAtIndex'] !== undefined) ? (op['addAtIndex'] as number) : 0;
         const newRecords: Object[] = (op['newRecords'] !== undefined) ? (op['newRecords'] as Object[]) : [];
         const beforeLen: number = records.length;
+        const deleteCount: number = deleteIndices.length;
 
         // Delete rows (from high to low to preserve indices)
         const sortedDeleteIndices: number[] = [];
@@ -622,13 +670,85 @@ export struct ReportTableComponent {
             records.push(newRecords[i]);
           }
         }
+
+        // ── Adjust customCellStyleArrangement row indices ───────────────────
+        const netChange: number = newRecords.length - deleteCount;
+        const deletedSet: Set<number> = new Set<number>();
+        for (let i: number = 0; i < deleteIndices.length; i++) {
+          deletedSet.add(deleteIndices[i] as number);
+        }
+
+        const adjustedArrangement: Object[] = [];
+        for (let i: number = 0; i < customCellStyleArrangement.length; i++) {
+          const item: Record<string, Object> = customCellStyleArrangement[i] as Record<string, Object>;
+          const cellPosition: Record<string, number> = item['cellPosition'] as Record<string, number>;
+          const row: number = cellPosition['row'];
+          if (deletedSet.has(row)) {
+            continue; // Remove styles for deleted rows
+          }
+          let newRow: number = row;
+          if (row >= addAtIndex + deleteCount) {
+            newRow = row + netChange;
+          }
+          adjustedArrangement.push({
+            cellPosition: { col: cellPosition['col'], row: newRow } as Record<string, Object>,
+            customStyleId: item['customStyleId'],
+          } as Record<string, Object>);
+        }
+        customCellStyleArrangement = adjustedArrangement;
+
+        // ── Build styles for newly inserted rows ────────────────────────────
+        for (let rowIdx: number = 0; rowIdx < newRecords.length; rowIdx++) {
+          const record: Record<string, Object> = newRecords[rowIdx] as Record<string, Object>;
+          const globalRow: number = addAtIndex + rowIdx + headerRows; // VTable row index
+          for (let colIdx: number = 0; colIdx < colCount; colIdx++) {
+            const metaKey: string = '__meta_' + colIdx.toString();
+            const metaVal: Object | undefined = record[metaKey];
+            if (metaVal === undefined) {
+              continue;
+            }
+            const meta: Record<string, Object> = metaVal as Record<string, Object>;
+            const cellStyle: Record<string, Object> = {};
+            if (meta['backgroundColor'] !== undefined) {
+              cellStyle['bgColor'] = meta['backgroundColor'];
+            }
+            if (meta['textColor'] !== undefined) {
+              cellStyle['color'] = meta['textColor'];
+            }
+            if (meta['fontSize'] !== undefined) {
+              cellStyle['fontSize'] = meta['fontSize'];
+            }
+            if (meta['fontWeight'] !== undefined) {
+              cellStyle['fontWeight'] = meta['fontWeight'];
+            }
+            if (meta['textAlign'] !== undefined) {
+              cellStyle['textAlign'] = meta['textAlign'];
+            }
+            if (meta['textPaddingHorizontal'] !== undefined) {
+              cellStyle['padding'] = [0, meta['textPaddingHorizontal']];
+            }
+            if (Object.keys(cellStyle).length === 0) {
+              continue;
+            }
+            const styleId: string = 'cs_' + nextStyleId.toString();
+            nextStyleId++;
+            customCellStyle.push({ id: styleId, style: cellStyle } as Record<string, Object>);
+            customCellStyleArrangement.push({
+              cellPosition: { col: colIdx, row: globalRow } as Record<string, Object>,
+              customStyleId: styleId,
+            } as Record<string, Object>);
+          }
+        }
+
         console.log('[ReportTableComponent] spliceData op=' + opIdx + ': before=' + beforeLen +
           ' del=' + deleteIndices.length + ' add=' + newRecords.length + ' after=' + records.length);
       }
 
-      // Update option with modified records and re-render.
+      // Update option with modified records/styles and re-render.
       // Create a new array reference so VTable detects the change.
       this.currentOption['records'] = [...records] as Object;
+      this.currentOption['customCellStyle'] = customCellStyle;
+      this.currentOption['customCellStyleArrangement'] = customCellStyleArrangement;
       this.controller.updateOption(this.currentOption);
     } catch (e) {
       console.error('[ReportTableComponent] spliceData failed: ' + (e as Error).message);
