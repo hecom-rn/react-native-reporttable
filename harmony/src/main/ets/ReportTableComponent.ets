@@ -711,8 +711,8 @@ export struct ReportTableComponent {
         }
 
         // --- Body cell click: extract keyIndex from record metadata ---
-        // Body rows start after the header row when showHeader=true.
-        const headerRows: number = showHeader ? 1 : 0;
+        // VTable row indices match the original dataSource indices: row 0 is either
+        // the header (showHeader=true) or the first data row (showHeader=false).
         // Resolve merge cell: if clicked inside a merge range, use the anchor cell's meta.
         let effectiveRow: number = event.row;
         let effectiveCol: number = event.col;
@@ -742,10 +742,12 @@ export struct ReportTableComponent {
         }
 
         let keyIndex: number = 0;
+        // records index: header row (when shown) is not part of the records array.
+        const headerRows: number = showHeader ? 1 : 0;
+        const recordIdx: number = effectiveRow - headerRows;
         const recordsVal: Object | undefined = self.currentOption['records'];
         if (recordsVal !== undefined) {
           const recordsArr: Object[] = recordsVal as Object[];
-          const recordIdx: number = effectiveRow - headerRows;
           if (recordIdx >= 0 && recordIdx < recordsArr.length) {
             const record: Record<string, Object> = recordsArr[recordIdx] as Record<string, Object>;
             const metaKey: string = '__meta_' + effectiveCol.toString();

@@ -360,9 +360,9 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
 
     const colCount = dataSource[0]?.length ?? 0;
     // VTable ListTable can show a single header row built from columns.title.
-    // When frozenRows > 0, dataSource[0] becomes the VTable header row and is frozen.
-    // When frozenRows === 0, dataSource[0] is treated as a normal body row (matching
-    // iOS/Android where frozenRows=0 means no rows are frozen, including the header).
+    // When frozenRows > 0, dataSource[0] becomes the VTable header row (frozen).
+    // When frozenRows === 0, dataSource[0] is rendered as the first body row and
+    // no rows are frozen, matching iOS/Android behavior.
     const showHeader = frozenRows > 0;
     const headerRowCount = showHeader ? 1 : 0;
 
@@ -427,7 +427,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         const colWidthConfig = columnsWidthMap[String(colIdx)];
 
         // Lock icons are only shown on the VTable header row. When frozenRows=0
-        // there is no header row, so no column should display a lock icon.
+        // the header row is hidden, so no column should display a lock icon.
         let lockInfo = null;
         if (showHeader) {
             const isPermanentlyFrozen = colIdx < frozenColumns;
@@ -606,7 +606,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
     const { customCellStyle, customCellStyleArrangement } = buildCellStyleArrangements(dataSource, itemConfig);
 
     // frozenRowCount for VTable is the number of body rows to freeze BEYOND the header.
-    // When frozenRows=0 there is no header, so no extra body rows are frozen either.
+    // When frozenRows=0 there is no header row, so no extra body rows are frozen.
     const vtableFrozenRowCount = showHeader ? Math.max(0, frozenRows - 1) : 0;
 
     return { records, columns, mergedCells, customCellStyle, customCellStyleArrangement, frozenRowCount: vtableFrozenRowCount, showHeader };
@@ -719,8 +719,8 @@ export function convertUpdateData(data, x, y) {
         values.push(rowValues);
     }
     // Cross-platform alignment: iOS native treats `y` as a full-data index
-    // (data[0] is the header). VTable records start after the header, but its
-    // global row index matches the original data index because the header is row 0.
+    // (data[0] is the header). VTable row indices match the original data
+    // indices because the header row (when present) is row 0.
     return {
         startCol: x,
         startRow: y,

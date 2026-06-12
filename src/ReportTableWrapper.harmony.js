@@ -285,8 +285,8 @@ export default class ReportTableWrapper extends React.Component {
         }
         const colCount = this.props.data?.[0]?.length ?? 0;
         const itemConfig = Object.assign({}, this.props.itemConfig || {}, { __minHeight: this.props.minHeight ?? 40 });
-        // `y` is a full-data index. headerRowCount is 1 when frozenRows>0 (VTable header
-        // row exists), 0 when frozenRows=0 (no header row).
+        // `y` is a full-data index. headerRowCount is 1 when frozenRows>0 (VTable
+        // header row exists), 0 when frozenRows=0 (dataSource[0] is a body row).
         const headerRowCount = (this.props.frozenRows || 0) > 0 ? 1 : 0;
         const operations = convertSpliceData(arr, colCount, itemConfig, headerRowCount);
         UIManager.dispatchViewManagerCommand(
