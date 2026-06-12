@@ -15,6 +15,21 @@ import measure from '@ohos.measure';
 
 export const RN_REPORT_TABLE_NAME: string = 'RNReportTable';
 
+interface CellPosition {
+  col: number;
+  row: number;
+}
+
+interface CellStyleArrangementItem {
+  cellPosition: CellPosition;
+  customStyleId: string;
+}
+
+interface CustomCellStyleItem {
+  id: string;
+  style: Record<string, Object>;
+}
+
 @Observed
 export class ReportTableVTableController extends VTableController {
 }
@@ -430,16 +445,7 @@ export struct ReportTableComponent {
       // We set it to the full column count so programmatic frozenToCol never hits the limit.
       const allowFrozenColCount: number = columnsArr.length;
 
-      // Detect showHeader changes. VTable's updateOption does not always re-layout
-      // the header row when showHeader toggles, so we force a full recreate in that case.
-      const prevShowHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
-      const showHeaderChanged: boolean = (this.vtableInitialized && prevShowHeader !== showHeader);
-
       this.currentFrozenRowCount = frozenRowCount;
-
-      // When showHeader=false, force header row height to 0 to prevent a blank
-      // header row from being rendered by @ohos/vtable WebView.
-      const headerRowHeight: number = showHeader ? rowMinHeight : 0;
 
       // Build option JSON.
       // VTable's WebView uses CSS logical pixels, which equal vp. No unit conversion needed.
@@ -455,7 +461,7 @@ export struct ReportTableComponent {
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
         ',"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
-        ',"defaultHeaderRowHeight":' + headerRowHeight.toString() +
+        ',"defaultHeaderRowHeight":' + rowMinHeight.toString() +
         ',"autoWrapText":true' +
         ',"widthMode":"' + widthMode + '"' +
         ',"heightMode":"autoHeight"' +
@@ -469,61 +475,22 @@ export struct ReportTableComponent {
         ',"editCellTrigger":"api"';
       const newOption: Record<string, Object> = JSON.parse('{' + optionStr + '}') as Record<string, Object>;
 
-      // If native records were preserved (length mismatch means native splice/update
-      // hasn't propagated back to JS yet), also preserve native customCellStyle /
-      // customCellStyleArrangement so that per-cell styles (e.g. backgroundColor)
-      // stay aligned with the native record indices.
-      let preserveNativeStyles: boolean = false;
-      if (this.vtableInitialized) {
-        const currentRecords: Object | undefined = this.currentOption['records'];
-        if (currentRecords !== undefined) {
-          try {
-            const currentArr: Object[] = currentRecords as Object[];
-            const propsArr: Object[] = JSON.parse(recordsStr) as Object[];
-            if (currentArr.length !== propsArr.length) {
-              preserveNativeStyles = true;
-            }
-          } catch (_e) {}
-        }
-      }
-      if (preserveNativeStyles) {
-        const nativeStyle: Object | undefined = this.currentOption['customCellStyle'];
-        const nativeArrangement: Object | undefined = this.currentOption['customCellStyleArrangement'];
-        if (nativeStyle !== undefined) {
-          newOption['customCellStyle'] = nativeStyle;
-        }
-        if (nativeArrangement !== undefined) {
-          newOption['customCellStyleArrangement'] = nativeArrangement;
-        }
-      }
-
       console.log('[ReportTableComponent] updateVTable showHeader=' + showHeader.toString() +
         ' frozenRows=' + frozenRowCount.toString() +
-        ' recordsCount=' + recordsArrForSize.length.toString() +
-        ' showHeaderChanged=' + showHeaderChanged.toString() +
-        ' preserveNativeStyles=' + preserveNativeStyles.toString());
-
-      // NOTE: customLayout/headerCustomLayout CANNOT work with @ohos/vtable
-      // because VTable uses a WebView internally and functions can't be serialized to JSON.
-      // Styling is handled via column `style` property and customCellStyle/customCellStyleArrangement.
-      // Lock icons use VTable's native showFrozenIcon feature.
+        ' recordsCount=' + recordsArrForSize.length.toString());
 
       this.disableZoom = disableZoom;
       // Cache option for command handlers (handleUpdateData, handleSpliceData, etc.)
       // without triggering a @State re-render.
       this.currentOption = newOption;
 
-      if (!this.vtableInitialized || showHeaderChanged) {
+      if (!this.vtableInitialized) {
         // First render: set @State to give VTable its initial option.
-        // Changing @State here is fine because VTable hasn't rendered yet.
-        // When showHeader toggles we also recreate the table; updateOption alone
-        // does not reliably add/remove the header row in @ohos/vtable.
         this.option = newOption;
       } else {
         // Data update: use controller directly — do NOT replace @State option reference,
         // as that would destroy and recreate the VTable WebView (causing flash → blank).
         this.controller.updateOption(newOption);
-
       }
     } catch (e) {
       console.error('[ReportTableComponent] updateVTable failed: ' + (e as Error).message);
@@ -690,10 +657,12 @@ export struct ReportTableComponent {
           if (row >= addAtIndex + deleteCount) {
             newRow = row + netChange;
           }
-          adjustedArrangement.push({
-            cellPosition: { col: cellPosition['col'], row: newRow } as Record<string, Object>,
-            customStyleId: item['customStyleId'],
-          } as Record<string, Object>);
+          const pos: CellPosition = { col: cellPosition['col'] as number, row: newRow };
+          const arrangementItem: CellStyleArrangementItem = {
+            cellPosition: pos,
+            customStyleId: item['customStyleId'] as string,
+          };
+          adjustedArrangement.push(arrangementItem);
         }
         customCellStyleArrangement = adjustedArrangement;
 
@@ -732,11 +701,14 @@ export struct ReportTableComponent {
             }
             const styleId: string = 'cs_' + nextStyleId.toString();
             nextStyleId++;
-            customCellStyle.push({ id: styleId, style: cellStyle } as Record<string, Object>);
-            customCellStyleArrangement.push({
-              cellPosition: { col: colIdx, row: globalRow } as Record<string, Object>,
+            const styleItem: CustomCellStyleItem = { id: styleId, style: cellStyle };
+            customCellStyle.push(styleItem);
+            const pos2: CellPosition = { col: colIdx, row: globalRow };
+            const arrangementItem2: CellStyleArrangementItem = {
+              cellPosition: pos2,
               customStyleId: styleId,
-            } as Record<string, Object>);
+            };
+            customCellStyleArrangement.push(arrangementItem2);
           }
         }
 

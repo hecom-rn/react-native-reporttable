@@ -1090,6 +1090,31 @@ function _fixLockIconColumnWidths(options) {
     }
 }
 
+/**
+ * Workaround for @ohos/vtable showHeader=false rendering issue.
+ * VTable's ListTable may still allocate a blank header row when showHeader=false.
+ * We convert it to showHeader=true with a zero-height transparent header.
+ */
+function _fixShowHeader(option) {
+    if (option.showHeader !== false) {
+        return;
+    }
+    option.showHeader = true;
+    option.defaultHeaderRowHeight = 0;
+    if (option.theme) {
+        if (!option.theme.headerStyle) {
+            option.theme.headerStyle = {};
+        }
+        option.theme.headerStyle.color = 'transparent';
+        option.theme.headerStyle.bgColor = 'transparent';
+    }
+    if (Array.isArray(option.columns)) {
+        for (var i = 0; i < option.columns.length; i++) {
+            option.columns[i].title = '';
+        }
+    }
+}
+
 function initializeTable(option) {
 
     optionTemp = option;
@@ -1098,6 +1123,8 @@ function initializeTable(option) {
     // Extract __lockInfo and __headerMeta from columns into globals BEFORE VTable
     // processes the option. VTable may transform/strip unknown column properties.
     _extractColumnMeta(option.columns);
+    // Fix showHeader=false blank row issue
+    _fixShowHeader(option);
 
     // Preserve any custom theme styles supplied by the RN side (e.g. rowHeaderStyle,
     // rightFrozenStyle) while still forcing hover transparency and scroll-bar hidden.
@@ -1257,6 +1284,8 @@ function updateOption(options) {
     _fixIconColumnWidths(options);
     _injectMergedCellRenders(options);
     addCustomRenderToColumns(options);
+    // Fix showHeader=false blank row issue
+    _fixShowHeader(options);
 
     // Apply frozenColCount explicitly; VTable's updateOption sometimes ignores
     // changes to frozenColCount, so setFrozenColCount + renderWithRecreateCells
