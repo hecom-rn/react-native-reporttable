@@ -711,6 +711,8 @@ export struct ReportTableComponent {
         }
 
         // --- Body cell click: extract keyIndex from record metadata ---
+        // Body rows start after the header row when showHeader=true.
+        const headerRows: number = showHeader ? 1 : 0;
         // Resolve merge cell: if clicked inside a merge range, use the anchor cell's meta.
         let effectiveRow: number = event.row;
         let effectiveCol: number = event.col;
