@@ -67,11 +67,12 @@ function buildColumnStyle(cell, itemConfig) {
     // column.style takes priority over customCellStyle/customCellStyleArrangement in VTable,
     // so setting it here would prevent per-cell isOverstriking overrides from working.
     // fontWeight is applied exclusively via customCellStyleArrangement (see buildCellStyleArrangements).
-    // Vertical padding ensures single-line rows are exactly minHeight tall.
-    // VTable autoHeight row height = paddingTop + lineCount*fontSize + paddingBottom.
-    // So: vertPad = (minHeight - fontSize) / 2  →  1-line height = minHeight.
+    // Vertical padding ensures autoHeight rows match iOS minHeight behavior.
+    // iOS: rowHeight = lineCount*fontSize + (minHeight - fontSize - 3).
+    // VTable autoHeight: rowHeight = paddingTop + lineCount*fontSize + paddingBottom.
+    // So: vertPad = (minHeight - fontSize - 3) / 2.
     const minHeight = itemConfig?.__minHeight ?? 40;
-    const vertPad = Math.max(0, Math.floor((minHeight - fontSize) / 2));
+    const vertPad = Math.max(0, Math.floor((minHeight - fontSize - 3) / 2));
     style.padding = [vertPad, cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12];
     style.autoWrapText = true;
     style.lineBreakMode = 'normal';
@@ -255,6 +256,9 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
     const customCellStyleArrangement = [];
     const styleCache = new Map();
 
+    const minHeight = itemConfig?.__minHeight ?? 40;
+    const defaultFontSize = itemConfig?.fontSize ?? 14;
+
     // Precompute per-column bold default from the header row (row 0).
     // Body cells without explicit isOverstriking inherit the header cell's setting.
     // NOTE: fontWeight is NOT set in column.style (column.style > customCellStyle in VTable),
@@ -301,7 +305,9 @@ function buildCellStyleArrangements(dataSource, itemConfig) {
                 hasOverride = true;
             }
             if (cell.textPaddingHorizontal != null) {
-                cellStyle.padding = [0, cell.textPaddingHorizontal];
+                const fs = cell.fontSize ?? defaultFontSize;
+                const vertPad = Math.max(0, Math.floor((minHeight - fs - 3) / 2));
+                cellStyle.padding = [vertPad, cell.textPaddingHorizontal];
                 hasOverride = true;
             }
 
@@ -353,7 +359,12 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
     } = options;
 
     const colCount = dataSource[0]?.length ?? 0;
-    const headerRowCount = Math.min(frozenRows, dataSource.length);
+    // VTable ListTable can show a single header row built from columns.title.
+    // When frozenRows > 0, dataSource[0] becomes the VTable header row and is frozen.
+    // When frozenRows === 0, dataSource[0] is treated as a normal body row (matching
+    // iOS/Android where frozenRows=0 means no rows are frozen, including the header).
+    const showHeader = frozenRows > 0;
+    const headerRowCount = showHeader ? 1 : 0;
 
     // Pre-compute which columns are covered (non-anchor) in the first header row (row 0).
     // Covered columns in merged header cells should NOT show lock icons.
@@ -412,17 +423,20 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
     // --- Build columns ---
     const columns = [];
     for (let colIdx = 0; colIdx < colCount; colIdx++) {
-        const headerCell = dataSource[0]?.[colIdx] ?? {};
+        const headerCell = showHeader ? (dataSource[0]?.[colIdx] ?? {}) : {};
         const colWidthConfig = columnsWidthMap[String(colIdx)];
 
+        // Lock icons are only shown on the VTable header row. When frozenRows=0
+        // there is no header row, so no column should display a lock icon.
         let lockInfo = null;
-        const isPermanentlyFrozen = colIdx < frozenColumns;
-        const isIgnored = ignoreLocksSet.has(colIdx);
-
-        const isHeaderCovered = headerCoveredCols.has(colIdx);
-        if (!isPermanentlyFrozen && !isIgnored && !isHeaderCovered) {
-            if (headerLockPropagation.has(colIdx)) {
-                lockInfo = headerLockPropagation.get(colIdx);
+        if (showHeader) {
+            const isPermanentlyFrozen = colIdx < frozenColumns;
+            const isIgnored = ignoreLocksSet.has(colIdx);
+            const isHeaderCovered = headerCoveredCols.has(colIdx);
+            if (!isPermanentlyFrozen && !isIgnored && !isHeaderCovered) {
+                if (headerLockPropagation.has(colIdx)) {
+                    lockInfo = headerLockPropagation.get(colIdx);
+                }
             }
         }
 
@@ -431,7 +445,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
 
         const column = {
             field: String(colIdx),
-            title: headerCell.title ?? '',
+            title: showHeader ? (headerCell.title ?? '') : '',
             // 'auto': VTable calculates width based on content, clamped by min/max
             width: 'auto',
             minWidth: colMinWidth,
@@ -557,7 +571,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         }
     }
 
-    // --- Build records (body rows, skip header rows) ---
+    // --- Build records (body rows, skip the header row only when there is one) ---
     const records = [];
     for (let rowIdx = headerRowCount; rowIdx < dataSource.length; rowIdx++) {
         const row = dataSource[rowIdx];
@@ -591,7 +605,11 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
     // --- Compute per-cell style overrides ---
     const { customCellStyle, customCellStyleArrangement } = buildCellStyleArrangements(dataSource, itemConfig);
 
-    return { records, columns, mergedCells, customCellStyle, customCellStyleArrangement };
+    // frozenRowCount for VTable is the number of body rows to freeze BEYOND the header.
+    // When frozenRows=0 there is no header, so no extra body rows are frozen either.
+    const vtableFrozenRowCount = showHeader ? Math.max(0, frozenRows - 1) : 0;
+
+    return { records, columns, mergedCells, customCellStyle, customCellStyleArrangement, frozenRowCount: vtableFrozenRowCount, showHeader };
 }
 
 /**
@@ -635,7 +653,9 @@ export function buildVTableTheme(props) {
     const textAlign = mapTextAlign(itemConfig.textAlignment ?? 0);
     const isBold = !!itemConfig.isOverstriking;
     const fontWeight = isBold ? 'bold' : 'normal';
-    const padding = [0, itemConfig.textPaddingHorizontal ?? 12];
+    const minHeight = itemConfig?.__minHeight ?? 40;
+    const vertPad = Math.max(0, Math.floor((minHeight - fontSize - 3) / 2));
+    const padding = [vertPad, itemConfig.textPaddingHorizontal ?? 12];
 
     return {
         defaultStyle: {
@@ -688,7 +708,7 @@ export function buildVTableTheme(props) {
 /**
  * Convert updateData params to VTable changeCellValues format.
  */
-export function convertUpdateData(data, x, y, frozenRows) {
+export function convertUpdateData(data, x, y) {
     const values = [];
     for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
         const rowValues = [];
@@ -698,9 +718,12 @@ export function convertUpdateData(data, x, y, frozenRows) {
         }
         values.push(rowValues);
     }
+    // Cross-platform alignment: iOS native treats `y` as a full-data index
+    // (data[0] is the header). VTable records start after the header, but its
+    // global row index matches the original data index because the header is row 0.
     return {
         startCol: x,
-        startRow: y + frozenRows,
+        startRow: y,
         values,
     };
 }
@@ -711,16 +734,15 @@ export function convertUpdateData(data, x, y, frozenRows) {
  * Cross-platform note:
  *   - iOS native receives `y` as a full-data index (data[0] is the header row).
  *   - Android native also receives `y` as a full-data index.
- *   - VTable's `records` array does NOT include the header row, so we must
- *     subtract `frozenRows` (the number of header/frozen rows in the original
- *     data) to obtain the body index used by VTable.
+ *   - VTable's `records` array starts at dataSource[headerRowCount].
+ *     headerRowCount is 1 when showHeader=true, 0 when showHeader=false.
  */
-export function convertSpliceData(params, colCount, itemConfig = {}, frozenRows = 1) {
+export function convertSpliceData(params, colCount, itemConfig = {}, headerRowCount = 1) {
     const operations = [];
     for (const item of params) {
         const { data = [], l = 0, y = 0 } = item;
-        // `y` is a full-data index (including header). Convert to body index.
-        const bodyY = Math.max(0, y - frozenRows);
+        // `y` is a full-data index. Convert to body index.
+        const bodyY = Math.max(0, y - headerRowCount);
 
         const deleteIndices = [];
         for (let i = 0; i < l; i++) {

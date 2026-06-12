@@ -145,11 +145,13 @@ export struct ReportTableComponent {
       let defaultFontSize: number = 14;
       let defaultPadH: number = 12;
       let minHeight: number = 40;
+      let showHeader: boolean = true;
       try {
         const ic: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
         if (ic['fontSize'] !== undefined) { defaultFontSize = ic['fontSize'] as number; }
         if (ic['textPaddingHorizontal'] !== undefined) { defaultPadH = ic['textPaddingHorizontal'] as number; }
         if (ic['__minHeight'] !== undefined) { minHeight = ic['__minHeight'] as number; }
+        if (ic['__showHeader'] !== undefined) { showHeader = ic['__showHeader'] as boolean; }
       } catch (e2) {}
 
       // dpRatio converts the measureText px return value to vp (the unit used everywhere else)
@@ -244,30 +246,34 @@ export struct ReportTableComponent {
       const safeMinHeight: number = minHeight > 0 ? minHeight : 40;
       let contentHeight: number = borderPx;
 
-      // Header row
-      let maxHeaderH: number = safeMinHeight;
-      for (let c: number = 0; c < colCount; c++) {
-        const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
-        const headerStyle: Record<string, Object> = (col['headerStyle'] !== undefined)
-          ? (col['headerStyle'] as Record<string, Object>) : {} as Record<string, Object>;
-        const fontSize: number = (headerStyle['fontSize'] !== undefined)
-          ? (headerStyle['fontSize'] as number) : defaultFontSize;
-        const padArrVal: Object | undefined = headerStyle['padding'];
-        const padH: number = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
-          ? (padArrVal as number[])[1] : defaultPadH;
-        const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
-        if (title.length > 0) {
-          const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
-          const wPx: number = measure.measureText({ textContent: title, fontSize: fontSize });
-          const wVp: number = wPx > 0 ? wPx / dpRatio : title.length * fontSize * 0.65;
-          const lineCount: number = Math.max(1, Math.ceil(wVp / availW));
-          const lineHeight: number = Math.ceil(fontSize * 1.2);
-          const vertPad: number = Math.max(0, safeMinHeight - lineHeight);
-          const cellH: number = lineCount * lineHeight + vertPad;
-          maxHeaderH = Math.max(maxHeaderH, cellH);
+      // Header row (only when showHeader=true)
+      if (showHeader) {
+        let maxHeaderH: number = safeMinHeight;
+        for (let c: number = 0; c < colCount; c++) {
+          const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
+          const headerStyle: Record<string, Object> = (col['headerStyle'] !== undefined)
+            ? (col['headerStyle'] as Record<string, Object>) : {} as Record<string, Object>;
+          const fontSize: number = (headerStyle['fontSize'] !== undefined)
+            ? (headerStyle['fontSize'] as number) : defaultFontSize;
+          const padArrVal: Object | undefined = headerStyle['padding'];
+          const padH: number = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
+            ? (padArrVal as number[])[1] : defaultPadH;
+          const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
+          if (title.length > 0) {
+            const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
+            const wPx: number = measure.measureText({ textContent: title, fontSize: fontSize });
+            const wVp: number = wPx > 0 ? wPx / dpRatio : title.length * fontSize * 0.65;
+            const lineCount: number = Math.max(1, Math.ceil(wVp / availW));
+            // Match VTable rendering: lineHeight defaults to fontSize, and vertical
+            // padding totals (minHeight - fontSize - 3) to match iOS row height formula.
+            const lineHeight: number = fontSize;
+            const vertPad: number = Math.max(0, safeMinHeight - fontSize - 3);
+            const cellH: number = lineCount * lineHeight + vertPad;
+            maxHeaderH = Math.max(maxHeaderH, cellH);
+          }
         }
+        contentHeight += maxHeaderH + borderPx;
       }
-      contentHeight += maxHeaderH + borderPx;
 
       // Body rows
       for (let r: number = 0; r < recordsArr.length; r++) {
@@ -294,10 +300,10 @@ export struct ReportTableComponent {
             const lineCount: number = hasProgressStyle
               ? 1
               : Math.max(1, Math.ceil(wVp / Math.max(colWidths[c] - padH * 2, fontSize)));
-            // VTable WebView uses CSS line-height ≈ 1.2×fontSize. Use lineHeight factor
-            // to align native contentSize measurement with actual WebView rendering.
-            const lineHeight: number = Math.ceil(fontSize * 1.2);
-            const vertPad: number = Math.max(0, safeMinHeight - lineHeight);
+            // Match VTable rendering: lineHeight defaults to fontSize, and vertical
+            // padding totals (minHeight - fontSize - 3) to match iOS row height formula.
+            const lineHeight: number = fontSize;
+            const vertPad: number = Math.max(0, safeMinHeight - fontSize - 3);
             const cellH: number = lineCount * lineHeight + vertPad;
             maxRowH = Math.max(maxRowH, cellH);
           }
@@ -326,6 +332,7 @@ export struct ReportTableComponent {
       const widthModeVal: Object | undefined = rawProps['widthMode'];
       const frozenColCountVal: Object | undefined = rawProps['frozenColCount'];
       const frozenRowCountVal: Object | undefined = rawProps['frozenRowCount'];
+      const showHeaderVal: Object | undefined = rawProps['showHeader'];
       const disableZoomVal: Object | undefined = rawProps['disableZoom'];
       const permutableVal: Object | undefined = rawProps['permutable'];
 
@@ -355,6 +362,7 @@ export struct ReportTableComponent {
       const frozenColCountFromProps: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
       let frozenColCount: number = frozenColCountFromProps;
       const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0;
+      const showHeader: boolean = (showHeaderVal !== undefined) ? (showHeaderVal as boolean) : true;
       const disableZoom: boolean = (disableZoomVal !== undefined) ? (disableZoomVal as boolean) : false;
       const permutable: boolean = (permutableVal !== undefined) ? (permutableVal as boolean) : false;
 
@@ -414,6 +422,7 @@ export struct ReportTableComponent {
         ',"customCellStyleArrangement":' + customCellStyleArrangementStr +
         ',"frozenColCount":' + frozenColCount.toString() +
         ',"frozenRowCount":' + frozenRowCount.toString() +
+        ',"showHeader":' + (showHeader ? 'true' : 'false') +
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
         ',"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
@@ -468,11 +477,14 @@ export struct ReportTableComponent {
       this.controller.scrollToCol(lineY);
     } else if (commandName === 'scrollToBottom') {
       const recordsVal: Object | undefined = this.currentOption['records'];
+      const showHeaderVal: Object | undefined = this.currentOption['showHeader'];
+      const showHeader: boolean = (showHeaderVal !== undefined) ? (showHeaderVal as boolean) : true;
       if (recordsVal !== undefined) {
         const recordsArr: Object[] = recordsVal as Object[];
         if (recordsArr.length > 0) {
-          // Global row index of last body row = 1 (header) + currentFrozenRowCount + (records.length - 1).
-          this.controller.scrollToRow(1 + this.currentFrozenRowCount + recordsArr.length - 1);
+          // VTable global row: records[i] is at row (showHeader ? i+1 : i).
+          const lastRow: number = showHeader ? recordsArr.length : recordsArr.length - 1;
+          this.controller.scrollToRow(lastRow);
         }
       }
     } else if (commandName === 'updateData' && args.length > 0) {
@@ -503,9 +515,10 @@ export struct ReportTableComponent {
       }
       const records: Object[] = recordsVal as Object[];
 
-      // VTable records start after header row(s). startRow already includes frozenRows offset.
-      // Record index = startRow - headerRows (1 for VTable built-in header)
-      const headerRows: number = 1;
+      // VTable records start after the header row when showHeader=true.
+      const showHeaderVal: Object | undefined = this.currentOption['showHeader'];
+      const showHeader: boolean = (showHeaderVal !== undefined) ? (showHeaderVal as boolean) : true;
+      const headerRows: number = showHeader ? 1 : 0;
       for (let rowIdx: number = 0; rowIdx < values.length; rowIdx++) {
         const rowValues: Object[] = values[rowIdx] as Object[];
         const recordIdx: number = startRow - headerRows + rowIdx;
@@ -603,9 +616,10 @@ export struct ReportTableComponent {
     const onEvent: VTableOnEvent = {
       onClickCell: (event: CellClickData): void => {
         // --- Lock toggle detection: header row click on a lockable column ---
-        const frozenRowCountV: Object | undefined = self.currentOption['frozenRowCount'];
-        const headerRows: number = 1 + ((frozenRowCountV !== undefined) ? (frozenRowCountV as number) : 0);
-        if (event.row < headerRows) {
+        const showHeaderVal: Object | undefined = self.currentOption['showHeader'];
+        const showHeader: boolean = (showHeaderVal !== undefined) ? (showHeaderVal as boolean) : true;
+        // VTable ListTable has a single header row (row 0) when showHeader=true.
+        if (showHeader && event.row === 0) {
           // This is a header cell click. Check if the column has a lock icon.
           // For merged header cells, event.col may be any column within the merge;
           // find the anchor (start.col of the merge range that contains this cell).

@@ -216,8 +216,8 @@ export default class ReportTableWrapper extends React.Component {
         // Inject __minHeight so buildColumnStyle can compute correct vertical padding.
         const itemConfigWithMinHeight = Object.assign({}, itemConfig || {}, { __minHeight: minHeight ?? 40 });
 
-        const { records, columns, mergedCells, customCellStyle, customCellStyleArrangement } = convertDataSourceToVTable(data, {
-            frozenRows: frozenRows > 0 ? frozenRows : 1,
+        const { records, columns, mergedCells, customCellStyle, customCellStyleArrangement, frozenRowCount: vtableFrozenRowCount, showHeader } = convertDataSourceToVTable(data, {
+            frozenRows,
             itemConfig: itemConfigWithMinHeight,
             columnsWidthMap,
             minWidth,
@@ -234,11 +234,6 @@ export default class ReportTableWrapper extends React.Component {
         const colCount = data[0]?.length ?? 0;
         const effectiveFrozenColCount = computeInitialFrozenColCount(frozenAbility, frozenColumns, colCount);
 
-        // frozenRowCount: data[0] always maps to VTable header (column titles).
-        // frozenRows=0 or not set => no frozen body rows (vtableFrozenRowCount=0).
-        // frozenRows=N => freeze N-1 additional body rows (N>=1 means data[0] is already the header).
-        const vtableFrozenRowCount = frozenRows > 0 ? Math.max(0, frozenRows - 1) : 0;
-
         return {
             records: JSON.stringify(records),
             columns: JSON.stringify(columns),
@@ -249,6 +244,7 @@ export default class ReportTableWrapper extends React.Component {
             widthMode: 'autoWidth',
             frozenColCount: effectiveFrozenColCount,
             frozenRowCount: vtableFrozenRowCount,
+            showHeader,
         };
     };
 
@@ -273,8 +269,8 @@ export default class ReportTableWrapper extends React.Component {
 
     updateData = (params) => {
         const { data = [[]], x = 0, y = 0 } = params || {};
-        const frozenRows = this.props.frozenRows || 1;
-        const converted = convertUpdateData(data, x, y, frozenRows);
+        // `y` is a full-data index (data[0] is header), matching iOS/Android.
+        const converted = convertUpdateData(data, x, y);
         UIManager.dispatchViewManagerCommand(
             this._getTableHandle(),
             'updateData',
@@ -288,9 +284,11 @@ export default class ReportTableWrapper extends React.Component {
             arr = [params];
         }
         const colCount = this.props.data?.[0]?.length ?? 0;
-        const frozenRows = this.props.frozenRows || 1;
         const itemConfig = Object.assign({}, this.props.itemConfig || {}, { __minHeight: this.props.minHeight ?? 40 });
-        const operations = convertSpliceData(arr, colCount, itemConfig, frozenRows);
+        // `y` is a full-data index. headerRowCount is 1 when frozenRows>0 (VTable header
+        // row exists), 0 when frozenRows=0 (no header row).
+        const headerRowCount = (this.props.frozenRows || 0) > 0 ? 1 : 0;
+        const operations = convertSpliceData(arr, colCount, itemConfig, headerRowCount);
         UIManager.dispatchViewManagerCommand(
             this._getTableHandle(),
             'spliceData',
@@ -330,7 +328,7 @@ export default class ReportTableWrapper extends React.Component {
         const {
             records, columns, theme, mergedCells,
             customCellStyle, customCellStyleArrangement,
-            widthMode, frozenColCount, frozenRowCount,
+            widthMode, frozenColCount, frozenRowCount, showHeader,
         } = this._vtableData;
 
         const tableView = (
@@ -353,7 +351,7 @@ export default class ReportTableWrapper extends React.Component {
                 frozenAbility={frozenAbility ? JSON.stringify(frozenAbility) : '{}'}
                 ignoreLocks={ignoreLocks || []}
                 doubleClickZoom={doubleClickZoom !== false}
-                itemConfig={JSON.stringify(Object.assign({}, itemConfig || {}, { __minHeight: minHeight ?? 40 }))}
+                itemConfig={JSON.stringify(Object.assign({}, itemConfig || {}, { __minHeight: minHeight ?? 40, __showHeader: showHeader }))}
                 progressStyle={progressStyle ? JSON.stringify(progressStyle) : '{}'}
                 replenishColumnsWidthConfig={
                     replenishColumnsWidthConfig ? JSON.stringify(replenishColumnsWidthConfig) : '{}'
