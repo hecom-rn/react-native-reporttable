@@ -480,7 +480,10 @@ export struct ReportTableComponent {
     } else if (commandName === 'frozenToCol' && args.length > 0) {
       const fc: number = args[0] as number;
       this.currentOption['frozenColCount'] = fc;
-      this.controller.frozenToCol(fc);
+      // Use updateOption instead of frozenToCol so the full option (including
+      // frozenColCount) is re-applied. frozenToCol only mutates
+      // window.tableInstance.options, which can use stale references.
+      this.controller.updateOption(this.currentOption);
     } else if (commandName === 'spliceData' && args.length > 0) {
       this.handleSpliceData(args);
     }
@@ -516,8 +519,9 @@ export struct ReportTableComponent {
         }
       }
 
-      // Re-render with updated records
-      this.currentOption['records'] = records as Object;
+      // Re-render with updated records.
+      // Use a new array reference so VTable detects the change.
+      this.currentOption['records'] = [...records] as Object;
       this.controller.updateOption(this.currentOption);
     } catch (e) {
       console.error('[ReportTableComponent] updateData failed: ' + (e as Error).message);
@@ -681,9 +685,10 @@ export struct ReportTableComponent {
                   newFrozenColCount = targetCol;
                 }
 
-                // Apply new frozen state directly — no JS roundtrip needed
+                // Apply new frozen state directly — no JS roundtrip needed.
+                // Use updateOption so VTable re-renders with the new frozenColCount.
                 self.currentOption['frozenColCount'] = newFrozenColCount;
-                self.controller.frozenToCol(newFrozenColCount);
+                self.controller.updateOption(self.currentOption);
                 return; // Lock header click — don't emit regular clickEvent
               }
             }

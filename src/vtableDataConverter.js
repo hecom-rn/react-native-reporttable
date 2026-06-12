@@ -650,6 +650,25 @@ export function buildVTableTheme(props) {
             fontSize, color: textColor, bgColor, textAlign, fontWeight, padding,
             borderColor, borderLineWidth: 1,
         },
+        // VTable applies different theme styles to frozen columns/rows.
+        // Keep them identical to the normal body/header styles so that locking
+        // a column does not change its text color or background.
+        rowHeaderStyle: {
+            fontSize, color: textColor, bgColor, textAlign, fontWeight, padding,
+            borderColor, borderLineWidth: 1,
+        },
+        rightFrozenStyle: {
+            fontSize, color: textColor, bgColor, textAlign, fontWeight, padding,
+            borderColor, borderLineWidth: 1,
+        },
+        bottomFrozenStyle: {
+            fontSize, color: textColor, bgColor, textAlign, fontWeight, padding,
+            borderColor, borderLineWidth: 1,
+        },
+        cornerHeaderStyle: {
+            fontSize, color: textColor, bgColor, textAlign, fontWeight, padding,
+            borderColor, borderLineWidth: 1,
+        },
         frameStyle: {
             borderColor,
             borderLineWidth: showBorder ? 1 : 0,
@@ -688,20 +707,30 @@ export function convertUpdateData(data, x, y, frozenRows) {
 
 /**
  * Convert spliceData params to VTable addRecords/deleteRecords format.
+ *
+ * Cross-platform note:
+ *   - iOS native receives `y` as a full-data index (data[0] is the header row).
+ *   - Android native also receives `y` as a full-data index.
+ *   - VTable's `records` array does NOT include the header row, so we must
+ *     subtract `frozenRows` (the number of header/frozen rows in the original
+ *     data) to obtain the body index used by VTable.
  */
-export function convertSpliceData(params, colCount, itemConfig = {}) {
+export function convertSpliceData(params, colCount, itemConfig = {}, frozenRows = 1) {
     const operations = [];
     for (const item of params) {
         const { data = [], l = 0, y = 0 } = item;
+        // `y` is a full-data index (including header). Convert to body index.
+        const bodyY = Math.max(0, y - frozenRows);
+
         const deleteIndices = [];
         for (let i = 0; i < l; i++) {
-            deleteIndices.push(y + i);
+            deleteIndices.push(bodyY + i);
         }
 
         const newRecords = [];
         for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
             const row = data[rowIdx];
-            const record = { __rowIndex: y + rowIdx };
+            const record = { __rowIndex: bodyY + rowIdx };
             for (let colIdx = 0; colIdx < colCount; colIdx++) {
                 const cell = row?.[colIdx] ?? {};
                 record[String(colIdx)] = cell.title ?? '';
@@ -710,7 +739,7 @@ export function convertSpliceData(params, colCount, itemConfig = {}) {
             newRecords.push(record);
         }
 
-        operations.push({ deleteIndices, addAtIndex: y, newRecords });
+        operations.push({ deleteIndices, addAtIndex: bodyY, newRecords });
     }
     return operations;
 }

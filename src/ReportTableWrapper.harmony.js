@@ -288,8 +288,9 @@ export default class ReportTableWrapper extends React.Component {
             arr = [params];
         }
         const colCount = this.props.data?.[0]?.length ?? 0;
+        const frozenRows = this.props.frozenRows || 1;
         const itemConfig = Object.assign({}, this.props.itemConfig || {}, { __minHeight: this.props.minHeight ?? 40 });
-        const operations = convertSpliceData(arr, colCount, itemConfig);
+        const operations = convertSpliceData(arr, colCount, itemConfig, frozenRows);
         UIManager.dispatchViewManagerCommand(
             this._getTableHandle(),
             'spliceData',

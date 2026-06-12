@@ -245,7 +245,25 @@ function _resolveAndroidImg(name) {
     var trimmed = String(name).trim();
     if (_androidImgCache[trimmed]) return _androidImgCache[trimmed];
     var b64 = _androidImgMap[trimmed];
-    if (!b64) return null;
+    if (!b64) {
+        // Try common variants: lower-cased, extension stripped, lower-cased + stripped
+        var variants = [
+            trimmed.toLowerCase(),
+            _nameFromUri(trimmed),
+            _nameFromUri(trimmed).toLowerCase()
+        ];
+        for (var _vi = 0; _vi < variants.length; _vi++) {
+            var v = variants[_vi];
+            if (v && v !== trimmed && _androidImgMap[v]) {
+                b64 = _androidImgMap[v];
+                break;
+            }
+        }
+    }
+    if (!b64) {
+        console.warn('[vtable_util] _resolveAndroidImg: no mapping for "' + trimmed + '"');
+        return null;
+    }
     _androidImgCache[trimmed] = b64;  // cache the data URL string directly
     return b64;
 }
@@ -848,12 +866,19 @@ function buildCellRender() {
                     iconX = iStartX + iTextW + iPad;
                 }
                 var _iconSrc;
+                var _iconInputName = '';
                 if (icon.path && icon.path.uri) {
                     var _iUri = icon.path.uri;
-                    _iconSrc = _resolveAndroidImg(_nameFromUri(_iUri)) || _iUri;
+                    _iconInputName = _nameFromUri(_iUri);
+                    _iconSrc = _resolveAndroidImg(_iconInputName) || _iUri;
                 } else {
-                    _iconSrc = _resolveAndroidImg(icon.name) || icon.name || '';
+                    _iconInputName = icon.name || '';
+                    _iconSrc = _resolveAndroidImg(_iconInputName) || _iconInputName || '';
                 }
+                // Debug log for troubleshooting invisible icons
+                console.log('[buildCellRender] icon col=' + col + ' input="' + _iconInputName +
+                    '" src=' + (_iconSrc ? 'resolved' : 'EMPTY') + ' w=' + iW + ' h=' + iH +
+                    ' x=' + Math.round(iconX) + ' y=' + Math.round(iY));
                 // Clamp icon position inside cell bounds; cap rendered size to cell size
                 var _renderIW = Math.min(iW, Math.max(1, w));
                 var _renderIH = Math.min(iH, Math.max(1, h));
@@ -1074,7 +1099,10 @@ function initializeTable(option) {
     // processes the option. VTable may transform/strip unknown column properties.
     _extractColumnMeta(option.columns);
 
-    option.theme = VTable.themes.DEFAULT.extends({
+    // Preserve any custom theme styles supplied by the RN side (e.g. rowHeaderStyle,
+    // rightFrozenStyle) while still forcing hover transparency and scroll-bar hidden.
+    var customTheme = option.theme || {};
+    var themePatch = {
         frozenColumnLine: {
             shadow: {
                 width: 4,
@@ -1085,17 +1113,20 @@ function initializeTable(option) {
         scrollStyle: {
             visible: "none"
         },
-        headerStyle: {
-            hover: {
-                cellBgColor: 'transparent'
-            }
-        },
-        bodyStyle: {
-            hover: {
-                cellBgColor: 'transparent',
-            }
-        }
-    })
+        headerStyle: Object.assign({
+            hover: { cellBgColor: 'transparent' }
+        }, customTheme.headerStyle || {}),
+        bodyStyle: Object.assign({
+            hover: { cellBgColor: 'transparent' }
+        }, customTheme.bodyStyle || {})
+    };
+    // Only add frozen styles when RN side provided them, so VTable defaults are
+    // preserved otherwise.
+    if (customTheme.rowHeaderStyle) themePatch.rowHeaderStyle = customTheme.rowHeaderStyle;
+    if (customTheme.rightFrozenStyle) themePatch.rightFrozenStyle = customTheme.rightFrozenStyle;
+    if (customTheme.bottomFrozenStyle) themePatch.bottomFrozenStyle = customTheme.bottomFrozenStyle;
+    if (customTheme.cornerHeaderStyle) themePatch.cornerHeaderStyle = customTheme.cornerHeaderStyle;
+    option.theme = VTable.themes.DEFAULT.extends(themePatch)
 
     const input_editor = new VTable.editors.InputEditor();
     VTable.register.editor('input-editor', input_editor);
@@ -1226,7 +1257,31 @@ function updateOption(options) {
     _fixIconColumnWidths(options);
     _injectMergedCellRenders(options);
     addCustomRenderToColumns(options);
+
+    // Apply frozenColCount explicitly; VTable's updateOption sometimes ignores
+    // changes to frozenColCount, so setFrozenColCount + renderWithRecreateCells
+    // ensures the frozen layout is refreshed.
+    var nextFrozenColCount = options.frozenColCount;
+    var currentFrozenColCount = window.tableInstance.frozenColCount;
+    if (nextFrozenColCount != null && nextFrozenColCount !== currentFrozenColCount) {
+        try {
+            window.tableInstance.setFrozenColCount(nextFrozenColCount);
+        } catch (e) {
+            console.error('[updateOption] setFrozenColCount failed:', e);
+        }
+    }
+
     window.tableInstance.updateOption(options);
+
+    // Force a full recreate if frozen columns changed so the split line and
+    // frozen cells are redrawn with the correct styles.
+    if (nextFrozenColCount != null && nextFrozenColCount !== currentFrozenColCount) {
+        try {
+            window.tableInstance.renderWithRecreateCells();
+        } catch (e) {
+            console.error('[updateOption] renderWithRecreateCells failed:', e);
+        }
+    }
 }
 
 function renderWithRecreateCells() {
