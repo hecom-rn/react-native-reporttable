@@ -49,6 +49,27 @@ export struct ReportTableComponent {
   // from native lock toggles. When props frozenColCount hasn't changed, preserve native state.
   private lastPropsFrozenColCount: number = 0;
 
+  /**
+   * Robust boolean parser.
+   * RN props may arrive as native booleans, strings ("false"), or numbers.
+   */
+  private parseBoolean(value: Object | undefined, defaultValue: boolean): boolean {
+    if (value === undefined || value === null) {
+      return defaultValue;
+    }
+    if (typeof value === 'boolean') {
+      return value as boolean;
+    }
+    if (typeof value === 'string') {
+      const lower = (value as string).toLowerCase();
+      return lower !== 'false' && lower !== '0' && lower !== '';
+    }
+    if (typeof value === 'number') {
+      return (value as number) !== 0;
+    }
+    return !!value;
+  }
+
 
   aboutToAppear(): void {
     this.subscribeToDescriptorChanges();
@@ -151,7 +172,7 @@ export struct ReportTableComponent {
         if (ic['fontSize'] !== undefined) { defaultFontSize = ic['fontSize'] as number; }
         if (ic['textPaddingHorizontal'] !== undefined) { defaultPadH = ic['textPaddingHorizontal'] as number; }
         if (ic['__minHeight'] !== undefined) { minHeight = ic['__minHeight'] as number; }
-        if (ic['__showHeader'] !== undefined) { showHeader = ic['__showHeader'] as boolean; }
+        if (ic['__showHeader'] !== undefined) { showHeader = this.parseBoolean(ic['__showHeader'], showHeader); }
       } catch (e2) {}
 
       // dpRatio converts the measureText px return value to vp (the unit used everywhere else)
@@ -362,9 +383,9 @@ export struct ReportTableComponent {
       const frozenColCountFromProps: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
       let frozenColCount: number = frozenColCountFromProps;
       const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0;
-      const showHeader: boolean = (showHeaderVal !== undefined) ? (showHeaderVal as boolean) : true;
-      const disableZoom: boolean = (disableZoomVal !== undefined) ? (disableZoomVal as boolean) : false;
-      const permutable: boolean = (permutableVal !== undefined) ? (permutableVal as boolean) : false;
+      const showHeader: boolean = this.parseBoolean(showHeaderVal, true);
+      const disableZoom: boolean = this.parseBoolean(disableZoomVal, false);
+      const permutable: boolean = this.parseBoolean(permutableVal, false);
 
       // Preserve native lock toggle state when props haven't explicitly changed frozenColCount.
       // This prevents JS re-renders (e.g. data updates) from resetting the user's lock selection.
@@ -410,6 +431,11 @@ export struct ReportTableComponent {
       // We set it to the full column count so programmatic frozenToCol never hits the limit.
       const allowFrozenColCount: number = columnsArr.length;
 
+      // Detect showHeader changes. VTable's updateOption does not always re-layout
+      // the header row when showHeader toggles, so we force a full recreate in that case.
+      const prevShowHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
+      const showHeaderChanged: boolean = (this.vtableInitialized && prevShowHeader !== showHeader);
+
       this.currentFrozenRowCount = frozenRowCount;
 
       // Build option JSON.
@@ -440,6 +466,11 @@ export struct ReportTableComponent {
         ',"editCellTrigger":"api"';
       const newOption: Record<string, Object> = JSON.parse('{' + optionStr + '}') as Record<string, Object>;
 
+      console.log('[ReportTableComponent] updateVTable showHeader=' + showHeader.toString() +
+        ' frozenRows=' + frozenRowCount.toString() +
+        ' recordsCount=' + recordsArrForSize.length.toString() +
+        ' showHeaderChanged=' + showHeaderChanged.toString());
+
       // NOTE: customLayout/headerCustomLayout CANNOT work with @ohos/vtable
       // because VTable uses a WebView internally and functions can't be serialized to JSON.
       // Styling is handled via column `style` property and customCellStyle/customCellStyleArrangement.
@@ -450,9 +481,11 @@ export struct ReportTableComponent {
       // without triggering a @State re-render.
       this.currentOption = newOption;
 
-      if (!this.vtableInitialized) {
+      if (!this.vtableInitialized || showHeaderChanged) {
         // First render: set @State to give VTable its initial option.
         // Changing @State here is fine because VTable hasn't rendered yet.
+        // When showHeader toggles we also recreate the table; updateOption alone
+        // does not reliably add/remove the header row in @ohos/vtable.
         this.option = newOption;
       } else {
         // Data update: use controller directly — do NOT replace @State option reference,
@@ -477,8 +510,7 @@ export struct ReportTableComponent {
       this.controller.scrollToCol(lineY);
     } else if (commandName === 'scrollToBottom') {
       const recordsVal: Object | undefined = this.currentOption['records'];
-      const showHeaderVal: Object | undefined = this.currentOption['showHeader'];
-      const showHeader: boolean = (showHeaderVal !== undefined) ? (showHeaderVal as boolean) : true;
+      const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
       if (recordsVal !== undefined) {
         const recordsArr: Object[] = recordsVal as Object[];
         if (recordsArr.length > 0) {
@@ -516,8 +548,7 @@ export struct ReportTableComponent {
       const records: Object[] = recordsVal as Object[];
 
       // VTable records start after the header row when showHeader=true.
-      const showHeaderVal: Object | undefined = this.currentOption['showHeader'];
-      const showHeader: boolean = (showHeaderVal !== undefined) ? (showHeaderVal as boolean) : true;
+      const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
       const headerRows: number = showHeader ? 1 : 0;
       for (let rowIdx: number = 0; rowIdx < values.length; rowIdx++) {
         const rowValues: Object[] = values[rowIdx] as Object[];
@@ -616,8 +647,7 @@ export struct ReportTableComponent {
     const onEvent: VTableOnEvent = {
       onClickCell: (event: CellClickData): void => {
         // --- Lock toggle detection: header row click on a lockable column ---
-        const showHeaderVal: Object | undefined = self.currentOption['showHeader'];
-        const showHeader: boolean = (showHeaderVal !== undefined) ? (showHeaderVal as boolean) : true;
+        const showHeader: boolean = self.parseBoolean(self.currentOption['showHeader'], true);
         // VTable ListTable has a single header row (row 0) when showHeader=true.
         if (showHeader && event.row === 0) {
           // This is a header cell click. Check if the column has a lock icon.
