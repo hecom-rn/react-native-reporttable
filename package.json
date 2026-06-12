@@ -16,6 +16,11 @@
     "name": "ReportTableSpec",
     "type": "components",
     "jsSrcsDir": "src",
+    "android": {
+      "componentProvider": {
+        "ReportTable": "ReportTableManager"
+      }
+    },
     "ios": {
       "componentProvider": {
         "ReportTable": "RCTReportTableComponentView"

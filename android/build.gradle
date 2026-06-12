@@ -1,62 +1,73 @@
-apply plugin: 'com.android.library'
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.2.2'
+    }
+}
 
 def safeExtGet(prop, fallback) {
     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
 }
 
-buildscript {
-    repositories {
-        maven {
-            url 'https://maven.aliyun.com/repository/public/'
-        }
-        maven {url 'https://dl.google.com/dl/android/maven2/'}
-        maven {url 'https://www.jitpack.io'}
-        maven { url 'https://jitpack.io' }
-    }
-
-    dependencies{
-        classpath 'com.android.tools.build:gradle:4.0.1'
-    }
-
+def isNewArchitectureEnabled() {
+    return project.hasProperty("newArchEnabled") && project.newArchEnabled == "true"
 }
 
-allprojects {
-    repositories {
-        maven {
-            url 'https://maven.aliyun.com/repository/public/'
-        }
-        maven {
-            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-            url("$rootDir/../example/node_modules/react-native/android")
-        }
-        maven { url 'https://jitpack.io' }
-    }
+apply plugin: 'com.android.library'
+
+if (isNewArchitectureEnabled()) {
+    apply plugin: 'com.facebook.react'
 }
 
 android {
-    compileSdkVersion safeExtGet('compileSdkVersion', 26)
-//    buildToolsVersion safeExtGet('buildToolsVersion', '26.0.3')
+    namespace 'com.hecom.reporttable'
+    compileSdkVersion safeExtGet('compileSdkVersion', 31)
+    buildToolsVersion safeExtGet('buildToolsVersion', '31.0.0')
 
     defaultConfig {
         minSdkVersion safeExtGet('minSdkVersion', 21)
-        targetSdkVersion safeExtGet('targetSdkVersion', 26)
+        targetSdkVersion safeExtGet('targetSdkVersion', 31)
         versionCode 1
         versionName "1.0"
+        buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
     }
+
+    sourceSets {
+        main {
+            if (isNewArchitectureEnabled()) {
+                java.srcDirs += ['src/fabric/java']
+            }
+        }
+    }
+
     lintOptions {
         abortOnError false
     }
 }
 
 repositories {
-    flatDir {
-        dirs 'libs'
-    }
     google()
+    mavenCentral()
+    maven {
+        url("$rootDir/../node_modules/react-native/android")
+    }
+    maven { url 'https://www.jitpack.io' }
 }
 
 dependencies {
-    api 'com.facebook.react:react-native:+'
-    api "androidx.annotation:annotation:1.2.0"
+    //noinspection GradleDynamicVersion
+    implementation 'com.facebook.react:react-native:+'
+    implementation "androidx.annotation:annotation:1.2.0"
     implementation 'com.google.code.gson:gson:2.8.0'
+}
+
+if (isNewArchitectureEnabled()) {
+    react {
+        jsRootDir = file("../src/")
+        libraryName = "ReportTableSpec"
+        codegenJavaPackageName = "com.hecom.reporttable"
+    }
 }

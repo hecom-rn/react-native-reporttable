@@ -1,4 +1,3 @@
-
 package com.hecom.reporttable;
 
 import com.facebook.react.ReactPackage;
@@ -23,6 +22,8 @@ public class RNReportTablePackage implements ReactPackage {
 
     @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-        return Arrays.<ViewManager>asList(new RNReportTableManager());
+        return Arrays.<ViewManager>asList(
+                new ReportTableManager()
+        );
     }
 }

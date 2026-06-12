@@ -32,6 +32,14 @@ public class TableConfigBean {
         this.minHeight = minHeight;
     }
 
+    public TableConfigBean(int minWidth, int maxWidth, int minHeight,
+            Map<Integer, CellConfig> columnConfigMap) {
+        this.minWidth = minWidth;
+        this.maxWidth = maxWidth;
+        this.minHeight = minHeight;
+        this.columnConfigMap = columnConfigMap;
+    }
+
     public void setColumnConfigMap(Map<Integer, CellConfig> columnConfigMap) {
         this.columnConfigMap = columnConfigMap;
     }

@@ -497,4 +497,15 @@ public class HecomTable extends SmartTable<Cell> {
     public void setProgressStyle(ProgressStyle progressStyle) {
         this.progressStyle = progressStyle;
     }
+
+    private boolean mShowBorder = false;
+
+    public boolean getShowBorder() {
+        return mShowBorder;
+    }
+
+    public void setShowBorder(boolean showBorder) {
+        mShowBorder = showBorder;
+        invalidate();
+    }
 }
