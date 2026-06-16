@@ -1197,8 +1197,17 @@ function initializeTable(option) {
         }
     }
 
-    const height = tableInstance.getRowHeight(1)
-    tableInstance.setRowHeight(1, height)
+    // Apply precise row heights computed by ArkTS native measurement.
+    // This avoids the unpredictable autoHeight behavior with merged cells.
+    if (Array.isArray(option.rowHeights)) {
+        option.rowHeights.forEach(function(height, rowIndex) {
+            try {
+                tableInstance.setRowHeight(rowIndex, height);
+            } catch (e) {
+                console.error('[initializeTable] setRowHeight failed:', rowIndex, height, e);
+            }
+        });
+    }
 
     _fixPhantomHeaderRow(tableInstance, option);
 }
@@ -1347,6 +1356,17 @@ function updateOption(options) {
     }
 
     window.tableInstance.updateOption(options);
+
+    // Apply precise row heights after option update.
+    if (Array.isArray(options.rowHeights)) {
+        options.rowHeights.forEach(function(height, rowIndex) {
+            try {
+                window.tableInstance.setRowHeight(rowIndex, height);
+            } catch (e) {
+                console.error('[updateOption] setRowHeight failed:', rowIndex, height, e);
+            }
+        });
+    }
 
     // Force a full recreate if frozen columns/rows changed so the split line
     // and frozen cells are redrawn with the correct styles.

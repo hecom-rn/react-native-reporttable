@@ -67,10 +67,9 @@ function buildColumnStyle(cell, itemConfig) {
     // column.style takes priority over customCellStyle/customCellStyleArrangement in VTable,
     // so setting it here would prevent per-cell isOverstriking overrides from working.
     // fontWeight is applied exclusively via customCellStyleArrangement (see buildCellStyleArrangements).
-    // Vertical padding ensures autoHeight rows match iOS minHeight behavior.
-    // iOS: rowHeight = lineCount*fontSize + (minHeight - fontSize - 3).
-    // VTable autoHeight: rowHeight = paddingTop + lineCount*fontSize + paddingBottom.
-    // So: vertPad = (minHeight - fontSize - 3) / 2.
+    // Compute vertical padding so that the cell content respects minHeight while
+    // keeping the text vertically centered. Total vertical padding equals
+    // minHeight - fontSize - 3, split evenly between top and bottom.
     const minHeight = itemConfig?.__minHeight ?? 40;
     const vertPad = Math.max(0, Math.floor(Math.max(0, minHeight - fontSize - 3) / 2));
     style.padding = [vertPad, cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12];
