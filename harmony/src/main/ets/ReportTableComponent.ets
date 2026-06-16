@@ -172,28 +172,52 @@ export struct ReportTableComponent {
    *   3. Sum column widths (+ border lines) → contentWidth.
    *      Sum row heights (+ border lines) → contentHeight.
    */
-  private computeContentSizeNative(
-    columnsArr: Object[],
-    recordsArr: Object[],
-    itemConfigStr: string,
-    showHeader: boolean
-  ): string {
-    try {
-      let defaultFontSize: number = 14;
-      let defaultPadH: number = 12;
-      let minHeight: number = 40;
+   private computeContentSizeNative(
+     columnsArr: Object[],
+     recordsArr: Object[],
+     itemConfigStr: string,
+     showHeader: boolean,
+     mergedCellsStr: string = '[]'
+   ): string {
       try {
-        const ic: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
-        if (ic['fontSize'] !== undefined) { defaultFontSize = ic['fontSize'] as number; }
-        if (ic['textPaddingHorizontal'] !== undefined) { defaultPadH = ic['textPaddingHorizontal'] as number; }
-        if (ic['__minHeight'] !== undefined) { minHeight = ic['__minHeight'] as number; }
-      } catch (e2) {}
+        let defaultFontSize: number = 14;
+        let defaultPadH: number = 12;
+        let minHeight: number = 40;
+        
+        // Parse itemConfig to get actual minHeight from RN side
+        try {
+          const ic: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
+          if (ic['__minHeight'] !== undefined) { minHeight = ic['__minHeight'] as number; }
+        } catch (_e) {}
+        
+        // Parse merged cells to identify merged ranges
+        const mergedCells: Object[] = mergedCellsStr && mergedCellsStr !== '{}' 
+          ? (JSON.parse(mergedCellsStr) as Object[])
+          : [];
 
-      // dpRatio converts the measureText px return value to vp (the unit used everywhere else)
-      const dpRatio: number = vp2px(1);
-      if (dpRatio <= 0) { return '{}'; }
-      const borderPx: number = 1;
-      const colCount: number = columnsArr.length;
+       // Mark cells that are part of merged ranges (except top-left cells)
+       const mergedCellSet = new Set<string>();
+       for (let i = 0; i < mergedCells.length; i++) {
+         const mc = mergedCells[i] as Record<string, Object>;
+         const range = mc['range'] as Record<string, Object>;
+         if (!range || !range['start'] || !range['end']) continue;
+         
+         const startRow = range['start']['row'] as number;
+         const startCol = range['start']['col'] as number;
+         const endRow = range['end']['row'] as number;
+         const endCol = range['end']['col'] as number;
+         
+         // Mark all cells in the merged range (except the top-left cell)
+         for (let r = startRow + 1; r <= endRow; r++) {
+           for (let c = startCol; c <= endCol; c++) {
+             mergedCellSet.add(r.toString() + '_' + c.toString());
+           }
+         }
+       }
+
+       // Initialize cell dimensions and processed flags
+       const borderPx: number = 1;
+       const colCount: number = columnsArr.length;
       if (colCount === 0) { return '{}'; }
 
       // ── Step 1: effective column widths ─────────────────────────────────
@@ -281,70 +305,79 @@ export struct ReportTableComponent {
       const safeMinHeight: number = minHeight > 0 ? minHeight : 40;
       let contentHeight: number = borderPx;
 
-      // Header row (only when showHeader=true)
-      if (showHeader) {
-        let maxHeaderH: number = safeMinHeight;
-        for (let c: number = 0; c < colCount; c++) {
-          const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
-          const headerStyle: Record<string, Object> = (col['headerStyle'] !== undefined)
-            ? (col['headerStyle'] as Record<string, Object>) : {} as Record<string, Object>;
-          const fontSize: number = (headerStyle['fontSize'] !== undefined)
-            ? (headerStyle['fontSize'] as number) : defaultFontSize;
-          const padArrVal: Object | undefined = headerStyle['padding'];
-          const padH: number = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
-            ? (padArrVal as number[])[1] : defaultPadH;
-          const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
-          if (title.length > 0) {
-            const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
-            const wPx: number = measure.measureText({ textContent: title, fontSize: fontSize });
-            const wVp: number = wPx > 0 ? wPx / dpRatio : title.length * fontSize * 0.65;
-            const lineCount: number = Math.max(1, Math.ceil(wVp / availW));
-            // Match VTable rendering: lineHeight defaults to fontSize, and vertical
-            // padding totals (minHeight - fontSize - 3) to match iOS row height formula.
-            const lineHeight: number = fontSize;
-            const vertPad: number = Math.max(0, safeMinHeight - fontSize - 3);
-            const cellH: number = lineCount * lineHeight + vertPad;
-            maxHeaderH = Math.max(maxHeaderH, cellH);
+          // Header row (only when showHeader=true)
+          if (showHeader) {
+            let maxHeaderH: number = safeMinHeight;
+            for (let c: number = 0; c < colCount; c++) {
+              // Skip cells that are part of merged ranges (except the top-left cell)
+              // For header rows (row 0), use a dummy row index to check merged status
+              if (mergedCellSet.has('0_' + c.toString())) {
+                continue;
+              }
+              const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
+              const headerStyle: Record<string, Object> = (col['headerStyle'] !== undefined)
+                ? (col['headerStyle'] as Record<string, Object>) : {} as Record<string, Object>;
+              const fontSize: number = (headerStyle['fontSize'] !== undefined)
+                ? (headerStyle['fontSize'] as number) : defaultFontSize;
+              const padArrVal: Object | undefined = headerStyle['padding'];
+              const padH: number = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
+                ? (padArrVal as number[])[1] : defaultPadH;
+              const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
+              if (title.length > 0) {
+                const availW: number = Math.max(colWidths[c] - padH * 2, fontSize);
+                const wPx: number = measure.measureText({ textContent: title, fontSize: fontSize });
+                const wVp: number = wPx > 0 ? wPx / dpRatio : title.length * fontSize * 0.65;
+                const lineCount: number = Math.max(1, Math.ceil(wVp / availW));
+                // Match VTable rendering: lineHeight defaults to fontSize, and vertical
+                // padding totals (minHeight - fontSize - 3) to match iOS row height formula.
+                const lineHeight: number = fontSize;
+                const vertPad: number = Math.max(0, safeMinHeight - fontSize - 3);
+                const cellH: number = lineCount * lineHeight + vertPad;
+                maxHeaderH = Math.max(maxHeaderH, cellH);
+              }
+            }
+            contentHeight += maxHeaderH + borderPx;
           }
-        }
-        contentHeight += maxHeaderH + borderPx;
-      }
 
-      // Body rows
-      for (let r: number = 0; r < recordsArr.length; r++) {
-        const rec: Record<string, Object> = recordsArr[r] as Record<string, Object>;
-        let maxRowH: number = safeMinHeight;
-        for (let c: number = 0; c < colCount; c++) {
-          const metaKey: string = '__meta_' + c.toString();
-          const metaVal: Object | undefined = rec[metaKey];
-          const meta: Record<string, Object> = (metaVal !== undefined)
-            ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
-          const fontSize: number = (meta['fontSize'] !== undefined)
-            ? (meta['fontSize'] as number) : defaultFontSize;
-          const padH: number = (meta['textPaddingHorizontal'] !== undefined)
-            ? (meta['textPaddingHorizontal'] as number)
-            : ((meta['textPaddingLeft'] !== undefined)
-              ? (meta['textPaddingLeft'] as number) : defaultPadH);
-          const cellText: string = (rec[c.toString()] !== undefined)
-            ? (rec[c.toString()] as string) : '';
-          if (cellText.length > 0) {
-            const wPx: number = measure.measureText({ textContent: cellText, fontSize: fontSize });
-            const wVp: number = wPx > 0 ? wPx / dpRatio : cellText.length * fontSize * 0.65;
-            // progressStyle cells never wrap — single line only.
-            const hasProgressStyle: boolean = meta['progressStyle'] !== undefined;
-            const lineCount: number = hasProgressStyle
-              ? 1
-              : Math.max(1, Math.ceil(wVp / Math.max(colWidths[c] - padH * 2, fontSize)));
-            // Match VTable rendering: lineHeight defaults to fontSize, and vertical
-            // padding totals (minHeight - fontSize - 3) to match iOS row height formula.
-            const lineHeight: number = fontSize;
-            const vertPad: number = Math.max(0, Math.max(0, safeMinHeight - fontSize - 3));
-            const cellH: number = Math.max(lineCount * lineHeight + vertPad, safeMinHeight);
-            maxRowH = Math.max(maxRowH, cellH);
-          }
-        }
-        contentHeight += maxRowH + borderPx;
-      }
+       // Body rows
+       for (let r: number = 0; r < recordsArr.length; r++) {
+         const rec: Record<string, Object> = recordsArr[r] as Record<string, Object>;
+         let maxRowH: number = safeMinHeight;
+         for (let c: number = 0; c < colCount; c++) {
+           // Skip cells that are part of merged ranges (except the top-left cell)
+           if (mergedCellSet.has(r.toString() + '_' + c.toString())) {
+             continue;
+           }
+           const metaKey: string = '__meta_' + c.toString();
+           const metaVal: Object | undefined = rec[metaKey];
+           const meta: Record<string, Object> = (metaVal !== undefined)
+             ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
+           const fontSize: number = (meta['fontSize'] !== undefined)
+             ? (meta['fontSize'] as number) : defaultFontSize;
+           const padH: number = (meta['textPaddingHorizontal'] !== undefined)
+             ? (meta['textPaddingHorizontal'] as number)
+             : ((meta['textPaddingLeft'] !== undefined)
+               ? (meta['textPaddingLeft'] as number) : defaultPadH);
+           const cellText: string = (rec[c.toString()] !== undefined)
+             ? (rec[c.toString()] as string) : '';
+           if (cellText.length > 0) {
+             const wPx: number = measure.measureText({ textContent: cellText, fontSize: fontSize });
+             const wVp: number = wPx > 0 ? wPx / dpRatio : cellText.length * fontSize * 0.65;
+             // progressStyle cells never wrap — single line only.
+             const hasProgressStyle: boolean = meta['progressStyle'] !== undefined;
+             const lineCount: number = hasProgressStyle
+               ? 1
+               : Math.max(1, Math.ceil(wVp / Math.max(colWidths[c] - padH * 2, fontSize)));
+             // Match VTable rendering: lineHeight defaults to fontSize, and vertical
+             // padding totals (minHeight - fontSize - 3) to match iOS row height formula.
+             const lineHeight: number = fontSize;
+             const vertPad: number = Math.max(0, Math.max(0, safeMinHeight - fontSize - 3));
+             const cellH: number = Math.max(lineCount * lineHeight + vertPad, safeMinHeight);
+             maxRowH = Math.max(maxRowH, cellH);
+           }
+         }
+         contentHeight += maxRowH + borderPx;
+       }
 
       this.contentSizeColWidths = colWidths;
       return '{"width":' + Math.round(contentWidth).toString() +
@@ -439,14 +472,15 @@ export struct ReportTableComponent {
       }
 
       // Compute contentSize using ArkTS native text measurement.
-      // mirrors iOS (NSString sizeWithAttributes) and Android (Paint.measureText).
-      this.cachedContentSize = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr, showHeader);
+       // mirrors iOS (NSString sizeWithAttributes) and Android (Paint.measureText).
+       this.cachedContentSize = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr, showHeader, mergedCellsStr);
 
       // Read minHeight (vp) from itemConfig — used as VTable defaultRowHeight (CSS px = vp in WebView).
       let rowMinHeight: number = 40;
       try {
         const icObj: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
         if (icObj['__minHeight'] !== undefined) { rowMinHeight = icObj['__minHeight'] as number; }
+        else if (icObj['minHeight'] !== undefined) { rowMinHeight = icObj['minHeight'] as number; }
       } catch (_e) {}
 
       // If VTable is already initialized (i.e., this is a data update, not initial load),
