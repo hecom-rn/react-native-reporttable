@@ -1180,6 +1180,23 @@ function initializeTable(option) {
     })
     window.tableInstance = tableInstance;
 
+    // Explicitly apply frozen counts; VTable's constructor may not always honor
+    // frozenRowCount/frozenColCount from the initial option.
+    if (option.frozenRowCount != null) {
+        try {
+            tableInstance.setFrozenRowCount(option.frozenRowCount);
+        } catch (e) {
+            console.error('[initializeTable] setFrozenRowCount failed:', e);
+        }
+    }
+    if (option.frozenColCount != null) {
+        try {
+            tableInstance.setFrozenColCount(option.frozenColCount);
+        } catch (e) {
+            console.error('[initializeTable] setFrozenColCount failed:', e);
+        }
+    }
+
     const height = tableInstance.getRowHeight(1)
     tableInstance.setRowHeight(1, height)
 
@@ -1323,9 +1340,9 @@ function updateOption(options) {
     var frozenRowChanged = nextFrozenRowCount != null && nextFrozenRowCount !== currentFrozenRowCount;
     if (frozenRowChanged) {
         try {
-            window.tableInstance.frozenRowCount = nextFrozenRowCount;
+            window.tableInstance.setFrozenRowCount(nextFrozenRowCount);
         } catch (e) {
-            console.error('[updateOption] set frozenRowCount failed:', e);
+            console.error('[updateOption] setFrozenRowCount failed:', e);
         }
     }
 

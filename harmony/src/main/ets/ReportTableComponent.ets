@@ -55,8 +55,8 @@ export struct ReportTableComponent {
   // Mutable option cache — updated by updateVTable/handleUpdateData/handleSpliceData.
   // NOT @State to avoid triggering VTable WebView re-init on every data update.
   private currentOption: Record<string, Object> = {} as Record<string, Object>;
-  // Extra frozen row count (NOT counting the column-title header row that VTable always has).
-  // Used to compute the global VTable row index: globalRow = bodyRow + 1 + extraFrozenRows.
+  // Cached frozen row count received from props (total frozen rows, including
+  // the VTable header row when showHeader=true).
   private currentFrozenRowCount: number = 0;
   // Cached column widths from native measurement — used for accurate lock threshold checks.
   private contentSizeColWidths: number[] = [];

@@ -604,9 +604,12 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
     // --- Compute per-cell style overrides ---
     const { customCellStyle, customCellStyleArrangement } = buildCellStyleArrangements(dataSource, itemConfig);
 
-    // frozenRowCount for VTable is the number of body rows to freeze BEYOND the header.
-    // When frozenRows=0 there is no header row, so no extra body rows are frozen.
-    const vtableFrozenRowCount = showHeader ? Math.max(0, frozenRows - 1) : 0;
+    // frozenRowCount for VTable is the TOTAL number of frozen rows from the top.
+    // VTable clamps it to at least the header level count, so:
+    //   frozenRows=0 -> showHeader=false -> frozenRowCount=0 (no rows frozen)
+    //   frozenRows=1 -> showHeader=true  -> frozenRowCount=1 (header frozen)
+    //   frozenRows=2 -> showHeader=true  -> frozenRowCount=2 (header + 1 body row frozen)
+    const vtableFrozenRowCount = showHeader ? Math.max(1, frozenRows) : 0;
 
     return { records, columns, mergedCells, customCellStyle, customCellStyleArrangement, frozenRowCount: vtableFrozenRowCount, showHeader };
 }
