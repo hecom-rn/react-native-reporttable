@@ -635,6 +635,8 @@ function buildCellRender() {
         // getRecordByCell returns null for header rows.
         // Use pre-extracted globals (_tableHeaderMeta, _lockInfoMap) to draw
         // classification lines and/or lock icons on header cells.
+        // When showHeader=false, the first body row (VTable row 0) also displays
+        // lock icons so that column locks are available regardless of frozenRows.
         var record = args.table.getRecordByCell(col, row);
         if (!record) {
             var headerCL = window._tableHeaderMeta && window._tableHeaderMeta[row + '_' + col];
@@ -697,6 +699,26 @@ function buildCellRender() {
         }
 
         var meta = record['__meta_' + col];
+
+        // First body row (when VTable header is hidden) may display lock icons.
+        // This keeps column-lock buttons visible even when frozenRows=0.
+        var showHeader = args.table.options.showHeader !== false;
+        var isFirstBodyLockRow = !showHeader && row === 0;
+        var bodyLockInfo = isFirstBodyLockRow ? (window._lockInfoMap && window._lockInfoMap[col]) : null;
+        if (bodyLockInfo && bodyLockInfo.showLock) {
+            var bStyle = {};
+            try { bStyle = args.table.getCellStyle(col, row) || {}; } catch(e) {}
+            var bPad = bStyle.padding;
+            var bPadH = Array.isArray(bPad) ? (bPad[1] || 12) : 12;
+            var bIconW = 13, bIconH = 14;
+            var bLockX = w - bPadH - bIconW;
+            var bLockY = (h - bIconH) / 2;
+            var bIsLocked = col < (args.table.frozenColCount || 0);
+            var bElements = [];
+            _pushLockIcon(bElements, bLockX, bLockY, bIconW, bIconH, bIsLocked);
+            return { elements: bElements, renderDefault: true };
+        }
+
         if (!meta) return { renderDefault: true };
 
         var hasBackground = !!(meta.gradient || meta.progressStyle);
@@ -1090,31 +1112,6 @@ function _fixLockIconColumnWidths(options) {
     }
 }
 
-/**
- * Workaround for @ohos/vtable showHeader=false rendering issue.
- * VTable's ListTable may still allocate a blank header row when showHeader=false.
- * We convert it to showHeader=true with a zero-height transparent header.
- */
-function _fixShowHeader(option) {
-    if (option.showHeader !== false) {
-        return;
-    }
-    option.showHeader = true;
-    option.defaultHeaderRowHeight = 0;
-    if (option.theme) {
-        if (!option.theme.headerStyle) {
-            option.theme.headerStyle = {};
-        }
-        option.theme.headerStyle.color = 'transparent';
-        option.theme.headerStyle.bgColor = 'transparent';
-    }
-    if (Array.isArray(option.columns)) {
-        for (var i = 0; i < option.columns.length; i++) {
-            option.columns[i].title = '';
-        }
-    }
-}
-
 function initializeTable(option) {
 
     optionTemp = option;
@@ -1123,8 +1120,6 @@ function initializeTable(option) {
     // Extract __lockInfo and __headerMeta from columns into globals BEFORE VTable
     // processes the option. VTable may transform/strip unknown column properties.
     _extractColumnMeta(option.columns);
-    // Fix showHeader=false blank row issue
-    _fixShowHeader(option);
 
     // Preserve any custom theme styles supplied by the RN side (e.g. rowHeaderStyle,
     // rightFrozenStyle) while still forcing hover transparency and scroll-bar hidden.
@@ -1187,6 +1182,8 @@ function initializeTable(option) {
 
     const height = tableInstance.getRowHeight(1)
     tableInstance.setRowHeight(1, height)
+
+    _fixPhantomHeaderRow(tableInstance, option);
 }
 
 // 滚动到行
@@ -1276,6 +1273,28 @@ function clearSelected() {
     window.tableInstance.clearSelected();
 }
 
+/**
+ * Workaround: @ohos/vtable may incorrectly render a phantom blank header row
+ * when showHeader=false. Detect by comparing rowCount with records.length,
+ * then force-hide any extra top rows by setting their height to 0.
+ */
+function _fixPhantomHeaderRow(tableInstance, options) {
+    if (options.showHeader !== false) return;
+    try {
+        var expectedRows = options.records ? options.records.length : 0;
+        var actualRows = tableInstance.rowCount;
+        if (actualRows > expectedRows) {
+            var phantomRows = actualRows - expectedRows;
+            for (var i = 0; i < phantomRows; i++) {
+                tableInstance.setRowHeight(i, 0);
+            }
+            tableInstance.resize();
+        }
+    } catch (e) {
+        console.error('[_fixPhantomHeaderRow] failed:', e);
+    }
+}
+
 function updateOption(options) {
     // Re-extract column metadata globals and re-attach customRender.
     _extractColumnMeta(options.columns);
@@ -1284,15 +1303,14 @@ function updateOption(options) {
     _fixIconColumnWidths(options);
     _injectMergedCellRenders(options);
     addCustomRenderToColumns(options);
-    // Fix showHeader=false blank row issue
-    _fixShowHeader(options);
 
-    // Apply frozenColCount explicitly; VTable's updateOption sometimes ignores
-    // changes to frozenColCount, so setFrozenColCount + renderWithRecreateCells
-    // ensures the frozen layout is refreshed.
+    // Apply frozenColCount/frozenRowCount explicitly; VTable's updateOption
+    // sometimes ignores changes to frozen counts, so set them directly and
+    // recreate cells to ensure the frozen layout is refreshed.
     var nextFrozenColCount = options.frozenColCount;
     var currentFrozenColCount = window.tableInstance.frozenColCount;
-    if (nextFrozenColCount != null && nextFrozenColCount !== currentFrozenColCount) {
+    var frozenColChanged = nextFrozenColCount != null && nextFrozenColCount !== currentFrozenColCount;
+    if (frozenColChanged) {
         try {
             window.tableInstance.setFrozenColCount(nextFrozenColCount);
         } catch (e) {
@@ -1300,17 +1318,30 @@ function updateOption(options) {
         }
     }
 
+    var nextFrozenRowCount = options.frozenRowCount;
+    var currentFrozenRowCount = window.tableInstance.frozenRowCount;
+    var frozenRowChanged = nextFrozenRowCount != null && nextFrozenRowCount !== currentFrozenRowCount;
+    if (frozenRowChanged) {
+        try {
+            window.tableInstance.frozenRowCount = nextFrozenRowCount;
+        } catch (e) {
+            console.error('[updateOption] set frozenRowCount failed:', e);
+        }
+    }
+
     window.tableInstance.updateOption(options);
 
-    // Force a full recreate if frozen columns changed so the split line and
-    // frozen cells are redrawn with the correct styles.
-    if (nextFrozenColCount != null && nextFrozenColCount !== currentFrozenColCount) {
+    // Force a full recreate if frozen columns/rows changed so the split line
+    // and frozen cells are redrawn with the correct styles.
+    if (frozenColChanged || frozenRowChanged) {
         try {
             window.tableInstance.renderWithRecreateCells();
         } catch (e) {
             console.error('[updateOption] renderWithRecreateCells failed:', e);
         }
     }
+
+    _fixPhantomHeaderRow(window.tableInstance, options);
 }
 
 function renderWithRecreateCells() {

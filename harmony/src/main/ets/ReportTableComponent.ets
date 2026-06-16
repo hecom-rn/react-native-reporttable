@@ -367,7 +367,6 @@ export struct ReportTableComponent {
       const widthModeVal: Object | undefined = rawProps['widthMode'];
       const frozenColCountVal: Object | undefined = rawProps['frozenColCount'];
       const frozenRowCountVal: Object | undefined = rawProps['frozenRowCount'];
-      const showHeaderVal: Object | undefined = rawProps['showHeader'];
       const disableZoomVal: Object | undefined = rawProps['disableZoom'];
       const permutableVal: Object | undefined = rawProps['permutable'];
 
@@ -397,7 +396,6 @@ export struct ReportTableComponent {
       const frozenColCountFromProps: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
       let frozenColCount: number = frozenColCountFromProps;
       const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0;
-      const showHeader: boolean = this.parseBoolean(showHeaderVal, true);
       const disableZoom: boolean = this.parseBoolean(disableZoomVal, false);
       const permutable: boolean = this.parseBoolean(permutableVal, false);
 
@@ -424,6 +422,22 @@ export struct ReportTableComponent {
       const itemConfigStr: string = (itemConfigPropVal !== undefined)
         ? (itemConfigPropVal as string) : '{}';
 
+      // Read showHeader from rawProps (if present) or fallback to itemConfig.__showHeader.
+      // frozenRows=0 → showHeader=false (no header, data[0] is first body row).
+      // frozenRows>0 → showHeader=true  (data[0] becomes the VTable header row).
+      let showHeader: boolean = true;
+      const showHeaderVal: Object | undefined = rawProps['showHeader'];
+      if (showHeaderVal !== undefined) {
+        showHeader = this.parseBoolean(showHeaderVal, true);
+      } else {
+        try {
+          const icObj: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
+          if (icObj['__showHeader'] !== undefined) {
+            showHeader = this.parseBoolean(icObj['__showHeader'], true);
+          }
+        } catch (_e) {}
+      }
+
       // Compute contentSize using ArkTS native text measurement.
       // mirrors iOS (NSString sizeWithAttributes) and Android (Paint.measureText).
       this.cachedContentSize = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr, showHeader);
@@ -449,6 +463,8 @@ export struct ReportTableComponent {
 
       // Build option JSON.
       // VTable's WebView uses CSS logical pixels, which equal vp. No unit conversion needed.
+      // When showHeader=false, set defaultHeaderRowHeight=0 to prevent phantom blank header row.
+      const defaultHeaderRowHeight: number = showHeader ? rowMinHeight : 0;
       const optionStr: string = '"records":' + recordsStr +
         ',"columns":' + columnsStr +
         ',"theme":' + themeStr +
@@ -461,7 +477,7 @@ export struct ReportTableComponent {
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
         ',"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
-        ',"defaultHeaderRowHeight":' + rowMinHeight.toString() +
+        ',"defaultHeaderRowHeight":' + defaultHeaderRowHeight.toString() +
         ',"autoWrapText":true' +
         ',"widthMode":"' + widthMode + '"' +
         ',"heightMode":"autoHeight"' +
@@ -595,6 +611,7 @@ export struct ReportTableComponent {
       const columns: Object[] = (columnsVal !== undefined) ? (columnsVal as Object[]) : [];
       const colCount: number = columns.length;
 
+      // VTable records start after the header row when showHeader=true.
       const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
       const headerRows: number = showHeader ? 1 : 0;
 
@@ -642,7 +659,8 @@ export struct ReportTableComponent {
         const netChange: number = newRecords.length - deleteCount;
         const deletedSet: Set<number> = new Set<number>();
         for (let i: number = 0; i < deleteIndices.length; i++) {
-          deletedSet.add(deleteIndices[i] as number);
+          // VTable row index = records index + headerRows
+          deletedSet.add((deleteIndices[i] as number) + headerRows);
         }
 
         const adjustedArrangement: Object[] = [];
@@ -654,7 +672,8 @@ export struct ReportTableComponent {
             continue; // Remove styles for deleted rows
           }
           let newRow: number = row;
-          if (row >= addAtIndex + deleteCount) {
+          // Offset rows whose records index is >= addAtIndex
+          if (row - headerRows >= addAtIndex) {
             newRow = row + netChange;
           }
           const pos: CellPosition = { col: cellPosition['col'] as number, row: newRow };
@@ -738,12 +757,14 @@ export struct ReportTableComponent {
     const self = this;
     const onEvent: VTableOnEvent = {
       onClickCell: (event: CellClickData): void => {
-        // --- Lock toggle detection: header row click on a lockable column ---
+        // --- Lock toggle detection: first row click on a lockable column ---
         const showHeader: boolean = self.parseBoolean(self.currentOption['showHeader'], true);
         // VTable ListTable has a single header row (row 0) when showHeader=true.
-        if (showHeader && event.row === 0) {
-          // This is a header cell click. Check if the column has a lock icon.
-          // For merged header cells, event.col may be any column within the merge;
+        // When showHeader=false, row 0 is the first body row and also displays lock
+        // icons, so lock toggles must be handled there too.
+        if (event.row === 0) {
+          // This is a first-row cell click. Check if the column has a lock icon.
+          // For merged first-row cells, event.col may be any column within the merge;
           // find the anchor (start.col of the merge range that contains this cell).
           const colsVal: Object | undefined = self.currentOption['columns'];
           if (colsVal !== undefined) {
@@ -825,17 +846,23 @@ export struct ReportTableComponent {
                 // Use updateOption so VTable re-renders with the new frozenColCount.
                 self.currentOption['frozenColCount'] = newFrozenColCount;
                 self.controller.updateOption(self.currentOption);
-                return; // Lock header click — don't emit regular clickEvent
+                return; // Lock first-row click — don't emit regular clickEvent
               }
             }
           }
-          return; // Other header clicks — suppress clickEvent (not a data row)
+          // When showHeader=true, any other first-row click is a header click and
+          // should not emit a data-cell clickEvent.
+          // When showHeader=false, row 0 is a real data row; fall through to the
+          // body-cell handling below so clickEvent is emitted normally.
+          if (showHeader) {
+            return;
+          }
         }
 
         // --- Body cell click: extract keyIndex from record metadata ---
-        // VTable row indices match the original dataSource indices: row 0 is either
-        // the header (showHeader=true) or the first data row (showHeader=false).
-        // Resolve merge cell: if clicked inside a merge range, use the anchor cell's meta.
+        // VTable row indices: row 0 is always the header row (showHeader=true).
+        // Body rows start at row 1. Resolve merge cell: if clicked inside a merge
+        // range, use the anchor cell's meta.
         let effectiveRow: number = event.row;
         let effectiveCol: number = event.col;
         let verticalCount: number = 1;

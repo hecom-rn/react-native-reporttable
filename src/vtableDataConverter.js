@@ -426,17 +426,16 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         const headerCell = showHeader ? (dataSource[0]?.[colIdx] ?? {}) : {};
         const colWidthConfig = columnsWidthMap[String(colIdx)];
 
-        // Lock icons are only shown on the VTable header row. When frozenRows=0
-        // the header row is hidden, so no column should display a lock icon.
+        // Lock icons are shown on the first row (VTable header when frozenRows>0,
+        // or the first body row when frozenRows=0). Covered columns in horizontal
+        // merges of the first row must NOT display a lock icon.
         let lockInfo = null;
-        if (showHeader) {
-            const isPermanentlyFrozen = colIdx < frozenColumns;
-            const isIgnored = ignoreLocksSet.has(colIdx);
-            const isHeaderCovered = headerCoveredCols.has(colIdx);
-            if (!isPermanentlyFrozen && !isIgnored && !isHeaderCovered) {
-                if (headerLockPropagation.has(colIdx)) {
-                    lockInfo = headerLockPropagation.get(colIdx);
-                }
+        const isPermanentlyFrozen = colIdx < frozenColumns;
+        const isIgnored = ignoreLocksSet.has(colIdx);
+        const isHeaderCovered = headerCoveredCols.has(colIdx);
+        if (!isPermanentlyFrozen && !isIgnored && !isHeaderCovered) {
+            if (headerLockPropagation.has(colIdx)) {
+                lockInfo = headerLockPropagation.get(colIdx);
             }
         }
 
@@ -735,7 +734,7 @@ export function convertUpdateData(data, x, y) {
  *   - iOS native receives `y` as a full-data index (data[0] is the header row).
  *   - Android native also receives `y` as a full-data index.
  *   - VTable's `records` array starts at dataSource[headerRowCount].
- *     headerRowCount is 1 when showHeader=true, 0 when showHeader=false.
+ *     headerRowCount is 1 when frozenRows>0 (dataSource[0] is header), 0 when frozenRows=0.
  */
 export function convertSpliceData(params, colCount, itemConfig = {}, headerRowCount = 1) {
     const operations = [];
