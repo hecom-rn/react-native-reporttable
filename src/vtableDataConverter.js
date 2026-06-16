@@ -527,10 +527,12 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
 
     // Post-process column width constraints for progressStyle and icon cells.
     // progressStyle cells must show full text without wrapping (break through maxWidth).
-    // Icon cells need extra width for icon + padding.
+    // Icon cells need extra width for icon + padding. VTable's auto-width only measures
+    // text, so we set minWidth here to guarantee icon space and bump maxWidth if needed.
     for (let c = 0; c < colCount; c++) {
         let hasProgressStyle = false;
         let maxNeededW = columns[c].maxWidth || maxWidth;
+        let iconNeededW = 0;
         for (let r = headerRowCount; r < dataSource.length; r++) {
             const cell = dataSource[r]?.[c];
             if (!cell) continue;
@@ -545,8 +547,9 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             if (cell.icon) {
                 const iW = cell.icon.width ?? 16;
                 const iPad = cell.icon.paddingHorizontal ?? 4;
-                const needed = cTitle.length * cFontSize * 0.6 + iW + iPad + cPadL + cPadR;
+                const needed = cTitle.length * cFontSize * 0.6 + iW + iPad + cPadL + cPadR + 8; // +8px tolerance
                 if (needed > maxNeededW) maxNeededW = needed;
+                if (needed > iconNeededW) iconNeededW = needed;
             }
         }
         if (hasProgressStyle) {
@@ -560,11 +563,17 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 const hTitle = columns[c].title || '';
                 const hFontSize = columns[c].headerStyle?.fontSize ?? itemConfig?.fontSize ?? 14;
                 const hPadH = 12; // default header padding
-                const lockNeeded = hTitle.length * hFontSize * 0.6 + 4 + 13 + hPadH * 2; // iPad=4, iW=13
+                const lockNeeded = hTitle.length * hFontSize * 0.6 + 4 + 13 + hPadH * 2 + 8; // iPad=4, iW=13
                 if (lockNeeded > maxNeededW) maxNeededW = lockNeeded;
+                if (lockNeeded > iconNeededW) iconNeededW = lockNeeded;
             }
             if (maxNeededW > (columns[c].maxWidth || maxWidth)) {
                 columns[c].maxWidth = maxNeededW;
+            }
+            // Guarantee VTable auto-width doesn't shrink below icon/lock requirements.
+            const newMinWidth = Math.max(columns[c].minWidth || minWidth, Math.ceil(iconNeededW));
+            if (newMinWidth > (columns[c].minWidth || 0)) {
+                columns[c].minWidth = newMinWidth;
             }
         }
     }

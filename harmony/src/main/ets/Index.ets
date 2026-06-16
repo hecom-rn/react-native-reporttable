@@ -8,4 +8,3 @@ export { RNReportTablePackage } from './RNReportTablePackage';
 export { RNReportTableViewManager } from './RNReportTableViewManager';
 export { ReportTableComponent } from './ReportTableComponent';
 export { buildRNReportTableComponent } from './RNReportTableComponentBuilder';
-export { createCustomCellLayout, createHeaderCustomLayout } from './CustomCellLayout';

@@ -223,6 +223,18 @@ var _androidImgMap = {
 };
 
 /**
+ * Icon name aliases used by the JS-facing IconStyle/FloatIcon API.
+ * Android's Cell.Icon.update() maps these camelCase names to mipmap file names;
+ * HarmonyOS uses the same base64 keys, so we resolve them here.
+ */
+var _iconNameAliasMap = {
+    'expandedIcon': 'expanded_icon',
+    'collapsedIcon': 'collapsed_icon',
+    'selectedIcon': 'checkbox_hl',
+    'unSelectIcon': 'checkbox'
+};
+
+/**
  * Extract a bare icon name from any URI format.
  * Examples:
  *   'asset://up.png'                    → 'up'
@@ -244,17 +256,19 @@ function _resolveAndroidImg(name) {
     if (!name) return null;
     var trimmed = String(name).trim();
     if (_androidImgCache[trimmed]) return _androidImgCache[trimmed];
-    var b64 = _androidImgMap[trimmed];
+    // Apply JS-facing aliases first (e.g. expandedIcon → expanded_icon)
+    var resolvedName = _iconNameAliasMap[trimmed] || trimmed;
+    var b64 = _androidImgMap[resolvedName];
     if (!b64) {
         // Try common variants: lower-cased, extension stripped, lower-cased + stripped
         var variants = [
-            trimmed.toLowerCase(),
-            _nameFromUri(trimmed),
-            _nameFromUri(trimmed).toLowerCase()
+            resolvedName.toLowerCase(),
+            _nameFromUri(resolvedName),
+            _nameFromUri(resolvedName).toLowerCase()
         ];
         for (var _vi = 0; _vi < variants.length; _vi++) {
             var v = variants[_vi];
-            if (v && v !== trimmed && _androidImgMap[v]) {
+            if (v && v !== resolvedName && _androidImgMap[v]) {
                 b64 = _androidImgMap[v];
                 break;
             }
@@ -870,53 +884,51 @@ function buildCellRender() {
                 var iW       = Number(icon.width)  || 16;
                 var iH       = Number(icon.height) || 16;
                 var iPad     = icon.paddingHorizontal != null ? icon.paddingHorizontal : 4;
-                var iAlign   = icon.imageAlignment || 3; // 1=left, 3=right(default)
+                var iAlign   = icon.imageAlignment || 3; // 1=left, 2=center, 3=right(default)
                 var iText    = meta.title || '';
                 var iTextW   = iText.length * fontSize * 0.6;
-                var iTotalW  = iTextW + iW + iPad;
-                var iStartX;
-                if (textAlign === 'center') iStartX = (w - iTotalW) / 2;
-                else if (textAlign === 'right') iStartX = w - padRight - iTotalW;
-                else iStartX = padLeft;
-                var iY = (h - iH) / 2;
-                var iconX, tX;
-                if (iAlign === 1) { // icon left
-                    iconX = iStartX;
-                    tX    = iStartX + iW + iPad;
-                } else { // icon right (default)
-                    tX    = iStartX;
-                    iconX = iStartX + iTextW + iPad;
+                var iY       = (h - iH) / 2;
+                var iconX, tX, iconTextMaxW;
+                if (iAlign === 2) {
+                    // Center: icon horizontally centered, text follows its own alignment
+                    iconX = (w - iW) / 2;
+                    if (textAlign === 'center') tX = w / 2;
+                    else if (textAlign === 'right') tX = w - padRight;
+                    else tX = padLeft;
+                    iconTextMaxW = maxLineWidth;
+                } else {
+                    var iTotalW  = iTextW + iW + iPad;
+                    var iStartX;
+                    if (textAlign === 'center') iStartX = (w - iTotalW) / 2;
+                    else if (textAlign === 'right') iStartX = w - padRight - iTotalW;
+                    else iStartX = padLeft;
+                    if (iAlign === 1) { // icon left
+                        iconX = iStartX;
+                        tX    = iStartX + iW + iPad;
+                    } else { // icon right (default)
+                        tX    = iStartX;
+                        iconX = iStartX + iTextW + iPad;
+                    }
+                    iconTextMaxW = Math.max(0, maxLineWidth - iW - iPad);
                 }
                 var _iconSrc;
-                var _iconInputName = '';
                 if (icon.path && icon.path.uri) {
-                    var _iUri = icon.path.uri;
-                    _iconInputName = _nameFromUri(_iUri);
-                    _iconSrc = _resolveAndroidImg(_iconInputName) || _iUri;
+                    _iconSrc = _resolveAndroidImg(_nameFromUri(icon.path.uri)) || icon.path.uri;
                 } else {
-                    _iconInputName = icon.name || '';
-                    _iconSrc = _resolveAndroidImg(_iconInputName) || _iconInputName || '';
+                    _iconSrc = _resolveAndroidImg(icon.name) || icon.name || '';
                 }
-                // Debug log for troubleshooting invisible icons
-                console.log('[buildCellRender] icon col=' + col + ' input="' + _iconInputName +
-                    '" src=' + (_iconSrc ? 'resolved' : 'EMPTY') + ' w=' + iW + ' h=' + iH +
-                    ' x=' + Math.round(iconX) + ' y=' + Math.round(iY));
                 // Clamp icon position inside cell bounds; cap rendered size to cell size
                 var _renderIW = Math.min(iW, Math.max(1, w));
                 var _renderIH = Math.min(iH, Math.max(1, h));
                 var _safeIconX = Math.max(0, Math.min(Math.round(iconX), Math.round(w - _renderIW)));
                 var _safeIconY = Math.max(0, Math.min(Math.round(iY), Math.round(h - _renderIH)));
-                // Debug: log icon render info for troubleshooting invisible icons
-                if (!_iconSrc) {
-                    console.warn('[buildCellRender] icon src empty for col=' + col + ' name=' + (icon.name || ''));
-                }
                 elements.push({
                     type: 'text',
                     x: tX, y: textY,
                     text: iText,
                     fontSize: fontSize, fill: textColor, fontWeight: fontWeight,
                     textBaseline: 'middle',
-                    maxLineWidth: Math.max(0, maxLineWidth - iW - iPad),
+                    maxLineWidth: iconTextMaxW,
                     ellipsis: '...',
                     pickable: false
                 });
@@ -1040,78 +1052,6 @@ function buildCellRender() {
     };
 }
 
-function customIcon() {
-}
-
-/**
- * For columns containing cells with icons, measure the maximum content width
- * (text + icon + padding) via canvas and set an exact minWidth/maxWidth.
- * Mirrors _fixProgressStyleWidths.
- */
-function _fixIconColumnWidths(options) {
-    if (!Array.isArray(options.columns) || !Array.isArray(options.records)) return;
-    for (var _ci = 0; _ci < options.columns.length; _ci++) {
-        var _col = options.columns[_ci];
-        if (!_col) continue;
-        var _field = _col.field;
-        var _maxW = 0;
-        var _hasIcon = false;
-        for (var _ri = 0; _ri < options.records.length; _ri++) {
-            var _meta = options.records[_ri]['__meta_' + _ci];
-            if (!_meta || !_meta.icon) continue;
-            _hasIcon = true;
-            var _icon = _meta.icon;
-            var _iW = _icon.width || 16;
-            var _iPad = _icon.paddingHorizontal != null ? _icon.paddingHorizontal : 4;
-            var _text = String(options.records[_ri][_field] || '');
-            // Use per-cell meta for accurate measurement (fontSize/padding may differ from header)
-            var _fs = _meta.fontSize || _col.style?.fontSize || 14;
-            var _fw = _meta.fontWeight || _col.style?.fontWeight || 'normal';
-            var _padH = _meta.textPaddingHorizontal != null ? _meta.textPaddingHorizontal : 12;
-            var _padL = _meta.textPaddingLeft != null ? _meta.textPaddingLeft : _padH;
-            var _padR = _meta.textPaddingRight != null ? _meta.textPaddingRight : _padH;
-            var _textW = _measureTextWidth(_text, _fs, _fw);
-            var _totalW = _textW + _iW + _iPad + _padL + _padR + 8; // +8px tolerance
-            if (_totalW > _maxW) _maxW = _totalW;
-        }
-        if (_hasIcon && _maxW > 0) {
-            var _minW = _col.minWidth || 50;
-            var _fixedW = Math.max(_minW, Math.ceil(_maxW) + 4);
-            _col.width = _fixedW;
-            _col.minWidth = _fixedW;
-            _col.maxWidth = _fixedW;
-        }
-    }
-}
-
-/**
- * Ensure columns that show a lock icon in the header have enough minWidth to
- * display both the header title and the lock icon side-by-side.
- * Uses canvas.measureText() for accuracy.
- * Must be called AFTER _extractColumnMeta() so _lockInfoMap is populated.
- */
-function _fixLockIconColumnWidths(options) {
-    if (!Array.isArray(options.columns)) return;
-    var LOCK_W = 13, LOCK_PAD = 4; // must match _pushLockIcon dims in buildCellRender
-    for (var _li = 0; _li < options.columns.length; _li++) {
-        if (!window._lockInfoMap || !window._lockInfoMap[_li]) continue;
-        var _lcol = options.columns[_li];
-        var _lhst = _lcol.headerStyle || _lcol.style || {};
-        var _lFs  = _lhst.fontSize  || 14;
-        var _lFw  = _lhst.fontWeight || 'normal';
-        var _lPad = Array.isArray(_lhst.padding) ? (_lhst.padding[1] || 12) : (_lhst.padding || 12);
-        var _lTitleW = _measureTextWidth(_lcol.title || '', _lFs, _lFw);
-        var _lNeeded = Math.ceil(_lTitleW) + LOCK_PAD + LOCK_W + _lPad * 2 + 2;
-        if (_lNeeded > (_lcol.minWidth || 0)) {
-            _lcol.minWidth = _lNeeded;
-        }
-        // Also bump maxWidth so VTable auto-sizing can actually use this space
-        if (_lcol.maxWidth && _lNeeded > _lcol.maxWidth) {
-            _lcol.maxWidth = _lNeeded;
-        }
-    }
-}
-
 function initializeTable(option) {
 
     optionTemp = option;
@@ -1157,8 +1097,6 @@ function initializeTable(option) {
     // Functions are stripped by JSON.stringify in ArkTS, so we inject them here
     // inside the WebView where they can reference the live VRender primitives.
     _fixProgressStyleWidths(option);
-    _fixLockIconColumnWidths(option);
-    _fixIconColumnWidths(option);
     _injectMergedCellRenders(option);
     addCustomRenderToColumns(option);
 
@@ -1325,8 +1263,6 @@ function updateOption(options) {
     // Re-extract column metadata globals and re-attach customRender.
     _extractColumnMeta(options.columns);
     _fixProgressStyleWidths(options);
-    _fixLockIconColumnWidths(options);
-    _fixIconColumnWidths(options);
     _injectMergedCellRenders(options);
     addCustomRenderToColumns(options);
 

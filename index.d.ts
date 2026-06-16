@@ -221,8 +221,8 @@ declare module "@hecom/react-native-report-table" {
     }
 
     export interface FloatIcon {
-        path: ImageResolvedAssetSource; // ios only
-        name: string; // android only
+        path: ImageResolvedAssetSource; // ios use
+        name: string; // android use
         width: number,
         height: number,
 
@@ -234,8 +234,8 @@ declare module "@hecom/react-native-report-table" {
     }
 
     export interface IconStyle {
-        path: ImageResolvedAssetSource; // ios only
-        name: string; // android only
+        path: ImageResolvedAssetSource; // ios use
+        name: string; // android use
         width: number,
         height: number,
         imageAlignment?: number; // 1左  2中  3右(默认)

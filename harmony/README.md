@@ -13,7 +13,6 @@
 │  - RNReportTablePackage (组件注册)                │
 │  - RNReportTableViewManager (ViewManager)        │
 │  - ReportTableComponent (XComponent + VTable)    │
-│  - CustomCellLayout (自定义单元格渲染)             │
 ├─────────────────────────────────────────────────┤
 │  @ohos/vtable ^1.25.0 (Canvas渲染)              │
 └─────────────────────────────────────────────────┘
@@ -37,7 +36,6 @@ harmony/
       ReportTableComponent.ets          # ArkTS UI组件（XComponent + VTable）
       RNReportTableDescriptor.ets       # Props描述器
       RNReportTableComponentBuilder.ets # 组件构建器
-      CustomCellLayout.ets              # 自定义单元格渲染
 ```
 
 ## 使用方式
@@ -93,7 +91,9 @@ const packages = [
 | onScrollEnd | scroll位置判断是否到底 | ✅ |
 | onContentSize | getAllColsWidth + getAllRowsHeight | ✅ |
 
-## 自定义单元格渲染（customLayout）
+## 自定义单元格渲染（customRender）
+
+实际渲染在 VTable WebView 内的 `vtable_library/src/main/resources/rawfile/vtable_util.js` 中通过 `customRender` 完成。
 
 | 特性 | 实现状态 |
 |---|---|
@@ -105,6 +105,8 @@ const packages = [
 | classificationLinePosition | ✅ 位掩码解析 + 边线绘制 |
 | richText (富文本) | ✅ 分段文本渲染 |
 | gradient (渐变背景) | ✅ linearGradient |
+| icon (图标) | ✅ 名称别名 + 左/中/右对齐 |
+| 锁列图标 | ✅ 表头 customRender 绘制 |
 
 ---
 
@@ -116,9 +118,8 @@ const packages = [
 - **降级处理**：基本可用，但与原生表格的像素级精确缩放有差异
 
 ### 缺口 #2：permutable / frozenAbility 锁列 UI
-- **现状**：props 已传递到 native 侧，frozenColCount 可动态更新
-- **限制**：VTable 无内置锁图标 UI，需要在列表头上叠加自定义图标并监听点击
-- **降级处理**：当前未绘制锁图标。frozenColumns 的基础冻结功能正常工作。需后续迭代添加锁图标 overlay
+- **现状**：表头锁图标已通过 `customRender` 绘制，点击事件在 ArkTS 侧处理并更新 `frozenColCount`
+- **状态**：✅ 已实现
 
 ### 缺口 #3：HeaderComponent prop
 - **现状**：在 JS 层用 ScrollView 包裹 headerView() 渲染在 NativeReportTable 上方
@@ -130,13 +131,12 @@ const packages = [
 - **降级处理**：单行超出时显示省略号，不会自动换行
 
 ### 缺口 #5：gradient 渐变背景
-- **现状**：通过 customLayout 绘制 linearGradient 矩形
-- **限制**：VTable column style 不直接支持 gradient fill，已用 customLayout 完整实现
+- **现状**：通过 customRender 绘制 linearGradient 矩形
+- **限制**：VTable column style 不直接支持 gradient fill，已用 customRender 完整实现
 
 ### 缺口 #6：icon 的 imageAlignment
-- **现状**：通过 customLayout 中的 Image 定位实现
-- **限制**：icon 的 1(左)/2(中)/3(右) 对齐需要在 customLayout 中手动计算位置
-- **降级处理**：已支持基本的左/中/右定位逻辑
+- **现状**：`buildCellRender` 中已实现 `imageAlignment` 1(左)/2(中)/3(右)
+- **状态**：✅ 已实现
 
 ### 无法实现的功能
 - **AppRegistry.registerComponent('ReportTableHeaderView')**：鸿蒙 RN 不需要此注册方式，headerView 直接作为 JSX 渲染
