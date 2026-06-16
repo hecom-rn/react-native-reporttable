@@ -36,10 +36,12 @@ interface ContentSizeResult {
   rowHeights: number[];
 }
 
-interface MergeRangeRaw {
-  start: CellPosition;
-  end: CellPosition;
-  text?: string;
+interface MergeRange {
+  startRow: number;
+  endRow: number;
+  startCol: number;
+  endCol: number;
+  text: string;
 }
 
 @Observed
@@ -205,25 +207,29 @@ export struct ReportTableComponent {
           : [];
 
        // Parse merged ranges and mark covered cells (except top-left cells).
-       const mergeRanges: MergeRangeRaw[] = [];
+       const mergeRanges: MergeRange[] = [];
        const mergedCellSet = new Set<string>();
        for (let i = 0; i < mergedCells.length; i++) {
          const mc = mergedCells[i] as Record<string, Object>;
          if (!mc) continue;
-         const range = (mc['range'] as MergeRangeRaw);
-         if (!range || !range.start || !range.end) continue;
+         const range = mc['range'] as Record<string, Object>;
+         if (!range) continue;
+         const start = range['start'] as Record<string, number>;
+         const end = range['end'] as Record<string, number>;
+         if (!start || !end) continue;
 
-         const startRow = range.start.row;
-         const startCol = range.start.col;
-         const endRow = range.end.row;
-         const endCol = range.end.col;
+         const startRow = start['row'];
+         const startCol = start['col'];
+         const endRow = end['row'];
+         const endCol = end['col'];
+         const mergeText: string = (mc['text'] as string) ?? '';
 
          mergeRanges.push({
            startRow,
            endRow,
            startCol,
            endCol,
-           text: (mc['text'] as string) ?? ''
+           text: mergeText
          });
 
          // Mark all cells in the merged range (except the top-left cell)
