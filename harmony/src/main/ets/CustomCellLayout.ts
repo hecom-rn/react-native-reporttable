@@ -97,7 +97,7 @@ export function createHeaderCustomLayout(columnLockInfoMap: ESObject, onLockTogg
 
     // Draw lock icon to the right of text (matching iOS lockImageView position)
     const lockX = textX + estimatedTextWidth + lockIconPadding;
-    const lockY = (height - lockIconHeight) / 2;
+    const lockY = Math.max(2, Math.min(height - lockIconHeight - 2, (height - lockIconHeight) / 2));
 
     // Icon color: locked = darker, unlocked = lighter
     const iconColor = lockInfo.isLocked ? '#333333' : '#999999';
@@ -118,9 +118,10 @@ export function createHeaderCustomLayout(columnLockInfoMap: ESObject, onLockTogg
     group.add(pathNode);
 
     // Invisible hit area for click detection on the lock icon
+    const hitAreaY = Math.max(0, Math.min(height - lockIconHeight - 8, lockY - 4));
     const hitArea = new Rect({
       x: lockX - 4,
-      y: lockY - 4,
+      y: hitAreaY,
       width: lockIconWidth + 8,
       height: lockIconHeight + 8,
       fill: 'transparent',
@@ -350,7 +351,7 @@ export function createCustomCellLayout(defaultItemConfig: ESObject) {
       const badgeW = bgStyle.width ?? 20;
       const badgeH = bgStyle.height ?? 14;
       const badgeX = isLeft ? textPaddingLeft : width - textPaddingRight - badgeW;
-      const badgeY = 2;
+      const badgeY = Math.max(2, Math.min(height - badgeH - 2, 2));
 
       // Badge background
       const badgeBg = new Rect({
@@ -387,10 +388,12 @@ export function createCustomCellLayout(defaultItemConfig: ESObject) {
 
       if (fi.top != null) iconY = fi.top;
       else if (fi.bottom != null) iconY = height - fi.bottom - (fi.height ?? 16);
+      const iconH = fi.height ?? 16;
+      const constrainedIconY = Math.max(2, Math.min(height - iconH - 2, iconY));
 
       const iconNode = new Image({
         x: iconX,
-        y: iconY,
+        y: constrainedIconY,
         width: fi.width ?? 16,
         height: fi.height ?? 16,
         image: fi.name ?? fi.path?.uri ?? '',

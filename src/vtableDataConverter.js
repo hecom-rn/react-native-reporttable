@@ -72,7 +72,7 @@ function buildColumnStyle(cell, itemConfig) {
     // VTable autoHeight: rowHeight = paddingTop + lineCount*fontSize + paddingBottom.
     // So: vertPad = (minHeight - fontSize - 3) / 2.
     const minHeight = itemConfig?.__minHeight ?? 40;
-    const vertPad = Math.max(0, Math.floor((minHeight - fontSize - 3) / 2));
+    const vertPad = Math.max(0, Math.floor(Math.max(0, minHeight - fontSize - 3) / 2));
     style.padding = [vertPad, cell.textPaddingHorizontal ?? itemConfig?.textPaddingHorizontal ?? 12];
     style.autoWrapText = true;
     style.lineBreakMode = 'normal';

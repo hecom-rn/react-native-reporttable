@@ -338,8 +338,8 @@ export struct ReportTableComponent {
             // Match VTable rendering: lineHeight defaults to fontSize, and vertical
             // padding totals (minHeight - fontSize - 3) to match iOS row height formula.
             const lineHeight: number = fontSize;
-            const vertPad: number = Math.max(0, safeMinHeight - fontSize - 3);
-            const cellH: number = lineCount * lineHeight + vertPad;
+            const vertPad: number = Math.max(0, Math.max(0, safeMinHeight - fontSize - 3));
+            const cellH: number = Math.max(lineCount * lineHeight + vertPad, safeMinHeight);
             maxRowH = Math.max(maxRowH, cellH);
           }
         }
