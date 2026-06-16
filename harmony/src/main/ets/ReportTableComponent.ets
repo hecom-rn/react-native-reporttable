@@ -30,6 +30,18 @@ interface CustomCellStyleItem {
   style: Record<string, Object>;
 }
 
+interface ContentSizeResult {
+  width: number;
+  height: number;
+  rowHeights: number[];
+}
+
+interface MergeRangeRaw {
+  start: CellPosition;
+  end: CellPosition;
+  text?: string;
+}
+
 @Observed
 export class ReportTableVTableController extends VTableController {
 }
@@ -171,7 +183,7 @@ export struct ReportTableComponent {
      itemConfigStr: string,
      showHeader: boolean,
      mergedCellsStr: string = '[]'
-   ): { width: number; height: number; rowHeights: number[] } {
+   ): ContentSizeResult {
       try {
         let defaultFontSize: number = 14;
         let defaultPadH: number = 12;
@@ -193,25 +205,18 @@ export struct ReportTableComponent {
           : [];
 
        // Parse merged ranges and mark covered cells (except top-left cells).
-       interface MergeRange {
-         startRow: number;
-         endRow: number;
-         startCol: number;
-         endCol: number;
-         text: string;
-       }
-       const mergeRanges: MergeRange[] = [];
+       const mergeRanges: MergeRangeRaw[] = [];
        const mergedCellSet = new Set<string>();
        for (let i = 0; i < mergedCells.length; i++) {
          const mc = mergedCells[i] as Record<string, Object>;
          if (!mc) continue;
-         const range = mc['range'] as Record<string, Object>;
-         if (!range || !range['start'] || !range['end']) continue;
+         const range = (mc['range'] as MergeRangeRaw);
+         if (!range || !range.start || !range.end) continue;
 
-         const startRow = range['start']['row'] as number;
-         const startCol = range['start']['col'] as number;
-         const endRow = range['end']['row'] as number;
-         const endCol = range['end']['col'] as number;
+         const startRow = range.start.row;
+         const startCol = range.start.col;
+         const endRow = range.end.row;
+         const endCol = range.end.col;
 
          mergeRanges.push({
            startRow,
