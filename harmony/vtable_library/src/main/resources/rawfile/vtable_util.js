@@ -1062,7 +1062,7 @@ function buildCellRender() {
                 hElements.push({ type: 'text', x: hTX, y: h / 2, text: hCellValue,
                     fontSize: hFontSize, fill: hColor, fontWeight: hFontWeight,
                     textAlign: 'left', textBaseline: 'middle',
-                    maxLineWidth: hActualTextW, autoWrapText: true, pickable: false });
+                    maxLineWidth: hActualTextW, autoWrapText: true, ellipsis: false, pickable: false });
                 _pushLockIcon(hElements, hLockX, hLockY, hIconW, hIconH, hIsLocked);
             }
 
@@ -1250,7 +1250,7 @@ function buildCellRender() {
                         fontSize: rFs, fill: rCol, fontWeight: rFw,
                         textBaseline: 'middle',
                         textDecoration: rs.strikethrough ? 'line-through' : 'none',
-                        pickable: false
+                        autoWrapText: true, ellipsis: false, pickable: false
                     });
                     curX += rW + 4;
                 }
@@ -1315,6 +1315,7 @@ function buildCellRender() {
                     textBaseline: 'middle',
                     maxLineWidth: iconTextMaxW,
                     autoWrapText: true,
+                    ellipsis: false,
                     pickable: false
                 });
                 if (_iconSrc) {
@@ -1337,6 +1338,7 @@ function buildCellRender() {
                     textBaseline: 'middle',
                     maxLineWidth: maxLineWidth,
                     autoWrapText: true,
+                    ellipsis: false,
                     pickable: false
                 });
             }

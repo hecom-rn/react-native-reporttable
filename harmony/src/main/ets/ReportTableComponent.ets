@@ -267,6 +267,8 @@ export struct ReportTableComponent {
         const colPadH: number = ((colPaddingVal !== undefined)
           && ((colPaddingVal as number[]).length > 1))
           ? (colPaddingVal as number[])[1] : defaultPadH;
+        // Per-cell horizontal padding may override column defaults via meta.textPaddingLeft/Right.
+        // Header uses column padding unless explicitly overridden (not supported for header).
 
         let maxContentW: number = 0;
         // Header title
@@ -283,7 +285,7 @@ export struct ReportTableComponent {
           headerWVp += 13 + 4; // lockIconWidth(13) + lockIconPadding(4)
         }
         if (headerWVp > 0 || (col['__lockInfo'] !== undefined)) {
-          maxContentW = Math.max(maxContentW, headerWVp + colPadH * 2);
+          maxContentW = Math.max(maxContentW, headerWVp + colPadH * 2 + 4); // +4px tolerance
         }
         // Body cells
         for (let r: number = 0; r < recordsArr.length; r++) {
@@ -294,9 +296,12 @@ export struct ReportTableComponent {
             ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
           const cellFontSize: number = (meta['fontSize'] !== undefined)
             ? (meta['fontSize'] as number) : defaultFontSize;
-          const cellPadH: number = (meta['textPaddingHorizontal'] !== undefined)
-            ? (meta['textPaddingHorizontal'] as number)
-            : ((meta['textPaddingLeft'] !== undefined) ? (meta['textPaddingLeft'] as number) : defaultPadH);
+          const cellPadHDef: number = (meta['textPaddingHorizontal'] !== undefined)
+            ? (meta['textPaddingHorizontal'] as number) : defaultPadH;
+          const cellPadL: number = (meta['textPaddingLeft'] !== undefined)
+            ? (meta['textPaddingLeft'] as number) : cellPadHDef;
+          const cellPadR: number = (meta['textPaddingRight'] !== undefined)
+            ? (meta['textPaddingRight'] as number) : cellPadHDef;
           const cellText: string = (rec[c.toString()] !== undefined)
             ? (rec[c.toString()] as string) : '';
           let wVp: number = 0;
@@ -315,9 +320,10 @@ export struct ReportTableComponent {
             wVp += iconExtraW;
           }
           if (wVp > 0 || iconExtraW > 0) {
-            // iOS/Android add ~8px tolerant for measurement inaccuracy
-            const tolerant: number = 8;
-            maxContentW = Math.max(maxContentW, wVp + cellPadH * 2 + tolerant);
+            // iOS/Android add ~8px tolerant for measurement inaccuracy;
+            // use 12 to account for cross-font rendering differences in WebView.
+            const tolerant: number = 12;
+            maxContentW = Math.max(maxContentW, wVp + cellPadL + cellPadR + tolerant);
           }
         }
         colWidths.push(Math.max(safeMinW, Math.min(maxContentW > 0 ? maxContentW : safeMinW, safeMaxW)));
@@ -370,7 +376,10 @@ export struct ReportTableComponent {
             ? (padArrVal as number[])[1] : defaultPadH;
           const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
           if (title.length > 0) {
-            const cellH: number = computeCellHeight(title, fontSize, padH, colWidths[c], false);
+            // Lock icon occupies space on the right; text must wrap in the remaining width.
+            const hasLock: boolean = col['__lockInfo'] !== undefined;
+            const lockOccupiedW: number = hasLock ? (13 + 4) : 0;
+            const cellH: number = computeCellHeight(title, fontSize, padH, colWidths[c] - lockOccupiedW, false);
             maxHeaderH = Math.max(maxHeaderH, cellH);
           }
         }
@@ -397,10 +406,13 @@ export struct ReportTableComponent {
             ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
           const fontSize: number = (meta['fontSize'] !== undefined)
             ? (meta['fontSize'] as number) : defaultFontSize;
-          const padH: number = (meta['textPaddingHorizontal'] !== undefined)
-            ? (meta['textPaddingHorizontal'] as number)
-            : ((meta['textPaddingLeft'] !== undefined)
-              ? (meta['textPaddingLeft'] as number) : defaultPadH);
+          const bodyPadHDef: number = (meta['textPaddingHorizontal'] !== undefined)
+            ? (meta['textPaddingHorizontal'] as number) : defaultPadH;
+          const bodyPadL: number = (meta['textPaddingLeft'] !== undefined)
+            ? (meta['textPaddingLeft'] as number) : bodyPadHDef;
+          const bodyPadR: number = (meta['textPaddingRight'] !== undefined)
+            ? (meta['textPaddingRight'] as number) : bodyPadHDef;
+          const padH: number = (bodyPadL + bodyPadR) / 2;
           const cellText: string = (rec[c.toString()] !== undefined)
             ? (rec[c.toString()] as string) : '';
           if (cellText.length > 0) {
@@ -442,9 +454,12 @@ export struct ReportTableComponent {
             const meta: Record<string, Object> = (rec['__meta_' + mr.startCol] as Record<string, Object>)
               ?? {} as Record<string, Object>;
             fontSize = (meta['fontSize'] as number) ?? defaultFontSize;
-            padH = (meta['textPaddingHorizontal'] as number)
+            const mergePadHDef: number = (meta['textPaddingHorizontal'] as number)
               ?? (meta['textPaddingLeft'] as number)
               ?? defaultPadH;
+            const mergePadL: number = (meta['textPaddingLeft'] as number) ?? mergePadHDef;
+            const mergePadR: number = (meta['textPaddingRight'] as number) ?? mergePadHDef;
+            padH = (mergePadL + mergePadR) / 2;
             isProgress = meta['progressStyle'] !== undefined;
             if (!mergeText) {
               mergeText = (rec[mr.startCol.toString()] as string) ?? '';
