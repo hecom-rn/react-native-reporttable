@@ -1263,7 +1263,7 @@ function buildCellRender() {
                 var iPad     = icon.paddingHorizontal != null ? icon.paddingHorizontal : 4;
                 var iAlign   = icon.imageAlignment || 3; // 1=left, 2=center, 3=right(default)
                 var iText    = meta.title || '';
-                var iTextW   = iText.length * fontSize * 0.6;
+                var measuredTextW = _measureTextWidth(iText, fontSize, fontWeight);
                 var iY       = (h - iH) / 2;
                 var iconX, tX, iconTextMaxW;
                 if (iAlign === 2) {
@@ -1274,7 +1274,9 @@ function buildCellRender() {
                     else tX = padLeft;
                     iconTextMaxW = maxLineWidth;
                 } else {
-                    var iTotalW  = iTextW + iW + iPad;
+                    iconTextMaxW = Math.max(0, maxLineWidth - iW - iPad);
+                    var textBlockW = Math.min(measuredTextW, iconTextMaxW);
+                    var iTotalW    = textBlockW + iW + iPad;
                     var iStartX;
                     if (textAlign === 'center') iStartX = (w - iTotalW) / 2;
                     else if (textAlign === 'right') iStartX = w - padRight - iTotalW;
@@ -1284,9 +1286,8 @@ function buildCellRender() {
                         tX    = iStartX + iW + iPad;
                     } else { // icon right (default)
                         tX    = iStartX;
-                        iconX = iStartX + iTextW + iPad;
+                        iconX = iStartX + textBlockW + iPad;
                     }
-                    iconTextMaxW = Math.max(0, maxLineWidth - iW - iPad);
                 }
                 var _iconSrc = '';
                 // Harmony follows Android: prefer `name` over iOS `path.uri`.

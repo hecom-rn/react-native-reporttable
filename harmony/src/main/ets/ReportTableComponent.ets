@@ -209,6 +209,7 @@ export struct ReportTableComponent {
        // Parse merged ranges and mark covered cells (except top-left cells).
        const mergeRanges: MergeRange[] = [];
        const mergedCellSet = new Set<string>();
+       const mergedAnchorSet = new Set<string>();
        for (let i = 0; i < mergedCells.length; i++) {
          const mc = mergedCells[i] as Record<string, Object>;
          if (!mc) continue;
@@ -231,6 +232,9 @@ export struct ReportTableComponent {
            endCol,
            text: mergeText
          });
+
+         // Mark the anchor (top-left) cell of the merged range.
+         mergedAnchorSet.add(startRow.toString() + '_' + startCol.toString());
 
          // Mark all cells in the merged range (except the top-left cell)
          for (let r = startRow + 1; r <= endRow; r++) {
@@ -349,7 +353,11 @@ export struct ReportTableComponent {
       if (showHeader) {
         let maxHeaderH: number = safeMinHeight;
         for (let c: number = 0; c < colCount; c++) {
-          if (mergedCellSet.has('0_' + c.toString())) {
+          if (mergedCellSet.has('0_' + c.toString()) || mergedAnchorSet.has('0_' + c.toString())) {
+            // This position belongs to a merged header cell (anchor or covered).
+            // It contributes the default minHeight to the header row; the merged
+            // range's total height is handled in Step 3.
+            maxHeaderH = Math.max(maxHeaderH, safeMinHeight);
             continue;
           }
           const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
@@ -375,7 +383,12 @@ export struct ReportTableComponent {
         const rec: Record<string, Object> = recordsArr[r] as Record<string, Object>;
         let maxRowH: number = safeMinHeight;
         for (let c: number = 0; c < colCount; c++) {
-          if (mergedCellSet.has(globalRow.toString() + '_' + c.toString())) {
+          if (mergedCellSet.has(globalRow.toString() + '_' + c.toString()) ||
+            mergedAnchorSet.has(globalRow.toString() + '_' + c.toString())) {
+            // This position belongs to a merged cell (anchor or covered).
+            // It contributes the default minHeight to this row; the merged range's
+            // total height is handled in Step 3.
+            maxRowH = Math.max(maxRowH, safeMinHeight);
             continue;
           }
           const metaKey: string = '__meta_' + c.toString();
@@ -441,9 +454,14 @@ export struct ReportTableComponent {
 
         const totalH: number = computeCellHeight(mergeText, fontSize, padH, mergeWidth, isProgress);
         const rowSpan: number = mr.endRow - mr.startRow + 1;
-        const perRowH: number = Math.ceil(totalH / rowSpan);
-        for (let r = mr.startRow; r <= mr.endRow; r++) {
-          rowHeights[r] = Math.max(rowHeights[r] ?? safeMinHeight, perRowH);
+        // The merged cell already has rowSpan * minHeight of default space.
+        // Only increase row heights when the wrapped text actually needs more.
+        const defaultMergeHeight: number = rowSpan * safeMinHeight;
+        if (totalH > defaultMergeHeight) {
+          const perRowH: number = Math.ceil(totalH / rowSpan);
+          for (let r = mr.startRow; r <= mr.endRow; r++) {
+            rowHeights[r] = Math.max(rowHeights[r] ?? safeMinHeight, perRowH);
+          }
         }
       }
 
