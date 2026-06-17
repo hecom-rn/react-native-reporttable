@@ -1062,7 +1062,8 @@ function buildCellRender() {
                 hElements.push({ type: 'text', x: hTX, y: h / 2, text: hCellValue,
                     fontSize: hFontSize, fill: hColor, fontWeight: hFontWeight,
                     textAlign: 'left', textBaseline: 'middle',
-                    maxLineWidth: hActualTextW, autoWrapText: true, ellipsis: false, pickable: false });
+                    maxLineWidth: hActualTextW, autoWrapText: true, ellipsis: false,
+                    lineHeight: hFontSize, pickable: false });
                 _pushLockIcon(hElements, hLockX, hLockY, hIconW, hIconH, hIsLocked);
             }
 
@@ -1250,7 +1251,8 @@ function buildCellRender() {
                         fontSize: rFs, fill: rCol, fontWeight: rFw,
                         textBaseline: 'middle',
                         textDecoration: rs.strikethrough ? 'line-through' : 'none',
-                        autoWrapText: true, ellipsis: false, pickable: false
+                        autoWrapText: true, ellipsis: false,
+                        lineHeight: rFs, pickable: false
                     });
                     curX += rW + 4;
                 }
@@ -1316,6 +1318,7 @@ function buildCellRender() {
                     maxLineWidth: iconTextMaxW,
                     autoWrapText: true,
                     ellipsis: false,
+                    lineHeight: fontSize,
                     pickable: false
                 });
                 if (_iconSrc) {
@@ -1339,6 +1342,7 @@ function buildCellRender() {
                     maxLineWidth: maxLineWidth,
                     autoWrapText: true,
                     ellipsis: false,
+                    lineHeight: fontSize,
                     pickable: false
                 });
             }
@@ -1406,6 +1410,7 @@ function buildCellRender() {
                 fontSize: etTs.fontSize || 10,
                 fill: etTs.color || '#ffffff',
                 textAlign: 'center', textBaseline: 'middle',
+                lineHeight: etTs.fontSize || 10,
                 pickable: false
             });
         }

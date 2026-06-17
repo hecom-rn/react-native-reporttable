@@ -273,12 +273,18 @@ export struct ReportTableComponent {
         let maxContentW: number = 0;
         // Header title
         const headerTitle: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
+        const headerFontWeight: string = (colStyle['fontWeight'] !== undefined)
+          ? (colStyle['fontWeight'] as string) : 'normal';
         let headerWVp: number = 0;
         if (headerTitle.length > 0) {
           // Pass fontSize as a number (in fp ≈ vp units). measureText returns px.
-          const wPx: number = measure.measureText({ textContent: headerTitle, fontSize: colFontSize });
+          const wPx: number = measure.measureText({
+            textContent: headerTitle,
+            fontSize: colFontSize,
+            fontWeight: headerFontWeight
+          });
           // Fallback to char-width estimate when measureText returns 0 (font not loaded yet)
-          headerWVp = wPx > 0 ? wPx / dpRatio : headerTitle.length * colFontSize * 0.65;
+          headerWVp = wPx > 0 ? wPx / dpRatio : headerTitle.length * colFontSize * 1.0;
         }
         // Add lock icon width when this column has a lock icon (drawn via customRender).
         if (col['__lockInfo'] !== undefined) {
@@ -304,10 +310,16 @@ export struct ReportTableComponent {
             ? (meta['textPaddingRight'] as number) : cellPadHDef;
           const cellText: string = (rec[c.toString()] !== undefined)
             ? (rec[c.toString()] as string) : '';
+          const cellFontWeight: string = (meta['fontWeight'] !== undefined)
+            ? (meta['fontWeight'] as string) : 'normal';
           let wVp: number = 0;
           if (cellText.length > 0) {
-            const wPx: number = measure.measureText({ textContent: cellText, fontSize: cellFontSize });
-            wVp = wPx > 0 ? wPx / dpRatio : cellText.length * cellFontSize * 0.65;
+            const wPx: number = measure.measureText({
+              textContent: cellText,
+              fontSize: cellFontSize,
+              fontWeight: cellFontWeight
+            });
+            wVp = wPx > 0 ? wPx / dpRatio : cellText.length * cellFontSize * 1.0;
           }
           // Add icon width when the cell has an icon (rendered via customRender).
           const cellIconVal: Object | undefined = meta['icon'];
@@ -338,16 +350,33 @@ export struct ReportTableComponent {
       const safeMinHeight: number = minHeight > 0 ? minHeight : 40;
       const rowHeights: number[] = [];
 
-      const computeCellHeight = (text: string, fontSize: number, padH: number, colWidth: number, isProgress: boolean): number => {
+      const computeCellHeight = (
+        text: string,
+        fontSize: number,
+        padH: number,
+        colWidth: number,
+        isProgress: boolean,
+        fontWeight: string = 'normal'
+      ): number => {
         if (!text || text.length === 0) {
           return safeMinHeight;
         }
         const availW: number = Math.max(colWidth - padH * 2, fontSize);
-        const wPx: number = measure.measureText({ textContent: text, fontSize: fontSize });
-        const wVp: number = wPx > 0 ? wPx / dpRatio : text.length * fontSize * 0.65;
+        // VRender wraps at character/word boundaries. A line that "just fits" by exact
+        // width may actually wrap because the last glyph doesn't fit; reserve a
+        // half-character safety margin so we don't underestimate the wrapped line count.
+        const wrapAvailW: number = Math.max(availW - fontSize * 0.5, fontSize);
+        const wPx: number = measure.measureText({
+          textContent: text,
+          fontSize: fontSize,
+          fontWeight: fontWeight
+        });
+        const wVp: number = wPx > 0 ? wPx / dpRatio : text.length * fontSize * 1.0;
         const lineCount: number = isProgress
           ? 1
-          : Math.max(1, Math.ceil(wVp / availW));
+          : Math.max(1, Math.ceil(wVp / wrapAvailW));
+        // customRender text elements set lineHeight = fontSize to match the theme,
+        // so the row height must be computed with the same line height.
         const lineHeight: number = fontSize;
         const vertPad: number = Math.max(0, safeMinHeight - fontSize - 3);
         return Math.max(lineCount * lineHeight + vertPad, safeMinHeight);
@@ -374,12 +403,14 @@ export struct ReportTableComponent {
           const padArrVal: Object | undefined = headerStyle['padding'];
           const padH: number = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
             ? (padArrVal as number[])[1] : defaultPadH;
+          const hFontWeight: string = (headerStyle['fontWeight'] !== undefined)
+            ? (headerStyle['fontWeight'] as string) : 'normal';
           const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
           if (title.length > 0) {
             // Lock icon occupies space on the right; text must wrap in the remaining width.
             const hasLock: boolean = col['__lockInfo'] !== undefined;
             const lockOccupiedW: number = hasLock ? (13 + 4) : 0;
-            const cellH: number = computeCellHeight(title, fontSize, padH, colWidths[c] - lockOccupiedW, false);
+            const cellH: number = computeCellHeight(title, fontSize, padH, colWidths[c] - lockOccupiedW, false, hFontWeight);
             maxHeaderH = Math.max(maxHeaderH, cellH);
           }
         }
@@ -417,7 +448,9 @@ export struct ReportTableComponent {
             ? (rec[c.toString()] as string) : '';
           if (cellText.length > 0) {
             const hasProgressStyle: boolean = meta['progressStyle'] !== undefined;
-            const cellH: number = computeCellHeight(cellText, fontSize, padH, colWidths[c], hasProgressStyle);
+            const bodyFontWeight: string = (meta['fontWeight'] !== undefined)
+              ? (meta['fontWeight'] as string) : 'normal';
+            const cellH: number = computeCellHeight(cellText, fontSize, padH, colWidths[c], hasProgressStyle, bodyFontWeight);
             maxRowH = Math.max(maxRowH, cellH);
           }
         }
@@ -435,12 +468,14 @@ export struct ReportTableComponent {
         let fontSize: number = defaultFontSize;
         let padH: number = defaultPadH;
         let isProgress: boolean = false;
+        let mergeFontWeight: string = 'normal';
 
         if (showHeader && mr.startRow === 0) {
           const col: Record<string, Object> = columnsArr[mr.startCol] as Record<string, Object>;
           const headerStyle: Record<string, Object> = (col['headerStyle'] as Record<string, Object>)
             ?? {} as Record<string, Object>;
           fontSize = (headerStyle['fontSize'] as number) ?? defaultFontSize;
+          mergeFontWeight = (headerStyle['fontWeight'] as string) ?? 'normal';
           const padArrVal: Object | undefined = headerStyle['padding'];
           padH = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
             ? (padArrVal as number[])[1] : defaultPadH;
@@ -454,6 +489,7 @@ export struct ReportTableComponent {
             const meta: Record<string, Object> = (rec['__meta_' + mr.startCol] as Record<string, Object>)
               ?? {} as Record<string, Object>;
             fontSize = (meta['fontSize'] as number) ?? defaultFontSize;
+            mergeFontWeight = (meta['fontWeight'] as string) ?? 'normal';
             const mergePadHDef: number = (meta['textPaddingHorizontal'] as number)
               ?? (meta['textPaddingLeft'] as number)
               ?? defaultPadH;
@@ -467,7 +503,7 @@ export struct ReportTableComponent {
           }
         }
 
-        const totalH: number = computeCellHeight(mergeText, fontSize, padH, mergeWidth, isProgress);
+        const totalH: number = computeCellHeight(mergeText, fontSize, padH, mergeWidth, isProgress, mergeFontWeight);
         const rowSpan: number = mr.endRow - mr.startRow + 1;
         // The merged cell already has rowSpan * minHeight of default space.
         // Only increase row heights when the wrapped text actually needs more.
@@ -624,7 +660,8 @@ export struct ReportTableComponent {
       // Build option JSON.
       // VTable's WebView uses CSS logical pixels, which equal vp. No unit conversion needed.
       // When showHeader=false, set defaultHeaderRowHeight=0 to prevent phantom blank header row.
-      const defaultHeaderRowHeight: number = showHeader ? rowMinHeight : 0;
+      // Use the computed header height (accounts for text wrapping and lock icons).
+      const defaultHeaderRowHeight: number = showHeader ? rowHeights[0] : 0;
       const optionStr: string = '"records":' + recordsStr +
         ',"columns":' + columnsStr +
         ',"theme":' + themeStr +
