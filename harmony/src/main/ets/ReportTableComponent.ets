@@ -481,7 +481,7 @@ export struct ReportTableComponent {
       const permutableVal: Object | undefined = rawProps['permutable'];
 
       let recordsStr: string = (recordsVal !== undefined) ? (recordsVal as string) : '[]';
-      const columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
+      let columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
 
       // If native layer has modified records (via spliceData/updateData) and the
       // incoming props records haven't caught up, preserve native records to avoid
@@ -554,6 +554,20 @@ export struct ReportTableComponent {
         ',"height":' + contentSizeResult.height.toString() + '}';
       const rowHeights: number[] = contentSizeResult.rowHeights;
 
+      // Apply native-measured widths to columns so VTable uses them in standard mode.
+      // This is necessary because VTable's auto-width cannot measure custom-rendered icons.
+      const measuredColWidths: number[] = this.contentSizeColWidths;
+      for (let _cw: number = 0; _cw < columnsArr.length; _cw++) {
+        if (measuredColWidths.length > _cw && measuredColWidths[_cw] > 0) {
+          const _colObj: Record<string, Object> = columnsArr[_cw] as Record<string, Object>;
+          const _w: number = measuredColWidths[_cw];
+          _colObj['width'] = _w;
+          _colObj['minWidth'] = _w;
+          _colObj['maxWidth'] = Math.max(_w, (_colObj['maxWidth'] as number) || _w);
+        }
+      }
+      columnsStr = JSON.stringify(columnsArr);
+
       // Read minHeight (vp) from itemConfig — used as VTable defaultRowHeight (CSS px = vp in WebView).
       let rowMinHeight: number = 40;
       try {
@@ -592,7 +606,7 @@ export struct ReportTableComponent {
         ',"defaultRowHeight":' + rowMinHeight.toString() +
         ',"defaultHeaderRowHeight":' + defaultHeaderRowHeight.toString() +
         ',"autoWrapText":true' +
-        ',"widthMode":"' + widthMode + '"' +
+        ',"widthMode":"standard"' +
         ',"heightMode":"standard"' +
         ',"rowHeights":' + JSON.stringify(rowHeights) +
         ',"autoFillWidth":true' +

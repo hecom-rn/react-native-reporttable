@@ -547,7 +547,9 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             if (cell.icon) {
                 const iW = cell.icon.width ?? 16;
                 const iPad = cell.icon.paddingHorizontal ?? 4;
-                const needed = cTitle.length * cFontSize * 0.6 + iW + iPad + cPadL + cPadR + 8; // +8px tolerance
+                // Estimated text width + icon space + padding. Use 0.65 multiplier
+                // (same as ArkTS fallback) for Chinese/English mix safety.
+                const needed = cTitle.length * cFontSize * 0.65 + iW + iPad + cPadL + cPadR + 8; // +8px tolerance
                 if (needed > maxNeededW) maxNeededW = needed;
                 if (needed > iconNeededW) iconNeededW = needed;
             }
@@ -563,7 +565,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 const hTitle = columns[c].title || '';
                 const hFontSize = columns[c].headerStyle?.fontSize ?? itemConfig?.fontSize ?? 14;
                 const hPadH = 12; // default header padding
-                const lockNeeded = hTitle.length * hFontSize * 0.6 + 4 + 13 + hPadH * 2 + 8; // iPad=4, iW=13
+                const lockNeeded = hTitle.length * hFontSize * 0.65 + 4 + 13 + hPadH * 2 + 8; // iPad=4, iW=13
                 if (lockNeeded > maxNeededW) maxNeededW = lockNeeded;
                 if (lockNeeded > iconNeededW) iconNeededW = lockNeeded;
             }
