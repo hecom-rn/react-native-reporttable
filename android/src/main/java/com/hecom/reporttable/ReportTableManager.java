@@ -11,7 +11,10 @@ import com.facebook.react.bridge.ReadableType;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.facebook.react.uimanager.ViewManagerDelegate;
 import com.facebook.react.uimanager.annotations.ReactProp;
+import com.facebook.react.viewmanagers.ReportTableManagerDelegate;
+import com.facebook.react.viewmanagers.ReportTableManagerInterface;
 import com.hecom.reporttable.form.data.style.LineStyle;
 import com.hecom.reporttable.form.utils.DensityUtils;
 import com.hecom.reporttable.table.HecomTable;
@@ -33,10 +36,14 @@ import androidx.annotation.Nullable;
 /**
  * Fabric-compatible ViewManager for ReportTable.
  * Registered via codegen under the name "ReportTable".
- * Caches individual config props and applies them when data arrives
- * (Fabric splits the old nested "data" ReadableMap into separate typed props).
+ * Implements ReportTableManagerInterface for proper Fabric ShadowNode integration,
+ * which ensures Yoga layout correctly measures HecomTable via SmartTable.onMeasure.
  */
-public class ReportTableManager extends SimpleViewManager<HecomTable> {
+public class ReportTableManager extends SimpleViewManager<HecomTable>
+        implements ReportTableManagerInterface<HecomTable> {
+
+    private final ReportTableManagerDelegate<HecomTable, ReportTableManager> mDelegate =
+            new ReportTableManagerDelegate<>(this);
 
     private ThemedReactContext mReactContext;
 
@@ -337,7 +344,64 @@ public class ReportTableManager extends SimpleViewManager<HecomTable> {
     }
 
     // -----------------------------------------------------------------------
-    // Commands
+    // Fabric delegate
+    // -----------------------------------------------------------------------
+
+    @Override
+    protected ViewManagerDelegate<HecomTable> getDelegate() {
+        return mDelegate;
+    }
+
+    // -----------------------------------------------------------------------
+    // Fabric codegen command methods (called by ReportTableManagerDelegate)
+    // -----------------------------------------------------------------------
+
+    @Override
+    public void scrollTo(HecomTable view, int lineX, int lineY, float offsetX, float offsetY, boolean animated) {
+        com.hecom.reporttable.form.data.TableInfo tableInfo = view.getTableData().getTableInfo();
+        int duration = animated ? 300 : 0;
+        if (lineY == 0) {
+            view.getMatrixHelper().flingTop(duration, (int) offsetY);
+        }
+        if (lineX == 0) {
+            view.getMatrixHelper().flingLeft(duration, (int) offsetX);
+        }
+        if (lineY > 0) {
+            view.getMatrixHelper().flingToRow(tableInfo, lineY, (int) offsetY, duration);
+        }
+        if (lineX > 0) {
+            view.getMatrixHelper().flingToColumn(tableInfo, lineX, (int) offsetX, duration);
+        }
+    }
+
+    @Override
+    public void updateData(HecomTable view, String data, int y, int x) {
+        view.updateData(data, x, y);
+    }
+
+    @Override
+    public void spliceData(HecomTable view, String config) {
+        if (config == null || config.isEmpty()) {
+            return;
+        }
+        try {
+            HecomTable.SpliceItem[] items = GsonHelper.getGson()
+                    .fromJson(config, HecomTable.SpliceItem[].class);
+            if (items != null) {
+                view.spliceDataArray(items);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void scrollToBottom(HecomTable view) {
+        view.getMatrixHelper().flingBottom(300);
+    }
+
+    // -----------------------------------------------------------------------
+    // Commands (Paper fallback via getCommandsMap / receiveCommand)
     // -----------------------------------------------------------------------
 
     @Nullable

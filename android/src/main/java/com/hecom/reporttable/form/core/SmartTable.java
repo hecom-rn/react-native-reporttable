@@ -2,6 +2,7 @@ package com.hecom.reporttable.form.core;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextPaint;
@@ -352,14 +353,13 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         int result;
         int specMode = MeasureSpec.getMode(widthMeasureSpec);
         int specSize = MeasureSpec.getSize(widthMeasureSpec);
-        if (specMode == MeasureSpec.EXACTLY) {//精确模式
+        if (specMode == MeasureSpec.EXACTLY) {
+            result = specSize;
+        } else if (specMode == MeasureSpec.AT_MOST) {
             result = specSize;
         } else {
             isExactly = false;
-            result = defaultWidth;//最大尺寸模式，getDefaultWidth方法需要我们根据控件实际需要自己实现
-            if (specMode == MeasureSpec.AT_MOST) {
-                result = Math.min(result, specSize);
-            }
+            result = defaultWidth;
         }
         return result;
     }
@@ -375,12 +375,11 @@ public class SmartTable<T> extends View implements OnTableChangeListener, MainTh
         int specSize = MeasureSpec.getSize(measureSpec);
         if (specMode == MeasureSpec.EXACTLY) {
             result = specSize;
+        } else if (specMode == MeasureSpec.AT_MOST) {
+            result = specSize;
         } else {
             isExactly = false;
             result = defaultHeight;
-            if (specMode == MeasureSpec.AT_MOST) {
-                result = Math.min(result, specSize);
-            }
         }
         return result;
     }

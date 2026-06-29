@@ -108,6 +108,13 @@ export default class ReportTableView extends React.Component {
             frozenAbility,
             replenishColumnsWidthConfig,
             ignoreLocks,
+            // Fabric: these names conflict with Yoga layout properties.
+            // Extracting them here prevents them from being passed to the
+            // native component, which would cause Yoga to apply them as
+            // layout constraints (e.g. maxWidth=120 → view capped at 120px).
+            minWidth,
+            maxWidth,
+            minHeight,
             ...rest
         } = this.props;
 

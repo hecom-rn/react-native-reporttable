@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanResponder, ScrollView, findNodeHandle } from 'react-native';
+import { PanResponder, ScrollView } from 'react-native';
 import ReportTableView from './ReportTableView';
 
 /**
