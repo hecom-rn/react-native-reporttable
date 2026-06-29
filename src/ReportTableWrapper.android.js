@@ -123,7 +123,7 @@ export default class ReportTableWrapper extends React.Component {
                     data={data}
                     minWidth={minWidth}
                     minHeight={minHeight}
-                    maxWidth={maxWidth}
+                    // maxWidth={maxWidth}
                     columnsWidthMap={columnsWidthMap}
                     style={{ width: size.width, height: size.height }}
                     {...this.panResponder.panHandlers}
