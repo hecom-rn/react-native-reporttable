@@ -25,9 +25,9 @@ const itemConfig = {
 export default class ReportTable extends React.Component{
     static defaultProps = {
         // data: [[]],
-        minWidth: 50,
-        minHeight: 40,
-        maxWidth: 120,
+        cellMinWidth: 50,
+        cellMinHeight: 40,
+        cellMaxWidth: 120,
         frozenColumns: 0,
         frozenRows: 0,
         lineColor: Platform.select({

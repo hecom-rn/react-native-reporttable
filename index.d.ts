@@ -8,9 +8,9 @@ declare module "@hecom/react-native-report-table" {
         }
         data: DataSource[][];
 
-        minWidth?: number;
-        minHeight?: number;
-        maxWidth?: number;
+        cellMinWidth?: number;
+        cellMinHeight?: number;
+        cellMaxWidth?: number;
         frozenColumns?: number; // 冻结前几列，不显示🔓 ，且不可取消 从1开始
         frozenRows?: number; // 冻结前几行，不显示🔓， 且不可取消 从1开始
         onClickEvent?: (item: ItemClick) => void;
@@ -67,7 +67,7 @@ declare module "@hecom/react-native-report-table" {
 
         ignoreLocks?: number[]; // 强制不显示 锁定icon，从1开始 . 可在frozenCount|permutable中不显示对应的🔒。 frozenColumns 生效
 
-        columnsWidthMap?: ColumnsWidthMap; // index 为指定index的列宽， 未设置则还使用原minWidth， maxWidth
+        columnsWidthMap?: ColumnsWidthMap; // index 为指定index的列宽， 未设置则还使用原cellMinWidth， cellMaxWidth
          /*
             完整显示的列， 在一屏幕中再次调整宽度，使其完全显示出几列。 
             屏幕旋转时，会再次生效.

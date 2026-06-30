@@ -81,22 +81,22 @@ public class ReportTableManager extends SimpleViewManager<HecomTable>
         applyData(view);
     }
 
-    @ReactProp(name = "minWidth")
-    public void setMinWidth(HecomTable view, float minWidthDp) {
+    @ReactProp(name = "cellMinWidth")
+    public void setCellMinWidth(HecomTable view, float minWidthDp) {
         mMinWidthDp = (int) minWidthDp;
         if (mMinWidthDp <= 0) mMinWidthDp = 50;
         applyConfigUpdate(view);
     }
 
-    @ReactProp(name = "maxWidth")
-    public void setMaxWidth(HecomTable view, float maxWidthDp) {
+    @ReactProp(name = "cellMaxWidth")
+    public void setCellMaxWidth(HecomTable view, float maxWidthDp) {
         mMaxWidthDp = (int) maxWidthDp;
         if (mMaxWidthDp <= 0) mMaxWidthDp = 120;
         applyConfigUpdate(view);
     }
 
-    @ReactProp(name = "minHeight")
-    public void setMinHeight(HecomTable view, float minHeightDp) {
+    @ReactProp(name = "cellMinHeight")
+    public void setCellMinHeight(HecomTable view, float minHeightDp) {
         mMinHeightDp = (int) minHeightDp;
         if (mMinHeightDp <= 0) mMinHeightDp = 40;
         applyConfigUpdate(view);

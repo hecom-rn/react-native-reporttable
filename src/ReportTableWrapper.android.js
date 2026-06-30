@@ -6,7 +6,7 @@ import ReportTableView from './ReportTableView';
  * Android wrapper component.
  * Manages header view + ScrollView + native ReportTable.
  * For Fabric/New Architecture, props are passed individually
- * (data as JSON string, minWidth/minHeight/maxWidth as numbers).
+ * (data as JSON string, cellMinWidth/cellMinHeight/cellMaxWidth as numbers).
  */
 export default class ReportTableWrapper extends React.Component {
     constructor(props) {
@@ -44,9 +44,9 @@ export default class ReportTableWrapper extends React.Component {
             headerViewOrientation,
             HeaderComponent = ScrollView,
             data,
-            minWidth,
-            minHeight,
-            maxWidth,
+            cellMinWidth,
+            cellMinHeight,
+            cellMaxWidth,
             columnsWidthMap,
             // Fabric props (passed through directly)
             onScrollEnd,
@@ -121,9 +121,9 @@ export default class ReportTableWrapper extends React.Component {
                     }}
                     // Fabric: individual props instead of a single packed "data" object
                     data={data}
-                    minWidth={minWidth}
-                    minHeight={minHeight}
-                    // maxWidth={maxWidth}
+                    cellMinWidth={cellMinWidth}
+                    cellMinHeight={cellMinHeight}
+                    cellMaxWidth={cellMaxWidth}
                     columnsWidthMap={columnsWidthMap}
                     style={{ width: size.width, height: size.height }}
                     {...this.panResponder.panHandlers}

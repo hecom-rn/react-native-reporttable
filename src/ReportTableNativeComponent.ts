@@ -75,10 +75,10 @@ export interface NativeProps extends ViewProps {
     // Data – complex nested array; serialized as JSON string in JS
     data?: string;
 
-    // Column/row sizing
-    minWidth?: Float;
-    maxWidth?: Float;
-    minHeight?: Float;
+    // Column/row sizing (prefixed to avoid Yoga layout property name conflicts in Fabric)
+    cellMinWidth?: Float;
+    cellMaxWidth?: Float;
+    cellMinHeight?: Float;
 
     // Frozen
     frozenColumns?: Int32;
