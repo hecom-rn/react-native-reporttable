@@ -50,6 +50,10 @@ export default class ReportTableWrapper extends React.Component {
             headerHeight: 0,
             _toastVisible: false,
             _toastMessage: '',
+            // Use state instead of instance field so props updates trigger re-render
+            // reliably via componentDidUpdate -> setState, replacing the deprecated
+            // UNSAFE_componentWillReceiveProps.
+            vtableData: this._buildVTableData(props),
         };
         this._toastTimer = null;
         this.showHeader = true;
@@ -57,7 +61,6 @@ export default class ReportTableWrapper extends React.Component {
         this._nativeTag = null;
         this._eventSubscriptions = [];
         this._gestureStartScrollY = 0;
-        this._vtableData = this._buildVTableData(props);
 
         // PanResponder: mirror Android behaviour.
         // While the header is visible, claim every touch start so RN owns the gesture
@@ -99,16 +102,46 @@ export default class ReportTableWrapper extends React.Component {
     }
 
     UNSAFE_componentWillReceiveProps(nextProps) {
-        this._vtableData = this._buildVTableData(nextProps);
+        // Kept for backward compatibility but componentDidUpdate is the
+        // authoritative place where vtableData is rebuilt. Setting state here
+        // would be safe in legacy React, but the state-based path below is
+        // more robust across React 17+/18+ and concurrent rendering.
+        if (this._shouldRebuildVTableData(nextProps, this.props)) {
+            this.setState({ vtableData: this._buildVTableData(nextProps) });
+        }
     }
 
-    componentDidUpdate() {
+    _shouldRebuildVTableData = (next, prev) => {
+        return (
+            next.data !== prev.data ||
+            next.frozenRows !== prev.frozenRows ||
+            next.frozenColumns !== prev.frozenColumns ||
+            next.frozenAbility !== prev.frozenAbility ||
+            next.permutable !== prev.permutable ||
+            next.ignoreLocks !== prev.ignoreLocks ||
+            next.columnsWidthMap !== prev.columnsWidthMap ||
+            next.itemConfig !== prev.itemConfig ||
+            next.minWidth !== prev.minWidth ||
+            next.maxWidth !== prev.maxWidth ||
+            next.minHeight !== prev.minHeight ||
+            next.lineColor !== prev.lineColor
+        );
+    };
+
+    componentDidUpdate(prevProps) {
         // Re-setup listeners if native tag changed (e.g., after re-render)
         const tag = this._tableRef ? findNodeHandle(this._tableRef) : null;
         if (tag !== this._nativeTag) {
             this._removeEventListeners();
             this._nativeTag = tag;
             this._setupEventListeners();
+        }
+        // Rebuild vtableData when data-related props change. Using state +
+        // setState guarantees a re-render with fresh data, which the previous
+        // instance-field approach could not guarantee when UNSAFE_componentWillReceiveProps
+        // was skipped (e.g. PureComponent parent, React 18 concurrent mode).
+        if (this._shouldRebuildVTableData(this.props, prevProps)) {
+            this.setState({ vtableData: this._buildVTableData(this.props) });
         }
     }
 
@@ -210,6 +243,7 @@ export default class ReportTableWrapper extends React.Component {
                 records: '[]', columns: '[]', theme: '{}', mergedCells: '[]',
                 customCellStyle: '[]', customCellStyleArrangement: '[]',
                 widthMode: 'autoWidth', frozenColCount: 0, frozenRowCount: 0,
+                showHeader: false,
             };
         }
 
@@ -328,8 +362,8 @@ export default class ReportTableWrapper extends React.Component {
         const {
             records, columns, theme, mergedCells,
             customCellStyle, customCellStyleArrangement,
-            widthMode, frozenColCount, frozenRowCount, showHeader,
-        } = this._vtableData;
+            widthMode, frozenColCount, frozenRowCount, showHeader = false,
+        } = this.state.vtableData || this._buildVTableData(this.props);
 
         const tableView = (
             <NativeReportTable
