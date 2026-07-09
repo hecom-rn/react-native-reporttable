@@ -112,8 +112,7 @@ export default class ReportTableWrapper extends React.Component {
     }
 
     _shouldRebuildVTableData = (next, prev) => {
-        return (
-            next.data !== prev.data ||
+        if (
             next.frozenRows !== prev.frozenRows ||
             next.frozenColumns !== prev.frozenColumns ||
             next.frozenAbility !== prev.frozenAbility ||
@@ -125,7 +124,26 @@ export default class ReportTableWrapper extends React.Component {
             next.maxWidth !== prev.maxWidth ||
             next.minHeight !== prev.minHeight ||
             next.lineColor !== prev.lineColor
-        );
+        ) {
+            return true;
+        }
+        // data reference change is the common path.
+        if (next.data !== prev.data) return true;
+        // Detect in-place mutation of the same data reference (length or row
+        // count change). Fall back to a content snapshot only when shapes
+        // match but contents may still have changed; we skip that expensive
+        // path here because the native side already serializes records and
+        // will short-circuit unchanged rawProps.
+        if (next.data && prev.data) {
+            const nextLen = next.data.length;
+            const prevLen = prev.data.length;
+            if (nextLen !== prevLen) return true;
+            if (nextLen > 0 && next.data[0] && prev.data[0]
+                && next.data[0].length !== prev.data[0].length) {
+                return true;
+            }
+        }
+        return false;
     };
 
     componentDidUpdate(prevProps) {
