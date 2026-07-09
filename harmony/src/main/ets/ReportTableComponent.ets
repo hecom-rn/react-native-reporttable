@@ -9,7 +9,7 @@ import { VTable, VTableController } from '@ohos/vtable';
 import type { VTableOnEvent, CellClickData, ScrollEventData } from '@ohos/vtable';
 import {
   RNOHContext,
-  ViewDescriptorWrapperBase,
+  Descriptor,
 } from '@rnoh/react-native-openharmony/ts';
 import measure from '@ohos.measure';
 
@@ -63,7 +63,11 @@ export struct ReportTableComponent {
   private disableZoom: boolean = false;
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
   private cleanupCommandCallback: (() => void) | undefined = undefined;
-  private currentRawProps: string = '{}';
+  // Last renderKey observed from the descriptor. RNOH increments renderKey on every
+  // saveDescriptor call, so equality implies rawProps are unchanged. This avoids
+  // having to JSON.stringify the entire rawProps object for change detection, which
+  // previously caused SharedHeap OOM when records/columns were hundreds of MB.
+  private lastRenderKey: number = -1;
   private cachedContentSize: string = '{}';
   private vtableInitialized: boolean = false;
   // Mutable option cache — updated by updateVTable/handleUpdateData/handleSpliceData.
@@ -119,7 +123,7 @@ export struct ReportTableComponent {
   private subscribeToDescriptorChanges(): void {
     this.unregisterDescriptorChangesListener = this.ctx.descriptorRegistry.subscribeToDescriptorChanges(
       this.tag,
-      (newDescriptor: object): void => {
+      (newDescriptor: Descriptor): void => {
         this.onDescriptorChanged(newDescriptor);
       }
     );
@@ -135,26 +139,27 @@ export struct ReportTableComponent {
   }
 
   private initFromDescriptor(): void {
-    const wrapper: ViewDescriptorWrapperBase | null =
-      this.ctx.descriptorRegistry.findDescriptorWrapperByTag<ViewDescriptorWrapperBase>(this.tag);
-    if (wrapper !== null) {
-      this.onDescriptorChanged(wrapper as object);
+    const descriptor: Descriptor | undefined = this.ctx.descriptorRegistry.getDescriptor<Descriptor>(this.tag);
+    if (descriptor !== undefined) {
+      this.onDescriptorChanged(descriptor);
     }
   }
 
-  private onDescriptorChanged(descriptor: object): void {
-    const descriptorStr: string = JSON.stringify(descriptor);
-    const parsed: Record<string, Object> = JSON.parse(descriptorStr) as Record<string, Object>;
-    const rawPropsObj: Object | undefined = parsed['rawProps'];
-    if (rawPropsObj === undefined) {
+  private onDescriptorChanged(descriptor: Descriptor): void {
+    // Use renderKey for change detection — it's a monotonically increasing number
+    // bumped by RNOH on every saveDescriptor call. This avoids the previous OOM
+    // caused by JSON.stringify(descriptor) on a rawProps that contained hundreds
+    // of MB of JSON-stringified records/columns/mergedCells/etc.
+    const renderKey: number = descriptor.renderKey ?? 0;
+    if (renderKey === this.lastRenderKey) {
       return;
     }
-    const rawPropsStr: string = JSON.stringify(rawPropsObj);
-    if (rawPropsStr === this.currentRawProps) {
+    this.lastRenderKey = renderKey;
+    const rawProps: Object | undefined = descriptor.rawProps;
+    if (rawProps === undefined) {
       return;
     }
-    this.currentRawProps = rawPropsStr;
-    this.updateVTable(rawPropsStr);
+    this.updateVTable(rawProps as Record<string, Object>);
   }
 
   /**
@@ -534,9 +539,8 @@ export struct ReportTableComponent {
     }
   }
 
-  private updateVTable(rawPropsStr: string): void {
+  private updateVTable(rawProps: Record<string, Object>): void {
     try {
-      const rawProps: Record<string, Object> = JSON.parse(rawPropsStr) as Record<string, Object>;
       const recordsVal: Object | undefined = rawProps['records'];
       const columnsVal: Object | undefined = rawProps['columns'];
       const themeVal: Object | undefined = rawProps['theme'];
@@ -594,6 +598,16 @@ export struct ReportTableComponent {
       const itemConfigStr: string = (itemConfigPropVal !== undefined)
         ? (itemConfigPropVal as string) : '{}';
 
+      // Read minHeight (vp) from itemConfig — used as VTable defaultRowHeight (CSS px = vp in WebView).
+      // Read this BEFORE the measure threshold check so we have a sane fallback row height
+      // when we skip the expensive measure loop below.
+      let rowMinHeight: number = 40;
+      try {
+        const icObj: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
+        if (icObj['__minHeight'] !== undefined) { rowMinHeight = icObj['__minHeight'] as number; }
+        else if (icObj['minHeight'] !== undefined) { rowMinHeight = icObj['minHeight'] as number; }
+      } catch (_e) {}
+
       // Read showHeader from rawProps (if present) or fallback to itemConfig.__showHeader.
       // frozenRows=0 → showHeader=false (no header, data[0] is first body row).
       // frozenRows>0 → showHeader=true  (data[0] becomes the VTable header row).
@@ -610,33 +624,44 @@ export struct ReportTableComponent {
         } catch (_e) {}
       }
 
-      // Compute contentSize and precise row heights using ArkTS native text measurement.
-      const contentSizeResult = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr, showHeader, mergedCellsStr);
-      this.cachedContentSize = '{"width":' + contentSizeResult.width.toString() +
-        ',"height":' + contentSizeResult.height.toString() + '}';
-      const rowHeights: number[] = contentSizeResult.rowHeights;
+      // Large-payload guard: computeContentSizeNative calls measure.measureText
+      // for every (column × row) cell. With tens of thousands of rows this
+      // synchronously blocks the ArkUI main thread for several seconds, which
+      // triggers "App main thread is not response" (ANR). Once rawProps are
+      // received without crashing (see onDescriptorChanged OOM fix), this is
+      // the next bottleneck. Skip the per-cell measure when records exceed the
+      // threshold and let VTable fall back to its own default heights.
+      const MEASURE_ROW_THRESHOLD: number = 2000;
+      const skipMeasure: boolean = recordsArrForSize.length > MEASURE_ROW_THRESHOLD;
 
-      // Apply native-measured widths to columns so VTable uses them in standard mode.
-      // This is necessary because VTable's auto-width cannot measure custom-rendered icons.
-      const measuredColWidths: number[] = this.contentSizeColWidths;
-      for (let _cw: number = 0; _cw < columnsArr.length; _cw++) {
-        if (measuredColWidths.length > _cw && measuredColWidths[_cw] > 0) {
-          const _colObj: Record<string, Object> = columnsArr[_cw] as Record<string, Object>;
-          const _w: number = measuredColWidths[_cw];
-          _colObj['width'] = _w;
-          _colObj['minWidth'] = _w;
-          _colObj['maxWidth'] = Math.max(_w, (_colObj['maxWidth'] as number) || _w);
+      let rowHeights: number[] = [];
+      if (!skipMeasure) {
+        // Compute contentSize and precise row heights using ArkTS native text measurement.
+        const contentSizeResult = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr, showHeader, mergedCellsStr);
+        this.cachedContentSize = '{"width":' + contentSizeResult.width.toString() +
+          ',"height":' + contentSizeResult.height.toString() + '}';
+        rowHeights = contentSizeResult.rowHeights;
+
+        // Apply native-measured widths to columns so VTable uses them in standard mode.
+        // This is necessary because VTable's auto-width cannot measure custom-rendered icons.
+        const measuredColWidths: number[] = this.contentSizeColWidths;
+        for (let _cw: number = 0; _cw < columnsArr.length; _cw++) {
+          if (measuredColWidths.length > _cw && measuredColWidths[_cw] > 0) {
+            const _colObj: Record<string, Object> = columnsArr[_cw] as Record<string, Object>;
+            const _w: number = measuredColWidths[_cw];
+            _colObj['width'] = _w;
+            _colObj['minWidth'] = _w;
+            _colObj['maxWidth'] = Math.max(_w, (_colObj['maxWidth'] as number) || _w);
+          }
         }
+        columnsStr = JSON.stringify(columnsArr);
+      } else {
+        console.warn('[ReportTableComponent] records row count (' + recordsArrForSize.length.toString() +
+          ') exceeds threshold (' + MEASURE_ROW_THRESHOLD.toString() +
+          '); skipping per-cell measure.measureText to avoid blocking main thread.');
+        // Reset so emitCachedContentSize() does not emit a stale precise value.
+        this.cachedContentSize = '{}';
       }
-      columnsStr = JSON.stringify(columnsArr);
-
-      // Read minHeight (vp) from itemConfig — used as VTable defaultRowHeight (CSS px = vp in WebView).
-      let rowMinHeight: number = 40;
-      try {
-        const icObj: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
-        if (icObj['__minHeight'] !== undefined) { rowMinHeight = icObj['__minHeight'] as number; }
-        else if (icObj['minHeight'] !== undefined) { rowMinHeight = icObj['minHeight'] as number; }
-      } catch (_e) {}
 
       // If VTable is already initialized (i.e., this is a data update, not initial load),
       // emit contentSize immediately since onInitialized will not fire again.
@@ -654,7 +679,8 @@ export struct ReportTableComponent {
       // VTable's WebView uses CSS logical pixels, which equal vp. No unit conversion needed.
       // When showHeader=false, set defaultHeaderRowHeight=0 to prevent phantom blank header row.
       // Use the computed header height (accounts for text wrapping and lock icons).
-      const defaultHeaderRowHeight: number = showHeader ? rowHeights[0] : 0;
+      // When measure was skipped, fall back to rowMinHeight to keep a sensible default.
+      const defaultHeaderRowHeight: number = showHeader ? (rowHeights[0] ?? rowMinHeight) : 0;
       const optionStr: string = '"records":' + recordsStr +
         ',"columns":' + columnsStr +
         ',"theme":' + themeStr +
