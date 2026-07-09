@@ -552,21 +552,14 @@ export struct ReportTableComponent {
       let recordsStr: string = (recordsVal !== undefined) ? (recordsVal as string) : '[]';
       let columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
 
-      // If native layer has modified records (via spliceData/updateData) and the
-      // incoming props records haven't caught up, preserve native records to avoid
-      // flicker / row duplication.
-      if (this.vtableInitialized) {
-        const currentRecords: Object | undefined = this.currentOption['records'];
-        if (currentRecords !== undefined) {
-          try {
-            const currentArr: Object[] = currentRecords as Object[];
-            const propsArr: Object[] = JSON.parse(recordsStr) as Object[];
-            if (currentArr.length !== propsArr.length) {
-              recordsStr = JSON.stringify(currentArr);
-            }
-          } catch (_e) {}
-        }
-      }
+      // Always trust incoming props.records when rawProps change.
+// Previous "preserve native records when lengths differ" logic was wrong:
+// after spliceData/updateData, the native records length diverges from
+// props. If the parent then updates props.data with a different shape
+// (e.g. refetched data, expand/collapse changed the upstream source),
+// the length check would silently drop the new data and keep stale rows.
+
+      
       const themeStr: string = (themeVal !== undefined) ? (themeVal as string) : '{}';
       const mergedCellsStr: string = (mergedCellsVal !== undefined) ? (mergedCellsVal as string) : '[]';
       const customCellStyleStr: string = (customCellStyleVal !== undefined) ? (customCellStyleVal as string) : '[]';
