@@ -734,12 +734,18 @@ export struct ReportTableComponent {
     if (commandName === 'scrollTo' && args.length >= 2) {
       const lineX: number = args[0] as number;
       const lineY: number = args[1] as number;
-      // const addr: Record<string, number> = {} as Record<string, number>;
-      // addr['row'] = lineX;
-      // addr['col'] = lineY;
-      // this.controller.scrollToRowCol(addr);
-      this.controller.scrollToRow(lineX);
-      this.controller.scrollToCol(lineY);
+      // VTable 的 scrollToCell 在目标行/列位于冻结区内时（row < frozenRowCount
+      // 或 col < frozenColCount）会跳过滚动赋值，直接 return。树形列表报表
+      // 冻结表头 frozenRowCount=1，点击快速置顶按钮下发 scrollToRow(0) 正好
+      // 落在冻结区内，导致置顶无效。这里钳制到第一个可滚动行/列：
+      // scrollToRow(frozenRowCount) 计算出的 scrollTop = 冻结区高度 - 冻结区
+      // 高度 = 0，等价于 Android 侧 processScrollTo 里 lineY==0 的 flingTop。
+      const frozenRowCount: number = (this.currentOption['frozenRowCount'] !== undefined)
+        ? (this.currentOption['frozenRowCount'] as number) : 0;
+      const frozenColCount: number = (this.currentOption['frozenColCount'] !== undefined)
+        ? (this.currentOption['frozenColCount'] as number) : 0;
+      this.controller.scrollToRow(Math.max(lineX, frozenRowCount));
+      this.controller.scrollToCol(Math.max(lineY, frozenColCount));
     } else if (commandName === 'scrollToBottom') {
       const recordsVal: Object | undefined = this.currentOption['records'];
       const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
