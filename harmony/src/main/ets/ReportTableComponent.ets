@@ -691,6 +691,8 @@ export struct ReportTableComponent {
         ',"frozenRowCount":' + frozenRowCount.toString() +
         ',"showHeader":' + (showHeader ? 'true' : 'false') +
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
+        // 超出冻结宽度限制时钳制为部分冻结，而不是清空全部已锁定列
+        ',"unfreezeAllOnExceedsMaxWidth":false' +
         ',"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
         ',"defaultHeaderRowHeight":' + defaultHeaderRowHeight.toString() +
@@ -1056,7 +1058,12 @@ export struct ReportTableComponent {
                   }
                   const scaledFrozenWidth: number = totalFrozenWidth * self.currentZoom;
                   const tableWidth: number = self.componentWidth > 0 ? self.componentWidth : 360;
-                  if (scaledFrozenWidth > tableWidth - 40) {
+                  // 与 VTable 内部的冻结限制保持一致（否则 VTable 会静默把 frozenColCount
+                  // 清零，表现为锁定无效且已锁定的列也能被滑走，且不触发 lockFailed）：
+                  // 1) setFrozenColCount: 冻结区总宽不得超过 maxFrozenWidth（默认表宽的 80%）
+                  // 2) _resetFrozenColCount: 剩余可滚动空间必须大于 120
+                  const maxFrozenWidth: number = tableWidth * 0.8;
+                  if (scaledFrozenWidth > maxFrozenWidth || tableWidth - scaledFrozenWidth <= 120) {
                     // Cannot freeze — notify JS layer (shows Toast)
                     const fp: string = '{"col":' + effectiveCol.toString() + '}';
                     self.emitEvent('lockFailed', JSON.parse(fp) as Object);
