@@ -1121,7 +1121,7 @@ function buildCellRender() {
             meta.floatIcon ||
             meta.extraText
         );
-        var hasCustomText = !!(meta.icon || (meta.richText && meta.richText.length > 0));
+        var hasCustomText = !!(meta.icon || (meta.richText && meta.richText.length > 0) || meta.textPaddingLeft != null);
 
         // No special features — let VTable render natively (fastest path).
         if (!hasBackground && !hasOverlay && !hasCustomText) {

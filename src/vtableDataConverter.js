@@ -460,6 +460,11 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
         if (lockInfo) {
             column.__lockInfo = lockInfo;
         }
+        // Mark permanently frozen columns (frozenColumns) so the native lock toggle
+        // can keep them frozen when a locked column is unlocked (matches Android/iOS).
+        if (isPermanentlyFrozen) {
+            column.__permanentlyFrozen = true;
+        }
 
         columns.push(column);
     }

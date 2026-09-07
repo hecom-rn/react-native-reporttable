@@ -1031,10 +1031,12 @@ export struct ReportTableComponent {
                   // Unlock: find the last column with __lockInfo that is before effectiveCol.
                   // This matches iOS behaviour where all columns >= clicked column are unlocked,
                   // then frozenColumns is recomputed from remaining locked columns.
+                  // Permanently frozen columns (frozenColumns) must stay frozen — matches
+                  // Android CommonLock.updateLock which unlocks only from frozenColumns onward.
                   let nextFrozen: number = 0;
                   for (let i: number = 0; i < effectiveCol; i++) {
                     const c: Record<string, Object> = cols[i] as Record<string, Object>;
-                    if (c && c['__lockInfo'] !== undefined) {
+                    if (c && (c['__lockInfo'] !== undefined || c['__permanentlyFrozen'] !== undefined)) {
                       nextFrozen = i + 1;
                     }
                   }
