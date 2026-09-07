@@ -319,12 +319,25 @@ export struct ReportTableComponent {
             ? (meta['fontWeight'] as string) : 'normal';
           let wVp: number = 0;
           if (cellText.length > 0) {
-            const wPx: number = measure.measureText({
-              textContent: cellText,
-              fontSize: cellFontSize,
-              fontWeight: cellFontWeight
-            });
-            wVp = wPx > 0 ? wPx / dpRatio : cellText.length * cellFontSize * 1.0;
+            // Multi-line text ('\n'): the rendered width is the widest line, not the
+            // concatenated width — measureText is '\n'-naive. The custom richText
+            // render stacks 'label:\nvalue' vertically, so the column only needs to
+            // fit the widest line.
+            const cellLines: string[] = cellText.split('\n');
+            for (let lt: number = 0; lt < cellLines.length; lt++) {
+              const lineText: string = cellLines[lt];
+              if (lineText.length === 0) {
+                continue;
+              }
+              const wPx: number = measure.measureText({
+                textContent: lineText,
+                fontSize: cellFontSize,
+                fontWeight: cellFontWeight
+              });
+              const lineWVp: number = wPx > 0
+                ? wPx / dpRatio : lineText.length * cellFontSize * 1.0;
+              wVp = Math.max(wVp, lineWVp);
+            }
           }
           // Add icon width when the cell has an icon (rendered via customRender).
           const cellIconVal: Object | undefined = meta['icon'];
@@ -371,15 +384,26 @@ export struct ReportTableComponent {
         // width may actually wrap because the last glyph doesn't fit; reserve a
         // half-character safety margin so we don't underestimate the wrapped line count.
         const wrapAvailW: number = Math.max(availW - fontSize * 0.5, fontSize);
-        const wPx: number = measure.measureText({
-          textContent: text,
-          fontSize: fontSize,
-          fontWeight: fontWeight
-        });
-        const wVp: number = wPx > 0 ? wPx / dpRatio : text.length * fontSize * 1.0;
-        const lineCount: number = isProgress
-          ? 1
-          : Math.max(1, Math.ceil(wVp / wrapAvailW));
+        // Count wrapped lines '\n'-aware: each explicit line wraps independently and
+        // the total is the sum. measureText is '\n'-naive, so each line must be
+        // measured separately (e.g. summary cell 'label:\nvalue' = 2 lines).
+        let lineCount: number = 0;
+        if (isProgress) {
+          lineCount = 1;
+        } else {
+          const lines: string[] = text.split('\n');
+          for (let lt: number = 0; lt < lines.length; lt++) {
+            const lineText: string = lines[lt];
+            const wPx: number = measure.measureText({
+              textContent: lineText,
+              fontSize: fontSize,
+              fontWeight: fontWeight
+            });
+            const lineWVp: number = wPx > 0
+              ? wPx / dpRatio : lineText.length * fontSize * 1.0;
+            lineCount += Math.max(1, Math.ceil(lineWVp / wrapAvailW));
+          }
+        }
         // customRender text elements set lineHeight = fontSize to match the theme,
         // so the row height must be computed with the same line height.
         const lineHeight: number = fontSize;

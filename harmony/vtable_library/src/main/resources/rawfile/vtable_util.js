@@ -1219,42 +1219,78 @@ function buildCellRender() {
             var maxLineWidth = w - padLeft - padRight;
 
             if (meta.richText && meta.richText.length > 0) {
-                // Rich text segments
-                var curX = padH;
+                // Rich text segments. '\n' inside a segment breaks the flow onto a new
+                // line, matching Android/iOS where the summary cell is 'label:\nvalue'
+                // (label on top, bold value below). Segments on the same line flow
+                // horizontally.
+                var flowLines = [];
+                var flowSegs = [];
+                var flowH = 0;
+                var flushFlowLine = function () {
+                    flowLines.push({ segs: flowSegs, height: flowH });
+                    flowSegs = [];
+                    flowH = 0;
+                };
                 for (var ri = 0; ri < meta.richText.length; ri++) {
                     var seg  = meta.richText[ri];
                     var rs   = seg.style || {};
                     var rFs  = rs.fontSize   || fontSize;
                     var rCol = rs.textColor  || textColor;
                     var rFw  = rs.isOverstriking ? 'bold' : fontWeight;
-                    var rCw  = rFs * 0.6;
-                    var rW   = seg.text.length * rCw;
-
-                    if (rs.backgroundColor) {
-                        var rPadH = rs.paddingHorizontal || rFs * 0.4;
-                        var rHt   = rs.height            || rFs * 1.5;
-                        elements.push({
-                            type: 'rect',
-                            x: curX - rPadH, y: textY - rHt / 2,
-                            width: rW + rPadH * 2, height: rHt,
-                            fill: rs.backgroundColor,
-                            cornerRadius: rs.borderRadius || 0,
-                            stroke:    rs.borderColor,
-                            lineWidth: rs.borderWidth || 0,
-                            pickable: false
-                        });
+                    var pieces = String(seg.text == null ? '' : seg.text).split('\n');
+                    for (var pi = 0; pi < pieces.length; pi++) {
+                        if (pi > 0) {
+                            flushFlowLine();
+                        }
+                        if (!pieces[pi]) continue;
+                        flowSegs.push({ text: pieces[pi], st: rs, fs: rFs, col: rCol, fw: rFw });
+                        flowH = Math.max(flowH, rFs);
                     }
-                    elements.push({
-                        type: 'text',
-                        x: curX, y: textY,
-                        text: seg.text,
-                        fontSize: rFs, fill: rCol, fontWeight: rFw,
-                        textBaseline: 'middle',
-                        textDecoration: rs.strikethrough ? 'line-through' : 'none',
-                        autoWrapText: true, ellipsis: false,
-                        lineHeight: rFs, pickable: false
-                    });
-                    curX += rW + 4;
+                }
+                flushFlowLine();
+
+                // Vertically center the whole multi-line block (line height = fontSize,
+                // same as the single-line customRender elements).
+                var blockH = 0;
+                for (var li = 0; li < flowLines.length; li++) blockH += flowLines[li].height;
+                var flowY = textY - blockH / 2;
+                for (var ln = 0; ln < flowLines.length; ln++) {
+                    var lineMeta = flowLines[ln];
+                    var lineMidY = flowY + lineMeta.height / 2;
+                    var curX = padH;
+                    for (var si = 0; si < lineMeta.segs.length; si++) {
+                        var fs2 = lineMeta.segs[si];
+                        var st2 = fs2.st;
+                        var rW = _measureTextWidth(fs2.text, fs2.fs, fs2.fw);
+
+                        if (st2.backgroundColor) {
+                            var rPadH = st2.paddingHorizontal || fs2.fs * 0.4;
+                            var rHt   = st2.height            || fs2.fs * 1.5;
+                            elements.push({
+                                type: 'rect',
+                                x: curX - rPadH, y: lineMidY - rHt / 2,
+                                width: rW + rPadH * 2, height: rHt,
+                                fill: st2.backgroundColor,
+                                cornerRadius: st2.borderRadius || 0,
+                                stroke:    st2.borderColor,
+                                lineWidth: st2.borderWidth || 0,
+                                pickable: false
+                            });
+                        }
+                        elements.push({
+                            type: 'text',
+                            x: curX, y: lineMidY,
+                            text: fs2.text,
+                            fontSize: fs2.fs, fill: fs2.col, fontWeight: fs2.fw,
+                            textBaseline: 'middle',
+                            textDecoration: st2.strikethrough ? 'line-through' : 'none',
+                            maxLineWidth: Math.max(0, w - curX - padRight),
+                            autoWrapText: true, ellipsis: false,
+                            lineHeight: fs2.fs, pickable: false
+                        });
+                        curX += rW + 4;
+                    }
+                    flowY += lineMeta.height;
                 }
 
             } else if (meta.icon) {
