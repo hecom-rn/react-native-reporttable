@@ -150,6 +150,11 @@ function _buildGradientRects(x, y, w, h, r, colors) {
 function _injectMergedCellRenders(options) {
     var mc = options.customMergeCell;
     if (!Array.isArray(mc)) return;
+    // VTable has a header row (row 0) only when showHeader=true. With
+    // showHeader=false (e.g. home report cards, where frozenRows is not passed)
+    // every dataSource row is a body record — the row-0 header-meta branch must
+    // be skipped and the record index mapping must not subtract the header row.
+    var _showHeader = options.showHeader !== false;
     for (var _mi = 0; _mi < mc.length; _mi++) {
         var _item = mc[_mi];
         if (!_item || !_item.range || !_item.range.start) continue;
@@ -159,7 +164,7 @@ function _injectMergedCellRenders(options) {
         var _ec = _item.range.end.col;
 
         // Header row merges: lock icon + classification lines
-        if (_sr === 0) {
+        if (_sr === 0 && _showHeader) {
             var _hasLock = window._lockInfoMap && window._lockInfoMap[_sc];
             var _hasCL   = window._tableHeaderMeta && window._tableHeaderMeta['0_' + _sc];
             if (_hasLock || _hasCL) {
@@ -172,7 +177,7 @@ function _injectMergedCellRenders(options) {
 
         // Body merges: check if anchor cell has any overlay meta in records
         if (Array.isArray(options.records) && options.records.length > 0) {
-            var _recIdx = _sr - 1; // body record index (VTable header is row 0)
+            var _recIdx = _sr - (_showHeader ? 1 : 0); // VTable row → body record index
             if (_recIdx >= 0 && _recIdx < options.records.length) {
                 var _meta = options.records[_recIdx]['__meta_' + _sc];
                 if (_meta && (

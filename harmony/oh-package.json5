@@ -6,7 +6,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@rnoh/react-native-openharmony": ">=0.72.0",
+    "@rnoh/react-native-openharmony": "0.77.70",
     "@ohos/vtable": "file:./vtable_library"
   },
   "devDependencies": {}
