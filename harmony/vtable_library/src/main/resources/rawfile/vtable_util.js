@@ -1487,15 +1487,12 @@ function buildCellRender() {
     };
 }
 
-function initializeTable(option) {
-
-    optionTemp = option;
-    // Pre-load lock icons (canvas→PNG) before any cell rendering.
-    _initLockIcons();
-    // Extract __lockInfo and __headerMeta from columns into globals BEFORE VTable
-    // processes the option. VTable may transform/strip unknown column properties.
-    _extractColumnMeta(option.columns);
-
+/**
+ * Build the effective theme from the RN-supplied theme object and write it back
+ * onto the option. Shared by initializeTable and updateOption so data updates
+ * keep the same theme behavior.
+ */
+function _applyTheme(option) {
     // Preserve any custom theme styles supplied by the RN side (e.g. rowHeaderStyle,
     // rightFrozenStyle) while still forcing hover transparency and scroll-bar hidden.
     var customTheme = option.theme || {};
@@ -1504,7 +1501,13 @@ function initializeTable(option) {
             shadow: {
                 width: 4,
                 startColor: 'rgba(0,0,0,0.08)',
-                endColor: 'transparent'
+                endColor: 'transparent',
+                // VTable's built-in themes default to "always", which paints a dark
+                // band over the frozen-boundary separator even at scroll offset 0.
+                // Tables with locked columns (e.g. home report cards) then show the
+                // dimension separator in the wrong color. "scrolling" only shows the
+                // shadow while the user is scrolling horizontally.
+                visible: 'scrolling'
             }
         },
         scrollStyle: {
@@ -1524,6 +1527,18 @@ function initializeTable(option) {
     if (customTheme.bottomFrozenStyle) themePatch.bottomFrozenStyle = customTheme.bottomFrozenStyle;
     if (customTheme.cornerHeaderStyle) themePatch.cornerHeaderStyle = customTheme.cornerHeaderStyle;
     option.theme = VTable.themes.DEFAULT.extends(themePatch)
+}
+
+function initializeTable(option) {
+
+    optionTemp = option;
+    // Pre-load lock icons (canvas→PNG) before any cell rendering.
+    _initLockIcons();
+    // Extract __lockInfo and __headerMeta from columns into globals BEFORE VTable
+    // processes the option. VTable may transform/strip unknown column properties.
+    _extractColumnMeta(option.columns);
+
+    _applyTheme(option);
 
     const input_editor = new VTable.editors.InputEditor();
     VTable.register.editor('input-editor', input_editor);
@@ -1700,6 +1715,10 @@ function updateOption(options) {
     _fixProgressStyleWidths(options);
     _injectMergedCellRenders(options);
     addCustomRenderToColumns(options);
+    // Re-apply the theme patch — the RN-supplied theme does not carry
+    // frozenColumnLine, so without this the built-in "always" shadow would
+    // come back after any data update.
+    _applyTheme(options);
 
     // Apply frozenColCount/frozenRowCount explicitly; VTable's updateOption
     // sometimes ignores changes to frozen counts, so set them directly and
