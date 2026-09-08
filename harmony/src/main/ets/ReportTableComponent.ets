@@ -59,6 +59,10 @@ export struct ReportTableComponent {
   @State currentZoom: number = 1.0;
   @State componentWidth: number = 0;
   @State componentHeight: number = 0;
+  // 内容不足组件高度时，把 VTable WebView 高度钳到内容高度，
+  // 避免 @ohos/vtable 在画布剩余区域绘制空白行格子（总计在上方时表格底部出现空行）。
+  @State vtableClampHeight: number = 0;
+  private contentHeightNum: number = 0;
   private baseZoom: number = 1.0;
   private disableZoom: boolean = false;
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
@@ -594,6 +598,15 @@ export struct ReportTableComponent {
     }
   }
 
+  private recomputeClampHeight(): void {
+    if (this.contentHeightNum > 0 && this.componentHeight > 0 &&
+      this.contentHeightNum < this.componentHeight) {
+      this.vtableClampHeight = this.contentHeightNum;
+    } else {
+      this.vtableClampHeight = 0;
+    }
+  }
+
   private updateVTable(rawProps: Record<string, Object>): void {
     try {
       const recordsVal: Object | undefined = rawProps['records'];
@@ -696,6 +709,8 @@ export struct ReportTableComponent {
         this.cachedContentSize = '{"width":' + contentSizeResult.width.toString() +
           ',"height":' + contentSizeResult.height.toString() + '}';
         rowHeights = contentSizeResult.rowHeights;
+        this.contentHeightNum = contentSizeResult.height;
+        this.recomputeClampHeight();
 
         // Apply native-measured widths to columns so VTable uses them in standard mode.
         // This is necessary because VTable's auto-width cannot measure custom-rendered icons.
@@ -716,6 +731,8 @@ export struct ReportTableComponent {
           '); skipping per-cell measure.measureText to avoid blocking main thread.');
         // Reset so emitCachedContentSize() does not emit a stale precise value.
         this.cachedContentSize = '{}';
+        this.contentHeightNum = 0;
+        this.recomputeClampHeight();
       }
 
       // If VTable is already initialized (i.e., this is a data update, not initial load),
@@ -1272,8 +1289,10 @@ export struct ReportTableComponent {
           ? this.componentWidth / this.currentZoom
           : '100%')
         .height(this.componentHeight > 0 && this.currentZoom > 0
-          ? this.componentHeight / this.currentZoom
-          : '100%')
+          ? (this.vtableClampHeight > 0
+            ? this.vtableClampHeight / this.currentZoom
+            : this.componentHeight / this.currentZoom)
+          : (this.vtableClampHeight > 0 ? this.vtableClampHeight : '100%'))
         .scale({
           x: this.currentZoom,
           y: this.currentZoom,
@@ -1292,6 +1311,7 @@ export struct ReportTableComponent {
       if (w > 0 && h > 0 && (w !== this.componentWidth || h !== this.componentHeight)) {
         this.componentWidth = w;
         this.componentHeight = h;
+        this.recomputeClampHeight();
       }
     })
     // priorityGesture ensures the outer Stack always wins the pinch gesture before
