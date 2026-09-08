@@ -517,6 +517,12 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 if (hCell.classificationLinePosition) hm.classificationLinePosition = hCell.classificationLinePosition;
                 const clColor = hCell.classificationLineColor ?? itemConfig?.classificationLineColor;
                 if (clColor) hm.classificationLineColor = normalizeColor(clColor);
+                // Header cell icon (e.g. management summary sort indicator) — the VTable
+                // header row is built from columns, so cell-level icon metadata would
+                // otherwise be dropped. vtable_util.js draws it in the header branch.
+                if (hCell.icon) hm.icon = hCell.icon;
+                // keyIndex of the header cell (used by native click emission, mirrors iOS).
+                if (hCell.keyIndex != null) hm.keyIndex = hCell.keyIndex;
                 // Aggregate from merged span (covers both this cell and covered cells)
                 const anchorKey = `${rowIdx}_${colIdx}`;
                 if (mergedAnchorClassif.has(anchorKey)) {
@@ -524,7 +530,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                     hm.classificationLinePosition |= clInfo.pos;
                     if (!hm.classificationLineColor && clInfo.color) hm.classificationLineColor = normalizeColor(clInfo.color);
                 }
-                hMetaArr.push(hm.classificationLinePosition > 0 ? hm : null);
+                hMetaArr.push(hm.classificationLinePosition > 0 || hm.icon ? hm : null);
             }
         }
         columns[colIdx].__headerMeta = hMetaArr;
@@ -573,6 +579,19 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 const lockNeeded = hTitle.length * hFontSize * 0.65 + 4 + 13 + hPadH * 2 + 8; // iPad=4, iW=13
                 if (lockNeeded > maxNeededW) maxNeededW = lockNeeded;
                 if (lockNeeded > iconNeededW) iconNeededW = lockNeeded;
+            }
+            // Also account for header cell icon (e.g. sort indicator) — same estimate
+            // as body icon cells, applied to the header row.
+            const hMeta0 = columns[c].__headerMeta?.[0];
+            if (hMeta0 && hMeta0.icon) {
+                const sIcon = hMeta0.icon;
+                const sW = sIcon.width ?? 16;
+                const sPad = sIcon.paddingHorizontal ?? 4;
+                const sTitle = columns[c].title || '';
+                const sFontSize = columns[c].headerStyle?.fontSize ?? itemConfig?.fontSize ?? 14;
+                const sortNeeded = sTitle.length * sFontSize * 0.65 + sW + sPad + 12 * 2 + 8;
+                if (sortNeeded > maxNeededW) maxNeededW = sortNeeded;
+                if (sortNeeded > iconNeededW) iconNeededW = sortNeeded;
             }
             if (maxNeededW > (columns[c].maxWidth || maxWidth)) {
                 columns[c].maxWidth = maxNeededW;

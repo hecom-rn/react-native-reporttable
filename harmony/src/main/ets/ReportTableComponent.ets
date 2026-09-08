@@ -295,6 +295,21 @@ export struct ReportTableComponent {
         if (col['__lockInfo'] !== undefined) {
           headerWVp += 13 + 4; // lockIconWidth(13) + lockIconPadding(4)
         }
+        // Add header cell icon width (e.g. management summary sort indicator, drawn
+        // via customRender right after the title) so the column reserves space for it.
+        const hMetaArrWVal: Object | undefined = col['__headerMeta'];
+        if (hMetaArrWVal !== undefined) {
+          const hMetaArrW: Object[] = hMetaArrWVal as Object[];
+          if (hMetaArrW.length > 0 && hMetaArrW[0] !== undefined && hMetaArrW[0] !== null) {
+            const hmW: Record<string, Object> = hMetaArrW[0] as Record<string, Object>;
+            const iconWVal: Object | undefined = hmW['icon'];
+            if (iconWVal !== undefined) {
+              const iconWRec: Record<string, Object> = iconWVal as Record<string, Object>;
+              const iwVal: Object | undefined = iconWRec['width'];
+              headerWVp += ((iwVal !== undefined) ? (iwVal as number) : 16) + 4; // icon + padding
+            }
+          }
+        }
         if (headerWVp > 0 || (col['__lockInfo'] !== undefined)) {
           maxContentW = Math.max(maxContentW, headerWVp + colPadH * 2 + 4); // +4px tolerance
         }
@@ -437,9 +452,25 @@ export struct ReportTableComponent {
           const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
           if (title.length > 0) {
             // Lock icon occupies space on the right; text must wrap in the remaining width.
-            const hasLock: boolean = col['__lockInfo'] !== undefined;
-            const lockOccupiedW: number = hasLock ? (13 + 4) : 0;
-            const cellH: number = computeCellHeight(title, fontSize, padH, colWidths[c] - lockOccupiedW, false, hFontWeight);
+            // Header cell icons (sort indicators) occupy space the same way.
+            let headerOccupiedW: number = 0;
+            if (col['__lockInfo'] !== undefined) {
+              headerOccupiedW += 13 + 4;
+            }
+            const hMetaArrHVal: Object | undefined = col['__headerMeta'];
+            if (hMetaArrHVal !== undefined) {
+              const hMetaArrH: Object[] = hMetaArrHVal as Object[];
+              if (hMetaArrH.length > 0 && hMetaArrH[0] !== undefined && hMetaArrH[0] !== null) {
+                const hmH: Record<string, Object> = hMetaArrH[0] as Record<string, Object>;
+                const iconHVal: Object | undefined = hmH['icon'];
+                if (iconHVal !== undefined) {
+                  const iconHRec: Record<string, Object> = iconHVal as Record<string, Object>;
+                  const ihVal: Object | undefined = iconHRec['width'];
+                  headerOccupiedW += ((ihVal !== undefined) ? (ihVal as number) : 16) + 4;
+                }
+              }
+            }
+            const cellH: number = computeCellHeight(title, fontSize, padH, colWidths[c] - headerOccupiedW, false, hFontWeight);
             maxHeaderH = Math.max(maxHeaderH, cellH);
           }
         }
@@ -1016,10 +1047,12 @@ export struct ReportTableComponent {
           // For merged first-row cells, event.col may be any column within the merge;
           // find the anchor (start.col of the merge range that contains this cell).
           const colsVal: Object | undefined = self.currentOption['columns'];
+          // Anchor column / horizontal span of the clicked first-row cell (shared by
+          // the lock toggle below and the header-click emission after it).
+          let effectiveCol: number = event.col;
+          let horizontalSpan: number = 1;
           if (colsVal !== undefined) {
             const cols: Object[] = colsVal as Object[];
-            let effectiveCol: number = event.col;
-            let horizontalSpan: number = 1;
             // Resolve anchor column and horizontal span for merged header cells
             const mergeCellsVal: Object | undefined = self.currentOption['customMergeCell'];
             if (mergeCellsVal !== undefined) {
@@ -1106,11 +1139,38 @@ export struct ReportTableComponent {
               }
             }
           }
-          // When showHeader=true, any other first-row click is a header click and
-          // should not emit a data-cell clickEvent.
-          // When showHeader=false, row 0 is a real data row; fall through to the
-          // body-cell handling below so clickEvent is emitted normally.
+          // When showHeader=true, any other first-row click is a header click.
+          // Mirror iOS (didSelectItemAt emits clickEvent for header cells as well,
+          // with rowIndex=0) so the JS layer can handle header taps — e.g. the
+          // management summary detail page relies on this to trigger column sorting.
           if (showHeader) {
+            // effectiveCol/horizontalSpan were resolved from merge ranges above.
+            let headerKeyIndex: number = 0;
+            const hvColsVal: Object | undefined = self.currentOption['columns'];
+            if (hvColsVal !== undefined) {
+              const hvColsArr: Object[] = hvColsVal as Object[];
+              if (effectiveCol >= 0 && effectiveCol < hvColsArr.length) {
+                const hvCol: Record<string, Object> = hvColsArr[effectiveCol] as Record<string, Object>;
+                const hvMetaArrVal: Object | undefined = hvCol['__headerMeta'];
+                if (hvMetaArrVal !== undefined) {
+                  const hvMetaArr: Object[] = hvMetaArrVal as Object[];
+                  // JSON null for covered (non-anchor) header cells must be skipped too.
+                  if (hvMetaArr.length > 0 && hvMetaArr[0] !== undefined && hvMetaArr[0] !== null) {
+                    const hvMeta: Record<string, Object> = hvMetaArr[0] as Record<string, Object>;
+                    const hvKi: Object | undefined = hvMeta['keyIndex'];
+                    if (hvKi !== undefined) {
+                      headerKeyIndex = hvKi as number;
+                    }
+                  }
+                }
+              }
+            }
+            const hpStr: string = '{"keyIndex":' + headerKeyIndex.toString() +
+              ',"rowIndex":0' +
+              ',"columnIndex":' + effectiveCol.toString() +
+              ',"verticalCount":1' +
+              ',"horizontalCount":' + horizontalSpan.toString() + '}';
+            self.emitEvent('clickEvent', JSON.parse(hpStr) as Object);
             return;
           }
         }

@@ -963,12 +963,12 @@ var optionTemp
 function _shouldColumnHaveCustomRender(colIdx, columns, records) {
     var col = columns[colIdx];
     if (!col) return false;
-    // Header features: lock icon or classification lines
+    // Header features: lock icon, classification lines, or cell icon (e.g. sort indicator)
     if (col.__lockInfo) return true;
     if (col.__headerMeta) {
         for (var hi = 0; hi < col.__headerMeta.length; hi++) {
             var hm = col.__headerMeta[hi];
-            if (hm && hm.classificationLinePosition > 0) return true;
+            if (hm && (hm.classificationLinePosition > 0 || hm.icon)) return true;
         }
     }
     // Body features: check all records for this column
@@ -1037,12 +1037,16 @@ function buildCellRender() {
         if (!record) {
             var headerCL = window._tableHeaderMeta && window._tableHeaderMeta[row + '_' + col];
             var lockInfo = window._lockInfoMap && window._lockInfoMap[col];
+            // Header cell icon (e.g. management summary sort indicator up/down/normal).
+            var hSortIcon = headerCL && headerCL.icon;
             if (!headerCL && !lockInfo) return { renderDefault: true };
 
             var hElements = [];
+            var hOwnsText = false; // true when we replace VTable's native header text
 
-            if (lockInfo && lockInfo.showLock) {
-                // Draw header text + lock icon (VTable's showFrozenIcon is disabled).
+            if ((lockInfo && lockInfo.showLock) || hSortIcon) {
+                hOwnsText = true;
+                // Draw header text + sort icon + lock icon (VTable's showFrozenIcon is disabled).
                 var hStyle = {};
                 try { hStyle = args.table.getCellStyle(col, row) || {}; } catch(e) {}
                 var hFontSize = hStyle.fontSize || 14;
@@ -1055,21 +1059,49 @@ function buildCellRender() {
                 try { hCellValue = String(args.table.getCellValue(col, row) || ''); } catch(e) {}
                 var hIsLocked = col < (args.table.frozenColCount || 0);
                 var hIconW = 13, hIconH = 14, hIconPad = 4;
+                // Resolve sort icon source the same way as body icon cells:
+                // prefer `name` (Android drawable name), fall back to iOS path.uri.
+                var hSortW = 0, hSortH = 0, hSortPad = 4, hSortSrc = '';
+                if (hSortIcon) {
+                    hSortW = Number(hSortIcon.width) || 16;
+                    hSortH = Number(hSortIcon.height) || 16;
+                    if (hSortIcon.name) {
+                        hSortSrc = _resolveAndroidImg(hSortIcon.name);
+                        if (!hSortSrc && _isValidIconUrl(hSortIcon.name)) hSortSrc = hSortIcon.name;
+                    } else if (hSortIcon.path && hSortIcon.path.uri) {
+                        hSortSrc = _resolveAndroidImg(_nameFromUri(hSortIcon.path.uri));
+                        if (!hSortSrc && _isValidIconUrl(hSortIcon.path.uri)) hSortSrc = hSortIcon.path.uri;
+                    }
+                    if (!hSortSrc) hSortW = 0; // icon unavailable — skip drawing it
+                }
+                var hShowLock = !!(lockInfo && lockInfo.showLock);
+                var hIconsW = (hSortW ? hSortW + hSortPad : 0) + (hShowLock ? hIconW + hIconPad : 0);
                 // Use canvas measurement for accurate text width; cap at available space
-                var hMaxTextW = Math.max(0, w - hPadH * 2 - hIconW - hIconPad);
+                var hMaxTextW = Math.max(0, w - hPadH * 2 - hIconsW);
                 var hMeasuredW = _measureTextWidth(hCellValue, hFontSize, hFontWeight);
                 var hActualTextW = Math.min(hMeasuredW, hMaxTextW);
                 var hTX = hPadH;
-                if (hTextAlign === 'center') hTX = Math.max(hPadH, (w - hActualTextW - hIconW - hIconPad) / 2);
-                else if (hTextAlign === 'right') hTX = Math.max(hPadH, w - hPadH - hActualTextW - hIconW - hIconPad);
-                var hLockX = hTX + hActualTextW + hIconPad;
-                var hLockY = (h - hIconH) / 2;
+                if (hTextAlign === 'center') hTX = Math.max(hPadH, (w - hActualTextW - hIconsW) / 2);
+                else if (hTextAlign === 'right') hTX = Math.max(hPadH, w - hPadH - hActualTextW - hIconsW);
                 hElements.push({ type: 'text', x: hTX, y: h / 2, text: hCellValue,
                     fontSize: hFontSize, fill: hColor, fontWeight: hFontWeight,
                     textAlign: 'left', textBaseline: 'middle',
                     maxLineWidth: hActualTextW, autoWrapText: true, ellipsis: false,
                     lineHeight: hFontSize, pickable: false });
-                _pushLockIcon(hElements, hLockX, hLockY, hIconW, hIconH, hIsLocked);
+                var hCurX = hTX + hActualTextW;
+                if (hSortW) {
+                    hCurX += hSortPad;
+                    var hRsW = Math.min(hSortW, Math.max(1, w));
+                    var hRsH = Math.min(hSortH, Math.max(1, h));
+                    var hRsX = Math.max(0, Math.min(Math.round(hCurX), Math.round(w - hRsW)));
+                    var hRsY = Math.max(0, Math.min(Math.round((h - hSortH) / 2), Math.round(h - hRsH)));
+                    hElements.push({ type: 'image', x: hRsX, y: hRsY, width: hRsW, height: hRsH,
+                        src: hSortSrc, pickable: false });
+                    hCurX += hSortW;
+                }
+                if (hShowLock) {
+                    _pushLockIcon(hElements, hCurX + hIconPad, (h - hIconH) / 2, hIconW, hIconH, hIsLocked);
+                }
             }
 
             // Draw classification lines on top (renderDefault:true keeps VTable's text when no lock)
@@ -1090,9 +1122,9 @@ function buildCellRender() {
             }
 
             if (hElements.length === 0) return { renderDefault: true };
-            // renderDefault:false when we drew the lock icon (we replace VTable's text rendering).
+            // renderDefault:false when we drew text + lock/sort icons (we replace VTable's text rendering).
             // renderDefault:true when only classification lines (VTable renders text natively).
-            return { elements: hElements, renderDefault: !lockInfo || !lockInfo.showLock };
+            return { elements: hElements, renderDefault: !hOwnsText };
         }
 
         var meta = record['__meta_' + col];
