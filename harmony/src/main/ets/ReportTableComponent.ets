@@ -777,7 +777,10 @@ export struct ReportTableComponent {
         ',"widthMode":"standard"' +
         ',"heightMode":"standard"' +
         ',"rowHeights":' + JSON.stringify(rowHeights) +
-        ',"autoFillWidth":true' +
+        // 列宽总和不满画布宽时不再拉伸占满（对齐 iOS/Android：列宽按内容测量值，
+        // 右侧留白）。autoFillWidth 会把列拉伸到画布宽，列少的报表（如销售机会 2 列）
+        // 被拉满全屏。放大场景无需它：列宽×zoom 物理放大后留白自然随 zoom 缩小。
+        ',"autoFillWidth":false' +
         ',"autoFillHeight":false' +
         ',"columnResizeMode":"none"' +
         ',"hover":{"disableHover":true}' +
