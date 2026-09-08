@@ -11,6 +11,13 @@ import {
 
 const COMPONENT_NAME = 'RNReportTable';
 
+// 鸿蒙端全量数据经 ArkTS 二次 JSON.parse 后拼进单次 runJavaScript('initializeTable(...)')
+// 送入 VTable 的 WebView。ArkWeb 对大字符串有 sharedheap 内存上限（社区实测 13MB+ 必现
+// 崩溃，数 MB 级可能静默不执行），失败只打 console，页面表现为表格空白（数据未回显）。
+// 序列化后的 payload 超过该预算时不再下发原生，直接展示提示。
+// 阈值依据：>2000 行的表格（约 6MB payload）实测可正常渲染，需留出余量；13MB 已是崩溃区。
+const MAX_VTABLE_PAYLOAD_BYTES = 10 * 1024 * 1024;
+
 const __INTERNAL_VIEW_CONFIG = {
     uiViewClassName: COMPONENT_NAME,
     bubblingEventTypes: {},
@@ -262,6 +269,7 @@ export default class ReportTableWrapper extends React.Component {
                 customCellStyle: '[]', customCellStyleArrangement: '[]',
                 widthMode: 'autoWidth', frozenColCount: 0, frozenRowCount: 0,
                 showHeader: false,
+                payloadBytes: 0,
             };
         }
 
@@ -286,17 +294,34 @@ export default class ReportTableWrapper extends React.Component {
         const colCount = data[0]?.length ?? 0;
         const effectiveFrozenColCount = computeInitialFrozenColCount(frozenAbility, frozenColumns, colCount);
 
+        const recordsStr = JSON.stringify(records);
+        const columnsStr = JSON.stringify(columns);
+        const mergedCellsStr = JSON.stringify(mergedCells);
+        const customCellStyleStr = JSON.stringify(customCellStyle);
+        const customCellStyleArrangementStr = JSON.stringify(customCellStyleArrangement);
+        const payloadBytes =
+            recordsStr.length +
+            columnsStr.length +
+            mergedCellsStr.length +
+            customCellStyleStr.length +
+            customCellStyleArrangementStr.length;
+        if (payloadBytes > MAX_VTABLE_PAYLOAD_BYTES) {
+            console.warn('[ReportTable] serialized payload ' + payloadBytes +
+                ' bytes exceeds limit ' + MAX_VTABLE_PAYLOAD_BYTES + ' bytes; rendering hint instead.');
+        }
+
         return {
-            records: JSON.stringify(records),
-            columns: JSON.stringify(columns),
+            records: recordsStr,
+            columns: columnsStr,
             theme: JSON.stringify(theme),
-            mergedCells: JSON.stringify(mergedCells),
-            customCellStyle: JSON.stringify(customCellStyle),
-            customCellStyleArrangement: JSON.stringify(customCellStyleArrangement),
+            mergedCells: mergedCellsStr,
+            customCellStyle: customCellStyleStr,
+            customCellStyleArrangement: customCellStyleArrangementStr,
             widthMode: 'autoWidth',
             frozenColCount: effectiveFrozenColCount,
             frozenRowCount: vtableFrozenRowCount,
             showHeader,
+            payloadBytes,
         };
     };
 
@@ -381,7 +406,20 @@ export default class ReportTableWrapper extends React.Component {
             records, columns, theme, mergedCells,
             customCellStyle, customCellStyleArrangement,
             widthMode, frozenColCount, frozenRowCount, showHeader = false,
+            payloadBytes = 0,
         } = this.state.vtableData || this._buildVTableData(this.props);
+
+        // 数据量超限：不再把大字符串推过 RNOH 桥并送入 WebView（会空白/崩溃），
+        // 直接展示提示，与 iOS/Android 端「数据量过大」占位文案保持一致。
+        if (payloadBytes > MAX_VTABLE_PAYLOAD_BYTES) {
+            return (
+                <View style={styles.oversizedContainer}>
+                    <Text style={styles.oversizedText}>
+                        {'数据量过大，请添加筛选条件或前往 web 端查看'}
+                    </Text>
+                </View>
+            );
+        }
 
         const tableView = (
             <NativeReportTable
@@ -490,5 +528,18 @@ const styles = StyleSheet.create({
     toastText: {
         color: '#fff',
         fontSize: 13,
+    },
+    oversizedContainer: {
+        flex: 1,
+        backgroundColor: 'white',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 32,
+    },
+    oversizedText: {
+        fontSize: 14,
+        color: '#999999',
+        textAlign: 'center',
+        lineHeight: 22,
     },
 });
