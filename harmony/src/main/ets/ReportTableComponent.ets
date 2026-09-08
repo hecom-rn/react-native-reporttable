@@ -748,6 +748,11 @@ export struct ReportTableComponent {
         ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
         // 超出冻结宽度限制时钳制为部分冻结，而不是清空全部已锁定列
         ',"unfreezeAllOnExceedsMaxWidth":false' +
+        // VTable 默认 maxFrozenWidth 为画布宽度的 80%。双指缩放（放大）时画布被缩为
+        // componentWidth/zoom，80% 阈值随之变小，已锁定的列会被 checkFrozen 静默降级
+        // （如 2 列降为 1 列，第二列随横向滚动滑走）。锁定合法性已由本文件锁开关处的
+        // scaledFrozenWidth 检查把关（对齐 iOS），这里放大内部阈值避免缩放时降级。
+        ',"maxFrozenWidth":100000' +
         ',"showFrozenIcon":false' +
         ',"defaultRowHeight":' + rowMinHeight.toString() +
         ',"defaultHeaderRowHeight":' + defaultHeaderRowHeight.toString() +
