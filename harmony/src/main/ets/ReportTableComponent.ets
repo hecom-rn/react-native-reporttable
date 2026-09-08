@@ -15,6 +15,10 @@ import measure from '@ohos.measure';
 
 export const RN_REPORT_TABLE_NAME: string = 'RNReportTable';
 
+// 捏合收尾时 WebView 里 touchend→click 的派发与本侧 PinchGesture onActionEnd
+// 的先后顺序不确定，结束后需要一个短窗口继续忽略迟到的 CLICK_CELL。
+const PINCH_CLICK_SUPPRESS_MS: number = 300;
+
 interface CellPosition {
   col: number;
   row: number;
@@ -65,6 +69,11 @@ export struct ReportTableComponent {
   private contentHeightNum: number = 0;
   private baseZoom: number = 1.0;
   private disableZoom: boolean = false;
+  // ArkWeb 派发给 WebView 的触摸无法召回（iOS/Android 原生捏合识别会取消子视图
+  // 触摸），双指捏合中第一根手指的按下-抬起会被 VTable 判定为 CLICK_CELL，
+  // 表现为缩放同时触发指标穿透。在点击回调侧按捏合状态等价抑制。
+  private pinchInProgress: boolean = false;
+  private lastPinchEndMs: number = 0;
   private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
   private cleanupCommandCallback: (() => void) | undefined = undefined;
   // Last renderKey observed from the descriptor. RNOH increments renderKey on every
@@ -1062,6 +1071,11 @@ export struct ReportTableComponent {
     const self = this;
     const onEvent: VTableOnEvent = {
       onClickCell: (event: CellClickData): void => {
+        // 捏合进行中/刚结束的 CLICK_CELL 是缩放手势的副产品，不是用户点击
+        if (self.pinchInProgress ||
+          Date.now() - self.lastPinchEndMs < PINCH_CLICK_SUPPRESS_MS) {
+          return;
+        }
         // --- Lock toggle detection: first row click on a lockable column ---
         const showHeader: boolean = self.parseBoolean(self.currentOption['showHeader'], true);
         // VTable ListTable has a single header row (row 0) when showHeader=true.
@@ -1323,6 +1337,7 @@ export struct ReportTableComponent {
     .priorityGesture(
       PinchGesture({ fingers: 2, distance: 1 })
         .onActionStart((): void => {
+          this.pinchInProgress = true;
           this.baseZoom = this.currentZoom;
         })
         .onActionUpdate((event: GestureEvent): void => {
@@ -1338,7 +1353,14 @@ export struct ReportTableComponent {
           }
           this.currentZoom = newZoom;
         })
-        .onActionEnd((): void => {})
+        .onActionEnd((): void => {
+          this.pinchInProgress = false;
+          this.lastPinchEndMs = Date.now();
+        })
+        .onActionCancel((): void => {
+          this.pinchInProgress = false;
+          this.lastPinchEndMs = Date.now();
+        })
     )
   }
 }
