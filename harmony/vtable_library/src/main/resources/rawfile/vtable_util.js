@@ -163,7 +163,7 @@ function _injectMergedCellRenders(options) {
         var _er = _item.range.end.row;
         var _ec = _item.range.end.col;
 
-        // Header row merges: lock icon + classification lines
+        // Header row merges: lock icon, classification lines, extra-text badge
         if (_sr === 0 && _showHeader) {
             var _hasLock = window._lockInfoMap && window._lockInfoMap[_sc];
             var _hasCL   = window._tableHeaderMeta && window._tableHeaderMeta['0_' + _sc];
@@ -963,12 +963,13 @@ var optionTemp
 function _shouldColumnHaveCustomRender(colIdx, columns, records) {
     var col = columns[colIdx];
     if (!col) return false;
-    // Header features: lock icon, classification lines, or cell icon (e.g. sort indicator)
+    // Header features: lock icon, classification lines, cell icon (e.g. sort indicator),
+    // or extra-text badge (e.g. fiscal-calendar tag)
     if (col.__lockInfo) return true;
     if (col.__headerMeta) {
         for (var hi = 0; hi < col.__headerMeta.length; hi++) {
             var hm = col.__headerMeta[hi];
-            if (hm && (hm.classificationLinePosition > 0 || hm.icon)) return true;
+            if (hm && (hm.classificationLinePosition > 0 || hm.icon || hm.extraText)) return true;
         }
     }
     // Body features: check all records for this column
@@ -1039,12 +1040,15 @@ function buildCellRender() {
             var lockInfo = window._lockInfoMap && window._lockInfoMap[col];
             // Header cell icon (e.g. management summary sort indicator up/down/normal).
             var hSortIcon = headerCL && headerCL.icon;
+            // Header extra-text badge (e.g. fiscal-calendar tag on the dimension corner
+            // cell). iOS/Android render it inline right after the title text.
+            var hExtra = headerCL && headerCL.extraText;
             if (!headerCL && !lockInfo) return { renderDefault: true };
 
             var hElements = [];
             var hOwnsText = false; // true when we replace VTable's native header text
 
-            if ((lockInfo && lockInfo.showLock) || hSortIcon) {
+            if ((lockInfo && lockInfo.showLock) || hSortIcon || hExtra) {
                 hOwnsText = true;
                 // Draw header text + sort icon + lock icon (VTable's showFrozenIcon is disabled).
                 var hStyle = {};
@@ -1075,7 +1079,15 @@ function buildCellRender() {
                     if (!hSortSrc) hSortW = 0; // icon unavailable — skip drawing it
                 }
                 var hShowLock = !!(lockInfo && lockInfo.showLock);
-                var hIconsW = (hSortW ? hSortW + hSortPad : 0) + (hShowLock ? hIconW + hIconPad : 0);
+                // Badge dimensions (defaults mirror the body-cell extraText branch)
+                var hEtPad = 2;
+                var hEtW = 0, hEtH = 0;
+                if (hExtra) {
+                    var hEtBg0 = hExtra.backgroundStyle || {};
+                    hEtW = Number(hEtBg0.width) || 16;
+                    hEtH = Number(hEtBg0.height) || 14;
+                }
+                var hIconsW = (hSortW ? hSortW + hSortPad : 0) + (hShowLock ? hIconW + hIconPad : 0) + (hEtW ? hEtW + hEtPad : 0);
                 // Use canvas measurement for accurate text width; cap at available space
                 var hMaxTextW = Math.max(0, w - hPadH * 2 - hIconsW);
                 var hMeasuredW = _measureTextWidth(hCellValue, hFontSize, hFontWeight);
@@ -1089,6 +1101,38 @@ function buildCellRender() {
                     maxLineWidth: hActualTextW, autoWrapText: true, ellipsis: false,
                     lineHeight: hFontSize, pickable: false });
                 var hCurX = hTX + hActualTextW;
+                // Extra-text badge inline right after the title (isLeft → before it).
+                if (hEtW) {
+                    var hEtBg = hExtra.backgroundStyle || {};
+                    var hEtTs = hExtra.style || {};
+                    var hEtX, hEtTxtX;
+                    if (hExtra.isLeft) {
+                        hEtX = Math.max(0, Math.min(Math.round(hTX), Math.round(w - hEtW)));
+                        hEtTxtX = hEtX + hEtW / 2;
+                    } else {
+                        hEtX = Math.max(0, Math.min(Math.round(hCurX + hEtPad), Math.round(w - hEtW)));
+                        hEtTxtX = hEtX + hEtW / 2;
+                        hCurX = hEtX + hEtW;
+                    }
+                    var hEtY = Math.max(0, Math.round((h - hEtH) / 2));
+                    hElements.push({
+                        type: 'rect',
+                        x: hEtX, y: hEtY, width: hEtW, height: hEtH,
+                        fill: hEtBg.color || '#ff0000',
+                        cornerRadius: hEtBg.radius || 2,
+                        pickable: false
+                    });
+                    hElements.push({
+                        type: 'text',
+                        x: hEtTxtX, y: hEtY + hEtH / 2,
+                        text: hExtra.text || '',
+                        fontSize: hEtTs.fontSize || 10,
+                        fill: hEtTs.color || '#ffffff',
+                        textAlign: 'center', textBaseline: 'middle',
+                        lineHeight: hEtTs.fontSize || 10,
+                        pickable: false
+                    });
+                }
                 if (hSortW) {
                     hCurX += hSortPad;
                     var hRsW = Math.min(hSortW, Math.max(1, w));

@@ -521,6 +521,9 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 // header row is built from columns, so cell-level icon metadata would
                 // otherwise be dropped. vtable_util.js draws it in the header branch.
                 if (hCell.icon) hm.icon = hCell.icon;
+                // Header cell extra-text badge (e.g. fiscal-calendar tag on the dimension
+                // corner cell) — dropped for the same reason as icon above.
+                if (hCell.extraText) hm.extraText = hCell.extraText;
                 // keyIndex of the header cell (used by native click emission, mirrors iOS).
                 if (hCell.keyIndex != null) hm.keyIndex = hCell.keyIndex;
                 // Aggregate from merged span (covers both this cell and covered cells)
@@ -530,7 +533,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                     hm.classificationLinePosition |= clInfo.pos;
                     if (!hm.classificationLineColor && clInfo.color) hm.classificationLineColor = normalizeColor(clInfo.color);
                 }
-                hMetaArr.push(hm.classificationLinePosition > 0 || hm.icon ? hm : null);
+                hMetaArr.push(hm.classificationLinePosition > 0 || hm.icon || hm.extraText ? hm : null);
             }
         }
         columns[colIdx].__headerMeta = hMetaArr;
@@ -592,6 +595,18 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 const sortNeeded = sTitle.length * sFontSize * 0.65 + sW + sPad + 12 * 2 + 8;
                 if (sortNeeded > maxNeededW) maxNeededW = sortNeeded;
                 if (sortNeeded > iconNeededW) iconNeededW = sortNeeded;
+            }
+            // Header extra-text badge (e.g. fiscal-calendar tag) — needs its own width
+            // so the title + badge fit without truncation (iOS accounts for it natively).
+            if (hMeta0 && hMeta0.extraText) {
+                const etBg = hMeta0.extraText.backgroundStyle || {};
+                const eW = etBg.width ?? 16;
+                const ePad = 2; // gap between title text and badge
+                const eTitle = columns[c].title || '';
+                const eFontSize = columns[c].headerStyle?.fontSize ?? itemConfig?.fontSize ?? 14;
+                const etNeeded = eTitle.length * eFontSize * 0.65 + eW + ePad + 12 * 2 + 8;
+                if (etNeeded > maxNeededW) maxNeededW = etNeeded;
+                if (etNeeded > iconNeededW) iconNeededW = etNeeded;
             }
             if (maxNeededW > (columns[c].maxWidth || maxWidth)) {
                 columns[c].maxWidth = maxNeededW;
