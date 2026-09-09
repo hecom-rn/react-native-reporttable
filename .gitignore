@@ -14,3 +14,5 @@ local.properties
 
 Pods/
 Podfile.lock
+.hvigor
+oh_modules
