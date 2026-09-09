@@ -86,6 +86,13 @@ export struct ReportTableComponent {
   // Mutable option cache — updated by updateVTable/handleUpdateData/handleSpliceData.
   // NOT @State to avoid triggering VTable WebView re-init on every data update.
   private currentOption: Record<string, Object> = {} as Record<string, Object>;
+  // Column width constraints (minWidth/maxWidth) as received from JS, saved in
+  // updateVTable BEFORE native-measured widths are pinned onto columns. spliceData
+  // uses them as the clamp baseline when re-measuring widths for inserted rows —
+  // clamping against the already-pinned values would freeze the column at the
+  // initial (pre-expand) width.
+  private baseColMinWidths: number[] = [];
+  private baseColMaxWidths: number[] = [];
   // Cached frozen row count received from props (total frozen rows, including
   // the VTable header row when showHeader=true).
   private currentFrozenRowCount: number = 0;
@@ -670,6 +677,15 @@ export struct ReportTableComponent {
 
       // Parse columns and records for native contentSize measurement
       const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
+      // Save the JS-provided width constraints before computeContentSizeNative pins
+      // measured widths onto these column objects (mutated in place below).
+      this.baseColMinWidths = [];
+      this.baseColMaxWidths = [];
+      for (let _bc: number = 0; _bc < columnsArr.length; _bc++) {
+        const _bcObj: Record<string, Object> = columnsArr[_bc] as Record<string, Object>;
+        this.baseColMinWidths.push((_bcObj['minWidth'] !== undefined) ? (_bcObj['minWidth'] as number) : 50);
+        this.baseColMaxWidths.push((_bcObj['maxWidth'] !== undefined) ? (_bcObj['maxWidth'] as number) : 120);
+      }
       const recordsArrForSize: Object[] = JSON.parse(recordsStr) as Object[];
       const itemConfigPropVal: Object | undefined = rawProps['itemConfig'];
       const itemConfigStr: string = (itemConfigPropVal !== undefined)
@@ -912,6 +928,8 @@ export struct ReportTableComponent {
         return;
       }
       const records: Object[] = recordsVal as Object[];
+      // Collect every inserted record across operations for the column-width recompute.
+      const allNewRecords: Object[] = [];
 
       // Parse current styles so we can adjust row indices after insert/delete.
       const customCellStyleVal: Object | undefined = this.currentOption['customCellStyle'];
@@ -936,6 +954,9 @@ export struct ReportTableComponent {
         const newRecords: Object[] = (op['newRecords'] !== undefined) ? (op['newRecords'] as Object[]) : [];
         const beforeLen: number = records.length;
         const deleteCount: number = deleteIndices.length;
+        for (let ni: number = 0; ni < newRecords.length; ni++) {
+          allNewRecords.push(newRecords[ni]);
+        }
 
         // Delete rows (from high to low to preserve indices)
         const sortedDeleteIndices: number[] = [];
@@ -1051,12 +1072,179 @@ export struct ReportTableComponent {
 
       // Update option with modified records/styles and re-render.
       // Create a new array reference so VTable detects the change.
-      this.currentOption['records'] = [...records] as Object;
+      this.currentOption['records'] = [...records] as Object[];
       this.currentOption['customCellStyle'] = customCellStyle;
       this.currentOption['customCellStyleArrangement'] = customCellStyleArrangement;
+      // Inserted rows (tree-table expand) can need wider columns than the
+      // initial measurement pinned — recompute before re-rendering.
+      this.recomputeColumnWidthsForRecords(allNewRecords);
       this.controller.updateOption(this.currentOption);
     } catch (e) {
       console.error('[ReportTableComponent] spliceData failed: ' + (e as Error).message);
+    }
+  }
+
+  /**
+   * Recompute column widths for records inserted via spliceData.
+   *
+   * Tree-table rows carry a per-cell textPaddingLeft that grows with nesting
+   * depth (and an expand icon), so expanding to deeper levels needs a wider
+   * sequence column. But column widths were pinned at initial render to the
+   * native measurement of the initial (collapsed) rows — and VTable's auto
+   * width only measures text + style.padding, unaware of the customRender
+   * padding/icon. Without this recompute, deep-level sequence numbers are
+   * clipped out of view (ticket 71098065). iOS/Android re-measure natively on
+   * every splice, which is the behavior aligned here.
+   *
+   * Only the newly inserted rows are measured (same per-cell semantics as
+   * computeContentSizeNative: measureText + padding + icon + tolerance), and
+   * widths only grow — collapsing keeps the column slightly wide, which is
+   * harmless. Widths are clamped against the JS-provided base constraints so
+   * the table's original min/max semantics still hold.
+   */
+  private recomputeColumnWidthsForRecords(newRecords: Object[]): void {
+    try {
+      if (newRecords.length === 0) {
+        return;
+      }
+      const columnsVal: Object | undefined = this.currentOption['columns'];
+      if (columnsVal === undefined) {
+        return;
+      }
+      const columns: Record<string, Object>[] = columnsVal as Record<string, Object>[];
+      const colCount: number = columns.length;
+      if (colCount === 0) {
+        return;
+      }
+
+      const dpRatio: number = vp2px(1);
+      if (dpRatio <= 0) {
+        return;
+      }
+      // Same defaults as computeContentSizeNative.
+      const defaultFontSize: number = 14;
+      const defaultPadH: number = 12;
+      const tolerant: number = 12;
+
+      // Per-column max content width across the inserted rows.
+      const maxNewContent: number[] = [];
+      for (let c: number = 0; c < colCount; c++) {
+        maxNewContent.push(0);
+      }
+      for (let r: number = 0; r < newRecords.length; r++) {
+        const rec: Record<string, Object> = newRecords[r] as Record<string, Object>;
+        for (let c: number = 0; c < colCount; c++) {
+          const metaVal: Object | undefined = rec['__meta_' + c.toString()];
+          if (metaVal === undefined) {
+            continue;
+          }
+          const meta: Record<string, Object> = metaVal as Record<string, Object>;
+          const cellFontSize: number = (meta['fontSize'] !== undefined)
+            ? (meta['fontSize'] as number) : defaultFontSize;
+          const cellPadHDef: number = (meta['textPaddingHorizontal'] !== undefined)
+            ? (meta['textPaddingHorizontal'] as number) : defaultPadH;
+          const cellPadL: number = (meta['textPaddingLeft'] !== undefined)
+            ? (meta['textPaddingLeft'] as number) : cellPadHDef;
+          const cellPadR: number = (meta['textPaddingRight'] !== undefined)
+            ? (meta['textPaddingRight'] as number) : cellPadHDef;
+          const cellText: string = (rec[c.toString()] !== undefined) ? (rec[c.toString()] as string) : '';
+          const cellFontWeight: string = (meta['fontWeight'] !== undefined)
+            ? (meta['fontWeight'] as string) : 'normal';
+          // measureText is '\n'-naive: the column needs to fit the widest line.
+          let wVp: number = 0;
+          const cellLines: string[] = cellText.split('\n');
+          for (let lt: number = 0; lt < cellLines.length; lt++) {
+            const lineText: string = cellLines[lt];
+            if (lineText.length === 0) {
+              continue;
+            }
+            const wPx: number = measure.measureText({
+              textContent: lineText,
+              fontSize: cellFontSize,
+              fontWeight: cellFontWeight
+            });
+            const lineWVp: number = wPx > 0 ? wPx / dpRatio : lineText.length * cellFontSize * 1.0;
+            wVp = Math.max(wVp, lineWVp);
+          }
+          const cellIconVal: Object | undefined = meta['icon'];
+          if (cellIconVal !== undefined) {
+            const cellIconObj: Record<string, Object> = cellIconVal as Record<string, Object>;
+            const iW: number = (cellIconObj['width'] !== undefined) ? (cellIconObj['width'] as number) : 16;
+            const iPad: number = (cellIconObj['paddingHorizontal'] !== undefined)
+              ? (cellIconObj['paddingHorizontal'] as number) : 4;
+            wVp += iW + iPad;
+          }
+          if (wVp > 0) {
+            const cellW: number = wVp + cellPadL + cellPadR + tolerant;
+            if (cellW > maxNewContent[c]) {
+              maxNewContent[c] = cellW;
+            }
+          }
+        }
+      }
+
+      let contentWidthChanged: boolean = false;
+      for (let c: number = 0; c < colCount; c++) {
+        if (maxNewContent[c] <= 0) {
+          continue;
+        }
+        const baseMin: number = (c < this.baseColMinWidths.length) ? this.baseColMinWidths[c] : 50;
+        const baseMaxRaw: number = (c < this.baseColMaxWidths.length) ? this.baseColMaxWidths[c] : 120;
+        const baseMax: number = baseMaxRaw > baseMin ? baseMaxRaw : baseMin;
+        const clamped: number = Math.max(baseMin, Math.min(maxNewContent[c], baseMax));
+        const col: Record<string, Object> = columns[c];
+        const widthVal: Object | undefined = col['width'];
+        if (widthVal !== undefined && typeof widthVal === 'number') {
+          // Pinned mode (widths measured natively at initial render): re-pin wider.
+          const cur: number = widthVal as number;
+          if (clamped > cur) {
+            col['width'] = clamped;
+            col['minWidth'] = clamped;
+            col['maxWidth'] = clamped;
+            contentWidthChanged = true;
+          }
+        } else {
+          // Auto mode (large tables skip the native measure): raise the
+          // constraints so VTable's auto width can fit the inserted rows.
+          // maxWidth rises to the unclamped need, matching vtableDataConverter.
+          const curMin: number = (col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 0;
+          const curMax: number = (col['maxWidth'] !== undefined) ? (col['maxWidth'] as number) : 0;
+          const newMin: number = Math.max(curMin, Math.ceil(clamped));
+          const newMax: number = Math.max(curMax, maxNewContent[c]);
+          if (newMin > curMin) {
+            col['minWidth'] = newMin;
+          }
+          if (newMax > curMax) {
+            col['maxWidth'] = newMax;
+            contentWidthChanged = true;
+          }
+        }
+      }
+
+      // Keep the cached contentSize width in sync so JS consumers of the
+      // contentSize event see the wider table.
+      if (contentWidthChanged) {
+        try {
+          const cs: Record<string, Object> = (this.cachedContentSize !== '{}')
+            ? JSON.parse(this.cachedContentSize) as Record<string, Object> : {} as Record<string, Object>;
+          let totalW: number = 0;
+          for (let c: number = 0; c < colCount; c++) {
+            const wVal: Object | undefined = columns[c]['width'];
+            if (wVal !== undefined && typeof wVal === 'number') {
+              totalW += (wVal as number) + 1; // +1px border per column
+            }
+          }
+          if (totalW > 0) {
+            cs['width'] = Math.round(totalW);
+            this.cachedContentSize = JSON.stringify(cs);
+            this.emitCachedContentSize();
+          }
+        } catch (_ce) {
+          // contentSize sync is best-effort; never fail the splice for it.
+        }
+      }
+    } catch (e) {
+      console.error('[ReportTableComponent] recomputeColumnWidthsForRecords failed: ' + (e as Error).message);
     }
   }
 

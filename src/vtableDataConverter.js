@@ -571,9 +571,12 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 hasProgressStyle = true;
                 // Width will be measured accurately in vtable_util.js via canvas.measureText().
             }
-            if (cell.icon) {
-                const iW = cell.icon.width ?? 16;
-                const iPad = cell.icon.paddingHorizontal ?? 4;
+            // Cells with an icon OR explicit per-cell padding (e.g. tree-table
+            // sequence column: textPaddingLeft grows with nesting depth) reserve
+            // space beyond what VTable's text-only auto-width can measure.
+            if (cell.icon || cell.textPaddingLeft != null || cell.textPaddingRight != null) {
+                const iW = cell.icon ? (cell.icon.width ?? 16) : 0;
+                const iPad = cell.icon ? (cell.icon.paddingHorizontal ?? 4) : 0;
                 // Estimated text width + icon space + padding. Use 0.65 multiplier
                 // (same as ArkTS fallback) for Chinese/English mix safety.
                 const needed = cTitle.length * cFontSize * 0.65 + iW + iPad + cPadL + cPadR + 8; // +8px tolerance
