@@ -185,7 +185,10 @@ function _injectMergedCellRenders(options) {
                     _meta.boxLineColor ||
                     _meta.isForbidden ||
                     _meta.floatIcon ||
-                    _meta.extraText
+                    _meta.extraText ||
+                    // 树形/分类报表的展开箭头在锚点格 meta.icon 上；不带 customRender
+                    // 时合并格只渲染纯文本，会丢失展开/收起图标（工单 71098727）。
+                    _meta.icon
                 )) {
                     _item.customRender = buildCellRender();
                 }

@@ -34,6 +34,17 @@ interface CustomCellStyleItem {
   style: Record<string, Object>;
 }
 
+// customMergeCell 条目结构（与 JS 侧 computeMergedCells 输出一致）
+interface MergedCellRange {
+  start: CellPosition;
+  end: CellPosition;
+}
+
+interface MergedCellItem {
+  range: MergedCellRange;
+  text: string;
+}
+
 interface ContentSizeResult {
   width: number;
   height: number;
@@ -1107,6 +1118,11 @@ export struct ReportTableComponent {
       this.currentOption['records'] = [...records] as Object[];
       this.currentOption['customCellStyle'] = customCellStyle;
       this.currentOption['customCellStyleArrangement'] = customCellStyleArrangement;
+      // 行增删后行序变化：以当前 records 的 keyIndex 全量重建 customMergeCell。
+      // 分类/树形报表展开时，插入的子行维度列与父行同 keyIndex（iOS 由
+      // integratedDataSource 每次 splice 后按 keyIndex 重算合并），不重建合并
+      // 时子行会各自渲染出重复的维度文案（工单 71098727）。
+      this.rebuildMergedCells();
       // Inserted rows (tree-table expand) can need wider columns than the
       // initial measurement pinned — recompute before re-rendering.
       this.recomputeColumnWidthsForRecords(allNewRecords);
@@ -1118,6 +1134,174 @@ export struct ReportTableComponent {
       this.controller.updateOption(this.currentOption);
     } catch (e) {
       console.error('[ReportTableComponent] spliceData failed: ' + (e as Error).message);
+    }
+  }
+
+  /**
+   * Rebuild customMergeCell from the CURRENT records' keyIndex metadata.
+   *
+   * iOS recomputes merges (integratedDataSource) after every splice: inserted
+   * tree/classification rows share the parent's keyIndex in the dimension
+   * column and must render as ONE vertically merged cell, not as repeated
+   * raw titles. The initial merge array (from computeMergedCells in JS) goes
+   * stale once rows are inserted/deleted, so it is rebuilt here over the full
+   * current grid — header row from columns.__headerMeta, body rows from
+   * records __meta_N.keyIndex — replicating computeMergedCells rectangle
+   * semantics: horizontal span of equal adjacent keyIndex in a row, then a
+   * vertical span requiring every column of that span to match.
+   *
+   * Covered (non-anchor) body cells get their title cleared — the same
+   * normalization convertDataSourceToVTable applies at initial build — so the
+   * merged cell drawn on top does not overlap underlying text. keyIndex
+   * metadata is preserved for subsequent recomputes and click resolution.
+   */
+  private rebuildMergedCells(): void {
+    try {
+      const recordsVal: Object | undefined = this.currentOption['records'];
+      const columnsVal: Object | undefined = this.currentOption['columns'];
+      if (recordsVal === undefined || columnsVal === undefined) {
+        return;
+      }
+      const records: Object[] = recordsVal as Object[];
+      const columns: Object[] = columnsVal as Object[];
+      const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
+      const headerRows: number = showHeader ? 1 : 0;
+      const rowCount: number = headerRows + records.length;
+      const colCount: number = columns.length;
+      if (rowCount === 0 || colCount === 0) {
+        this.currentOption['customMergeCell'] = [] as Object[];
+        return;
+      }
+
+      // keyIndex grid: -1 marks "no merge" (missing/0 keyIndex or covered header cell).
+      const keyGrid: number[][] = [];
+      for (let r: number = 0; r < rowCount; r++) {
+        const rowKeys: number[] = [];
+        for (let c: number = 0; c < colCount; c++) {
+          rowKeys.push(-1);
+        }
+        keyGrid.push(rowKeys);
+      }
+      if (headerRows > 0) {
+        for (let c: number = 0; c < colCount; c++) {
+          const colObj: Record<string, Object> = columns[c] as Record<string, Object>;
+          const hmArrVal: Object | undefined = colObj['__headerMeta'];
+          if (hmArrVal !== undefined) {
+            const hmArr: Object[] = hmArrVal as Object[];
+            if (hmArr.length > 0 && hmArr[0] !== undefined && hmArr[0] !== null) {
+              const hm: Record<string, Object> = hmArr[0] as Record<string, Object>;
+              const ki: Object | undefined = hm['keyIndex'];
+              if (ki !== undefined && (ki as number) > 0) {
+                keyGrid[0][c] = ki as number;
+              }
+            }
+          }
+        }
+      }
+      for (let i: number = 0; i < records.length; i++) {
+        const rec: Record<string, Object> = records[i] as Record<string, Object>;
+        for (let c: number = 0; c < colCount; c++) {
+          const metaVal: Object | undefined = rec['__meta_' + c.toString()];
+          if (metaVal === undefined) {
+            continue;
+          }
+          const meta: Record<string, Object> = metaVal as Record<string, Object>;
+          const ki: Object | undefined = meta['keyIndex'];
+          if (ki !== undefined && (ki as number) > 0) {
+            keyGrid[headerRows + i][c] = ki as number;
+          }
+        }
+      }
+
+      // Rectangle scan, mirroring computeMergedCells (row-major, skip used cells).
+      const used: boolean[][] = [];
+      for (let r: number = 0; r < rowCount; r++) {
+        const rowUsed: boolean[] = [];
+        for (let c: number = 0; c < colCount; c++) {
+          rowUsed.push(false);
+        }
+        used.push(rowUsed);
+      }
+      const merged: Object[] = [];
+      // Covered body cell positions, flattened to recordIndex*colCount+col.
+      const coveredCells: number[] = [];
+      for (let r: number = 0; r < rowCount; r++) {
+        for (let c: number = 0; c < colCount; c++) {
+          if (used[r][c]) {
+            continue;
+          }
+          const key: number = keyGrid[r][c];
+          if (key < 0) {
+            continue;
+          }
+          let horSpan: number = 1;
+          while (c + horSpan < colCount && keyGrid[r][c + horSpan] === key && !used[r][c + horSpan]) {
+            horSpan++;
+          }
+          let verSpan: number = 1;
+          for (let rr: number = r + 1; rr < rowCount; rr++) {
+            let allMatch: boolean = true;
+            for (let cc: number = c; cc < c + horSpan; cc++) {
+              if (keyGrid[rr][cc] !== key || used[rr][cc]) {
+                allMatch = false;
+                break;
+              }
+            }
+            if (allMatch) {
+              verSpan++;
+            } else {
+              break;
+            }
+          }
+          if (horSpan > 1 || verSpan > 1) {
+            for (let rr: number = r; rr < r + verSpan; rr++) {
+              for (let cc: number = c; cc < c + horSpan; cc++) {
+                used[rr][cc] = true;
+                if (rr >= headerRows && !(rr === r && cc === c)) {
+                  coveredCells.push((rr - headerRows) * colCount + cc);
+                }
+              }
+            }
+            let text: string = '';
+            if (r === 0 && headerRows > 0) {
+              const colObj: Record<string, Object> = columns[c] as Record<string, Object>;
+              const t: Object | undefined = colObj['title'];
+              text = (t !== undefined && t !== null) ? String(t) : '';
+            } else {
+              const rec: Record<string, Object> = records[r - headerRows] as Record<string, Object>;
+              const v: Object | undefined = rec[String(c)];
+              text = (v !== undefined && v !== null) ? String(v) : '';
+            }
+            const startPos: CellPosition = { col: c, row: r };
+            const endPos: CellPosition = { col: c + horSpan - 1, row: r + verSpan - 1 };
+            const range: MergedCellRange = { start: startPos, end: endPos };
+            const item: MergedCellItem = { range: range, text: text };
+            merged.push(item);
+          }
+        }
+      }
+
+      // Clear covered body cell titles (record field + meta.title) — matches the
+      // initial covered-cell normalization in convertDataSourceToVTable.
+      const emptyTitle: string = '';
+      for (let i: number = 0; i < coveredCells.length; i++) {
+        const flat: number = coveredCells[i];
+        const recIdx: number = Math.floor(flat / colCount);
+        const colIdx: number = flat % colCount;
+        const rec: Record<string, Object> = records[recIdx] as Record<string, Object>;
+        rec[String(colIdx)] = emptyTitle;
+        const metaVal: Object | undefined = rec['__meta_' + colIdx.toString()];
+        if (metaVal !== undefined && metaVal !== null) {
+          const meta: Record<string, Object> = metaVal as Record<string, Object>;
+          meta['title'] = emptyTitle;
+        }
+      }
+
+      this.currentOption['customMergeCell'] = merged;
+      console.log('[ReportTableComponent] rebuildMergedCells: ' + merged.length.toString() +
+        ' merge(s), covered=' + coveredCells.length.toString());
+    } catch (e) {
+      console.error('[ReportTableComponent] rebuildMergedCells failed: ' + (e as Error).message);
     }
   }
 
