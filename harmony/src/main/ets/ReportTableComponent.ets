@@ -67,6 +67,10 @@ export struct ReportTableComponent {
   // 避免 @ohos/vtable 在画布剩余区域绘制空白行格子（总计在上方时表格底部出现空行）。
   @State vtableClampHeight: number = 0;
   private contentHeightNum: number = 0;
+  // 精确行高数组（VTable 行索引：showHeader 时 0 为表头行），与
+  // currentOption.records 保持同步。初始建表 skipMeasure（>2000 行）时为空，
+  // spliceData 的行高/内容高度/钳制高度同步随之跳过。
+  private currentRowHeights: number[] = [];
   private baseZoom: number = 1.0;
   private disableZoom: boolean = false;
   // ArkWeb 派发给 WebView 的触摸无法召回（iOS/Android 原生捏合识别会取消子视图
@@ -735,6 +739,7 @@ export struct ReportTableComponent {
           ',"height":' + contentSizeResult.height.toString() + '}';
         rowHeights = contentSizeResult.rowHeights;
         this.contentHeightNum = contentSizeResult.height;
+        this.currentRowHeights = contentSizeResult.rowHeights;
         this.recomputeClampHeight();
 
         // Apply native-measured widths to columns so VTable uses them in standard mode.
@@ -757,6 +762,7 @@ export struct ReportTableComponent {
         // Reset so emitCachedContentSize() does not emit a stale precise value.
         this.cachedContentSize = '{}';
         this.contentHeightNum = 0;
+        this.currentRowHeights = [];
         this.recomputeClampHeight();
       }
 
@@ -930,6 +936,13 @@ export struct ReportTableComponent {
       const records: Object[] = recordsVal as Object[];
       // Collect every inserted record across operations for the column-width recompute.
       const allNewRecords: Object[] = [];
+      // 精确行高模式（初始建表未 skipMeasure）下同步维护行高数组：
+      // 循环内先按占位高度 splice 保持与 records 逐行对齐，循环结束后按
+      // 最终列宽统一测量回填（recomputeRowHeightsForSplice 按对象引用在
+      // 最终 records 里定位新行，不受后续 op 的下标移位影响）。
+      const trackRowHeights: boolean = this.currentRowHeights.length > 0;
+      const placeholderHeight: number = (this.currentOption['defaultRowHeight'] !== undefined)
+        ? (this.currentOption['defaultRowHeight'] as number) : 40;
 
       // Parse current styles so we can adjust row indices after insert/delete.
       const customCellStyleVal: Object | undefined = this.currentOption['customCellStyle'];
@@ -987,6 +1000,25 @@ export struct ReportTableComponent {
             records.splice(insertIdx, 0, newRecords[i]);
           } else {
             records.push(newRecords[i]);
+          }
+        }
+
+        // 行高数组执行同样的 splice（VTable 行下标 = records 下标 + headerRows），
+        // 保持与 records 逐行对齐；新行先占位，循环结束后统一测量回填。
+        if (trackRowHeights) {
+          for (let i: number = 0; i < sortedDeleteIndices.length; i++) {
+            const delHIdx: number = sortedDeleteIndices[i] + headerRows;
+            if (delHIdx >= 0 && delHIdx < this.currentRowHeights.length) {
+              this.currentRowHeights.splice(delHIdx, 1);
+            }
+          }
+          for (let i: number = 0; i < newRecords.length; i++) {
+            const insHIdx: number = addAtIndex + i + headerRows;
+            if (insHIdx <= this.currentRowHeights.length) {
+              this.currentRowHeights.splice(insHIdx, 0, placeholderHeight);
+            } else {
+              this.currentRowHeights.push(placeholderHeight);
+            }
           }
         }
 
@@ -1078,6 +1110,11 @@ export struct ReportTableComponent {
       // Inserted rows (tree-table expand) can need wider columns than the
       // initial measurement pinned — recompute before re-rendering.
       this.recomputeColumnWidthsForRecords(allNewRecords);
+      // 树形展开/收起改变了行数：同步精确行高、内容高度与 WebView 钳制高度，
+      // 否则内容增长后 WebView 仍停留在收起时的高度，展开的行被画在钳制画布
+      // 之外，只能靠表格内部滚动（手动上滑）看到。对齐 iOS/Android 展开/收起
+      // 时表格高度自适应的表现（工单 71097950）。
+      this.recomputeRowHeightsForSplice(allNewRecords);
       this.controller.updateOption(this.currentOption);
     } catch (e) {
       console.error('[ReportTableComponent] spliceData failed: ' + (e as Error).message);
@@ -1246,6 +1283,152 @@ export struct ReportTableComponent {
     } catch (e) {
       console.error('[ReportTableComponent] recomputeColumnWidthsForRecords failed: ' + (e as Error).message);
     }
+  }
+
+  /**
+   * Re-measure row heights for records inserted via spliceData and recompute
+   * the content height / WebView clamp height (ticket 71097950).
+   *
+   * A collapsed tree table is usually shorter than the component, so the
+   * WebView height was clamped to the collapsed content height. Without this
+   * recompute the clamp stays at the collapsed height after expanding — the
+   * inserted rows are rendered below the clamped canvas and are only reachable
+   * by scrolling inside the WebView. iOS/Android re-measure natively on every
+   * splice; this mirrors that for the height axis (the width axis is handled
+   * by recomputeColumnWidthsForRecords).
+   *
+   * Runs after the column-width recompute so wrap estimation uses the final
+   * (possibly widened) column widths. Total height uses the same border math
+   * as computeContentSizeNative (1px border per row + outer border).
+   */
+  private recomputeRowHeightsForSplice(newRecords: Object[]): void {
+    try {
+      if (this.currentRowHeights.length === 0) {
+        return;
+      }
+      // Locate inserted rows in the FINAL records array by object reference —
+      // recorded indices would go stale when a later op splices earlier rows.
+      const newRecordSet: Set<Object> = new Set<Object>();
+      for (let i: number = 0; i < newRecords.length; i++) {
+        newRecordSet.add(newRecords[i]);
+      }
+      const headerRows: number = this.parseBoolean(this.currentOption['showHeader'], true) ? 1 : 0;
+      const finalRecordsVal: Object | undefined = this.currentOption['records'];
+      if (finalRecordsVal === undefined) {
+        return;
+      }
+      const finalRecords: Object[] = finalRecordsVal as Object[];
+      for (let r: number = 0; r < finalRecords.length && r + headerRows < this.currentRowHeights.length; r++) {
+        if (!newRecordSet.has(finalRecords[r])) {
+          continue;
+        }
+        const rec: Record<string, Object> = finalRecords[r] as Record<string, Object>;
+        this.currentRowHeights[r + headerRows] = this.measureRecordRowHeight(rec);
+      }
+      const borderPx: number = 1;
+      let contentHeight: number = borderPx;
+      const rowHeightsObj: Object[] = [];
+      for (let i: number = 0; i < this.currentRowHeights.length; i++) {
+        contentHeight += this.currentRowHeights[i] + borderPx;
+        rowHeightsObj.push(this.currentRowHeights[i] as Object);
+      }
+      this.contentHeightNum = Math.round(contentHeight);
+      // WebView 侧 updateOption 会按该数组逐行 setRowHeight，新插入行也
+      // 使用与初始建表一致的精确行高（此前是过期数组，长度都与行数不符）。
+      this.currentOption['rowHeights'] = rowHeightsObj;
+      try {
+        const cs: Record<string, Object> = (this.cachedContentSize !== '{}')
+          ? JSON.parse(this.cachedContentSize) as Record<string, Object> : {} as Record<string, Object>;
+        cs['height'] = this.contentHeightNum;
+        this.cachedContentSize = JSON.stringify(cs);
+      } catch (_ce) {
+        // contentSize sync is best-effort; never fail the splice for it.
+      }
+      this.recomputeClampHeight();
+      this.emitCachedContentSize();
+    } catch (e) {
+      console.error('[ReportTableComponent] recomputeRowHeightsForSplice failed: ' + (e as Error).message);
+    }
+  }
+
+  /**
+   * Measure a single record's row height with the same per-cell semantics as
+   * computeContentSizeNative's body-row pass: measureText per '\n' line, wrap
+   * line count with a half-character safety margin, lineHeight = fontSize and
+   * a minHeight-based vertical padding floor. Column widths come from the
+   * current (pinned) option columns. Spliced-in rows are plain body rows —
+   * merged-cell height distribution does not apply to them.
+   */
+  private measureRecordRowHeight(rec: Record<string, Object>): number {
+    const columnsVal: Object | undefined = this.currentOption['columns'];
+    if (columnsVal === undefined) {
+      return 40;
+    }
+    const columns: Record<string, Object>[] = columnsVal as Record<string, Object>[];
+    const colCount: number = columns.length;
+    const minHeight: number = (this.currentOption['defaultRowHeight'] !== undefined)
+      ? (this.currentOption['defaultRowHeight'] as number) : 40;
+    if (colCount === 0) {
+      return minHeight;
+    }
+    const dpRatio: number = vp2px(1);
+    if (dpRatio <= 0) {
+      return minHeight;
+    }
+    const defaultFontSize: number = 14;
+    const safeMinHeight: number = minHeight > 0 ? minHeight : 40;
+    let maxRowH: number = safeMinHeight;
+    for (let c: number = 0; c < colCount; c++) {
+      const col: Record<string, Object> = columns[c];
+      const widthVal: Object | undefined = col['width'];
+      const colWidth: number = (widthVal !== undefined && typeof widthVal === 'number')
+        ? (widthVal as number)
+        : ((col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 50);
+      const metaVal: Object | undefined = rec['__meta_' + c.toString()];
+      const meta: Record<string, Object> = (metaVal !== undefined)
+        ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
+      const fontSize: number = (meta['fontSize'] !== undefined)
+        ? (meta['fontSize'] as number) : defaultFontSize;
+      const padHDef: number = (meta['textPaddingHorizontal'] !== undefined)
+        ? (meta['textPaddingHorizontal'] as number) : 12;
+      const padL: number = (meta['textPaddingLeft'] !== undefined)
+        ? (meta['textPaddingLeft'] as number) : padHDef;
+      const padR: number = (meta['textPaddingRight'] !== undefined)
+        ? (meta['textPaddingRight'] as number) : padHDef;
+      const padH: number = (padL + padR) / 2;
+      const cellText: string = (rec[c.toString()] !== undefined) ? (rec[c.toString()] as string) : '';
+      if (cellText.length === 0) {
+        continue;
+      }
+      const isProgress: boolean = meta['progressStyle'] !== undefined;
+      const fontWeight: string = (meta['fontWeight'] !== undefined)
+        ? (meta['fontWeight'] as string) : 'normal';
+      const availW: number = Math.max(colWidth - padH * 2, fontSize);
+      const wrapAvailW: number = Math.max(availW - fontSize * 0.5, fontSize);
+      let lineCount: number = 0;
+      if (isProgress) {
+        lineCount = 1;
+      } else {
+        const lines: string[] = cellText.split('\n');
+        for (let lt: number = 0; lt < lines.length; lt++) {
+          const lineText: string = lines[lt];
+          const wPx: number = measure.measureText({
+            textContent: lineText,
+            fontSize: fontSize,
+            fontWeight: fontWeight
+          });
+          const lineWVp: number = wPx > 0 ? wPx / dpRatio : lineText.length * fontSize * 1.0;
+          lineCount += Math.max(1, Math.ceil(lineWVp / wrapAvailW));
+        }
+      }
+      const lineHeight: number = fontSize;
+      const vertPad: number = Math.max(0, safeMinHeight - fontSize - 3);
+      const cellH: number = Math.max(lineCount * lineHeight + vertPad, safeMinHeight);
+      if (cellH > maxRowH) {
+        maxRowH = cellH;
+      }
+    }
+    return Math.round(maxRowH);
   }
 
   private emitEvent(eventType: string, payload: Object): void {

@@ -1676,6 +1676,10 @@ function initializeTable(option) {
                 console.error('[initializeTable] setRowHeight failed:', rowIndex, height, e);
             }
         });
+        // Baseline for the updateOption skip-default optimization: rows whose
+        // height is unchanged AND equal to defaultRowHeight don't need an
+        // explicit setRowHeight after updateOption re-created the records.
+        window.__lastAppliedRowHeights = option.rowHeights.slice();
     }
 
     _fixPhantomHeaderRow(tableInstance, option);
@@ -1829,14 +1833,26 @@ function updateOption(options) {
     window.tableInstance.updateOption(options);
 
     // Apply precise row heights after option update.
+    // rowHeights now stays in sync with the spliced records (tree expand/
+    // collapse), so the array can grow large. Skip rows whose height is both
+    // unchanged from the last applied array AND equal to defaultRowHeight —
+    // tableInstance.updateOption has already re-created those rows at the
+    // default height, so re-setting thousands of them on every splice is
+    // wasted work. Custom heights and changed rows are always re-applied.
     if (Array.isArray(options.rowHeights)) {
+        var prevHeights = window.__lastAppliedRowHeights;
+        var defH = options.defaultRowHeight;
         options.rowHeights.forEach(function(height, rowIndex) {
+            if (prevHeights && prevHeights[rowIndex] === height && height === defH) {
+                return;
+            }
             try {
                 window.tableInstance.setRowHeight(rowIndex, height);
             } catch (e) {
                 console.error('[updateOption] setRowHeight failed:', rowIndex, height, e);
             }
         });
+        window.__lastAppliedRowHeights = options.rowHeights.slice();
     }
 
     // Force a full recreate if frozen columns/rows changed so the split line
