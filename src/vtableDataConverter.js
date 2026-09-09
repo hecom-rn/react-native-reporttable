@@ -46,12 +46,25 @@ function mapTextAlign(alignment) {
  * Build VTable column style from a DataSource cell (typically header row).
  * @param {object} cell - A single DataSource cell object.
  * @param {object} itemConfig - Global itemConfig defaults.
+ * @param {boolean} [isHeaderStyle=true] - true: column.headerStyle, applied to
+ *   the header row which IS this cell (cell.textColor stays). false:
+ *   column.style, applied to ALL body cells of the column.
  * @returns {object} VTable style object for the column.
  */
-function buildColumnStyle(cell, itemConfig) {
+function buildColumnStyle(cell, itemConfig, isHeaderStyle = true) {
     const style = {};
     const fontSize = cell.fontSize ?? itemConfig?.fontSize ?? 14;
-    const textColor = normalizeColor(cell.textColor ?? itemConfig?.textColor);
+    // Body column style must NOT inherit the header cell's textColor: in
+    // multi-header tables (e.g. management 对象*对象 matrix) row-0 cells can be
+    // clickable (blue), and column.style.color would paint every
+    // natively-rendered body cell of that column blue — including lower header
+    // rows rendered as body records (metric names) and empty values. iOS/Android
+    // apply textColor strictly per cell; per-cell body colors already come from
+    // customCellStyleArrangement, and the global default falls back to theme
+    // bodyStyle (itemConfig.textColor ?? '#222222').
+    const textColor = isHeaderStyle
+        ? normalizeColor(cell.textColor ?? itemConfig?.textColor)
+        : normalizeColor(itemConfig?.textColor);
     // NOTE: bgColor is intentionally NOT set on column.style.
     // Setting it here would override per-cell customCellStyleArrangement bgColor entries,
     // because column.style takes priority over customCellStyle in VTable.
@@ -448,7 +461,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             width: 'auto',
             minWidth: colMinWidth,
             maxWidth: colMaxWidth,
-            style: buildColumnStyle(headerCell, itemConfig),
+            style: buildColumnStyle(headerCell, itemConfig, false),
             headerStyle: buildColumnStyle(headerCell, itemConfig),
             // Disable interaction effects
             disableHover: true,
