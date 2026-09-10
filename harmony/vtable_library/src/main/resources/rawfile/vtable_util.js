@@ -1665,10 +1665,6 @@ function initializeTable(option) {
                 // );
                 // console.log("=====> CLICK_CELL3", JSON.stringify(tableInstance.eventManager.isDraging))
             }
-            if (eventName === 'SCROLL' || eventName === 'SCROLL_VERTICAL_END' ||
-                eventName === 'INITIALIZED' || eventName === 'UPDATED') {
-                __scheduleMergedCellClamp();
-            }
             eventCallback(eventName, event);
         });
     })
@@ -1708,88 +1704,6 @@ function initializeTable(option) {
     }
 
     _fixPhantomHeaderRow(tableInstance, option);
-    _rememberMergedCells(option);
-    __scheduleMergedCellClamp();
-}
-
-// ===== 超长纵向合并段可视区跟随（维度名称应一直可见） =====
-// VTable 1.22.9 将合并格文字绘制在整个合并范围的垂直中心。当纵向合并段高度
-// 远超可视区（分类报表整列一个维度值、管理总表组织结构首列等），段中心落在
-// 可视区之外，文字被画到屏幕外——表现为滚动或首屏时"维度名称消失"。
-// 修复：把与可视区相交但又不完全包含在可视区内的纵向合并段，动态替换为
-// 「与可视区的交集段」（start=max(原start, 可视首行)，end=min(原end, 可视末行)），
-// 文字绘制在交集中心从而始终可见；完全在可视区内的段保持原样。
-// 通过与上次已应用集合对比避免无变化的 updateOption；updateOption 会保持
-// 滚动位置（已验证）。滚回顶部时交集还原为原段。
-
-function _rememberMergedCells(option) {
-    if (option && Array.isArray(option.customMergeCell) && option.customMergeCell.length > 0) {
-        window.__originalMergedCells = option.customMergeCell;
-    } else {
-        window.__originalMergedCells = null;
-    }
-    window.__lastAppliedMergeStr = null;
-}
-
-var __mergeClampScheduled = false;
-function __scheduleMergedCellClamp() {
-    if (__mergeClampScheduled) return;
-    __mergeClampScheduled = true;
-    var raf = window.requestAnimationFrame
-        || function (cb) { setTimeout(cb, 16); };
-    raf(function () {
-        __mergeClampScheduled = false;
-        try {
-            __clampMergedCellsToVisible();
-        } catch (e) {
-            console.error('[__clampMergedCellsToVisible] failed:', e);
-        }
-    });
-}
-
-function __clampMergedCellsToVisible() {
-    var t = window.tableInstance;
-    var original = window.__originalMergedCells;
-    if (!t || !original || !original.length) return;
-    var vr;
-    try {
-        vr = t.getBodyVisibleRowRange();
-    } catch (e) {
-        return;
-    }
-    if (!vr || vr.rowStart == null || vr.rowEnd == null) return;
-    var next = [];
-    for (var i = 0; i < original.length; i++) {
-        var m = original[i];
-        var r = m && m.range;
-        if (!r || !r.start || !r.end) { next.push(m); continue; }
-        // 原段垂直中心仍落在可视区内时保持原样（与 iOS/Android 整段居中渲染一致，
-        // 也避免不必要的 updateOption）；只有中心滚出可视区、文字必然画到屏幕外时
-        // 才收敛为交集段。
-        var center = (r.start.row + r.end.row) / 2;
-        var centerVisible = center >= vr.rowStart && center <= vr.rowEnd;
-        var s = Math.max(r.start.row, vr.rowStart);
-        var e = Math.min(r.end.row, vr.rowEnd);
-        if (!centerVisible && s <= e) {
-            // 段与可视区相交且中心不可见 → 收敛为交集段
-            next.push(Object.assign({}, m, {
-                range: {
-                    start: { col: r.start.col, row: s },
-                    end: { col: r.end.col, row: e }
-                }
-            }));
-        } else {
-            next.push(m);
-        }
-    }
-    var nextStr = JSON.stringify(next);
-    if (nextStr === (window.__lastAppliedMergeStr || JSON.stringify(original))) return;
-    window.__lastAppliedMergeStr = nextStr;
-    try {
-        t.updateOption(Object.assign({}, t.options, { customMergeCell: next }));
-    } catch (e) {
-        console.error('[__clampMergedCellsToVisible] updateOption failed:', e);
-    }
 }
 
 // 滚动到行
@@ -1973,8 +1887,6 @@ function updateOption(options) {
     }
 
     _fixPhantomHeaderRow(window.tableInstance, options);
-    _rememberMergedCells(options);
-    __scheduleMergedCellClamp();
 }
 
 function renderWithRecreateCells() {
