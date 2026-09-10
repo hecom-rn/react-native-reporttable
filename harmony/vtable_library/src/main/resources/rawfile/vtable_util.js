@@ -175,6 +175,21 @@ function _injectMergedCellRenders(options) {
             continue;
         }
 
+        // showHeader=false merges covering the first body row (row 0): the
+        // dimension title cell may share keyIndex with the first data cell and
+        // merge vertically (e.g. home management summary). VTable skips column
+        // customRender for merged cells, so the merge item must draw the lock
+        // icon itself — otherwise the lock button disappears (ticket 71100732).
+        if (_sr === 0 && !_showHeader) {
+            var _row0Lock = false;
+            for (var _lc = _sc; _lc <= _ec; _lc++) {
+                var _li = window._lockInfoMap && window._lockInfoMap[_lc];
+                if (_li && _li.showLock) { _row0Lock = true; break; }
+            }
+            if (_row0Lock) _item.customRender = buildCellRender();
+            continue;
+        }
+
         // Body merges: check if anchor cell has any overlay meta in records
         if (Array.isArray(options.records) && options.records.length > 0) {
             var _recIdx = _sr - (_showHeader ? 1 : 0); // VTable row → body record index
@@ -1188,6 +1203,9 @@ function buildCellRender() {
             var bPadH = Array.isArray(bPad) ? (bPad[1] || 12) : 12;
             var bIconW = 13, bIconH = 14;
             var bLockX = w - bPadH - bIconW;
+            // Merged first-body-row cells span several rows (dimension title
+            // merged with the first data cell) — keep the icon vertically
+            // centered in the whole merged rect, matching the centered text.
             var bLockY = (h - bIconH) / 2;
             var bIsLocked = col < (args.table.frozenColCount || 0);
             var bElements = [];
