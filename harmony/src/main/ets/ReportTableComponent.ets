@@ -1,0 +1,1921 @@
+/**
+ * ReportTableComponent.ets
+ *
+ * ArkTS UI component that renders a VTable.
+ * Bridges RN props/events to @ohos/vtable.
+ * Events use emitDeviceEvent (DeviceEventEmitter) since there's no C++ codegen.
+ */
+import { VTable, VTableController } from '@ohos/vtable';
+import type { VTableOnEvent, CellClickData, ScrollEventData } from '@ohos/vtable';
+import {
+  RNOHContext,
+  Descriptor,
+} from '@rnoh/react-native-openharmony/ts';
+import measure from '@ohos.measure';
+
+export const RN_REPORT_TABLE_NAME: string = 'RNReportTable';
+
+// 捏合收尾时 WebView 里 touchend→click 的派发与本侧 PinchGesture onActionEnd
+// 的先后顺序不确定，结束后需要一个短窗口继续忽略迟到的 CLICK_CELL。
+const PINCH_CLICK_SUPPRESS_MS: number = 300;
+
+interface CellPosition {
+  col: number;
+  row: number;
+}
+
+interface CellStyleArrangementItem {
+  cellPosition: CellPosition;
+  customStyleId: string;
+}
+
+interface CustomCellStyleItem {
+  id: string;
+  style: Record<string, Object>;
+}
+
+// customMergeCell 条目结构（与 JS 侧 computeMergedCells 输出一致）
+interface MergedCellRange {
+  start: CellPosition;
+  end: CellPosition;
+}
+
+interface MergedCellItem {
+  range: MergedCellRange;
+  text: string;
+}
+
+interface ContentSizeResult {
+  width: number;
+  height: number;
+  rowHeights: number[];
+}
+
+interface MergeRange {
+  startRow: number;
+  endRow: number;
+  startCol: number;
+  endCol: number;
+  text: string;
+}
+
+@Observed
+export class ReportTableVTableController extends VTableController {
+}
+
+@Component
+export struct ReportTableComponent {
+  public static readonly NAME = RN_REPORT_TABLE_NAME;
+  ctx: RNOHContext = {} as RNOHContext;
+  tag: number = 0;
+
+  @State controller: ReportTableVTableController = new ReportTableVTableController();
+  @State option: Record<string, Object> = {} as Record<string, Object>;
+  @State currentZoom: number = 1.0;
+  @State componentWidth: number = 0;
+  @State componentHeight: number = 0;
+  // 内容不足组件高度时，把 VTable WebView 高度钳到内容高度，
+  // 避免 @ohos/vtable 在画布剩余区域绘制空白行格子（总计在上方时表格底部出现空行）。
+  @State vtableClampHeight: number = 0;
+  private contentHeightNum: number = 0;
+  // 精确行高数组（VTable 行索引：showHeader 时 0 为表头行），与
+  // currentOption.records 保持同步。初始建表 skipMeasure（>2000 行）时为空，
+  // spliceData 的行高/内容高度/钳制高度同步随之跳过。
+  private currentRowHeights: number[] = [];
+  private baseZoom: number = 1.0;
+  private disableZoom: boolean = false;
+  // ArkWeb 派发给 WebView 的触摸无法召回（iOS/Android 原生捏合识别会取消子视图
+  // 触摸），双指捏合中第一根手指的按下-抬起会被 VTable 判定为 CLICK_CELL，
+  // 表现为缩放同时触发指标穿透。在点击回调侧按捏合状态等价抑制。
+  private pinchInProgress: boolean = false;
+  private lastPinchEndMs: number = 0;
+  private unregisterDescriptorChangesListener: (() => void) | undefined = undefined;
+  private cleanupCommandCallback: (() => void) | undefined = undefined;
+  // Last renderKey observed from the descriptor. RNOH increments renderKey on every
+  // saveDescriptor call, so equality implies rawProps are unchanged. This avoids
+  // having to JSON.stringify the entire rawProps object for change detection, which
+  // previously caused SharedHeap OOM when records/columns were hundreds of MB.
+  private lastRenderKey: number = -1;
+  private cachedContentSize: string = '{}';
+  private vtableInitialized: boolean = false;
+  // Mutable option cache — updated by updateVTable/handleUpdateData/handleSpliceData.
+  // NOT @State to avoid triggering VTable WebView re-init on every data update.
+  private currentOption: Record<string, Object> = {} as Record<string, Object>;
+  // Column width constraints (minWidth/maxWidth) as received from JS, saved in
+  // updateVTable BEFORE native-measured widths are pinned onto columns. spliceData
+  // uses them as the clamp baseline when re-measuring widths for inserted rows —
+  // clamping against the already-pinned values would freeze the column at the
+  // initial (pre-expand) width.
+  private baseColMinWidths: number[] = [];
+  private baseColMaxWidths: number[] = [];
+  // Cached frozen row count received from props (total frozen rows, including
+  // the VTable header row when showHeader=true).
+  private currentFrozenRowCount: number = 0;
+  // Cached column widths from native measurement — used for accurate lock threshold checks.
+  private contentSizeColWidths: number[] = [];
+  // Track the last frozenColCount received from props to distinguish JS-initiated changes
+  // from native lock toggles. When props frozenColCount hasn't changed, preserve native state.
+  private lastPropsFrozenColCount: number = 0;
+
+  /**
+   * Robust boolean parser.
+   * RN props may arrive as native booleans, strings ("false"), or numbers.
+   */
+  private parseBoolean(value: Object | undefined, defaultValue: boolean): boolean {
+    if (value === undefined || value === null) {
+      return defaultValue;
+    }
+    if (typeof value === 'boolean') {
+      return value as boolean;
+    }
+    if (typeof value === 'string') {
+      const lower = (value as string).toLowerCase();
+      return lower !== 'false' && lower !== '0' && lower !== '';
+    }
+    if (typeof value === 'number') {
+      return (value as number) !== 0;
+    }
+    return !!value;
+  }
+
+
+  aboutToAppear(): void {
+    this.subscribeToDescriptorChanges();
+    this.registerCommandCallback();
+    this.initFromDescriptor();
+  }
+
+  aboutToDisappear(): void {
+    if (this.unregisterDescriptorChangesListener !== undefined) {
+      this.unregisterDescriptorChangesListener();
+    }
+    if (this.cleanupCommandCallback !== undefined) {
+      this.cleanupCommandCallback();
+    }
+    this.controller.release();
+  }
+
+  private subscribeToDescriptorChanges(): void {
+    this.unregisterDescriptorChangesListener = this.ctx.descriptorRegistry.subscribeToDescriptorChanges(
+      this.tag,
+      (newDescriptor: Descriptor): void => {
+        this.onDescriptorChanged(newDescriptor);
+      }
+    );
+  }
+
+  private registerCommandCallback(): void {
+    this.cleanupCommandCallback = this.ctx.componentCommandReceiver.registerCommandCallback(
+      this.tag,
+      (commandName: string, args: Object[]): void => {
+        this.handleCommand(commandName, args);
+      }
+    );
+  }
+
+  private initFromDescriptor(): void {
+    const descriptor: Descriptor | undefined = this.ctx.descriptorRegistry.getDescriptor<Descriptor>(this.tag);
+    if (descriptor !== undefined) {
+      this.onDescriptorChanged(descriptor);
+    }
+  }
+
+  private onDescriptorChanged(descriptor: Descriptor): void {
+    // Use renderKey for change detection — it's a monotonically increasing number
+    // bumped by RNOH on every saveDescriptor call. This avoids the previous OOM
+    // caused by JSON.stringify(descriptor) on a rawProps that contained hundreds
+    // of MB of JSON-stringified records/columns/mergedCells/etc.
+    const renderKey: number = descriptor.renderKey ?? 0;
+    if (renderKey === this.lastRenderKey) {
+      return;
+    }
+    this.lastRenderKey = renderKey;
+    const rawProps: Object | undefined = descriptor.rawProps;
+    if (rawProps === undefined) {
+      return;
+    }
+    this.updateVTable(rawProps as Record<string, Object>);
+  }
+
+  /**
+   * Emit the cached contentSize to the JS side (called from onInitialized and updateVTable).
+   */
+  private emitCachedContentSize(): void {
+    if (this.cachedContentSize === '{}') {
+      return;
+    }
+    const cs: Record<string, Object> = JSON.parse(this.cachedContentSize) as Record<string, Object>;
+    const csW: number = (cs['width'] !== undefined) ? (cs['width'] as number) : 0;
+    const csH: number = (cs['height'] !== undefined) ? (cs['height'] as number) : 0;
+    if (csW > 0 || csH > 0) {
+      const csPayload: string = '{"width":' + csW.toString() + ',"height":' + csH.toString() + '}';
+      this.emitEvent('contentSize', JSON.parse(csPayload) as Object);
+    }
+  }
+
+  /**
+   * Compute the total content size (width × height) and per-row heights of the table
+   * by measuring each cell's text using the ArkTS native measure API.
+   * Results are in vp. Row heights are used to precisely control VTable via setRowHeight,
+   * avoiding the unpredictable autoHeight behavior with merged cells.
+   */
+   private computeContentSizeNative(
+     columnsArr: Object[],
+     recordsArr: Object[],
+     itemConfigStr: string,
+     showHeader: boolean,
+     mergedCellsStr: string = '[]'
+   ): ContentSizeResult {
+      try {
+        let defaultFontSize: number = 14;
+        let defaultPadH: number = 12;
+        let minHeight: number = 40;
+        
+        // Parse itemConfig to get actual minHeight from RN side
+        try {
+          const ic: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
+          if (ic['__minHeight'] !== undefined) { minHeight = ic['__minHeight'] as number; }
+        } catch (_e) {}
+        
+        // dpRatio converts the measureText px return value to vp.
+        const dpRatio: number = vp2px(1);
+        if (dpRatio <= 0) { return { width: 0, height: 0, rowHeights: [] }; }
+
+        // Parse merged cells to identify merged ranges
+        const mergedCells: Object[] = mergedCellsStr && mergedCellsStr !== '{}' 
+          ? (JSON.parse(mergedCellsStr) as Object[])
+          : [];
+
+       // Parse merged ranges and mark covered cells (except top-left cells).
+       const mergeRanges: MergeRange[] = [];
+       const mergedCellSet = new Set<string>();
+       const mergedAnchorSet = new Set<string>();
+       for (let i = 0; i < mergedCells.length; i++) {
+         const mc = mergedCells[i] as Record<string, Object>;
+         if (!mc) continue;
+         const range = mc['range'] as Record<string, Object>;
+         if (!range) continue;
+         const start = range['start'] as Record<string, number>;
+         const end = range['end'] as Record<string, number>;
+         if (!start || !end) continue;
+
+         const startRow = start['row'];
+         const startCol = start['col'];
+         const endRow = end['row'];
+         const endCol = end['col'];
+         const mergeText: string = (mc['text'] as string) ?? '';
+
+         mergeRanges.push({
+           startRow,
+           endRow,
+           startCol,
+           endCol,
+           text: mergeText
+         });
+
+         // Mark the anchor (top-left) cell of the merged range.
+         mergedAnchorSet.add(startRow.toString() + '_' + startCol.toString());
+
+         // Mark all cells in the merged range (except the top-left cell)
+         for (let r = startRow + 1; r <= endRow; r++) {
+           for (let c = startCol; c <= endCol; c++) {
+             mergedCellSet.add(r.toString() + '_' + c.toString());
+           }
+         }
+       }
+
+       // Initialize cell dimensions and processed flags
+       const borderPx: number = 1;
+       const colCount: number = columnsArr.length;
+      if (colCount === 0) { return { width: 0, height: 0, rowHeights: [] }; }
+
+      // ── Step 1: effective column widths ─────────────────────────────────
+      const colWidths: number[] = [];
+      for (let c: number = 0; c < colCount; c++) {
+        const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
+        const minW: number = (col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 50;
+        const maxW: number = (col['maxWidth'] !== undefined) ? (col['maxWidth'] as number) : 120;
+        // Hard floor: column must be at least 1vp wide to avoid zero-width collapse
+        const safeMinW: number = minW > 0 ? minW : 50;
+        const safeMaxW: number = maxW > safeMinW ? maxW : safeMinW;
+        const colStyle: Record<string, Object> = (col['style'] !== undefined)
+          ? (col['style'] as Record<string, Object>)
+          : {} as Record<string, Object>;
+        const colFontSize: number = (colStyle['fontSize'] !== undefined)
+          ? (colStyle['fontSize'] as number) : defaultFontSize;
+        const colPaddingVal: Object | undefined = colStyle['padding'];
+        const colPadH: number = ((colPaddingVal !== undefined)
+          && ((colPaddingVal as number[]).length > 1))
+          ? (colPaddingVal as number[])[1] : defaultPadH;
+        // Per-cell horizontal padding may override column defaults via meta.textPaddingLeft/Right.
+        // Header uses column padding unless explicitly overridden (not supported for header).
+
+        let maxContentW: number = 0;
+        // Header title
+        const headerTitle: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
+        const headerFontWeight: string = (colStyle['fontWeight'] !== undefined)
+          ? (colStyle['fontWeight'] as string) : 'normal';
+        let headerWVp: number = 0;
+        if (headerTitle.length > 0) {
+          // Pass fontSize as a number (in fp ≈ vp units). measureText returns px.
+          const wPx: number = measure.measureText({
+            textContent: headerTitle,
+            fontSize: colFontSize,
+            fontWeight: headerFontWeight
+          });
+          // Fallback to char-width estimate when measureText returns 0 (font not loaded yet)
+          headerWVp = wPx > 0 ? wPx / dpRatio : headerTitle.length * colFontSize * 1.0;
+        }
+        // Add lock icon width when this column has a lock icon (drawn via customRender).
+        if (col['__lockInfo'] !== undefined) {
+          headerWVp += 13 + 4; // lockIconWidth(13) + lockIconPadding(4)
+        }
+        // Add header cell icon width (e.g. management summary sort indicator, drawn
+        // via customRender right after the title) so the column reserves space for it.
+        const hMetaArrWVal: Object | undefined = col['__headerMeta'];
+        if (hMetaArrWVal !== undefined) {
+          const hMetaArrW: Object[] = hMetaArrWVal as Object[];
+          if (hMetaArrW.length > 0 && hMetaArrW[0] !== undefined && hMetaArrW[0] !== null) {
+            const hmW: Record<string, Object> = hMetaArrW[0] as Record<string, Object>;
+            const iconWVal: Object | undefined = hmW['icon'];
+            if (iconWVal !== undefined) {
+              const iconWRec: Record<string, Object> = iconWVal as Record<string, Object>;
+              const iwVal: Object | undefined = iconWRec['width'];
+              headerWVp += ((iwVal !== undefined) ? (iwVal as number) : 16) + 4; // icon + padding
+            }
+          }
+        }
+        if (headerWVp > 0 || (col['__lockInfo'] !== undefined)) {
+          maxContentW = Math.max(maxContentW, headerWVp + colPadH * 2 + 4); // +4px tolerance
+        }
+        // Body cells
+        for (let r: number = 0; r < recordsArr.length; r++) {
+          const rec: Record<string, Object> = recordsArr[r] as Record<string, Object>;
+          const metaKey: string = '__meta_' + c.toString();
+          const metaVal: Object | undefined = rec[metaKey];
+          const meta: Record<string, Object> = (metaVal !== undefined)
+            ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
+          const cellFontSize: number = (meta['fontSize'] !== undefined)
+            ? (meta['fontSize'] as number) : defaultFontSize;
+          const cellPadHDef: number = (meta['textPaddingHorizontal'] !== undefined)
+            ? (meta['textPaddingHorizontal'] as number) : defaultPadH;
+          const cellPadL: number = (meta['textPaddingLeft'] !== undefined)
+            ? (meta['textPaddingLeft'] as number) : cellPadHDef;
+          const cellPadR: number = (meta['textPaddingRight'] !== undefined)
+            ? (meta['textPaddingRight'] as number) : cellPadHDef;
+          const cellText: string = (rec[c.toString()] !== undefined)
+            ? (rec[c.toString()] as string) : '';
+          const cellFontWeight: string = (meta['fontWeight'] !== undefined)
+            ? (meta['fontWeight'] as string) : 'normal';
+          let wVp: number = 0;
+          if (cellText.length > 0) {
+            // Multi-line text ('\n'): the rendered width is the widest line, not the
+            // concatenated width — measureText is '\n'-naive. The custom richText
+            // render stacks 'label:\nvalue' vertically, so the column only needs to
+            // fit the widest line.
+            const cellLines: string[] = cellText.split('\n');
+            for (let lt: number = 0; lt < cellLines.length; lt++) {
+              const lineText: string = cellLines[lt];
+              if (lineText.length === 0) {
+                continue;
+              }
+              const wPx: number = measure.measureText({
+                textContent: lineText,
+                fontSize: cellFontSize,
+                fontWeight: cellFontWeight
+              });
+              const lineWVp: number = wPx > 0
+                ? wPx / dpRatio : lineText.length * cellFontSize * 1.0;
+              wVp = Math.max(wVp, lineWVp);
+            }
+          }
+          // Add icon width when the cell has an icon (rendered via customRender).
+          const cellIconVal: Object | undefined = meta['icon'];
+          let iconExtraW: number = 0;
+          if (cellIconVal !== undefined) {
+            const cellIconObj: Record<string, Object> = cellIconVal as Record<string, Object>;
+            const iW: number = (cellIconObj['width'] !== undefined) ? (cellIconObj['width'] as number) : 16;
+            const iPad: number = (cellIconObj['paddingHorizontal'] !== undefined) ? (cellIconObj['paddingHorizontal'] as number) : 4;
+            iconExtraW = iW + iPad;
+            wVp += iconExtraW;
+          }
+          if (wVp > 0 || iconExtraW > 0) {
+            // iOS/Android add ~8px tolerant for measurement inaccuracy;
+            // use 12 to account for cross-font rendering differences in WebView.
+            const tolerant: number = 12;
+            maxContentW = Math.max(maxContentW, wVp + cellPadL + cellPadR + tolerant);
+          }
+        }
+        colWidths.push(Math.max(safeMinW, Math.min(maxContentW > 0 ? maxContentW : safeMinW, safeMaxW)));
+      }
+
+      let contentWidth: number = borderPx;
+      for (let c: number = 0; c < colCount; c++) {
+        contentWidth += colWidths[c] + borderPx;
+      }
+
+      // ── Step 2: per-row heights from native text measurement ─────────────
+      const safeMinHeight: number = minHeight > 0 ? minHeight : 40;
+      const rowHeights: number[] = [];
+
+      const computeCellHeight = (
+        text: string,
+        fontSize: number,
+        padH: number,
+        colWidth: number,
+        isProgress: boolean,
+        fontWeight: string = 'normal'
+      ): number => {
+        if (!text || text.length === 0) {
+          return safeMinHeight;
+        }
+        const availW: number = Math.max(colWidth - padH * 2, fontSize);
+        // VRender wraps at character/word boundaries. A line that "just fits" by exact
+        // width may actually wrap because the last glyph doesn't fit; reserve a
+        // half-character safety margin so we don't underestimate the wrapped line count.
+        const wrapAvailW: number = Math.max(availW - fontSize * 0.5, fontSize);
+        // Count wrapped lines '\n'-aware: each explicit line wraps independently and
+        // the total is the sum. measureText is '\n'-naive, so each line must be
+        // measured separately (e.g. summary cell 'label:\nvalue' = 2 lines).
+        let lineCount: number = 0;
+        if (isProgress) {
+          lineCount = 1;
+        } else {
+          const lines: string[] = text.split('\n');
+          for (let lt: number = 0; lt < lines.length; lt++) {
+            const lineText: string = lines[lt];
+            const wPx: number = measure.measureText({
+              textContent: lineText,
+              fontSize: fontSize,
+              fontWeight: fontWeight
+            });
+            const lineWVp: number = wPx > 0
+              ? wPx / dpRatio : lineText.length * fontSize * 1.0;
+            lineCount += Math.max(1, Math.ceil(lineWVp / wrapAvailW));
+          }
+        }
+        // customRender text elements set lineHeight = fontSize to match the theme,
+        // so the row height must be computed with the same line height.
+        const lineHeight: number = fontSize;
+        const vertPad: number = Math.max(0, safeMinHeight - fontSize - 3);
+        return Math.max(lineCount * lineHeight + vertPad, safeMinHeight);
+      };
+
+      const headerOffset: number = showHeader ? 1 : 0;
+
+      // Header row (only when showHeader=true)
+      if (showHeader) {
+        let maxHeaderH: number = safeMinHeight;
+        for (let c: number = 0; c < colCount; c++) {
+          if (mergedCellSet.has('0_' + c.toString()) || mergedAnchorSet.has('0_' + c.toString())) {
+            // This position belongs to a merged header cell (anchor or covered).
+            // It contributes the default minHeight to the header row; the merged
+            // range's total height is handled in Step 3.
+            maxHeaderH = Math.max(maxHeaderH, safeMinHeight);
+            continue;
+          }
+          const col: Record<string, Object> = columnsArr[c] as Record<string, Object>;
+          const headerStyle: Record<string, Object> = (col['headerStyle'] !== undefined)
+            ? (col['headerStyle'] as Record<string, Object>) : {} as Record<string, Object>;
+          const fontSize: number = (headerStyle['fontSize'] !== undefined)
+            ? (headerStyle['fontSize'] as number) : defaultFontSize;
+          const padArrVal: Object | undefined = headerStyle['padding'];
+          const padH: number = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
+            ? (padArrVal as number[])[1] : defaultPadH;
+          const hFontWeight: string = (headerStyle['fontWeight'] !== undefined)
+            ? (headerStyle['fontWeight'] as string) : 'normal';
+          const title: string = (col['title'] !== undefined) ? (col['title'] as string) : '';
+          if (title.length > 0) {
+            // Lock icon occupies space on the right; text must wrap in the remaining width.
+            // Header cell icons (sort indicators) occupy space the same way.
+            let headerOccupiedW: number = 0;
+            if (col['__lockInfo'] !== undefined) {
+              headerOccupiedW += 13 + 4;
+            }
+            const hMetaArrHVal: Object | undefined = col['__headerMeta'];
+            if (hMetaArrHVal !== undefined) {
+              const hMetaArrH: Object[] = hMetaArrHVal as Object[];
+              if (hMetaArrH.length > 0 && hMetaArrH[0] !== undefined && hMetaArrH[0] !== null) {
+                const hmH: Record<string, Object> = hMetaArrH[0] as Record<string, Object>;
+                const iconHVal: Object | undefined = hmH['icon'];
+                if (iconHVal !== undefined) {
+                  const iconHRec: Record<string, Object> = iconHVal as Record<string, Object>;
+                  const ihVal: Object | undefined = iconHRec['width'];
+                  headerOccupiedW += ((ihVal !== undefined) ? (ihVal as number) : 16) + 4;
+                }
+              }
+            }
+            const cellH: number = computeCellHeight(title, fontSize, padH, colWidths[c] - headerOccupiedW, false, hFontWeight);
+            maxHeaderH = Math.max(maxHeaderH, cellH);
+          }
+        }
+        rowHeights.push(Math.round(maxHeaderH));
+      }
+
+      // Body rows
+      for (let r: number = 0; r < recordsArr.length; r++) {
+        const globalRow: number = r + headerOffset;
+        const rec: Record<string, Object> = recordsArr[r] as Record<string, Object>;
+        let maxRowH: number = safeMinHeight;
+        for (let c: number = 0; c < colCount; c++) {
+          if (mergedCellSet.has(globalRow.toString() + '_' + c.toString()) ||
+            mergedAnchorSet.has(globalRow.toString() + '_' + c.toString())) {
+            // This position belongs to a merged cell (anchor or covered).
+            // It contributes the default minHeight to this row; the merged range's
+            // total height is handled in Step 3.
+            maxRowH = Math.max(maxRowH, safeMinHeight);
+            continue;
+          }
+          const metaKey: string = '__meta_' + c.toString();
+          const metaVal: Object | undefined = rec[metaKey];
+          const meta: Record<string, Object> = (metaVal !== undefined)
+            ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
+          const fontSize: number = (meta['fontSize'] !== undefined)
+            ? (meta['fontSize'] as number) : defaultFontSize;
+          const bodyPadHDef: number = (meta['textPaddingHorizontal'] !== undefined)
+            ? (meta['textPaddingHorizontal'] as number) : defaultPadH;
+          const bodyPadL: number = (meta['textPaddingLeft'] !== undefined)
+            ? (meta['textPaddingLeft'] as number) : bodyPadHDef;
+          const bodyPadR: number = (meta['textPaddingRight'] !== undefined)
+            ? (meta['textPaddingRight'] as number) : bodyPadHDef;
+          const padH: number = (bodyPadL + bodyPadR) / 2;
+          const cellText: string = (rec[c.toString()] !== undefined)
+            ? (rec[c.toString()] as string) : '';
+          if (cellText.length > 0) {
+            const hasProgressStyle: boolean = meta['progressStyle'] !== undefined;
+            const bodyFontWeight: string = (meta['fontWeight'] !== undefined)
+              ? (meta['fontWeight'] as string) : 'normal';
+            const cellH: number = computeCellHeight(cellText, fontSize, padH, colWidths[c], hasProgressStyle, bodyFontWeight);
+            maxRowH = Math.max(maxRowH, cellH);
+          }
+        }
+        rowHeights.push(Math.round(maxRowH));
+      }
+
+      // ── Step 3: distribute merged-cell heights across spanned rows ────────
+      for (const mr of mergeRanges) {
+        let mergeWidth: number = 0;
+        for (let c = mr.startCol; c <= mr.endCol; c++) {
+          mergeWidth += colWidths[c];
+        }
+
+        let mergeText: string = mr.text;
+        let fontSize: number = defaultFontSize;
+        let padH: number = defaultPadH;
+        let isProgress: boolean = false;
+        let mergeFontWeight: string = 'normal';
+
+        if (showHeader && mr.startRow === 0) {
+          const col: Record<string, Object> = columnsArr[mr.startCol] as Record<string, Object>;
+          const headerStyle: Record<string, Object> = (col['headerStyle'] as Record<string, Object>)
+            ?? {} as Record<string, Object>;
+          fontSize = (headerStyle['fontSize'] as number) ?? defaultFontSize;
+          mergeFontWeight = (headerStyle['fontWeight'] as string) ?? 'normal';
+          const padArrVal: Object | undefined = headerStyle['padding'];
+          padH = ((padArrVal !== undefined) && ((padArrVal as number[]).length > 1))
+            ? (padArrVal as number[])[1] : defaultPadH;
+          if (!mergeText) {
+            mergeText = (col['title'] as string) ?? '';
+          }
+        } else {
+          const recIdx: number = mr.startRow - headerOffset;
+          if (recIdx >= 0 && recIdx < recordsArr.length) {
+            const rec: Record<string, Object> = recordsArr[recIdx] as Record<string, Object>;
+            const meta: Record<string, Object> = (rec['__meta_' + mr.startCol] as Record<string, Object>)
+              ?? {} as Record<string, Object>;
+            fontSize = (meta['fontSize'] as number) ?? defaultFontSize;
+            mergeFontWeight = (meta['fontWeight'] as string) ?? 'normal';
+            const mergePadHDef: number = (meta['textPaddingHorizontal'] as number)
+              ?? (meta['textPaddingLeft'] as number)
+              ?? defaultPadH;
+            const mergePadL: number = (meta['textPaddingLeft'] as number) ?? mergePadHDef;
+            const mergePadR: number = (meta['textPaddingRight'] as number) ?? mergePadHDef;
+            padH = (mergePadL + mergePadR) / 2;
+            isProgress = meta['progressStyle'] !== undefined;
+            if (!mergeText) {
+              mergeText = (rec[mr.startCol.toString()] as string) ?? '';
+            }
+          }
+        }
+
+        const totalH: number = computeCellHeight(mergeText, fontSize, padH, mergeWidth, isProgress, mergeFontWeight);
+        const rowSpan: number = mr.endRow - mr.startRow + 1;
+        // The merged cell already has rowSpan * minHeight of default space.
+        // Only increase row heights when the wrapped text actually needs more.
+        const defaultMergeHeight: number = rowSpan * safeMinHeight;
+        if (totalH > defaultMergeHeight) {
+          const perRowH: number = Math.ceil(totalH / rowSpan);
+          for (let r = mr.startRow; r <= mr.endRow; r++) {
+            rowHeights[r] = Math.max(rowHeights[r] ?? safeMinHeight, perRowH);
+          }
+        }
+      }
+
+      // Recompute total content height from the precise row heights.
+      let contentHeight: number = borderPx;
+      for (const h of rowHeights) {
+        contentHeight += h + borderPx;
+      }
+
+      this.contentSizeColWidths = colWidths;
+      return {
+        width: Math.round(contentWidth),
+        height: Math.round(contentHeight),
+        rowHeights
+      };
+    } catch (e) {
+      console.error('[ReportTableComponent] computeContentSizeNative error: ' + (e as Error).message);
+      return { width: 0, height: 0, rowHeights: [] };
+    }
+  }
+
+  private recomputeClampHeight(): void {
+    if (this.contentHeightNum > 0 && this.componentHeight > 0 &&
+      this.contentHeightNum < this.componentHeight) {
+      this.vtableClampHeight = this.contentHeightNum;
+    } else {
+      this.vtableClampHeight = 0;
+    }
+  }
+
+  private updateVTable(rawProps: Record<string, Object>): void {
+    try {
+      const recordsVal: Object | undefined = rawProps['records'];
+      const columnsVal: Object | undefined = rawProps['columns'];
+      const themeVal: Object | undefined = rawProps['theme'];
+      const mergedCellsVal: Object | undefined = rawProps['mergedCells'];
+      const customCellStyleVal: Object | undefined = rawProps['customCellStyle'];
+      const customCellStyleArrangementVal: Object | undefined = rawProps['customCellStyleArrangement'];
+      const widthModeVal: Object | undefined = rawProps['widthMode'];
+      const frozenColCountVal: Object | undefined = rawProps['frozenColCount'];
+      const frozenRowCountVal: Object | undefined = rawProps['frozenRowCount'];
+      const disableZoomVal: Object | undefined = rawProps['disableZoom'];
+      const permutableVal: Object | undefined = rawProps['permutable'];
+
+      let recordsStr: string = (recordsVal !== undefined) ? (recordsVal as string) : '[]';
+      let columnsStr: string = (columnsVal !== undefined) ? (columnsVal as string) : '[]';
+
+      // Always trust incoming props.records when rawProps change.
+// Previous "preserve native records when lengths differ" logic was wrong:
+// after spliceData/updateData, the native records length diverges from
+// props. If the parent then updates props.data with a different shape
+// (e.g. refetched data, expand/collapse changed the upstream source),
+// the length check would silently drop the new data and keep stale rows.
+
+      
+      const themeStr: string = (themeVal !== undefined) ? (themeVal as string) : '{}';
+      const mergedCellsStr: string = (mergedCellsVal !== undefined) ? (mergedCellsVal as string) : '[]';
+      const customCellStyleStr: string = (customCellStyleVal !== undefined) ? (customCellStyleVal as string) : '[]';
+      const customCellStyleArrangementStr: string = (customCellStyleArrangementVal !== undefined) ? (customCellStyleArrangementVal as string) : '[]';
+      const widthMode: string = (widthModeVal !== undefined) ? (widthModeVal as string) : 'autoWidth';
+      const frozenColCountFromProps: number = (frozenColCountVal !== undefined) ? (frozenColCountVal as number) : 0;
+      let frozenColCount: number = frozenColCountFromProps;
+      const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0;
+      const disableZoom: boolean = this.parseBoolean(disableZoomVal, false);
+      const permutable: boolean = this.parseBoolean(permutableVal, false);
+
+      // Preserve native lock toggle state when props haven't explicitly changed frozenColCount.
+      // This prevents JS re-renders (e.g. data updates) from resetting the user's lock selection.
+      if (this.vtableInitialized) {
+        if (frozenColCountFromProps === this.lastPropsFrozenColCount) {
+          const currentFrozen: Object | undefined = this.currentOption['frozenColCount'];
+          if (currentFrozen !== undefined) {
+            frozenColCount = currentFrozen as number;
+          }
+        } else {
+          // JS layer explicitly changed frozenColCount
+          this.lastPropsFrozenColCount = frozenColCountFromProps;
+        }
+      } else {
+        this.lastPropsFrozenColCount = frozenColCountFromProps;
+      }
+
+      // Parse columns and records for native contentSize measurement
+      const columnsArr: Object[] = JSON.parse(columnsStr) as Object[];
+      // Save the JS-provided width constraints before computeContentSizeNative pins
+      // measured widths onto these column objects (mutated in place below).
+      this.baseColMinWidths = [];
+      this.baseColMaxWidths = [];
+      for (let _bc: number = 0; _bc < columnsArr.length; _bc++) {
+        const _bcObj: Record<string, Object> = columnsArr[_bc] as Record<string, Object>;
+        this.baseColMinWidths.push((_bcObj['minWidth'] !== undefined) ? (_bcObj['minWidth'] as number) : 50);
+        this.baseColMaxWidths.push((_bcObj['maxWidth'] !== undefined) ? (_bcObj['maxWidth'] as number) : 120);
+      }
+      const recordsArrForSize: Object[] = JSON.parse(recordsStr) as Object[];
+      const itemConfigPropVal: Object | undefined = rawProps['itemConfig'];
+      const itemConfigStr: string = (itemConfigPropVal !== undefined)
+        ? (itemConfigPropVal as string) : '{}';
+
+      // Read minHeight (vp) from itemConfig — used as VTable defaultRowHeight (CSS px = vp in WebView).
+      // Read this BEFORE the measure threshold check so we have a sane fallback row height
+      // when we skip the expensive measure loop below.
+      let rowMinHeight: number = 40;
+      try {
+        const icObj: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
+        if (icObj['__minHeight'] !== undefined) { rowMinHeight = icObj['__minHeight'] as number; }
+        else if (icObj['minHeight'] !== undefined) { rowMinHeight = icObj['minHeight'] as number; }
+      } catch (_e) {}
+
+      // Read showHeader from rawProps (if present) or fallback to itemConfig.__showHeader.
+      // frozenRows=0 → showHeader=false (no header, data[0] is first body row).
+      // frozenRows>0 → showHeader=true  (data[0] becomes the VTable header row).
+      let showHeader: boolean = true;
+      const showHeaderVal: Object | undefined = rawProps['showHeader'];
+      if (showHeaderVal !== undefined) {
+        showHeader = this.parseBoolean(showHeaderVal, true);
+      } else {
+        try {
+          const icObj: Record<string, Object> = JSON.parse(itemConfigStr) as Record<string, Object>;
+          if (icObj['__showHeader'] !== undefined) {
+            showHeader = this.parseBoolean(icObj['__showHeader'], true);
+          }
+        } catch (_e) {}
+      }
+
+      // Large-payload guard: computeContentSizeNative calls measure.measureText
+      // for every (column × row) cell. With tens of thousands of rows this
+      // synchronously blocks the ArkUI main thread for several seconds, which
+      // triggers "App main thread is not response" (ANR). Once rawProps are
+      // received without crashing (see onDescriptorChanged OOM fix), this is
+      // the next bottleneck. Skip the per-cell measure when records exceed the
+      // threshold and let VTable fall back to its own default heights.
+      const MEASURE_ROW_THRESHOLD: number = 2000;
+      const skipMeasure: boolean = recordsArrForSize.length > MEASURE_ROW_THRESHOLD;
+
+      let rowHeights: number[] = [];
+      if (!skipMeasure) {
+        // Compute contentSize and precise row heights using ArkTS native text measurement.
+        const contentSizeResult = this.computeContentSizeNative(columnsArr, recordsArrForSize, itemConfigStr, showHeader, mergedCellsStr);
+        this.cachedContentSize = '{"width":' + contentSizeResult.width.toString() +
+          ',"height":' + contentSizeResult.height.toString() + '}';
+        rowHeights = contentSizeResult.rowHeights;
+        this.contentHeightNum = contentSizeResult.height;
+        this.currentRowHeights = contentSizeResult.rowHeights;
+        this.recomputeClampHeight();
+
+        // Apply native-measured widths to columns so VTable uses them in standard mode.
+        // This is necessary because VTable's auto-width cannot measure custom-rendered icons.
+        const measuredColWidths: number[] = this.contentSizeColWidths;
+        for (let _cw: number = 0; _cw < columnsArr.length; _cw++) {
+          if (measuredColWidths.length > _cw && measuredColWidths[_cw] > 0) {
+            const _colObj: Record<string, Object> = columnsArr[_cw] as Record<string, Object>;
+            const _w: number = measuredColWidths[_cw];
+            _colObj['width'] = _w;
+            _colObj['minWidth'] = _w;
+            _colObj['maxWidth'] = Math.max(_w, (_colObj['maxWidth'] as number) || _w);
+          }
+        }
+        columnsStr = JSON.stringify(columnsArr);
+      } else {
+        console.warn('[ReportTableComponent] records row count (' + recordsArrForSize.length.toString() +
+          ') exceeds threshold (' + MEASURE_ROW_THRESHOLD.toString() +
+          '); skipping per-cell measure.measureText to avoid blocking main thread.');
+        // Reset so emitCachedContentSize() does not emit a stale precise value.
+        this.cachedContentSize = '{}';
+        this.contentHeightNum = 0;
+        this.currentRowHeights = [];
+        this.recomputeClampHeight();
+      }
+
+      // If VTable is already initialized (i.e., this is a data update, not initial load),
+      // emit contentSize immediately since onInitialized will not fire again.
+      if (this.vtableInitialized) {
+        this.emitCachedContentSize();
+      }
+
+      // allowFrozenColCount controls the max columns a user can freeze via UI.
+      // We set it to the full column count so programmatic frozenToCol never hits the limit.
+      const allowFrozenColCount: number = columnsArr.length;
+
+      this.currentFrozenRowCount = frozenRowCount;
+
+      // Build option JSON.
+      // VTable's WebView uses CSS logical pixels, which equal vp. No unit conversion needed.
+      // When showHeader=false, set defaultHeaderRowHeight=0 to prevent phantom blank header row.
+      // Use the computed header height (accounts for text wrapping and lock icons).
+      // When measure was skipped, fall back to rowMinHeight to keep a sensible default.
+      const defaultHeaderRowHeight: number = showHeader ? (rowHeights[0] ?? rowMinHeight) : 0;
+      const optionStr: string = '"records":' + recordsStr +
+        ',"columns":' + columnsStr +
+        ',"theme":' + themeStr +
+        ',"customMergeCell":' + mergedCellsStr +
+        ',"customCellStyle":' + customCellStyleStr +
+        ',"customCellStyleArrangement":' + customCellStyleArrangementStr +
+        ',"frozenColCount":' + frozenColCount.toString() +
+        ',"frozenRowCount":' + frozenRowCount.toString() +
+        ',"showHeader":' + (showHeader ? 'true' : 'false') +
+        ',"allowFrozenColCount":' + allowFrozenColCount.toString() +
+        // 超出冻结宽度限制时钳制为部分冻结，而不是清空全部已锁定列
+        ',"unfreezeAllOnExceedsMaxWidth":false' +
+        // VTable 默认 maxFrozenWidth 为画布宽度的 80%。双指缩放（放大）时画布被缩为
+        // componentWidth/zoom，80% 阈值随之变小，已锁定的列会被 checkFrozen 静默降级
+        // （如 2 列降为 1 列，第二列随横向滚动滑走）。锁定合法性已由本文件锁开关处的
+        // scaledFrozenWidth 检查把关（对齐 iOS），这里放大内部阈值避免缩放时降级。
+        ',"maxFrozenWidth":100000' +
+        ',"showFrozenIcon":false' +
+        ',"defaultRowHeight":' + rowMinHeight.toString() +
+        ',"defaultHeaderRowHeight":' + defaultHeaderRowHeight.toString() +
+        ',"autoWrapText":true' +
+        ',"widthMode":"standard"' +
+        ',"heightMode":"standard"' +
+        ',"rowHeights":' + JSON.stringify(rowHeights) +
+        // 列宽总和不满画布宽时不再拉伸占满（对齐 iOS/Android：列宽按内容测量值，
+        // 右侧留白）。autoFillWidth 会把列拉伸到画布宽，列少的报表（如销售机会 2 列）
+        // 被拉满全屏。放大场景无需它：列宽×zoom 物理放大后留白自然随 zoom 缩小。
+        ',"autoFillWidth":false' +
+        ',"autoFillHeight":false' +
+        ',"columnResizeMode":"none"' +
+        ',"hover":{"disableHover":true}' +
+        ',"select":{"disableSelect":true}' +
+        ',"scrollBar":{"visible":"none","barWidth":0,"hoverOn":false}' +
+        ',"editor":""' +
+        ',"editCellTrigger":"api"';
+      const newOption: Record<string, Object> = JSON.parse('{' + optionStr + '}') as Record<string, Object>;
+
+      console.log('[ReportTableComponent] updateVTable showHeader=' + showHeader.toString() +
+        ' frozenRows=' + frozenRowCount.toString() +
+        ' recordsCount=' + recordsArrForSize.length.toString());
+
+      this.disableZoom = disableZoom;
+      // Cache option for command handlers (handleUpdateData, handleSpliceData, etc.)
+      // without triggering a @State re-render.
+      this.currentOption = newOption;
+
+      if (!this.vtableInitialized) {
+        // First render: set @State to give VTable its initial option.
+        this.option = newOption;
+      } else {
+        // Data update: use controller directly — do NOT replace @State option reference,
+        // as that would destroy and recreate the VTable WebView (causing flash → blank).
+        this.controller.updateOption(newOption);
+      }
+    } catch (e) {
+      console.error('[ReportTableComponent] updateVTable failed: ' + (e as Error).message);
+    }
+  }
+
+  private handleCommand(commandName: string, args: Object[]): void {
+    if (commandName === 'scrollTo' && args.length >= 2) {
+      const lineX: number = args[0] as number;
+      const lineY: number = args[1] as number;
+      // VTable 的 scrollToCell 在目标行/列位于冻结区内时（row < frozenRowCount
+      // 或 col < frozenColCount）会跳过滚动赋值，直接 return。树形列表报表
+      // 冻结表头 frozenRowCount=1，点击快速置顶按钮下发 scrollToRow(0) 正好
+      // 落在冻结区内，导致置顶无效。这里钳制到第一个可滚动行/列：
+      // scrollToRow(frozenRowCount) 计算出的 scrollTop = 冻结区高度 - 冻结区
+      // 高度 = 0，等价于 Android 侧 processScrollTo 里 lineY==0 的 flingTop。
+      const frozenRowCount: number = (this.currentOption['frozenRowCount'] !== undefined)
+        ? (this.currentOption['frozenRowCount'] as number) : 0;
+      const frozenColCount: number = (this.currentOption['frozenColCount'] !== undefined)
+        ? (this.currentOption['frozenColCount'] as number) : 0;
+      this.controller.scrollToRow(Math.max(lineX, frozenRowCount));
+      this.controller.scrollToCol(Math.max(lineY, frozenColCount));
+    } else if (commandName === 'scrollToBottom') {
+      const recordsVal: Object | undefined = this.currentOption['records'];
+      const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
+      if (recordsVal !== undefined) {
+        const recordsArr: Object[] = recordsVal as Object[];
+        if (recordsArr.length > 0) {
+          // VTable global row: records[i] is at row (showHeader ? i+1 : i).
+          const lastRow: number = showHeader ? recordsArr.length : recordsArr.length - 1;
+          this.controller.scrollToRow(lastRow);
+        }
+      }
+    } else if (commandName === 'updateData' && args.length > 0) {
+      this.handleUpdateData(args);
+    } else if (commandName === 'frozenToCol' && args.length > 0) {
+      const fc: number = args[0] as number;
+      this.currentOption['frozenColCount'] = fc;
+      // Use updateOption instead of frozenToCol so the full option (including
+      // frozenColCount) is re-applied. frozenToCol only mutates
+      // window.tableInstance.options, which can use stale references.
+      this.controller.updateOption(this.currentOption);
+    } else if (commandName === 'spliceData' && args.length > 0) {
+      this.handleSpliceData(args);
+    }
+  }
+
+  private handleUpdateData(args: Object[]): void {
+    try {
+      const dataStr: string = args[0] as string;
+      const dataObj: Record<string, Object> = JSON.parse(dataStr) as Record<string, Object>;
+      const startCol: number = (dataObj['startCol'] !== undefined) ? (dataObj['startCol'] as number) : 0;
+      const startRow: number = (dataObj['startRow'] !== undefined) ? (dataObj['startRow'] as number) : 0;
+      const values: Object[] = (dataObj['values'] !== undefined) ? (dataObj['values'] as Object[]) : [];
+
+      const recordsVal: Object | undefined = this.currentOption['records'];
+      if (recordsVal === undefined) {
+        return;
+      }
+      const records: Object[] = recordsVal as Object[];
+
+      // VTable records start after the header row when showHeader=true.
+      const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
+      const headerRows: number = showHeader ? 1 : 0;
+      for (let rowIdx: number = 0; rowIdx < values.length; rowIdx++) {
+        const rowValues: Object[] = values[rowIdx] as Object[];
+        const recordIdx: number = startRow - headerRows + rowIdx;
+        if (recordIdx < 0 || recordIdx >= records.length) {
+          continue;
+        }
+        const record: Record<string, Object> = records[recordIdx] as Record<string, Object>;
+        for (let colIdx: number = 0; colIdx < rowValues.length; colIdx++) {
+          const fieldKey: string = (startCol + colIdx).toString();
+          record[fieldKey] = rowValues[colIdx] as Object;
+        }
+      }
+
+      // Re-render with updated records.
+      // Use a new array reference so VTable detects the change.
+      this.currentOption['records'] = [...records] as Object;
+      this.controller.updateOption(this.currentOption);
+    } catch (e) {
+      console.error('[ReportTableComponent] updateData failed: ' + (e as Error).message);
+    }
+  }
+
+  private handleSpliceData(args: Object[]): void {
+    try {
+      const opsStr: string = args[0] as string;
+      const operations: Object[] = JSON.parse(opsStr) as Object[];
+      // Each operation has { deleteIndices, addAtIndex, newRecords }
+      // VTable doesn't have native splice. Re-build the full option with updated records.
+      const recordsVal: Object | undefined = this.currentOption['records'];
+      if (recordsVal === undefined) {
+        return;
+      }
+      const records: Object[] = recordsVal as Object[];
+      // Collect every inserted record across operations for the column-width recompute.
+      const allNewRecords: Object[] = [];
+      // 精确行高模式（初始建表未 skipMeasure）下同步维护行高数组：
+      // 循环内先按占位高度 splice 保持与 records 逐行对齐，循环结束后按
+      // 最终列宽统一测量回填（recomputeRowHeightsForSplice 按对象引用在
+      // 最终 records 里定位新行，不受后续 op 的下标移位影响）。
+      const trackRowHeights: boolean = this.currentRowHeights.length > 0;
+      const placeholderHeight: number = (this.currentOption['defaultRowHeight'] !== undefined)
+        ? (this.currentOption['defaultRowHeight'] as number) : 40;
+
+      // Parse current styles so we can adjust row indices after insert/delete.
+      const customCellStyleVal: Object | undefined = this.currentOption['customCellStyle'];
+      const customCellStyleArrangementVal: Object | undefined = this.currentOption['customCellStyleArrangement'];
+      let customCellStyle: Object[] = (customCellStyleVal !== undefined) ? (customCellStyleVal as Object[]) : [];
+      let customCellStyleArrangement: Object[] = (customCellStyleArrangementVal !== undefined) ? (customCellStyleArrangementVal as Object[]) : [];
+      let nextStyleId: number = customCellStyle.length;
+
+      // Column count is needed to build styles for newly inserted rows.
+      const columnsVal: Object | undefined = this.currentOption['columns'];
+      const columns: Object[] = (columnsVal !== undefined) ? (columnsVal as Object[]) : [];
+      const colCount: number = columns.length;
+
+      // VTable records start after the header row when showHeader=true.
+      const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
+      const headerRows: number = showHeader ? 1 : 0;
+
+      for (let opIdx: number = 0; opIdx < operations.length; opIdx++) {
+        const op: Record<string, Object> = operations[opIdx] as Record<string, Object>;
+        const deleteIndices: Object[] = (op['deleteIndices'] !== undefined) ? (op['deleteIndices'] as Object[]) : [];
+        const addAtIndex: number = (op['addAtIndex'] !== undefined) ? (op['addAtIndex'] as number) : 0;
+        const newRecords: Object[] = (op['newRecords'] !== undefined) ? (op['newRecords'] as Object[]) : [];
+        const beforeLen: number = records.length;
+        const deleteCount: number = deleteIndices.length;
+        for (let ni: number = 0; ni < newRecords.length; ni++) {
+          allNewRecords.push(newRecords[ni]);
+        }
+
+        // Delete rows (from high to low to preserve indices)
+        const sortedDeleteIndices: number[] = [];
+        for (let i: number = 0; i < deleteIndices.length; i++) {
+          sortedDeleteIndices.push(deleteIndices[i] as number);
+        }
+        // Sort descending
+        for (let i: number = 0; i < sortedDeleteIndices.length - 1; i++) {
+          for (let j: number = i + 1; j < sortedDeleteIndices.length; j++) {
+            if (sortedDeleteIndices[j] > sortedDeleteIndices[i]) {
+              const tmp: number = sortedDeleteIndices[i];
+              sortedDeleteIndices[i] = sortedDeleteIndices[j];
+              sortedDeleteIndices[j] = tmp;
+            }
+          }
+        }
+        for (let i: number = 0; i < sortedDeleteIndices.length; i++) {
+          const delIdx: number = sortedDeleteIndices[i];
+          if (delIdx >= 0 && delIdx < records.length) {
+            records.splice(delIdx, 1);
+          }
+        }
+
+        // Insert new records at addAtIndex
+        for (let i: number = 0; i < newRecords.length; i++) {
+          const insertIdx: number = addAtIndex + i;
+          if (insertIdx <= records.length) {
+            records.splice(insertIdx, 0, newRecords[i]);
+          } else {
+            records.push(newRecords[i]);
+          }
+        }
+
+        // 行高数组执行同样的 splice（VTable 行下标 = records 下标 + headerRows），
+        // 保持与 records 逐行对齐；新行先占位，循环结束后统一测量回填。
+        if (trackRowHeights) {
+          for (let i: number = 0; i < sortedDeleteIndices.length; i++) {
+            const delHIdx: number = sortedDeleteIndices[i] + headerRows;
+            if (delHIdx >= 0 && delHIdx < this.currentRowHeights.length) {
+              this.currentRowHeights.splice(delHIdx, 1);
+            }
+          }
+          for (let i: number = 0; i < newRecords.length; i++) {
+            const insHIdx: number = addAtIndex + i + headerRows;
+            if (insHIdx <= this.currentRowHeights.length) {
+              this.currentRowHeights.splice(insHIdx, 0, placeholderHeight);
+            } else {
+              this.currentRowHeights.push(placeholderHeight);
+            }
+          }
+        }
+
+        // ── Adjust customCellStyleArrangement row indices ───────────────────
+        const netChange: number = newRecords.length - deleteCount;
+        const deletedSet: Set<number> = new Set<number>();
+        for (let i: number = 0; i < deleteIndices.length; i++) {
+          // VTable row index = records index + headerRows
+          deletedSet.add((deleteIndices[i] as number) + headerRows);
+        }
+
+        const adjustedArrangement: Object[] = [];
+        for (let i: number = 0; i < customCellStyleArrangement.length; i++) {
+          const item: Record<string, Object> = customCellStyleArrangement[i] as Record<string, Object>;
+          const cellPosition: Record<string, number> = item['cellPosition'] as Record<string, number>;
+          const row: number = cellPosition['row'];
+          if (deletedSet.has(row)) {
+            continue; // Remove styles for deleted rows
+          }
+          let newRow: number = row;
+          // Offset rows whose records index is >= addAtIndex
+          if (row - headerRows >= addAtIndex) {
+            newRow = row + netChange;
+          }
+          const pos: CellPosition = { col: cellPosition['col'] as number, row: newRow };
+          const arrangementItem: CellStyleArrangementItem = {
+            cellPosition: pos,
+            customStyleId: item['customStyleId'] as string,
+          };
+          adjustedArrangement.push(arrangementItem);
+        }
+        customCellStyleArrangement = adjustedArrangement;
+
+        // ── Build styles for newly inserted rows ────────────────────────────
+        for (let rowIdx: number = 0; rowIdx < newRecords.length; rowIdx++) {
+          const record: Record<string, Object> = newRecords[rowIdx] as Record<string, Object>;
+          const globalRow: number = addAtIndex + rowIdx + headerRows; // VTable row index
+          for (let colIdx: number = 0; colIdx < colCount; colIdx++) {
+            const metaKey: string = '__meta_' + colIdx.toString();
+            const metaVal: Object | undefined = record[metaKey];
+            if (metaVal === undefined) {
+              continue;
+            }
+            const meta: Record<string, Object> = metaVal as Record<string, Object>;
+            const cellStyle: Record<string, Object> = {};
+            if (meta['backgroundColor'] !== undefined) {
+              cellStyle['bgColor'] = meta['backgroundColor'];
+            }
+            if (meta['textColor'] !== undefined) {
+              cellStyle['color'] = meta['textColor'];
+            }
+            if (meta['fontSize'] !== undefined) {
+              cellStyle['fontSize'] = meta['fontSize'];
+            }
+            if (meta['fontWeight'] !== undefined) {
+              cellStyle['fontWeight'] = meta['fontWeight'];
+            }
+            if (meta['textAlign'] !== undefined) {
+              cellStyle['textAlign'] = meta['textAlign'];
+            }
+            if (meta['textPaddingHorizontal'] !== undefined) {
+              cellStyle['padding'] = [0, meta['textPaddingHorizontal']];
+            }
+            if (Object.keys(cellStyle).length === 0) {
+              continue;
+            }
+            const styleId: string = 'cs_' + nextStyleId.toString();
+            nextStyleId++;
+            const styleItem: CustomCellStyleItem = { id: styleId, style: cellStyle };
+            customCellStyle.push(styleItem);
+            const pos2: CellPosition = { col: colIdx, row: globalRow };
+            const arrangementItem2: CellStyleArrangementItem = {
+              cellPosition: pos2,
+              customStyleId: styleId,
+            };
+            customCellStyleArrangement.push(arrangementItem2);
+          }
+        }
+
+        console.log('[ReportTableComponent] spliceData op=' + opIdx + ': before=' + beforeLen +
+          ' del=' + deleteIndices.length + ' add=' + newRecords.length + ' after=' + records.length);
+      }
+
+      // Update option with modified records/styles and re-render.
+      // Create a new array reference so VTable detects the change.
+      this.currentOption['records'] = [...records] as Object[];
+      this.currentOption['customCellStyle'] = customCellStyle;
+      this.currentOption['customCellStyleArrangement'] = customCellStyleArrangement;
+      // 行增删后行序变化：以当前 records 的 keyIndex 全量重建 customMergeCell。
+      // 分类/树形报表展开时，插入的子行维度列与父行同 keyIndex（iOS 由
+      // integratedDataSource 每次 splice 后按 keyIndex 重算合并），不重建合并
+      // 时子行会各自渲染出重复的维度文案（工单 71098727）。
+      this.rebuildMergedCells();
+      // Inserted rows (tree-table expand) can need wider columns than the
+      // initial measurement pinned — recompute before re-rendering.
+      this.recomputeColumnWidthsForRecords(allNewRecords);
+      // 树形展开/收起改变了行数：同步精确行高、内容高度与 WebView 钳制高度，
+      // 否则内容增长后 WebView 仍停留在收起时的高度，展开的行被画在钳制画布
+      // 之外，只能靠表格内部滚动（手动上滑）看到。对齐 iOS/Android 展开/收起
+      // 时表格高度自适应的表现（工单 71097950）。
+      this.recomputeRowHeightsForSplice(allNewRecords);
+      this.controller.updateOption(this.currentOption);
+    } catch (e) {
+      console.error('[ReportTableComponent] spliceData failed: ' + (e as Error).message);
+    }
+  }
+
+  /**
+   * Rebuild customMergeCell from the CURRENT records' keyIndex metadata.
+   *
+   * iOS recomputes merges (integratedDataSource) after every splice: inserted
+   * tree/classification rows share the parent's keyIndex in the dimension
+   * column and must render as ONE vertically merged cell, not as repeated
+   * raw titles. The initial merge array (from computeMergedCells in JS) goes
+   * stale once rows are inserted/deleted, so it is rebuilt here over the full
+   * current grid — header row from columns.__headerMeta, body rows from
+   * records __meta_N.keyIndex — replicating computeMergedCells rectangle
+   * semantics: horizontal span of equal adjacent keyIndex in a row, then a
+   * vertical span requiring every column of that span to match.
+   *
+   * Covered (non-anchor) body cells get their title cleared — the same
+   * normalization convertDataSourceToVTable applies at initial build — so the
+   * merged cell drawn on top does not overlap underlying text. keyIndex
+   * metadata is preserved for subsequent recomputes and click resolution.
+   */
+  private rebuildMergedCells(): void {
+    try {
+      const recordsVal: Object | undefined = this.currentOption['records'];
+      const columnsVal: Object | undefined = this.currentOption['columns'];
+      if (recordsVal === undefined || columnsVal === undefined) {
+        return;
+      }
+      const records: Object[] = recordsVal as Object[];
+      const columns: Object[] = columnsVal as Object[];
+      const showHeader: boolean = this.parseBoolean(this.currentOption['showHeader'], true);
+      const headerRows: number = showHeader ? 1 : 0;
+      const rowCount: number = headerRows + records.length;
+      const colCount: number = columns.length;
+      if (rowCount === 0 || colCount === 0) {
+        this.currentOption['customMergeCell'] = [] as Object[];
+        return;
+      }
+
+      // keyIndex grid: -1 marks "no merge" (missing/0 keyIndex or covered header cell).
+      const keyGrid: number[][] = [];
+      for (let r: number = 0; r < rowCount; r++) {
+        const rowKeys: number[] = [];
+        for (let c: number = 0; c < colCount; c++) {
+          rowKeys.push(-1);
+        }
+        keyGrid.push(rowKeys);
+      }
+      if (headerRows > 0) {
+        for (let c: number = 0; c < colCount; c++) {
+          const colObj: Record<string, Object> = columns[c] as Record<string, Object>;
+          const hmArrVal: Object | undefined = colObj['__headerMeta'];
+          if (hmArrVal !== undefined) {
+            const hmArr: Object[] = hmArrVal as Object[];
+            if (hmArr.length > 0 && hmArr[0] !== undefined && hmArr[0] !== null) {
+              const hm: Record<string, Object> = hmArr[0] as Record<string, Object>;
+              const ki: Object | undefined = hm['keyIndex'];
+              if (ki !== undefined && (ki as number) > 0) {
+                keyGrid[0][c] = ki as number;
+              }
+            }
+          }
+        }
+      }
+      for (let i: number = 0; i < records.length; i++) {
+        const rec: Record<string, Object> = records[i] as Record<string, Object>;
+        for (let c: number = 0; c < colCount; c++) {
+          const metaVal: Object | undefined = rec['__meta_' + c.toString()];
+          if (metaVal === undefined) {
+            continue;
+          }
+          const meta: Record<string, Object> = metaVal as Record<string, Object>;
+          const ki: Object | undefined = meta['keyIndex'];
+          if (ki !== undefined && (ki as number) > 0) {
+            keyGrid[headerRows + i][c] = ki as number;
+          }
+        }
+      }
+
+      // Rectangle scan, mirroring computeMergedCells (row-major, skip used cells).
+      const used: boolean[][] = [];
+      for (let r: number = 0; r < rowCount; r++) {
+        const rowUsed: boolean[] = [];
+        for (let c: number = 0; c < colCount; c++) {
+          rowUsed.push(false);
+        }
+        used.push(rowUsed);
+      }
+      const merged: Object[] = [];
+      // Covered body cell positions, flattened to recordIndex*colCount+col.
+      const coveredCells: number[] = [];
+      for (let r: number = 0; r < rowCount; r++) {
+        for (let c: number = 0; c < colCount; c++) {
+          if (used[r][c]) {
+            continue;
+          }
+          const key: number = keyGrid[r][c];
+          if (key < 0) {
+            continue;
+          }
+          let horSpan: number = 1;
+          while (c + horSpan < colCount && keyGrid[r][c + horSpan] === key && !used[r][c + horSpan]) {
+            horSpan++;
+          }
+          let verSpan: number = 1;
+          for (let rr: number = r + 1; rr < rowCount; rr++) {
+            let allMatch: boolean = true;
+            for (let cc: number = c; cc < c + horSpan; cc++) {
+              if (keyGrid[rr][cc] !== key || used[rr][cc]) {
+                allMatch = false;
+                break;
+              }
+            }
+            if (allMatch) {
+              verSpan++;
+            } else {
+              break;
+            }
+          }
+          if (horSpan > 1 || verSpan > 1) {
+            for (let rr: number = r; rr < r + verSpan; rr++) {
+              for (let cc: number = c; cc < c + horSpan; cc++) {
+                used[rr][cc] = true;
+                if (rr >= headerRows && !(rr === r && cc === c)) {
+                  coveredCells.push((rr - headerRows) * colCount + cc);
+                }
+              }
+            }
+            let text: string = '';
+            if (r === 0 && headerRows > 0) {
+              const colObj: Record<string, Object> = columns[c] as Record<string, Object>;
+              const t: Object | undefined = colObj['title'];
+              text = (t !== undefined && t !== null) ? String(t) : '';
+            } else {
+              const rec: Record<string, Object> = records[r - headerRows] as Record<string, Object>;
+              const v: Object | undefined = rec[String(c)];
+              text = (v !== undefined && v !== null) ? String(v) : '';
+            }
+            const startPos: CellPosition = { col: c, row: r };
+            const endPos: CellPosition = { col: c + horSpan - 1, row: r + verSpan - 1 };
+            const range: MergedCellRange = { start: startPos, end: endPos };
+            const item: MergedCellItem = { range: range, text: text };
+            merged.push(item);
+          }
+        }
+      }
+
+      // Clear covered body cell titles (record field + meta.title) — matches the
+      // initial covered-cell normalization in convertDataSourceToVTable.
+      const emptyTitle: string = '';
+      for (let i: number = 0; i < coveredCells.length; i++) {
+        const flat: number = coveredCells[i];
+        const recIdx: number = Math.floor(flat / colCount);
+        const colIdx: number = flat % colCount;
+        const rec: Record<string, Object> = records[recIdx] as Record<string, Object>;
+        rec[String(colIdx)] = emptyTitle;
+        const metaVal: Object | undefined = rec['__meta_' + colIdx.toString()];
+        if (metaVal !== undefined && metaVal !== null) {
+          const meta: Record<string, Object> = metaVal as Record<string, Object>;
+          meta['title'] = emptyTitle;
+        }
+      }
+
+      this.currentOption['customMergeCell'] = merged;
+      console.log('[ReportTableComponent] rebuildMergedCells: ' + merged.length.toString() +
+        ' merge(s), covered=' + coveredCells.length.toString());
+    } catch (e) {
+      console.error('[ReportTableComponent] rebuildMergedCells failed: ' + (e as Error).message);
+    }
+  }
+
+  /**
+   * Recompute column widths for records inserted via spliceData.
+   *
+   * Tree-table rows carry a per-cell textPaddingLeft that grows with nesting
+   * depth (and an expand icon), so expanding to deeper levels needs a wider
+   * sequence column. But column widths were pinned at initial render to the
+   * native measurement of the initial (collapsed) rows — and VTable's auto
+   * width only measures text + style.padding, unaware of the customRender
+   * padding/icon. Without this recompute, deep-level sequence numbers are
+   * clipped out of view (ticket 71098065). iOS/Android re-measure natively on
+   * every splice, which is the behavior aligned here.
+   *
+   * Only the newly inserted rows are measured (same per-cell semantics as
+   * computeContentSizeNative: measureText + padding + icon + tolerance), and
+   * widths only grow — collapsing keeps the column slightly wide, which is
+   * harmless. Widths are clamped against the JS-provided base constraints so
+   * the table's original min/max semantics still hold.
+   */
+  private recomputeColumnWidthsForRecords(newRecords: Object[]): void {
+    try {
+      if (newRecords.length === 0) {
+        return;
+      }
+      const columnsVal: Object | undefined = this.currentOption['columns'];
+      if (columnsVal === undefined) {
+        return;
+      }
+      const columns: Record<string, Object>[] = columnsVal as Record<string, Object>[];
+      const colCount: number = columns.length;
+      if (colCount === 0) {
+        return;
+      }
+
+      const dpRatio: number = vp2px(1);
+      if (dpRatio <= 0) {
+        return;
+      }
+      // Same defaults as computeContentSizeNative.
+      const defaultFontSize: number = 14;
+      const defaultPadH: number = 12;
+      const tolerant: number = 12;
+
+      // Per-column max content width across the inserted rows.
+      const maxNewContent: number[] = [];
+      for (let c: number = 0; c < colCount; c++) {
+        maxNewContent.push(0);
+      }
+      for (let r: number = 0; r < newRecords.length; r++) {
+        const rec: Record<string, Object> = newRecords[r] as Record<string, Object>;
+        for (let c: number = 0; c < colCount; c++) {
+          const metaVal: Object | undefined = rec['__meta_' + c.toString()];
+          if (metaVal === undefined) {
+            continue;
+          }
+          const meta: Record<string, Object> = metaVal as Record<string, Object>;
+          const cellFontSize: number = (meta['fontSize'] !== undefined)
+            ? (meta['fontSize'] as number) : defaultFontSize;
+          const cellPadHDef: number = (meta['textPaddingHorizontal'] !== undefined)
+            ? (meta['textPaddingHorizontal'] as number) : defaultPadH;
+          const cellPadL: number = (meta['textPaddingLeft'] !== undefined)
+            ? (meta['textPaddingLeft'] as number) : cellPadHDef;
+          const cellPadR: number = (meta['textPaddingRight'] !== undefined)
+            ? (meta['textPaddingRight'] as number) : cellPadHDef;
+          const cellText: string = (rec[c.toString()] !== undefined) ? (rec[c.toString()] as string) : '';
+          const cellFontWeight: string = (meta['fontWeight'] !== undefined)
+            ? (meta['fontWeight'] as string) : 'normal';
+          // measureText is '\n'-naive: the column needs to fit the widest line.
+          let wVp: number = 0;
+          const cellLines: string[] = cellText.split('\n');
+          for (let lt: number = 0; lt < cellLines.length; lt++) {
+            const lineText: string = cellLines[lt];
+            if (lineText.length === 0) {
+              continue;
+            }
+            const wPx: number = measure.measureText({
+              textContent: lineText,
+              fontSize: cellFontSize,
+              fontWeight: cellFontWeight
+            });
+            const lineWVp: number = wPx > 0 ? wPx / dpRatio : lineText.length * cellFontSize * 1.0;
+            wVp = Math.max(wVp, lineWVp);
+          }
+          const cellIconVal: Object | undefined = meta['icon'];
+          if (cellIconVal !== undefined) {
+            const cellIconObj: Record<string, Object> = cellIconVal as Record<string, Object>;
+            const iW: number = (cellIconObj['width'] !== undefined) ? (cellIconObj['width'] as number) : 16;
+            const iPad: number = (cellIconObj['paddingHorizontal'] !== undefined)
+              ? (cellIconObj['paddingHorizontal'] as number) : 4;
+            wVp += iW + iPad;
+          }
+          if (wVp > 0) {
+            const cellW: number = wVp + cellPadL + cellPadR + tolerant;
+            if (cellW > maxNewContent[c]) {
+              maxNewContent[c] = cellW;
+            }
+          }
+        }
+      }
+
+      let contentWidthChanged: boolean = false;
+      for (let c: number = 0; c < colCount; c++) {
+        if (maxNewContent[c] <= 0) {
+          continue;
+        }
+        const baseMin: number = (c < this.baseColMinWidths.length) ? this.baseColMinWidths[c] : 50;
+        const baseMaxRaw: number = (c < this.baseColMaxWidths.length) ? this.baseColMaxWidths[c] : 120;
+        const baseMax: number = baseMaxRaw > baseMin ? baseMaxRaw : baseMin;
+        const clamped: number = Math.max(baseMin, Math.min(maxNewContent[c], baseMax));
+        const col: Record<string, Object> = columns[c];
+        const widthVal: Object | undefined = col['width'];
+        if (widthVal !== undefined && typeof widthVal === 'number') {
+          // Pinned mode (widths measured natively at initial render): re-pin wider.
+          const cur: number = widthVal as number;
+          if (clamped > cur) {
+            col['width'] = clamped;
+            col['minWidth'] = clamped;
+            col['maxWidth'] = clamped;
+            contentWidthChanged = true;
+          }
+        } else {
+          // Auto mode (large tables skip the native measure): raise the
+          // constraints so VTable's auto width can fit the inserted rows.
+          // maxWidth rises to the unclamped need, matching vtableDataConverter.
+          const curMin: number = (col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 0;
+          const curMax: number = (col['maxWidth'] !== undefined) ? (col['maxWidth'] as number) : 0;
+          const newMin: number = Math.max(curMin, Math.ceil(clamped));
+          const newMax: number = Math.max(curMax, maxNewContent[c]);
+          if (newMin > curMin) {
+            col['minWidth'] = newMin;
+          }
+          if (newMax > curMax) {
+            col['maxWidth'] = newMax;
+            contentWidthChanged = true;
+          }
+        }
+      }
+
+      // Keep the cached contentSize width in sync so JS consumers of the
+      // contentSize event see the wider table.
+      if (contentWidthChanged) {
+        try {
+          const cs: Record<string, Object> = (this.cachedContentSize !== '{}')
+            ? JSON.parse(this.cachedContentSize) as Record<string, Object> : {} as Record<string, Object>;
+          let totalW: number = 0;
+          for (let c: number = 0; c < colCount; c++) {
+            const wVal: Object | undefined = columns[c]['width'];
+            if (wVal !== undefined && typeof wVal === 'number') {
+              totalW += (wVal as number) + 1; // +1px border per column
+            }
+          }
+          if (totalW > 0) {
+            cs['width'] = Math.round(totalW);
+            this.cachedContentSize = JSON.stringify(cs);
+            this.emitCachedContentSize();
+          }
+        } catch (_ce) {
+          // contentSize sync is best-effort; never fail the splice for it.
+        }
+      }
+    } catch (e) {
+      console.error('[ReportTableComponent] recomputeColumnWidthsForRecords failed: ' + (e as Error).message);
+    }
+  }
+
+  /**
+   * Re-measure row heights for records inserted via spliceData and recompute
+   * the content height / WebView clamp height (ticket 71097950).
+   *
+   * A collapsed tree table is usually shorter than the component, so the
+   * WebView height was clamped to the collapsed content height. Without this
+   * recompute the clamp stays at the collapsed height after expanding — the
+   * inserted rows are rendered below the clamped canvas and are only reachable
+   * by scrolling inside the WebView. iOS/Android re-measure natively on every
+   * splice; this mirrors that for the height axis (the width axis is handled
+   * by recomputeColumnWidthsForRecords).
+   *
+   * Runs after the column-width recompute so wrap estimation uses the final
+   * (possibly widened) column widths. Total height uses the same border math
+   * as computeContentSizeNative (1px border per row + outer border).
+   */
+  private recomputeRowHeightsForSplice(newRecords: Object[]): void {
+    try {
+      if (this.currentRowHeights.length === 0) {
+        return;
+      }
+      // Locate inserted rows in the FINAL records array by object reference —
+      // recorded indices would go stale when a later op splices earlier rows.
+      const newRecordSet: Set<Object> = new Set<Object>();
+      for (let i: number = 0; i < newRecords.length; i++) {
+        newRecordSet.add(newRecords[i]);
+      }
+      const headerRows: number = this.parseBoolean(this.currentOption['showHeader'], true) ? 1 : 0;
+      const finalRecordsVal: Object | undefined = this.currentOption['records'];
+      if (finalRecordsVal === undefined) {
+        return;
+      }
+      const finalRecords: Object[] = finalRecordsVal as Object[];
+      for (let r: number = 0; r < finalRecords.length && r + headerRows < this.currentRowHeights.length; r++) {
+        if (!newRecordSet.has(finalRecords[r])) {
+          continue;
+        }
+        const rec: Record<string, Object> = finalRecords[r] as Record<string, Object>;
+        this.currentRowHeights[r + headerRows] = this.measureRecordRowHeight(rec);
+      }
+      const borderPx: number = 1;
+      let contentHeight: number = borderPx;
+      const rowHeightsObj: Object[] = [];
+      for (let i: number = 0; i < this.currentRowHeights.length; i++) {
+        contentHeight += this.currentRowHeights[i] + borderPx;
+        rowHeightsObj.push(this.currentRowHeights[i] as Object);
+      }
+      this.contentHeightNum = Math.round(contentHeight);
+      // WebView 侧 updateOption 会按该数组逐行 setRowHeight，新插入行也
+      // 使用与初始建表一致的精确行高（此前是过期数组，长度都与行数不符）。
+      this.currentOption['rowHeights'] = rowHeightsObj;
+      try {
+        const cs: Record<string, Object> = (this.cachedContentSize !== '{}')
+          ? JSON.parse(this.cachedContentSize) as Record<string, Object> : {} as Record<string, Object>;
+        cs['height'] = this.contentHeightNum;
+        this.cachedContentSize = JSON.stringify(cs);
+      } catch (_ce) {
+        // contentSize sync is best-effort; never fail the splice for it.
+      }
+      this.recomputeClampHeight();
+      this.emitCachedContentSize();
+    } catch (e) {
+      console.error('[ReportTableComponent] recomputeRowHeightsForSplice failed: ' + (e as Error).message);
+    }
+  }
+
+  /**
+   * Measure a single record's row height with the same per-cell semantics as
+   * computeContentSizeNative's body-row pass: measureText per '\n' line, wrap
+   * line count with a half-character safety margin, lineHeight = fontSize and
+   * a minHeight-based vertical padding floor. Column widths come from the
+   * current (pinned) option columns. Spliced-in rows are plain body rows —
+   * merged-cell height distribution does not apply to them.
+   */
+  private measureRecordRowHeight(rec: Record<string, Object>): number {
+    const columnsVal: Object | undefined = this.currentOption['columns'];
+    if (columnsVal === undefined) {
+      return 40;
+    }
+    const columns: Record<string, Object>[] = columnsVal as Record<string, Object>[];
+    const colCount: number = columns.length;
+    const minHeight: number = (this.currentOption['defaultRowHeight'] !== undefined)
+      ? (this.currentOption['defaultRowHeight'] as number) : 40;
+    if (colCount === 0) {
+      return minHeight;
+    }
+    const dpRatio: number = vp2px(1);
+    if (dpRatio <= 0) {
+      return minHeight;
+    }
+    const defaultFontSize: number = 14;
+    const safeMinHeight: number = minHeight > 0 ? minHeight : 40;
+    let maxRowH: number = safeMinHeight;
+    for (let c: number = 0; c < colCount; c++) {
+      const col: Record<string, Object> = columns[c];
+      const widthVal: Object | undefined = col['width'];
+      const colWidth: number = (widthVal !== undefined && typeof widthVal === 'number')
+        ? (widthVal as number)
+        : ((col['minWidth'] !== undefined) ? (col['minWidth'] as number) : 50);
+      const metaVal: Object | undefined = rec['__meta_' + c.toString()];
+      const meta: Record<string, Object> = (metaVal !== undefined)
+        ? (metaVal as Record<string, Object>) : {} as Record<string, Object>;
+      const fontSize: number = (meta['fontSize'] !== undefined)
+        ? (meta['fontSize'] as number) : defaultFontSize;
+      const padHDef: number = (meta['textPaddingHorizontal'] !== undefined)
+        ? (meta['textPaddingHorizontal'] as number) : 12;
+      const padL: number = (meta['textPaddingLeft'] !== undefined)
+        ? (meta['textPaddingLeft'] as number) : padHDef;
+      const padR: number = (meta['textPaddingRight'] !== undefined)
+        ? (meta['textPaddingRight'] as number) : padHDef;
+      const padH: number = (padL + padR) / 2;
+      const cellText: string = (rec[c.toString()] !== undefined) ? (rec[c.toString()] as string) : '';
+      if (cellText.length === 0) {
+        continue;
+      }
+      const isProgress: boolean = meta['progressStyle'] !== undefined;
+      const fontWeight: string = (meta['fontWeight'] !== undefined)
+        ? (meta['fontWeight'] as string) : 'normal';
+      const availW: number = Math.max(colWidth - padH * 2, fontSize);
+      const wrapAvailW: number = Math.max(availW - fontSize * 0.5, fontSize);
+      let lineCount: number = 0;
+      if (isProgress) {
+        lineCount = 1;
+      } else {
+        const lines: string[] = cellText.split('\n');
+        for (let lt: number = 0; lt < lines.length; lt++) {
+          const lineText: string = lines[lt];
+          const wPx: number = measure.measureText({
+            textContent: lineText,
+            fontSize: fontSize,
+            fontWeight: fontWeight
+          });
+          const lineWVp: number = wPx > 0 ? wPx / dpRatio : lineText.length * fontSize * 1.0;
+          lineCount += Math.max(1, Math.ceil(lineWVp / wrapAvailW));
+        }
+      }
+      const lineHeight: number = fontSize;
+      const vertPad: number = Math.max(0, safeMinHeight - fontSize - 3);
+      const cellH: number = Math.max(lineCount * lineHeight + vertPad, safeMinHeight);
+      if (cellH > maxRowH) {
+        maxRowH = cellH;
+      }
+    }
+    return Math.round(maxRowH);
+  }
+
+  private emitEvent(eventType: string, payload: Object): void {
+    this.ctx.rnInstance.emitDeviceEvent(
+      'RNReportTable_' + eventType + '_' + this.tag.toString(),
+      payload
+    );
+  }
+
+  private getOnEvent(): VTableOnEvent {
+    const self = this;
+    const onEvent: VTableOnEvent = {
+      onClickCell: (event: CellClickData): void => {
+        // 捏合进行中/刚结束的 CLICK_CELL 是缩放手势的副产品，不是用户点击
+        if (self.pinchInProgress ||
+          Date.now() - self.lastPinchEndMs < PINCH_CLICK_SUPPRESS_MS) {
+          return;
+        }
+        // --- Lock toggle detection: first row click on a lockable column ---
+        const showHeader: boolean = self.parseBoolean(self.currentOption['showHeader'], true);
+        // VTable ListTable has a single header row (row 0) when showHeader=true.
+        // When showHeader=false, row 0 is the first body row and also displays lock
+        // icons, so lock toggles must be handled there too.
+        if (event.row === 0) {
+          // This is a first-row cell click. Check if the column has a lock icon.
+          // For merged first-row cells, event.col may be any column within the merge;
+          // find the anchor (start.col of the merge range that contains this cell).
+          const colsVal: Object | undefined = self.currentOption['columns'];
+          // Anchor column / horizontal span of the clicked first-row cell (shared by
+          // the lock toggle below and the header-click emission after it).
+          let effectiveCol: number = event.col;
+          let horizontalSpan: number = 1;
+          if (colsVal !== undefined) {
+            const cols: Object[] = colsVal as Object[];
+            // Resolve anchor column and horizontal span for merged header cells
+            const mergeCellsVal: Object | undefined = self.currentOption['customMergeCell'];
+            if (mergeCellsVal !== undefined) {
+              const merges: Object[] = mergeCellsVal as Object[];
+              for (let _mi: number = 0; _mi < merges.length; _mi++) {
+                const mrg: Record<string, Object> = merges[_mi] as Record<string, Object>;
+                const rng: Record<string, Object> = mrg['range'] as Record<string, Object>;
+                const rs: Record<string, Object> = rng['start'] as Record<string, Object>;
+                const re: Record<string, Object> = rng['end'] as Record<string, Object>;
+                const r0: number = rs['row'] as number;
+                const r1: number = re['row'] as number;
+                const c0: number = rs['col'] as number;
+                const c1: number = re['col'] as number;
+                if (r0 <= event.row && event.row <= r1 && c0 <= event.col && event.col <= c1) {
+                  effectiveCol = c0;
+                  horizontalSpan = c1 - c0 + 1;
+                  break;
+                }
+              }
+            }
+            if (effectiveCol >= 0 && effectiveCol < cols.length) {
+              const col: Record<string, Object> = cols[effectiveCol] as Record<string, Object>;
+              if (col['__lockInfo'] !== undefined) {
+                // Determine toggle direction from current frozenColCount.
+                // targetCol is the column index AFTER the merge span (mirrors iOS newFrozenColums).
+                const curFrozen: number = (self.currentOption['frozenColCount'] !== undefined)
+                  ? (self.currentOption['frozenColCount'] as number) : 0;
+                const targetCol: number = effectiveCol + horizontalSpan;
+                const isLocked: boolean = targetCol <= curFrozen;
+
+                let newFrozenColCount: number;
+                if (isLocked) {
+                  // Unlock: find the last column with __lockInfo that is before effectiveCol.
+                  // This matches iOS behaviour where all columns >= clicked column are unlocked,
+                  // then frozenColumns is recomputed from remaining locked columns.
+                  // Permanently frozen columns (frozenColumns) must stay frozen — matches
+                  // Android CommonLock.updateLock which unlocks only from frozenColumns onward.
+                  let nextFrozen: number = 0;
+                  for (let i: number = 0; i < effectiveCol; i++) {
+                    const c: Record<string, Object> = cols[i] as Record<string, Object>;
+                    if (c && (c['__lockInfo'] !== undefined || c['__permanentlyFrozen'] !== undefined)) {
+                      nextFrozen = i + 1;
+                    }
+                  }
+                  newFrozenColCount = nextFrozen;
+                } else {
+                  // Lock: check that scaled frozen width <= componentWidth - 40 (mirrors iOS)
+                  // Use cached native-measured column widths when available for accuracy.
+                  let totalFrozenWidth: number = 0;
+                  for (let fi: number = 0; fi < targetCol; fi++) {
+                    if (fi >= cols.length) break;
+                    const fc: Record<string, Object> = cols[fi] as Record<string, Object>;
+                    let fcW: number = 50;
+                    if (self.contentSizeColWidths.length > fi && self.contentSizeColWidths[fi] > 0) {
+                      fcW = self.contentSizeColWidths[fi];
+                    } else if (fc['width'] !== undefined && typeof (fc['width'] as Object) === 'number') {
+                      fcW = fc['width'] as number;
+                    } else if (fc['minWidth'] !== undefined) {
+                      fcW = fc['minWidth'] as number;
+                    }
+                    totalFrozenWidth += fcW;
+                  }
+                  const scaledFrozenWidth: number = totalFrozenWidth * self.currentZoom;
+                  const tableWidth: number = self.componentWidth > 0 ? self.componentWidth : 360;
+                  // 与 VTable 内部的冻结限制保持一致（否则 VTable 会静默把 frozenColCount
+                  // 清零，表现为锁定无效且已锁定的列也能被滑走，且不触发 lockFailed）：
+                  // 1) setFrozenColCount: 冻结区总宽不得超过 maxFrozenWidth（默认表宽的 80%）
+                  // 2) _resetFrozenColCount: 剩余可滚动空间必须大于 120
+                  const maxFrozenWidth: number = tableWidth * 0.8;
+                  if (scaledFrozenWidth > maxFrozenWidth || tableWidth - scaledFrozenWidth <= 120) {
+                    // Cannot freeze — notify JS layer (shows Toast)
+                    const fp: string = '{"col":' + effectiveCol.toString() + '}';
+                    self.emitEvent('lockFailed', JSON.parse(fp) as Object);
+                    return;
+                  }
+                  newFrozenColCount = targetCol;
+                }
+
+                // Apply new frozen state directly — no JS roundtrip needed.
+                // Use updateOption so VTable re-renders with the new frozenColCount.
+                self.currentOption['frozenColCount'] = newFrozenColCount;
+                self.controller.updateOption(self.currentOption);
+                return; // Lock first-row click — don't emit regular clickEvent
+              }
+            }
+          }
+          // When showHeader=true, any other first-row click is a header click.
+          // Mirror iOS (didSelectItemAt emits clickEvent for header cells as well,
+          // with rowIndex=0) so the JS layer can handle header taps — e.g. the
+          // management summary detail page relies on this to trigger column sorting.
+          if (showHeader) {
+            // effectiveCol/horizontalSpan were resolved from merge ranges above.
+            let headerKeyIndex: number = 0;
+            const hvColsVal: Object | undefined = self.currentOption['columns'];
+            if (hvColsVal !== undefined) {
+              const hvColsArr: Object[] = hvColsVal as Object[];
+              if (effectiveCol >= 0 && effectiveCol < hvColsArr.length) {
+                const hvCol: Record<string, Object> = hvColsArr[effectiveCol] as Record<string, Object>;
+                const hvMetaArrVal: Object | undefined = hvCol['__headerMeta'];
+                if (hvMetaArrVal !== undefined) {
+                  const hvMetaArr: Object[] = hvMetaArrVal as Object[];
+                  // JSON null for covered (non-anchor) header cells must be skipped too.
+                  if (hvMetaArr.length > 0 && hvMetaArr[0] !== undefined && hvMetaArr[0] !== null) {
+                    const hvMeta: Record<string, Object> = hvMetaArr[0] as Record<string, Object>;
+                    const hvKi: Object | undefined = hvMeta['keyIndex'];
+                    if (hvKi !== undefined) {
+                      headerKeyIndex = hvKi as number;
+                    }
+                  }
+                }
+              }
+            }
+            const hpStr: string = '{"keyIndex":' + headerKeyIndex.toString() +
+              ',"rowIndex":0' +
+              ',"columnIndex":' + effectiveCol.toString() +
+              ',"verticalCount":1' +
+              ',"horizontalCount":' + horizontalSpan.toString() + '}';
+            self.emitEvent('clickEvent', JSON.parse(hpStr) as Object);
+            return;
+          }
+        }
+
+        // --- Body cell click: extract keyIndex from record metadata ---
+        // VTable row indices: row 0 is always the header row (showHeader=true).
+        // Body rows start at row 1. Resolve merge cell: if clicked inside a merge
+        // range, use the anchor cell's meta.
+        let effectiveRow: number = event.row;
+        let effectiveCol: number = event.col;
+        let verticalCount: number = 1;
+        let horizontalCount: number = 1;
+
+        const mergeCellsVal: Object | undefined = self.currentOption['customMergeCell'];
+        if (mergeCellsVal !== undefined) {
+          const merges: Object[] = mergeCellsVal as Object[];
+          for (let _mi: number = 0; _mi < merges.length; _mi++) {
+            const mrg: Record<string, Object> = merges[_mi] as Record<string, Object>;
+            const rng: Record<string, Object> = mrg['range'] as Record<string, Object>;
+            const rs: Record<string, Object> = rng['start'] as Record<string, Object>;
+            const re: Record<string, Object> = rng['end'] as Record<string, Object>;
+            const r0: number = rs['row'] as number;
+            const r1: number = re['row'] as number;
+            const c0: number = rs['col'] as number;
+            const c1: number = re['col'] as number;
+            if (r0 <= event.row && event.row <= r1 && c0 <= event.col && event.col <= c1) {
+              effectiveRow = r0;
+              effectiveCol = c0;
+              verticalCount = r1 - r0 + 1;
+              horizontalCount = c1 - c0 + 1;
+              break;
+            }
+          }
+        }
+
+        let keyIndex: number = 0;
+        // records index: header row (when shown) is not part of the records array.
+        const headerRows: number = showHeader ? 1 : 0;
+        const recordIdx: number = effectiveRow - headerRows;
+        const recordsVal: Object | undefined = self.currentOption['records'];
+        if (recordsVal !== undefined) {
+          const recordsArr: Object[] = recordsVal as Object[];
+          if (recordIdx >= 0 && recordIdx < recordsArr.length) {
+            const record: Record<string, Object> = recordsArr[recordIdx] as Record<string, Object>;
+            const metaKey: string = '__meta_' + effectiveCol.toString();
+            const metaVal: Object | undefined = record[metaKey];
+            if (metaVal !== undefined) {
+              const meta: Record<string, Object> = metaVal as Record<string, Object>;
+              const ki: Object | undefined = meta['keyIndex'];
+              if (ki !== undefined) {
+                keyIndex = ki as number;
+              }
+            }
+          }
+        }
+
+        const payloadStr: string = '{"keyIndex":' + keyIndex.toString() +
+          ',"rowIndex":' + effectiveRow.toString() +
+          ',"columnIndex":' + effectiveCol.toString() +
+          ',"verticalCount":' + verticalCount.toString() +
+          ',"horizontalCount":' + horizontalCount.toString() + '}';
+        self.emitEvent('clickEvent', JSON.parse(payloadStr) as Object);
+      },
+      onScroll: (event: ScrollEventData): void => {
+        const payloadStr: string = '{"translateX":' + event.scrollLeft.toString() +
+          ',"translateY":' + event.scrollTop.toString() +
+          ',"scale":' + self.currentZoom.toString() + '}';
+        self.emitEvent('scroll', JSON.parse(payloadStr) as Object);
+      },
+      onScrollVerticalEnd: (event: ScrollEventData): void => {
+        const payloadStr: string = '{"isEnd":true}';
+        self.emitEvent('scrollEnd', JSON.parse(payloadStr) as Object);
+      },
+      onInitialized: (): void => {
+        // Mark initialized so subsequent updateVTable calls emit contentSize directly.
+        self.vtableInitialized = true;
+
+        // Emit natively-measured contentSize. Listeners are ready by this point
+        // (JS componentDidMount runs before VTable's WebView finishes loading).
+        self.emitCachedContentSize();
+      },
+    };
+    return onEvent;
+  }
+
+  build() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      VTable({
+        controller: this.controller,
+        option: this.option,
+        onEvent: this.getOnEvent(),
+      })
+        .width(this.componentWidth > 0 && this.currentZoom > 0
+          ? this.componentWidth / this.currentZoom
+          : '100%')
+        .height(this.componentHeight > 0 && this.currentZoom > 0
+          ? (this.vtableClampHeight > 0
+            ? this.vtableClampHeight / this.currentZoom
+            : this.componentHeight / this.currentZoom)
+          : (this.vtableClampHeight > 0 ? this.vtableClampHeight : '100%'))
+        .scale({
+          x: this.currentZoom,
+          y: this.currentZoom,
+          centerX: 0,
+          centerY: 0
+        })
+        .position({ x: 0, y: 0 })
+
+    }
+    .width('100%')
+    .height('100%')
+    .clip(true)
+    .onAreaChange((oldArea: Area, newArea: Area): void => {
+      const w: number = newArea.width as number;
+      const h: number = newArea.height as number;
+      if (w > 0 && h > 0 && (w !== this.componentWidth || h !== this.componentHeight)) {
+        this.componentWidth = w;
+        this.componentHeight = h;
+        this.recomputeClampHeight();
+      }
+    })
+    // priorityGesture ensures the outer Stack always wins the pinch gesture before
+    // the VTable WebView can claim it. When disableZoom=true the handler exits early
+    // so currentZoom never changes; when false it applies the ArkTS scale transform.
+    .priorityGesture(
+      PinchGesture({ fingers: 2, distance: 1 })
+        .onActionStart((): void => {
+          this.pinchInProgress = true;
+          this.baseZoom = this.currentZoom;
+        })
+        .onActionUpdate((event: GestureEvent): void => {
+          if (this.disableZoom) {
+            return;
+          }
+          let newZoom: number = this.baseZoom * event.scale;
+          if (newZoom < 0.5) {
+            newZoom = 0.5;
+          }
+          if (newZoom > 2.0) {
+            newZoom = 2.0;
+          }
+          this.currentZoom = newZoom;
+        })
+        .onActionEnd((): void => {
+          this.pinchInProgress = false;
+          this.lastPinchEndMs = Date.now();
+        })
+        .onActionCancel((): void => {
+          this.pinchInProgress = false;
+          this.lastPinchEndMs = Date.now();
+        })
+    )
+  }
+}
