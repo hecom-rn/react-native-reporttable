@@ -85,13 +85,13 @@ export default class ReportTable extends React.Component{
     }
 
     convertFrozenAbility = () => {
-        const { frozenAbility, frozenPoint, frozenCount } = this.props;
+        const { frozenAbility, frozenPoint, frozenCount, frozenColumns } = this.props;
         const oriAbility = frozenPoint
             ? { [`${frozenPoint - 1}`]: { locked: false } }
             : frozenCount
             ? new Array(frozenCount)
                   .fill(false)
-                  .reduce((p, c, i) => Object.assign(p, { [`${i}`]: { locked: false } }), {})
+                  .reduce((p, c, i) => Object.assign(p, i >= frozenColumns ? { [`${i}`]: { locked: false } } : {}), {})
             : {};
         return frozenAbility || oriAbility;
     };

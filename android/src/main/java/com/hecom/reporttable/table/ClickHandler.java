@@ -5,6 +5,9 @@ import android.content.Context;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.uimanager.UIManagerHelper;
+import com.facebook.react.uimanager.events.Event;
+import com.facebook.react.uimanager.events.EventDispatcher;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.hecom.reporttable.form.data.column.Column;
 import com.hecom.reporttable.form.data.table.TableData;
@@ -48,15 +51,23 @@ public class ClickHandler implements TableData.OnItemClickListener<Cell> {
                 map.putInt("keyIndex", keyIndex);
                 map.putInt("rowIndex", row);
                 map.putInt("columnIndex",locker.getRawCol(col));
-                ((ReactContext) context).getJSModule(RCTEventEmitter.class)
-                        .receiveEvent(table.getId(), "onClickEvent", map);
-            }
+                //  ((ReactContext) context).getJSModule(RCTEventEmitter.class)
+                //          .receiveEvent(table.getId(), "topClickOnItem", map);
+
+               final EventDispatcher mEventDispatcher =
+               UIManagerHelper.getEventDispatcherForReactTag((ReactContext) context, table.getId());
+               mEventDispatcher.dispatchEvent(
+                   new TableEvent(
+                       UIManagerHelper.getSurfaceId(table),
+                       table.getId(),
+                       "topClickOnItem",
+                       map));
+                }
         } catch (Exception exception) {
             exception.printStackTrace();
             System.out.println("点击异常---" + exception);
         }
     }
-
 
 }
 

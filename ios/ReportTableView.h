@@ -15,6 +15,8 @@
 @property (nonatomic, strong) ReportTableModel *reportTableModel;
 @property (nonatomic, strong) ReportTableHeaderScrollView *headerScrollView;
 
+- (void)resetForRecycle;
+
 - (void)scrollToLineX:(NSInteger)lineX lineY:(NSInteger)lineY offsetX:(float)offsetX offsetY:(float)offsetY animated:(BOOL)animated;
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView;

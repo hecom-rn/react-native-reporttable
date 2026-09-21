@@ -28,13 +28,82 @@
 
 @implementation ReportTableView
 
+- (void)configureSpreadsheetView:(SpreadsheetView *)spreadsheetView {
+    spreadsheetView.showsVerticalScrollIndicator = false;
+    spreadsheetView.showsHorizontalScrollIndicator = false;
+    spreadsheetView.dataSource = self;
+    spreadsheetView.delegate = self;
+    spreadsheetView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    spreadsheetView.frame = self.bounds;
+    spreadsheetView.bounces = false;
+    [spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier:[ReportTableCell description]];
+
+    __weak typeof(self)weak_self = self;
+    spreadsheetView.onScrollEnd = ^(BOOL isOnEnd) {
+        if (weak_self.reportTableModel.onScrollEnd != nil) {
+            weak_self.reportTableModel.onScrollEnd(@{@"isEnd": @YES});
+        }
+    };
+    spreadsheetView.onScroll = ^(NSDictionary *object) {
+        if (weak_self.reportTableModel.onScroll != nil) {
+            weak_self.reportTableModel.onScroll(object);
+        }
+        [weak_self setMergedCellsLabelOffset];
+    };
+    spreadsheetView.rowHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_rowHeaderView"];
+    spreadsheetView.cornerView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_cornerView"];
+    spreadsheetView.tableView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_tableView"];
+    spreadsheetView.columnHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_columnHeaderView"];
+}
+
+- (void)tearDownSpreadsheetView {
+    if (_spreadsheetView == nil) {
+        return;
+    }
+    _spreadsheetView.dataSource = nil;
+    _spreadsheetView.delegate = nil;
+    _spreadsheetView.onScroll = nil;
+    _spreadsheetView.onScrollEnd = nil;
+    [_spreadsheetView removeFromSuperview];
+    _spreadsheetView = nil;
+}
+
+- (void)resetSpreadsheetBorder {
+    if (_spreadsheetView == nil) {
+        return;
+    }
+    _spreadsheetView.layer.masksToBounds = NO;
+    _spreadsheetView.layer.borderColor = nil;
+    _spreadsheetView.layer.borderWidth = 0;
+}
+
 - (void)setHeaderScrollView:(ReportTableHeaderScrollView *)headerScrollView {
-    self.spreadsheetView.tableHeaderView = headerScrollView;
+    if (_headerScrollView != nil && _headerScrollView != headerScrollView) {
+        _headerScrollView.delegate = nil;
+    }
     _headerScrollView = headerScrollView;
-    headerScrollView.delegate = self.spreadsheetView;
+    if (headerScrollView == nil) {
+        if (_spreadsheetView != nil) {
+            _spreadsheetView.tableHeaderView = [UIScrollView new];
+            _spreadsheetView.tableView.scrollEnabled = true;
+        }
+        self.isOnHeader = false;
+        return;
+    }
     self.headerScrollView.isUserScouce = false;
     self.spreadsheetView.tableView.scrollEnabled = true;
-    [self sendSubviewToBack:_headerScrollView];
+    if (headerScrollView.frame.size.height > 0) {
+        // 有 header 可见时才挂载并激活，否则 UIScrollView 的 panGesture 会干扰 spreadsheetView
+        self.spreadsheetView.tableHeaderView = headerScrollView;
+        headerScrollView.delegate = self.spreadsheetView;
+        [self sendSubviewToBack:_headerScrollView];
+    } else {
+        // 无 header 时重置 tableHeaderView 为默认空 scrollView，避免 UIScrollView 的 panGesture 干扰 spreadsheetView
+        // 同时把 headerScrollView 沉到最底层
+        self.spreadsheetView.tableHeaderView = [UIScrollView new];
+        headerScrollView.delegate = nil;
+        [self sendSubviewToBack:_headerScrollView];
+    }
     self.isOnHeader = false;
 }
 
@@ -60,7 +129,7 @@
         self.containerView.layer.anchorPoint = CGPointMake(0, 0);
         [self addSubview: self.containerView];
 
-        [self.spreadsheetView registerClass:[ReportTableCell class] forCellWithReuseIdentifier: [ReportTableCell description]];
+        [self spreadsheetView];
         [self.spreadsheetView flashScrollIndicators];
     }
     return self;
@@ -85,6 +154,8 @@
         self.spreadsheetView.layer.masksToBounds = YES;
         self.spreadsheetView.layer.borderColor = reportTableModel.lineColor.CGColor;
         self.spreadsheetView.layer.borderWidth = hairline;
+    } else {
+        [self resetSpreadsheetBorder];
     }
     if (self.reportTableModel.permutedArr.count > 0 && reportTableModel.dataSource.count > 0) {
         NSArray *data = reportTableModel.dataSource[0];
@@ -113,8 +184,9 @@
 
 
     self.spreadsheetView.showCloumnForzenShadow = isFullWidth; // 设置是否显示阴影
-    [self.spreadsheetView reloadData];
     [self scrollViewDidZoom: self];
+    [self.spreadsheetView reloadData];
+    [self.spreadsheetView layoutIfNeeded];
     [self setMergedCellsLabelOffset];
     [ReportTableEvent tableDidLayout]; // 回调完成回调
 }
@@ -143,8 +215,10 @@
 }
 
 - (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(CGFloat)scale {
-    // 修正headerView的层级
-    [self sendSubviewToBack: self.headerScrollView];
+    // 修正headerView的层级（只有 header 可见时才有意义）
+    if (self.headerScrollView.frame.size.height > 0) {
+        [self sendSubviewToBack: self.headerScrollView];
+    }
     self.headerScrollView.isUserScouce = false;
     self.isOnHeader = false;
 
@@ -202,26 +276,52 @@
     }
 }
 
+- (void)resetForRecycle {
+    self.isOnHeader = false;
+    self.reportTableModel = nil;
+    self.dataSource = nil;
+    self.frozenArray = nil;
+    self.cloumsHight = nil;
+    self.rowsWidth = nil;
+    [self resetSpreadsheetBorder];
+    if (_spreadsheetView) {
+        [_spreadsheetView setContentOffset:CGPointZero animated:NO];
+        _spreadsheetView.tableView.scrollEnabled = true;
+        _spreadsheetView.tableHeaderView = [UIScrollView new];
+        _spreadsheetView.showCloumnForzenShadow = NO;
+    }
+    if (_headerScrollView) {
+        _headerScrollView.delegate = nil;
+        _headerScrollView.isUserScouce = false;
+        _headerScrollView.offset = 0;
+        _headerScrollView.contentOffset = CGPointZero;
+        [self sendSubviewToBack:_headerScrollView];
+    }
+    [self tearDownSpreadsheetView];
+}
+
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
     if (self.isZooming) {
         return [super hitTest:point withEvent:event];
     }
-    BOOL isOnHeader = point.y < (self.headerScrollView.frame.size.height - self.headerScrollView.contentOffset.y) && self.spreadsheetView.contentOffset.y <= 0;
-    if (isOnHeader == YES && self.isOnHeader == false) {
+    CGFloat headerVisibleHeight = self.headerScrollView.frame.size.height - self.headerScrollView.contentOffset.y;
+    BOOL isOnHeader = headerVisibleHeight > 0
+                      && point.y < headerVisibleHeight
+                      && self.spreadsheetView.contentOffset.y <= 0;
+    if (isOnHeader && !self.isOnHeader) {
         self.headerScrollView.isUserScouce = true;
         self.headerScrollView.offset = self.spreadsheetView.contentOffset.y * self.zoomScale;
         [self.headerScrollView scrollViewDidScroll: self.headerScrollView];
         self.spreadsheetView.tableView.scrollEnabled = false;
         [self bringSubviewToFront: self.headerScrollView];
-        self.isOnHeader = isOnHeader;
-    } else if (isOnHeader == false && self.isOnHeader == true) {
+        self.isOnHeader = YES;
+    } else if (!isOnHeader && self.isOnHeader) {
         self.headerScrollView.isUserScouce = false;
         self.spreadsheetView.tableView.scrollEnabled = true;
         [self sendSubviewToBack: self.headerScrollView];
-        self.isOnHeader = isOnHeader;
-    } else {
-        self.isOnHeader = !isOnHeader;
+        self.isOnHeader = NO;
     }
+    // 注意：不再有 else 分支翻转 isOnHeader，避免 height=0 时状态错乱
     return [super hitTest:point withEvent:event];
 }
 
@@ -229,29 +329,7 @@
     if (!_spreadsheetView) {
         _spreadsheetView = ({
             SpreadsheetView *ssv = [SpreadsheetView new];
-            ssv.showsVerticalScrollIndicator = false;
-            ssv.showsHorizontalScrollIndicator = false;
-            ssv.dataSource = self;
-            ssv.delegate   = self;
-            ssv.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-            ssv.frame = self.bounds;
-            ssv.bounces = false;
-            __weak typeof(self)weak_self = self;
-            ssv.onScrollEnd = ^(BOOL isOnEnd) {
-                if (weak_self.reportTableModel.onScrollEnd != nil) {
-                    weak_self.reportTableModel.onScrollEnd(@{@"isEnd": @YES});
-                }
-            };
-            ssv.onScroll = ^(NSDictionary *object) {
-                if (weak_self.reportTableModel.onScroll != nil) {
-                    weak_self.reportTableModel.onScroll(object);
-                }
-                [weak_self setMergedCellsLabelOffset];
-            };
-            ssv.rowHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_rowHeaderView"];
-            ssv.cornerView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_cornerView"];
-            ssv.tableView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_tableView"];
-            ssv.columnHeaderView.accessibilityIdentifier = [NSString stringWithFormat:@"testID_columnHeaderView"];
+            [self configureSpreadsheetView:ssv];
             [self addSubview:ssv];
             ssv;
         });
@@ -494,8 +572,9 @@
                     [self.reportTableModel.permutedArr addObject:@(columIndex)];
                 }
                 self.reportTableModel.frozenColumns = self.reportTableModel.permutedArr.count + self.reportTableModel.oriFrozenColumns;
-                [self.spreadsheetView reloadData];
                 [self scrollViewDidZoom: self];
+                [self.spreadsheetView reloadData];
+                [self.spreadsheetView layoutIfNeeded];
             }
         } else {
             NSInteger newFrozenColums = column + model.horCount;
@@ -538,8 +617,9 @@
                         }
                         self.reportTableModel.frozenColumns = newFrozenColums;
                     }
-                    [self.spreadsheetView reloadData];
                     [self scrollViewDidZoom: self];
+                    [self.spreadsheetView reloadData];
+                    [self.spreadsheetView layoutIfNeeded];
                 }
             }
         }
