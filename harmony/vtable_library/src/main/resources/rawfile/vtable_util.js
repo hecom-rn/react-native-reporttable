@@ -4,6 +4,18 @@ var output = document.querySelector('.output');
 // Global cell render metadata — populated in initializeTable/updateOption
 window._tableHeaderMeta = {}; // { 'vtableRow_col': { classificationLinePosition, classificationLineColor } }
 window._lockInfoMap = {};     // { colIndex: { showLock: bool } }
+// 全列锁定标志：frozenColCount >= colCount 时 VTable 的 setFrozenColCount 会静默清零
+// （`t>=this.colCount&&(t=0)`），_resetFrozenColCount 的剩余空间检查也会清零。全列锁定时
+// 表格已无横向滚动，视觉上与"不冻结"等价，因此映射为 0 传给 VTable，改用本标志驱动
+// 锁图标状态（对齐 iOS/Android 全列锁定合法的行为，缺陷 71100586）。
+window.__allColsLocked = false;
+
+// Map a "lock all columns" request to a VTable-safe frozenColCount (0) and
+// record it in window.__allColsLocked for lock-icon rendering.
+function _applyAllColsLockedFlag(colCount, frozenColCount) {
+    window.__allColsLocked = frozenColCount != null && colCount > 0 && frozenColCount >= colCount;
+    return window.__allColsLocked ? 0 : frozenColCount;
+}
 
 /**
  * Extract __headerMeta and __lockInfo from column definitions and store globally.
@@ -708,6 +720,57 @@ function _pushLockIcon(els, lx, ly, iW, iH, isLocked) {
     });
 }
 
+// ===== 多指触控点击抑制（缺陷 71085412）=====
+// 双指缩放时若 ArkUI 层 PinchGesture 未及时识别（快速捏合、提前抬指），
+// 触摸序列会完整进入 WebView：VTable 先小幅平移（SCROLL），touchend 收尾时
+// 整体位移小于点击阈值又被判定为点按，派发 CLICK_CELL 触发指标穿透。
+// ArkTS 侧的 pinchInProgress 抑制依赖手势被识别，存在竞态漏网；
+// 在 WebView 侧按触点计数从源头拦截：出现过 2 指及以上触控时，
+// 多指期间与其结束后短窗口内不上抛 CLICK_CELL / DBLCLICK_CELL。
+var _multiTouchActive = false;
+var _multiTouchSuppressUntil = 0;
+var MULTI_TOUCH_SUPPRESS_MS = 400;
+// VTable 内部可能走 touch 或 pointer 事件，两套信号都监听（capture 阶段，
+// 保证先于 VTable 在 canvas 上的处理器更新标志）。
+var _activePointerIds = {};
+
+function _mtTouchStart(e) {
+    if (e.touches && e.touches.length >= 2) {
+        _multiTouchActive = true;
+    }
+}
+function _mtTouchEnd(e) {
+    if (_multiTouchActive && e.touches && e.touches.length === 0) {
+        _multiTouchActive = false;
+        _multiTouchSuppressUntil = Date.now() + MULTI_TOUCH_SUPPRESS_MS;
+    }
+}
+function _mtPointerDown(e) {
+    if (e.pointerType && e.pointerType !== 'touch') return;
+    _activePointerIds[e.pointerId] = true;
+    if (Object.keys(_activePointerIds).length >= 2) {
+        _multiTouchActive = true;
+    }
+}
+function _mtPointerUp(e) {
+    if (e.pointerType && e.pointerType !== 'touch') return;
+    delete _activePointerIds[e.pointerId];
+    if (_multiTouchActive && Object.keys(_activePointerIds).length === 0) {
+        _multiTouchActive = false;
+        _multiTouchSuppressUntil = Date.now() + MULTI_TOUCH_SUPPRESS_MS;
+    }
+}
+window.addEventListener('touchstart', _mtTouchStart, true);
+window.addEventListener('touchend', _mtTouchEnd, true);
+window.addEventListener('touchcancel', _mtTouchEnd, true);
+window.addEventListener('pointerdown', _mtPointerDown, true);
+window.addEventListener('pointerup', _mtPointerUp, true);
+window.addEventListener('pointercancel', _mtPointerUp, true);
+
+function _isMultiTouchSuppressed() {
+    return _multiTouchActive || Date.now() < _multiTouchSuppressUntil;
+}
+
 var eventMap = {
     "INITIALIZED": eventCallback,
     "UPDATED": eventCallback,
@@ -765,6 +828,10 @@ var eventCallback = (type, data) => {
     switch (type) {
         case "CLICK_CELL":
         case "DBLCLICK_CELL":
+            if (_isMultiTouchSuppressed()) {
+                console.log('[' + type + '] 多指触控期间/刚结束，忽略点击（防缩放误穿透，缺陷 71085412）');
+                return;
+            }
             filteredData = extractCellClickData(data);
             break;
 
@@ -1079,7 +1146,7 @@ function buildCellRender() {
                 var hPadH = Array.isArray(hPad) ? (hPad[1] || 12) : 12;
                 var hCellValue = '';
                 try { hCellValue = String(args.table.getCellValue(col, row) || ''); } catch(e) {}
-                var hIsLocked = col < (args.table.frozenColCount || 0);
+                var hIsLocked = col < (args.table.frozenColCount || 0) || window.__allColsLocked === true;
                 var hIconW = 13, hIconH = 14, hIconPad = 4;
                 // Resolve sort icon source the same way as body icon cells:
                 // prefer `name` (Android drawable name), fall back to iOS path.uri.
@@ -1124,11 +1191,13 @@ function buildCellRender() {
                     var hEtBg = hExtra.backgroundStyle || {};
                     var hEtTs = hExtra.style || {};
                     var hEtX, hEtTxtX;
+                    // Lock icon is pinned to the right edge — badge must stay left of it.
+                    var hEtMaxX = w - hEtW - (hShowLock ? hIconW + hIconPad : 0);
                     if (hExtra.isLeft) {
-                        hEtX = Math.max(0, Math.min(Math.round(hTX), Math.round(w - hEtW)));
+                        hEtX = Math.max(0, Math.min(Math.round(hTX), Math.round(hEtMaxX)));
                         hEtTxtX = hEtX + hEtW / 2;
                     } else {
-                        hEtX = Math.max(0, Math.min(Math.round(hCurX + hEtPad), Math.round(w - hEtW)));
+                        hEtX = Math.max(0, Math.min(Math.round(hCurX + hEtPad), Math.round(hEtMaxX)));
                         hEtTxtX = hEtX + hEtW / 2;
                         hCurX = hEtX + hEtW;
                     }
@@ -1140,9 +1209,12 @@ function buildCellRender() {
                         cornerRadius: hEtBg.radius || 2,
                         pickable: false
                     });
+                    // +1 dy: VRender textBaseline 'middle' aligns the em-box center,
+                    // which sits above the CJK glyph center — the character looks
+                    // shifted up inside the badge without this correction.
                     hElements.push({
                         type: 'text',
-                        x: hEtTxtX, y: hEtY + hEtH / 2,
+                        x: hEtTxtX, y: hEtY + hEtH / 2 + 1,
                         text: hExtra.text || '',
                         fontSize: hEtTs.fontSize || 10,
                         fill: hEtTs.color || '#ffffff',
@@ -1162,7 +1234,14 @@ function buildCellRender() {
                     hCurX += hSortW;
                 }
                 if (hShowLock) {
-                    _pushLockIcon(hElements, hCurX + hIconPad, (h - hIconH) / 2, hIconW, hIconH, hIsLocked);
+                    // Pin the lock icon to the cell's right edge instead of after the
+                    // measured text: canvas measurement can under-estimate CJK width
+                    // (VTable then renders the header text past the icon and covers it),
+                    // and auto column width only measures text, so "text + 4px" could
+                    // push the icon across the cell border into the next column.
+                    // Pinned right and drawn after the text element, the icon stays
+                    // visible and tappable regardless of text overflow.
+                    _pushLockIcon(hElements, w - hPadH - hIconW, (h - hIconH) / 2, hIconW, hIconH, hIsLocked);
                 }
             }
 
@@ -1201,16 +1280,68 @@ function buildCellRender() {
             try { bStyle = args.table.getCellStyle(col, row) || {}; } catch(e) {}
             var bPad = bStyle.padding;
             var bPadH = Array.isArray(bPad) ? (bPad[1] || 12) : 12;
-            var bIconW = 13, bIconH = 14;
+            var bIconW = 13, bIconH = 14, bIconPad = 4;
             var bLockX = w - bPadH - bIconW;
             // Merged first-body-row cells span several rows (dimension title
             // merged with the first data cell) — keep the icon vertically
             // centered in the whole merged rect, matching the centered text.
             var bLockY = (h - bIconH) / 2;
-            var bIsLocked = col < (args.table.frozenColCount || 0);
+            var bIsLocked = col < (args.table.frozenColCount || 0) || window.__allColsLocked === true;
             var bElements = [];
+            // Take over the text rendering (renderDefault:false) and clamp it left
+            // of the lock icon. The native text did not know about the icon, so long
+            // dimension titles ran underneath it (缺陷 71108534: 锁定icon被名称遮挡).
+            var bFontSize = bStyle.fontSize || 14;
+            var bColor = bStyle.color || '#222222';
+            var bFontWeight = bStyle.fontWeight || 'normal';
+            var bTextAlign = bStyle.textAlign || 'left';
+            var bValue = '';
+            try { bValue = String(args.table.getCellValue(col, row) || ''); } catch(e) {}
+            var bMaxTextW = Math.max(0, w - bPadH * 2 - bIconW - bIconPad);
+            var bMeasuredW = _measureTextWidth(bValue, bFontSize, bFontWeight);
+            var bActualTextW = Math.min(bMeasuredW, bMaxTextW);
+            var bTX = bPadH;
+            if (bTextAlign === 'center') bTX = Math.max(bPadH, (w - bActualTextW - bIconW - bIconPad) / 2);
+            else if (bTextAlign === 'right') bTX = Math.max(bPadH, w - bPadH - bActualTextW - bIconW - bIconPad);
+            bElements.push({ type: 'text', x: bTX, y: h / 2, text: bValue,
+                fontSize: bFontSize, fill: bColor, fontWeight: bFontWeight,
+                textAlign: 'left', textBaseline: 'middle',
+                maxLineWidth: bActualTextW, autoWrapText: true, ellipsis: false,
+                lineHeight: bFontSize, pickable: false });
+            // Extra-text badge (e.g. fiscal-calendar tag) inline after the title,
+            // clamped left of the lock icon. The generic meta branch below is
+            // unreachable for this row, so it must be drawn here.
+            var bMeta = record && record['__meta_' + col];
+            var bExtra = bMeta && bMeta.extraText;
+            if (bExtra) {
+                var bEtBg = bExtra.backgroundStyle || {};
+                var bEtTs = bExtra.style || {};
+                var bEtW = Number(bEtBg.width) || 16;
+                var bEtH = Number(bEtBg.height) || 14;
+                var bEtMaxX = bLockX - bIconPad - bEtW;
+                var bEtX = bExtra.isLeft
+                    ? Math.max(0, Math.min(Math.round(bTX), Math.round(bEtMaxX)))
+                    : Math.max(0, Math.min(Math.round(bTX + bActualTextW + 2), Math.round(bEtMaxX)));
+                var bEtY = Math.max(0, Math.round((h - bEtH) / 2));
+                bElements.push({
+                    type: 'rect', x: bEtX, y: bEtY, width: bEtW, height: bEtH,
+                    fill: bEtBg.color || '#ff0000', cornerRadius: bEtBg.radius || 2,
+                    pickable: false
+                });
+                bElements.push({
+                    type: 'text',
+                    // +1 dy: CJK visual-center correction (see header badge branch)
+                    x: bEtX + bEtW / 2, y: bEtY + bEtH / 2 + 1,
+                    text: bExtra.text || '',
+                    fontSize: bEtTs.fontSize || 10,
+                    fill: bEtTs.color || '#ffffff',
+                    textAlign: 'center', textBaseline: 'middle',
+                    lineHeight: bEtTs.fontSize || 10,
+                    pickable: false
+                });
+            }
             _pushLockIcon(bElements, bLockX, bLockY, bIconW, bIconH, bIsLocked);
-            return { elements: bElements, renderDefault: true };
+            return { elements: bElements, renderDefault: false };
         }
 
         if (!meta) return { renderDefault: true };
@@ -1356,10 +1487,25 @@ function buildCellRender() {
                 var blockH = 0;
                 for (var li = 0; li < flowLines.length; li++) blockH += flowLines[li].height;
                 var flowY = textY - blockH / 2;
+                var blockTop = flowY;
+                var blockLeft = Infinity, blockRight = -Infinity;
                 for (var ln = 0; ln < flowLines.length; ln++) {
                     var lineMeta = flowLines[ln];
                     var lineMidY = flowY + lineMeta.height / 2;
-                    var curX = padH;
+                    // Measure the whole line first so its start follows the cell's
+                    // textAlign (single-segment text already honors anchor above;
+                    // richText lines used to be hard-coded to the left padding).
+                    var lineW = 0;
+                    for (var si0 = 0; si0 < lineMeta.segs.length; si0++) {
+                        lineW += _measureTextWidth(lineMeta.segs[si0].text, lineMeta.segs[si0].fs, lineMeta.segs[si0].fw) + 4;
+                    }
+                    if (lineMeta.segs.length > 0) lineW -= 4; // drop trailing gap
+                    var curX;
+                    if (anchor === 'center') curX = Math.max(padLeft, (w - lineW) / 2);
+                    else if (anchor === 'right') curX = Math.max(padLeft, w - padRight - lineW);
+                    else curX = padLeft;
+                    blockLeft = Math.min(blockLeft, curX);
+                    blockRight = Math.max(blockRight, curX + lineW);
                     for (var si = 0; si < lineMeta.segs.length; si++) {
                         var fs2 = lineMeta.segs[si];
                         var st2 = fs2.st;
@@ -1393,6 +1539,42 @@ function buildCellRender() {
                         curX += rW + 4;
                     }
                     flowY += lineMeta.height;
+                }
+
+                // iOS renders cell.icon alongside rich text as an independent view;
+                // the richText branch above used to skip the icon entirely, losing
+                // the status dot on the detail-table index column.
+                if (meta.icon) {
+                    var rtIcon = meta.icon;
+                    var rtIW = rtIcon.width != null ? rtIcon.width : 16;
+                    var rtIH = rtIcon.height != null ? rtIcon.height : 16;
+                    var rtIPad = rtIcon.paddingHorizontal != null ? rtIcon.paddingHorizontal : 4;
+                    var rtAlign = rtIcon.imageAlignment || 3;
+                    var rtIconX;
+                    if (rtAlign === 2) rtIconX = (w - rtIW) / 2;
+                    else if (rtAlign === 1) rtIconX = blockLeft - rtIPad - rtIW;
+                    else rtIconX = blockRight + rtIPad;
+                    var rtSrc = '';
+                    if (rtIcon.name) {
+                        rtSrc = _resolveAndroidImg(rtIcon.name);
+                        if (!rtSrc && _isValidIconUrl(rtIcon.name)) rtSrc = rtIcon.name;
+                    } else if (rtIcon.path && rtIcon.path.uri) {
+                        rtSrc = _resolveAndroidImg(_nameFromUri(rtIcon.path.uri));
+                        if (!rtSrc && _isValidIconUrl(rtIcon.path.uri)) rtSrc = rtIcon.path.uri;
+                    }
+                    if (rtSrc) {
+                        var rtRW = Math.min(rtIW, Math.max(1, w));
+                        var rtRH = Math.min(rtIH, Math.max(1, h));
+                        elements.push({
+                            type: 'image',
+                            x: Math.max(0, Math.min(Math.round(rtIconX), Math.round(w - rtRW))),
+                            y: Math.max(0, Math.min(Math.round(blockTop + (blockH - rtRH) / 2), Math.round(h - rtRH))),
+                            width: rtRW,
+                            height: rtRH,
+                            src: rtSrc,
+                            pickable: false
+                        });
+                    }
                 }
 
             } else if (meta.icon) {
@@ -1533,7 +1715,10 @@ function buildCellRender() {
             var etBW  = etBg.width  || 20;
             var etBH  = etBg.height || 14;
             var etBX  = (et.isLeft) ? padLeft : w - padRight - etBW;
-            var etBY  = 2;
+            // Vertically center the badge in the cell (was pinned to y=2, which
+            // floated it above the title text — the fiscal tag on home report
+            // cards renders through this body-cell branch, 缺陷 71108534).
+            var etBY  = Math.round((h - etBH) / 2);
             elements.push({
                 type: 'rect',
                 x: etBX, y: etBY, width: etBW, height: etBH,
@@ -1543,7 +1728,9 @@ function buildCellRender() {
             });
             elements.push({
                 type: 'text',
-                x: etBX + etBW / 2, y: etBY + etBH / 2,
+                // +1 dy: same CJK visual-center correction as the header badge
+                // (textBaseline 'middle' aligns the em-box center, above the glyph center).
+                x: etBX + etBW / 2, y: etBY + etBH / 2 + 1,
                 text: et.text || '',
                 fontSize: etTs.fontSize || 10,
                 fill: etTs.color || '#ffffff',
@@ -1631,6 +1818,376 @@ function _applyTheme(option) {
     option.theme = VTable.themes.DEFAULT.extends(themePatch)
 }
 
+// ============================================================
+// 冻结列维度文字 sticky（缺陷 71101165）
+// 冻结列中跨行合并的维度单元格（如"蓝湖"），其文字由 VTable 原生渲染在
+// 合并格垂直居中位置，垂直滚动时会随内容滚出可视区。iOS/Android 原生表格
+// 让维度文字始终停留在可视区内。这里在 WebView 内叠一个 pointer-events:none
+// 的 DOM 层：当原文字滚出可视区时，用单元格背景色矩形遮盖 VTable 的原文字，
+// 并在 clamp 后的位置（贴 body 可视区上/下缘）按相同样式重绘文字。
+// 坐标系均为 VTable canvas 的 CSS 像素（= vp），冻结列 x 固定，仅 y 随
+// scrollTop 变化，因此每帧只需 DOM 更新，不触碰 VTable 渲染。
+// ============================================================
+var _stickyState = {
+    candidates: [],   // [{ cellLeft, cellWidth, cellTopInContent, cellHeight, text, style, els }]
+    overlay: null,
+    headerH: 0,       // 冻结行（表头）总高 = body 可视区顶部
+    // 无锁定列且列总宽超视口（可横向滚动，如管理总表 frozenAbility locked:false）时，
+    // 维度列 x 随 scrollLeft 移动，overlay 需按横向滚动偏移并按 x 交集裁剪。
+    xScrollable: false,
+    pendingOptions: null, // canvas 布局未完成时挂起的 option，待 rAF 循环重试
+    rafId: 0,
+    running: false,
+    lastScrollTop: -1,
+    lastScrollLeft: -1,
+    lastViewH: -1,
+    lastViewW: -1,
+};
+// sticky 文字与 body 可视区上/下缘的最小间距（px）
+var _STICKY_EDGE = 4;
+
+/**
+ * Resolve the text style of a merged cell's anchor: theme body/rowHeader style
+ * (RN side keeps them identical so frozen columns don't change appearance)
+ * overridden by the anchor cell's customCellStyleArrangement entry.
+ */
+function _stickyReadCellStyle(options, anchor) {
+    var theme = options.theme || {};
+    var base = theme.bodyStyle || theme.rowHeaderStyle || {};
+    var padH = 12;
+    if (Array.isArray(base.padding) && base.padding[1] != null) padH = base.padding[1];
+    var st = {
+        fontSize: base.fontSize || 14,
+        color: base.color || '#222222',
+        bgColor: base.bgColor || '#ffffff',
+        fontWeight: base.fontWeight || 'normal',
+        textAlign: base.textAlign || 'left',
+        padH: padH,
+    };
+    var styleDefs = options.customCellStyle;
+    var arrangement = options.customCellStyleArrangement;
+    if (Array.isArray(styleDefs) && Array.isArray(arrangement)) {
+        var defMap = {};
+        for (var di = 0; di < styleDefs.length; di++) defMap[styleDefs[di].id] = styleDefs[di].style;
+        for (var ai = 0; ai < arrangement.length; ai++) {
+            var pos = arrangement[ai].cellPosition;
+            if (pos && pos.col === anchor.col && pos.row === anchor.row) {
+                var s = defMap[arrangement[ai].customStyleId != null ? arrangement[ai].customStyleId : arrangement[ai].styleId];
+                if (s) {
+                    if (s.fontSize != null) st.fontSize = s.fontSize;
+                    if (s.color != null) st.color = s.color;
+                    if (s.bgColor != null) st.bgColor = s.bgColor;
+                    if (s.fontWeight != null) st.fontWeight = s.fontWeight;
+                    if (s.textAlign != null) st.textAlign = s.textAlign;
+                    if (Array.isArray(s.padding) && s.padding[1] != null) st.padH = s.padding[1];
+                }
+                break;
+            }
+        }
+    }
+    return st;
+}
+
+/**
+ * Create the overlay container (once) inside #tableContainer, above VTable's canvas.
+ */
+function _stickyEnsureOverlay() {
+    if (_stickyState.overlay && _stickyState.overlay.parentNode) return;
+    var container = document.getElementById('tableContainer');
+    if (!container) { _stickyState.overlay = null; return; }
+    if (getComputedStyle(container).position === 'static') {
+        container.style.position = 'relative';
+    }
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;' +
+        'pointer-events:none;overflow:hidden;z-index:10;';
+    container.appendChild(ov);
+    _stickyState.overlay = ov;
+}
+
+/**
+ * Lazily create the per-candidate cover + text elements.
+ */
+function _stickyEnsureEls(cand) {
+    if (cand.els) return cand.els;
+    _stickyEnsureOverlay();
+    if (!_stickyState.overlay) return null;
+    var cover = document.createElement('div');
+    cover.style.cssText = 'position:absolute;display:none;';
+    cover.style.background = cand.style.bgColor;
+    var text = document.createElement('div');
+    text.style.cssText = 'position:absolute;display:none;box-sizing:border-box;' +
+        'white-space:pre-wrap;word-break:break-word;';
+    _stickyState.overlay.appendChild(cover);
+    _stickyState.overlay.appendChild(text);
+    cand.els = { cover: cover, text: text, textH: 0, measuredW: null };
+    return cand.els;
+}
+
+/**
+ * Hide all candidate elements and stop the rAF loop.
+ */
+function _stickyClear() {
+    _stickyState.running = false;
+    if (_stickyState.rafId) {
+        cancelAnimationFrame(_stickyState.rafId);
+        _stickyState.rafId = 0;
+    }
+    for (var i = 0; i < _stickyState.candidates.length; i++) {
+        var els = _stickyState.candidates[i].els;
+        if (els) {
+            els.cover.style.display = 'none';
+            els.text.style.display = 'none';
+        }
+    }
+    _stickyState.candidates = [];
+    _stickyState.lastScrollTop = -1;
+    _stickyState.lastScrollLeft = -1;
+    _stickyState.lastViewH = -1;
+    _stickyState.lastViewW = -1;
+}
+
+/**
+ * Drop cached text heights (e.g. after zoomIn/zoomOut changed theme fontSize)
+ * and force a refresh on the next frame.
+ */
+function _stickyInvalidateText() {
+    for (var i = 0; i < _stickyState.candidates.length; i++) {
+        if (_stickyState.candidates[i].els) {
+            _stickyState.candidates[i].els.textH = 0;
+            _stickyState.candidates[i].els.measuredW = null;
+        }
+    }
+    _stickyState.lastScrollTop = -1;
+}
+
+/**
+ * Rebuild sticky metadata from the option being applied. Call AFTER the option
+ * is live on the table instance (initializeTable / updateOption 末尾), so
+ * tableInstance.frozenColCount reflects the effective frozen state.
+ */
+function _stickyRebuild(options) {
+    _stickyClear();
+    var inst = window.tableInstance;
+    if (!inst) return;
+    var mergeItems = options.customMergeCell;
+    if (!Array.isArray(mergeItems) || mergeItems.length === 0) return;
+
+    var frozenCols = inst.frozenColCount || 0;
+    if (window.__allColsLocked === true) {
+        // 全列锁定时 frozenColCount 被映射为 0 传给 VTable，但所有列视觉上都冻结。
+        frozenCols = inst.colCount || (Array.isArray(options.columns) ? options.columns.length : 0);
+    }
+    var frozenRows = inst.frozenRowCount || 0;
+    var cols = options.columns || [];
+    // 冻结列 x 前缀和（ArkTS 已把测量列宽写入 columns[i].width）。
+    var colPrefix = new Array(cols.length + 1);
+    colPrefix[0] = 0;
+    for (var c = 0; c < cols.length; c++) {
+        var cw = cols[c] ? (cols[c].width != null ? cols[c].width : (cols[c].minWidth || 100)) : 100;
+        colPrefix[c + 1] = colPrefix[c] + cw;
+    }
+    // 无锁定列（frozenCols=0，如列数少不超宽的分组明细报表 frozenCount=0）时，
+    // 若列总宽不超过视口宽（无横向滚动），所有列视觉上本来就固定不动，
+    // 维度列的垂直 sticky 依然应该生效（对齐 iOS/Android，缺陷 71101165）。
+    // 列总宽超过视口（可横向滚动，如管理总表 frozenAbility locked:false）时，
+    // iOS/Android 原生表格的合并大格文字同样跟随可视区（与列是否锁定无关），
+    // 因此也生成候选，x 坐标随 scrollLeft 偏移（xScrollable，缺陷 71101165 复审）。
+    var xScrollable = false;
+    if (frozenCols <= 0) {
+        var canvasW = (inst.canvas && inst.canvas.offsetWidth) || 0;
+        if (canvasW > 0 && colPrefix[cols.length] <= canvasW + 1) {
+            frozenCols = cols.length;
+        } else if (canvasW > 0) {
+            frozenCols = cols.length;
+            xScrollable = true;
+        } else {
+            // WebView 初始布局未完成（canvas 宽度还是 0），挂起，待布局完成后
+            // 由 rAF 循环重试（否则按误判的 frozenCols=0 静默放弃）。
+            _stickyState.pendingOptions = options;
+            _stickyState.running = true;
+            _stickyState.rafId = requestAnimationFrame(_stickyLoop);
+            return;
+        }
+    }
+    if (frozenCols <= 0) return;
+
+    // 行高前缀和。rowHeights 是 VTable 全局行高（showHeader 时含表头行）。
+    // 内容区行 r（r >= frozenRows）距滚动内容顶部的偏移 = prefix[r] - prefix[frozenRows]。
+    var rowH = Array.isArray(options.rowHeights) ? options.rowHeights : [];
+    var defRowH = options.defaultRowHeight || 40;
+    var rowLen = Math.max(rowH.length, inst.rowCount || 0);
+    var prefix = new Array(rowLen + 1);
+    prefix[0] = 0;
+    for (var r = 0; r < rowLen; r++) {
+        prefix[r + 1] = prefix[r] + (rowH[r] != null ? rowH[r] : defRowH);
+    }
+    var frozenH = prefix[Math.min(frozenRows, rowLen)];
+
+    var candidates = [];
+    for (var mi = 0; mi < mergeItems.length; mi++) {
+        var item = mergeItems[mi];
+        var range = item && item.range;
+        if (!range || !range.start || !range.end) continue;
+        var sr = range.start.row, er = range.end.row;
+        var sc = range.start.col, ec = range.end.col;
+        // 仅处理单列垂直合并的维度格：跨列合并（ec > sc）是汇总行（小计/总计）
+        // 的横跨格，不是维度列，纳入后遮盖矩形会横跨多列盖住数据行。
+        if (er <= sr || sc !== ec || sr < frozenRows || ec >= frozenCols || er >= rowLen) continue;
+        var text = item.text != null ? String(item.text) : '';
+        if (!text) continue;
+        var x0 = colPrefix[Math.min(sc, cols.length)];
+        var x1 = colPrefix[Math.min(ec + 1, cols.length)];
+        candidates.push({
+            cellLeft: x0,
+            cellWidth: x1 - x0,
+            cellTopInContent: prefix[sr] - frozenH,
+            cellHeight: prefix[er + 1] - prefix[sr],
+            firstRowH: rowH[sr] != null ? rowH[sr] : defRowH,
+            text: text,
+            style: _stickyReadCellStyle(options, range.start),
+            els: null,
+        });
+    }
+    if (candidates.length === 0) return;
+
+    _stickyState.candidates = candidates;
+    _stickyState.headerH = frozenH;
+    _stickyState.xScrollable = xScrollable;
+    _stickyEnsureOverlay();
+    if (!_stickyState.overlay) { _stickyState.candidates = []; return; }
+    _stickyState.running = true;
+    _stickyState.rafId = requestAnimationFrame(_stickyLoop);
+}
+
+/**
+ * One update pass. Computes each candidate's sticky state at the current
+ * scrollTop/scrollLeft and syncs its cover/text elements.
+ */
+function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
+    if (viewH <= 0) return;
+    var viewTop = _stickyState.headerH;
+    var viewBottom = viewH;
+    // xScrollable（无锁定列且列超宽）：列随横向滚动移动。overlay 是容器视口
+    // 坐标系（position:absolute; left:0; top:0 挂 #tableContainer），x 统一用
+    // 视口坐标：cellLeftView 已减去 scrollLeft，可见窗口恒为 [0, viewW]，与
+    // scrollTop 无关的 y 方向自洽。冻结列（xScrollable=false）x 固定，
+    // scrollLeft 恒传 0，视口坐标与内容坐标重合。
+    var viewLeft = scrollLeft;
+    for (var i = 0; i < _stickyState.candidates.length; i++) {
+        var cand = _stickyState.candidates[i];
+        var els = cand.els || _stickyEnsureEls(cand);
+        if (!els) continue;
+        var st = cand.style;
+        var cellTopView = _stickyState.headerH + cand.cellTopInContent - scrollTop;
+        var cellBottomView = cellTopView + cand.cellHeight;
+        var cellLeftView = cand.cellLeft - viewLeft;
+        // 合并格与 body 可视区不相交 → 无需 sticky。
+        if (cellBottomView <= viewTop + 0.5 || cellTopView >= viewBottom - 0.5 ||
+            cellLeftView + cand.cellWidth <= 0.5 || cellLeftView >= viewW - 0.5) {
+            els.cover.style.display = 'none';
+            els.text.style.display = 'none';
+            continue;
+        }
+        // 首次显示前测量文字块高度（line-height = fontSize，对齐 VTable 渲染约定）。
+        // xScrollable 时格宽可能被视口裁剪，交集宽变化须重测（换行数会变）。
+        var visXLeft = Math.max(cellLeftView, 0);
+        var visXRight = Math.min(cellLeftView + cand.cellWidth, viewW);
+        var visXW = visXRight - visXLeft;
+        if (!els.textH || els.measuredW == null || Math.abs(els.measuredW - visXW) > 0.5) {
+            var te = els.text;
+            te.style.display = 'block';
+            te.style.top = '-9999px';
+            te.style.left = visXLeft + 'px';
+            te.style.width = visXW + 'px';
+            te.style.padding = '0 ' + st.padH + 'px';
+            te.style.fontSize = st.fontSize + 'px';
+            te.style.lineHeight = st.fontSize + 'px';
+            te.style.color = st.color;
+            te.style.fontWeight = st.fontWeight;
+            te.style.textAlign = st.textAlign;
+            te.textContent = cand.text;
+            els.textH = te.offsetHeight;
+            els.measuredW = visXW;
+            te.style.display = 'none';
+        }
+        // 用户期望（对齐 iOS/Android 视觉）：维度文字始终垂直居中于
+        // "合并格与 body 视口的可见交集"——格可见一半时文字在剩下一半的中间，
+        // 格完全跨越视口时文字在视口中间。VTable 原生渲染在整个合并格的垂直
+        // 中心，合并格高于一屏（如士大夫"蓝湖"跨 240 行）时文字永远在屏幕外
+        // （缺陷 71101165），因此按交集居中重绘并遮盖原文字。
+        var visTop = Math.max(cellTopView, viewTop);
+        var visBottom = Math.min(cellBottomView, viewBottom);
+        var centerY = (visTop + visBottom) / 2;
+        // 原文字位置（整格垂直居中）。
+        var origCenterY = cellTopView + cand.cellHeight / 2;
+        if (visBottom - visTop < els.textH + 2 ||
+            Math.abs(origCenterY - centerY) < els.textH / 2 + 4) {
+            // 交集放不下文字，或原生渲染已在期望位置附近 → 交给 VTable 原生渲染。
+            els.cover.style.display = 'none';
+            els.text.style.display = 'none';
+            continue;
+        }
+        // 遮盖 VTable 原生文字留在可视区内的部分，外扩 2px 防字体边缘露头
+        // （斜体/粗体字形边缘可能超出行框）。x 方向同样按"格与视口交集"
+        // 裁剪后外扩 2px（xScrollable 时格可能被横向滚出部分），外扩后 clamp
+        // 到 [0, viewW] 防越出 overlay。
+        var coverTop = Math.max(viewTop, origCenterY - els.textH / 2 - 2);
+        var coverBottom = Math.min(viewBottom, origCenterY + els.textH / 2 + 2);
+        var coverLeft = Math.max(0, visXLeft - 2);
+        var coverRight = Math.min(viewW, visXRight + 2);
+        if (coverBottom - coverTop > 0 && coverRight - coverLeft > 0) {
+            els.cover.style.display = 'block';
+            els.cover.style.left = coverLeft + 'px';
+            els.cover.style.width = (coverRight - coverLeft) + 'px';
+            els.cover.style.top = coverTop + 'px';
+            els.cover.style.height = (coverBottom - coverTop) + 'px';
+        } else {
+            els.cover.style.display = 'none';
+        }
+        els.text.style.display = 'block';
+        els.text.style.left = visXLeft + 'px';
+        els.text.style.width = visXW + 'px';
+        els.text.style.top = (centerY - els.textH / 2) + 'px';
+    }
+}
+
+function _stickyLoop() {
+    if (!_stickyState.running) return;
+    var inst = window.tableInstance;
+    if (!inst) { _stickyState.running = false; return; }
+    // 消化挂起的 rebuild：canvas 布局完成后重试（见 _stickyRebuild 的 pending 分支）。
+    if (_stickyState.pendingOptions) {
+        if (inst.canvas && inst.canvas.offsetWidth > 0) {
+            var po = _stickyState.pendingOptions;
+            _stickyState.pendingOptions = null;
+            _stickyRebuild(po);
+            return;
+        }
+        _stickyState.rafId = requestAnimationFrame(_stickyLoop);
+        return;
+    }
+    var scrollTop = 0;
+    try { scrollTop = inst.getScrollTop() || 0; } catch (e) { scrollTop = _stickyState.lastScrollTop; }
+    var scrollLeft = 0;
+    if (_stickyState.xScrollable) {
+        try { scrollLeft = inst.getScrollLeft() || 0; } catch (e) { scrollLeft = _stickyState.lastScrollLeft; }
+    }
+    var viewH = 0;
+    try { viewH = (inst.canvas && inst.canvas.offsetHeight) || 0; } catch (e) {}
+    var viewW = 0;
+    try { viewW = (inst.canvas && inst.canvas.offsetWidth) || 0; } catch (e) {}
+    if (scrollTop !== _stickyState.lastScrollTop || scrollLeft !== _stickyState.lastScrollLeft ||
+        viewH !== _stickyState.lastViewH || viewW !== _stickyState.lastViewW) {
+        _stickyState.lastScrollTop = scrollTop;
+        _stickyState.lastScrollLeft = scrollLeft;
+        _stickyState.lastViewH = viewH;
+        _stickyState.lastViewW = viewW;
+        _stickyApply(scrollTop, scrollLeft, viewH, viewW);
+    }
+    _stickyState.rafId = requestAnimationFrame(_stickyLoop);
+}
+
 function initializeTable(option) {
 
     optionTemp = option;
@@ -1681,6 +2238,7 @@ function initializeTable(option) {
     }
     if (option.frozenColCount != null) {
         try {
+            option.frozenColCount = _applyAllColsLockedFlag(tableInstance.colCount, option.frozenColCount);
             tableInstance.setFrozenColCount(option.frozenColCount);
         } catch (e) {
             console.error('[initializeTable] setFrozenColCount failed:', e);
@@ -1704,6 +2262,8 @@ function initializeTable(option) {
     }
 
     _fixPhantomHeaderRow(tableInstance, option);
+    // 重建冻结列维度文字 sticky 元数据（option 已生效，frozen 计数为最终值）。
+    _stickyRebuild(option);
 }
 
 // 滚动到行
@@ -1786,6 +2346,7 @@ function PostMsgToEts(data) {
 }
 
 function release() {
+    _stickyClear();
     window.tableInstance.release();
 }
 
@@ -1829,7 +2390,8 @@ function updateOption(options) {
     // Apply frozenColCount/frozenRowCount explicitly; VTable's updateOption
     // sometimes ignores changes to frozen counts, so set them directly and
     // recreate cells to ensure the frozen layout is refreshed.
-    var nextFrozenColCount = options.frozenColCount;
+    var nextFrozenColCount = _applyAllColsLockedFlag(window.tableInstance.colCount, options.frozenColCount);
+    options.frozenColCount = nextFrozenColCount;
     var currentFrozenColCount = window.tableInstance.frozenColCount;
     var frozenColChanged = nextFrozenColCount != null && nextFrozenColCount !== currentFrozenColCount;
     if (frozenColChanged) {
@@ -1853,7 +2415,25 @@ function updateOption(options) {
 
     window.tableInstance.updateOption(options);
 
-    // Apply precise row heights after option update.
+    // Force a full recreate if frozen columns/rows changed so the split line
+    // and frozen cells are redrawn with the correct styles.
+    // This MUST run BEFORE the rowHeights loop below: renderWithRecreateCells →
+    // createSceneGraph() clears rowHeightsMap and rebuilds the scene tree from
+    // defaultRowHeight, which would wipe heights set by a preceding
+    // setRowHeight loop. The initial lock toggle (unlock/lock, e.g. home report
+    // cards) always goes through this path — setting heights first and
+    // recreating after collapsed wrapped cells back to one line (缺陷 71100902).
+    if (frozenColChanged || frozenRowChanged) {
+        try {
+            window.tableInstance.renderWithRecreateCells();
+        } catch (e) {
+            console.error('[updateOption] renderWithRecreateCells failed:', e);
+        }
+    }
+
+    // Apply precise row heights after option update — and after any
+    // renderWithRecreateCells, mirroring initializeTable's order
+    // (build → setRowHeight), so no later rebuild can discard them.
     // rowHeights now stays in sync with the spliced records (tree expand/
     // collapse), so the array can grow large. Skip rows whose height is both
     // unchanged from the last applied array AND equal to defaultRowHeight —
@@ -1876,17 +2456,9 @@ function updateOption(options) {
         window.__lastAppliedRowHeights = options.rowHeights.slice();
     }
 
-    // Force a full recreate if frozen columns/rows changed so the split line
-    // and frozen cells are redrawn with the correct styles.
-    if (frozenColChanged || frozenRowChanged) {
-        try {
-            window.tableInstance.renderWithRecreateCells();
-        } catch (e) {
-            console.error('[updateOption] renderWithRecreateCells failed:', e);
-        }
-    }
-
     _fixPhantomHeaderRow(window.tableInstance, options);
+    // 数据/行高/冻结状态已更新，重建 sticky 元数据并立即按当前滚动位置刷新。
+    _stickyRebuild(options);
 }
 
 function renderWithRecreateCells() {
@@ -1920,6 +2492,7 @@ function zoomIn() {
         }
     }
     window.tableInstance.updateColumns(newColums);
+    _stickyInvalidateText();
 }
 function zoomOut() {
     const oldHeaderFontSize = window.tableInstance.theme.headerStyle.fontSize
@@ -1945,6 +2518,7 @@ function zoomOut() {
         }
     }
     window.tableInstance.updateColumns(newColums);
+    _stickyInvalidateText();
 }
 
 var arr = []

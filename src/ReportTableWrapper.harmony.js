@@ -119,18 +119,32 @@ export default class ReportTableWrapper extends React.Component {
     }
 
     _shouldRebuildVTableData = (next, prev) => {
+        // frozenAbility/ignoreLocks/columnsWidthMap/itemConfig 来自上层每次 render
+        // 重建的新引用（如管理总表旋转时 ManagementTable 重渲染）。引用比较会把
+        // 内容相同的配置误判为变化，导致用初始 data 重建 vtableData 并经
+        // updateOption 覆盖原生侧展开收起后的行集合（缺陷 71108676），因此对
+        // 这四个纯配置对象做内容比较。
+        const contentEq = (a, b) => {
+            if (a === b) return true;
+            if (!a || !b) return false;
+            try {
+                return JSON.stringify(a) === JSON.stringify(b);
+            } catch (e) {
+                return false;
+            }
+        };
         if (
             next.frozenRows !== prev.frozenRows ||
             next.frozenColumns !== prev.frozenColumns ||
-            next.frozenAbility !== prev.frozenAbility ||
             next.permutable !== prev.permutable ||
-            next.ignoreLocks !== prev.ignoreLocks ||
-            next.columnsWidthMap !== prev.columnsWidthMap ||
-            next.itemConfig !== prev.itemConfig ||
             next.minWidth !== prev.minWidth ||
             next.maxWidth !== prev.maxWidth ||
             next.minHeight !== prev.minHeight ||
-            next.lineColor !== prev.lineColor
+            next.lineColor !== prev.lineColor ||
+            !contentEq(next.frozenAbility, prev.frozenAbility) ||
+            !contentEq(next.ignoreLocks, prev.ignoreLocks) ||
+            !contentEq(next.columnsWidthMap, prev.columnsWidthMap) ||
+            !contentEq(next.itemConfig, prev.itemConfig)
         ) {
             return true;
         }
@@ -347,7 +361,12 @@ export default class ReportTableWrapper extends React.Component {
     updateData = (params) => {
         const { data = [[]], x = 0, y = 0 } = params || {};
         // `y` is a full-data index (data[0] is header), matching iOS/Android.
-        const converted = convertUpdateData(data, x, y);
+        // Pass itemConfig so convertUpdateData can build cell metas (icon etc.)
+        // — without metas the native side can only update text, and the
+        // operate-mode icons on the detail table's first column would not refresh.
+        const itemConfig = Object.assign(
+            {}, this.props.itemConfig || {}, { __minHeight: this.props.minHeight ?? 40 });
+        const converted = convertUpdateData(data, x, y, itemConfig);
         UIManager.dispatchViewManagerCommand(
             this._getTableHandle(),
             'updateData',
@@ -450,22 +469,12 @@ export default class ReportTableWrapper extends React.Component {
             />
         );
 
-        if (!headerView) {
-            // No header: render table directly without outer ScrollView
-            return (
-                <View style={{ flex: 1 }}>
-                    {tableView}
-                    {this.state._toastVisible && (
-                        <View style={styles.toastContainer} pointerEvents="none">
-                            <Text style={styles.toastText}>{this.state._toastMessage}</Text>
-                        </View>
-                    )}
-                </View>
-            );
-        }
-
-        // With header: use ScrollView + stickyHeaderIndices pattern (like Android)
-        // Index 0 = header, Index 1 = table (sticky)
+        // ScrollView + stickyHeaderIndices 结构必须无条件渲染（对齐 Android）：
+        // 管理总表横竖屏切换时 headerView 在 undefined ↔ 函数之间变化，若按
+        // headerView 有无切换「直接渲染 ↔ ScrollView 包装」两种树结构，表格
+        // 原生节点会被卸载重挂，WebView 用初始 records 重建，展开收起后经
+        // spliceData 维护的行集合与 JS 侧 expandItem.expand 状态双双丢失，
+        // 再点击会按错误方向收起、误删后续数据行（缺陷 71108676）。
         const scrollView = (
             <ScrollView
                 ref={(ref) => (this._scrollView = ref)}
@@ -494,14 +503,13 @@ export default class ReportTableWrapper extends React.Component {
                         }
                     }}
                 >
-                    {headerView()}
+                    {headerView && headerView()}
                 </HeaderComponent>
 
                 {tableView}
             </ScrollView>
         );
 
-        // With header: wrap in a View so the Toast overlay can be positioned absolutely
         return (
             <View style={{ flex: 1 }}>
                 {scrollView}

@@ -116,6 +116,12 @@ export struct ReportTableComponent {
   // Track the last frozenColCount received from props to distinguish JS-initiated changes
   // from native lock toggles. When props frozenColCount hasn't changed, preserve native state.
   private lastPropsFrozenColCount: number = 0;
+  // Fingerprint of the last updateVTable inputs (data-related rawProps). When a
+  // re-render only changes style/size (e.g. rotation), the descriptor push lands
+  // here with identical content — rebuilding the option and calling
+  // controller.updateOption would replace the records with the initial ones and
+  // wipe rows maintained by spliceData (expand/collapse, defect 71108676).
+  private lastUpdateVTableFingerprint: string = '';
 
   /**
    * Robust boolean parser.
@@ -673,6 +679,22 @@ export struct ReportTableComponent {
       const frozenRowCount: number = (frozenRowCountVal !== undefined) ? (frozenRowCountVal as number) : 0;
       const disableZoom: boolean = this.parseBoolean(disableZoomVal, false);
       const permutable: boolean = this.parseBoolean(permutableVal, false);
+      const itemConfigFp: string = (rawProps['itemConfig'] !== undefined)
+        ? (rawProps['itemConfig'] as string) : '{}';
+
+      // Short-circuit identical content: rotation only changes style/size but still
+      // bumps renderKey and lands here. Rebuilding would pass the INITIAL records
+      // (props never reflect spliceData changes) to updateOption, wiping the
+      // expanded row set (defect 71108676). Lock state and spliced rows are
+      // preserved by skipping; pure size changes are handled by onAreaChange.
+      const fingerprint: string = recordsStr + '\u0001' + columnsStr + '\u0001' + themeStr + '\u0001' +
+        mergedCellsStr + '\u0001' + customCellStyleStr + '\u0001' + customCellStyleArrangementStr + '\u0001' +
+        widthMode + '\u0001' + frozenColCountFromProps.toString() + '\u0001' + frozenRowCount.toString() + '\u0001' +
+        disableZoom.toString() + '\u0001' + permutable.toString() + '\u0001' + itemConfigFp;
+      if (this.vtableInitialized && fingerprint === this.lastUpdateVTableFingerprint) {
+        return;
+      }
+      this.lastUpdateVTableFingerprint = fingerprint;
 
       // Preserve native lock toggle state when props haven't explicitly changed frozenColCount.
       // This prevents JS re-renders (e.g. data updates) from resetting the user's lock selection.
@@ -902,6 +924,11 @@ export struct ReportTableComponent {
       const startCol: number = (dataObj['startCol'] !== undefined) ? (dataObj['startCol'] as number) : 0;
       const startRow: number = (dataObj['startRow'] !== undefined) ? (dataObj['startRow'] as number) : 0;
       const values: Object[] = (dataObj['values'] !== undefined) ? (dataObj['values'] as Object[]) : [];
+      // Optional per-cell metadata (icon/richText/padding). JS builds them with
+      // buildCellMeta; writing them to __meta_<col> is what makes the VTable
+      // customLayout re-render icons on partial updates (e.g. the detail
+      // table's operate-mode icon when switching edit/copy/delete).
+      const metas: Object[] = (dataObj['metas'] !== undefined) ? (dataObj['metas'] as Object[]) : [];
 
       const recordsVal: Object | undefined = this.currentOption['records'];
       if (recordsVal === undefined) {
@@ -914,6 +941,7 @@ export struct ReportTableComponent {
       const headerRows: number = showHeader ? 1 : 0;
       for (let rowIdx: number = 0; rowIdx < values.length; rowIdx++) {
         const rowValues: Object[] = values[rowIdx] as Object[];
+        const rowMetas: Object[] = (metas.length > rowIdx) ? (metas[rowIdx] as Object[]) : [];
         const recordIdx: number = startRow - headerRows + rowIdx;
         if (recordIdx < 0 || recordIdx >= records.length) {
           continue;
@@ -922,6 +950,9 @@ export struct ReportTableComponent {
         for (let colIdx: number = 0; colIdx < rowValues.length; colIdx++) {
           const fieldKey: string = (startCol + colIdx).toString();
           record[fieldKey] = rowValues[colIdx] as Object;
+          if (rowMetas.length > colIdx) {
+            record['__meta_' + fieldKey] = rowMetas[colIdx] as Object;
+          }
         }
       }
 
@@ -1715,12 +1746,19 @@ export struct ReportTableComponent {
                   // 清零，表现为锁定无效且已锁定的列也能被滑走，且不触发 lockFailed）：
                   // 1) setFrozenColCount: 冻结区总宽不得超过 maxFrozenWidth（默认表宽的 80%）
                   // 2) _resetFrozenColCount: 剩余可滚动空间必须大于 120
-                  const maxFrozenWidth: number = tableWidth * 0.8;
-                  if (scaledFrozenWidth > maxFrozenWidth || tableWidth - scaledFrozenWidth <= 120) {
-                    // Cannot freeze — notify JS layer (shows Toast)
-                    const fp: string = '{"col":' + effectiveCol.toString() + '}';
-                    self.emitEvent('lockFailed', JSON.parse(fp) as Object);
-                    return;
+                  // 例外：锁定所有列（targetCol >= 列总数）时跳过宽度限制——全列锁定后表格
+                  // 无横向滚动，限制失去意义；iOS/Android 全列锁定合法（缺陷 71100586）。
+                  // VTable 侧（vtable_util.js）会将全列锁定映射为 frozenColCount=0 +
+                  // __allColsLocked 标志渲染锁图标。
+                  const isLockAllColumns: boolean = targetCol >= cols.length;
+                  if (!isLockAllColumns) {
+                    const maxFrozenWidth: number = tableWidth * 0.8;
+                    if (scaledFrozenWidth > maxFrozenWidth || tableWidth - scaledFrozenWidth <= 120) {
+                      // Cannot freeze — notify JS layer (shows Toast)
+                      const fp: string = '{"col":' + effectiveCol.toString() + '}';
+                      self.emitEvent('lockFailed', JSON.parse(fp) as Object);
+                      return;
+                    }
                   }
                   newFrozenColCount = targetCol;
                 }

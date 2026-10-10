@@ -43,6 +43,24 @@ function mapTextAlign(alignment) {
 }
 
 /**
+ * Estimate rendered text width in px without a canvas.
+ * CJK/fullwidth glyphs occupy ~1em; latin letters/digits ~0.55em.
+ * A flat 0.65-per-char multiplier under-estimates pure-Chinese titles by ~35%,
+ * which used to make lock-icon columns narrower than text + icon.
+ * @param {string} text
+ * @param {number} fontSize
+ * @returns {number}
+ */
+function estimateTextWidth(text, fontSize) {
+    if (!text) return 0;
+    let width = 0;
+    for (const ch of String(text)) {
+        width += ch.charCodeAt(0) > 0x2e7f ? fontSize : fontSize * 0.55;
+    }
+    return width;
+}
+
+/**
  * Build VTable column style from a DataSource cell (typically header row).
  * @param {object} cell - A single DataSource cell object.
  * @param {object} itemConfig - Global itemConfig defaults.
@@ -160,7 +178,21 @@ function buildCellMeta(cell, itemConfig) {
         const clColor = cell.classificationLineColor ?? itemConfig?.classificationLineColor;
         if (clColor) meta.classificationLineColor = normalizeColor(clColor);
     }
-    if (cell.richText) meta.richText = cell.richText;
+    if (cell.richText) {
+        // Deep-copy + normalize per-segment colors: richText styles may carry
+        // #AARRGGBB (Android/iOS native format) colors, which the CSS-based
+        // WebView would parse as #RRGGBBAA (green-shifted). Convert them to
+        // rgba() like every other color channel (normalizeColor passes
+        // non-8-digit-hex values through unchanged).
+        meta.richText = cell.richText.map(function (seg) {
+            if (!seg || !seg.style) return seg;
+            var st = Object.assign({}, seg.style);
+            if (st.textColor != null) st.textColor = normalizeColor(st.textColor);
+            if (st.backgroundColor != null) st.backgroundColor = normalizeColor(st.backgroundColor);
+            if (st.borderColor != null) st.borderColor = normalizeColor(st.borderColor);
+            return Object.assign({}, seg, { style: st });
+        });
+    }
     if (cell.gradient) meta.gradient = cell.gradient;
     if (cell.icon) meta.icon = cell.icon;
     if (cell.lineBreakMode) meta.lineBreakMode = cell.lineBreakMode;
@@ -524,7 +556,13 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             const hCell = dataSource[rowIdx]?.[colIdx] ?? {};
             const isCoveredH = mergedCoveredSet.has(`${rowIdx}_${colIdx}`);
             if (isCoveredH) {
-                hMetaArr.push(null);
+                // Covered header cells must keep keyIndex: native rebuildMergedCells
+                // (after spliceData expand/collapse) rebuilds the whole customMergeCell
+                // array and needs the FULL header-row keyIndex grid — anchor AND covered
+                // cells — to recompute horizontal spans. Pushing null here drops all
+                // header merges and the header renders unmerged (issue 71108447).
+                // Mirrors body rows, where covered cells keep { title: '', keyIndex }.
+                hMetaArr.push(hCell.keyIndex != null ? { keyIndex: hCell.keyIndex } : null);
             } else {
                 const hm = { classificationLinePosition: 0, classificationLineColor: null };
                 if (hCell.classificationLinePosition) hm.classificationLinePosition = hCell.classificationLinePosition;
@@ -546,7 +584,15 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                     hm.classificationLinePosition |= clInfo.pos;
                     if (!hm.classificationLineColor && clInfo.color) hm.classificationLineColor = normalizeColor(clInfo.color);
                 }
-                hMetaArr.push(hm.classificationLinePosition > 0 || hm.icon || hm.extraText ? hm : null);
+                // keyIndex must be part of the keep-condition: merged header anchors
+                // (e.g. indicator-group titles) carry ONLY keyIndex — no classification
+                // line/icon/extraText — and were dropped to null, so native
+                // rebuildMergedCells lost header merges after expand/collapse.
+                hMetaArr.push(
+                    hm.classificationLinePosition > 0 || hm.icon || hm.extraText || hm.keyIndex != null
+                        ? hm
+                        : null
+                );
             }
         }
         columns[colIdx].__headerMeta = hMetaArr;
@@ -577,9 +623,8 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
             if (cell.icon || cell.textPaddingLeft != null || cell.textPaddingRight != null) {
                 const iW = cell.icon ? (cell.icon.width ?? 16) : 0;
                 const iPad = cell.icon ? (cell.icon.paddingHorizontal ?? 4) : 0;
-                // Estimated text width + icon space + padding. Use 0.65 multiplier
-                // (same as ArkTS fallback) for Chinese/English mix safety.
-                const needed = cTitle.length * cFontSize * 0.65 + iW + iPad + cPadL + cPadR + 8; // +8px tolerance
+                // Estimated text width (CJK ~1em per glyph) + icon space + padding.
+                const needed = estimateTextWidth(cTitle, cFontSize) + iW + iPad + cPadL + cPadR + 8; // +8px tolerance
                 if (needed > maxNeededW) maxNeededW = needed;
                 if (needed > iconNeededW) iconNeededW = needed;
             }
@@ -595,7 +640,11 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 const hTitle = columns[c].title || '';
                 const hFontSize = columns[c].headerStyle?.fontSize ?? itemConfig?.fontSize ?? 14;
                 const hPadH = 12; // default header padding
-                const lockNeeded = hTitle.length * hFontSize * 0.65 + 4 + 13 + hPadH * 2 + 8; // iPad=4, iW=13
+                // iPad=4, iW=13. CJK glyphs are ~1em wide — the previous flat
+                // 0.65 multiplier under-estimated Chinese titles by ~35%, so the
+                // column was too narrow and the (right-pinned) lock icon sat on
+                // top of the overflowing title text.
+                const lockNeeded = estimateTextWidth(hTitle, hFontSize) + 4 + 13 + hPadH * 2 + 8;
                 if (lockNeeded > maxNeededW) maxNeededW = lockNeeded;
                 if (lockNeeded > iconNeededW) iconNeededW = lockNeeded;
             }
@@ -608,7 +657,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 const sPad = sIcon.paddingHorizontal ?? 4;
                 const sTitle = columns[c].title || '';
                 const sFontSize = columns[c].headerStyle?.fontSize ?? itemConfig?.fontSize ?? 14;
-                const sortNeeded = sTitle.length * sFontSize * 0.65 + sW + sPad + 12 * 2 + 8;
+                const sortNeeded = estimateTextWidth(sTitle, sFontSize) + sW + sPad + 12 * 2 + 8;
                 if (sortNeeded > maxNeededW) maxNeededW = sortNeeded;
                 if (sortNeeded > iconNeededW) iconNeededW = sortNeeded;
             }
@@ -620,7 +669,7 @@ export function convertDataSourceToVTable(dataSource, options = {}) {
                 const ePad = 2; // gap between title text and badge
                 const eTitle = columns[c].title || '';
                 const eFontSize = columns[c].headerStyle?.fontSize ?? itemConfig?.fontSize ?? 14;
-                const etNeeded = eTitle.length * eFontSize * 0.65 + eW + ePad + 12 * 2 + 8;
+                const etNeeded = estimateTextWidth(eTitle, eFontSize) + eW + ePad + 12 * 2 + 8;
                 if (etNeeded > maxNeededW) maxNeededW = etNeeded;
                 if (etNeeded > iconNeededW) iconNeededW = etNeeded;
             }
@@ -774,16 +823,24 @@ export function buildVTableTheme(props) {
 
 /**
  * Convert updateData params to VTable changeCellValues format.
+ * `metas` carries per-cell metadata (icon/richText/padding, from buildCellMeta)
+ * alongside the text values — the native side writes them to
+ * record['__meta_<col>'] so partial updates can change icons (e.g. the detail
+ * table's first-column icon when switching edit/copy/delete operate mode).
  */
-export function convertUpdateData(data, x, y) {
+export function convertUpdateData(data, x, y, itemConfig = {}) {
     const values = [];
+    const metas = [];
     for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
         const rowValues = [];
+        const rowMetas = [];
         for (let colIdx = 0; colIdx < (data[rowIdx]?.length ?? 0); colIdx++) {
             const cell = data[rowIdx][colIdx];
             rowValues.push(cell?.title ?? '');
+            rowMetas.push(buildCellMeta(cell ?? {}, itemConfig));
         }
         values.push(rowValues);
+        metas.push(rowMetas);
     }
     // Cross-platform alignment: iOS native treats `y` as a full-data index
     // (data[0] is the header). VTable row indices match the original data
@@ -792,6 +849,7 @@ export function convertUpdateData(data, x, y) {
         startCol: x,
         startRow: y,
         values,
+        metas,
     };
 }
 
