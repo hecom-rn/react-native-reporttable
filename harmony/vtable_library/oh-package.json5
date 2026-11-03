@@ -1,0 +1,16 @@
+{
+  "types": "",
+  "keywords": [
+    "OpenHarmony",
+    "HarmonyOS",
+    "VTable"
+  ],
+  "name": "@ohos/vtable",
+  "version": "1.0.0",
+  "description": "本软件是参照开源库VTable适配OpenHarmony实现的表格组件",
+  "main": "Index.ets",
+  "author": "ohos_tpc",
+  "repository": "https://gitee.com/openharmony-tpc-incubate/ohos_VTable",
+  "license": "MIT",
+  "dependencies": {}
+}
