@@ -2050,6 +2050,7 @@ function _stickyRebuild(options) {
         var x0 = colPrefix[Math.min(sc, cols.length)];
         var x1 = colPrefix[Math.min(ec + 1, cols.length)];
         candidates.push({
+            sc: sc, sr: sr, ec: ec, er: er,
             cellLeft: x0,
             cellWidth: x1 - x0,
             cellTopInContent: prefix[sr] - frozenH,
@@ -2081,25 +2082,46 @@ function _stickyRebuild(options) {
  */
 function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
     if (viewH <= 0) return;
-    var viewTop = _stickyState.headerH;
+    var inst = window.tableInstance;
     var viewBottom = viewH;
-    // xScrollable（无锁定列且列超宽）：列随横向滚动移动。overlay 是容器视口
-    // 坐标系（position:absolute; left:0; top:0 挂 #tableContainer），x 统一用
-    // 视口坐标：cellLeftView 已减去 scrollLeft，可见窗口恒为 [0, viewW]，与
-    // scrollTop 无关的 y 方向自洽。冻结列（xScrollable=false）x 固定，
-    // scrollLeft 恒传 0，视口坐标与内容坐标重合。
+    // body 视口顶 = 表头真实总高。优先 VTable API（真实行高），失败回退
+    // rebuild 快照。快照按 options.rowHeights 前缀和计算，与 VTable 实际
+    // 渲染的行位置存在偏差时，overlay 文字与 body 数据行错位（维度文字
+    // 与第二列对不准）。
+    var viewTop = _stickyState.headerH;
+    try {
+        var fhw = inst && inst.getFrozenRowsHeight && inst.getFrozenRowsHeight();
+        if (isFinite(fhw) && fhw > 0) viewTop = fhw;
+    } catch (e) {}
     var viewLeft = scrollLeft;
     for (var i = 0; i < _stickyState.candidates.length; i++) {
         var cand = _stickyState.candidates[i];
         var els = cand.els || _stickyEnsureEls(cand);
         if (!els) continue;
         var st = cand.style;
-        var cellTopView = _stickyState.headerH + cand.cellTopInContent - scrollTop;
-        var cellBottomView = cellTopView + cand.cellHeight;
-        var cellLeftView = cand.cellLeft - viewLeft;
+        // 合并格真实视口矩形：VTable 内部按真实行高 + 当前滚动偏移计算
+        // （冻结行/列已处理），与 body 数据行天然同步。异常/无效时回退
+        // rowHeights 快照路径。
+        var cellTopView, cellBottomView, cellLeftView, cellW;
+        var rect = null;
+        try {
+            rect = inst && inst.getCellRangeRelativeRect &&
+                inst.getCellRangeRelativeRect({ start: { col: cand.sc, row: cand.sr }, end: { col: cand.ec, row: cand.er } });
+        } catch (e) {}
+        if (rect && isFinite(rect.top) && isFinite(rect.left) && isFinite(rect.width) && rect.height > 0) {
+            cellTopView = rect.top;
+            cellBottomView = rect.top + rect.height;
+            cellLeftView = rect.left;
+            cellW = rect.width;
+        } else {
+            cellTopView = _stickyState.headerH + cand.cellTopInContent - scrollTop;
+            cellBottomView = cellTopView + cand.cellHeight;
+            cellLeftView = cand.cellLeft - viewLeft;
+            cellW = cand.cellWidth;
+        }
         // 合并格与 body 可视区不相交 → 无需 sticky。
         if (cellBottomView <= viewTop + 0.5 || cellTopView >= viewBottom - 0.5 ||
-            cellLeftView + cand.cellWidth <= 0.5 || cellLeftView >= viewW - 0.5) {
+            cellLeftView + cellW <= 0.5 || cellLeftView >= viewW - 0.5) {
             els.cover.style.display = 'none';
             els.text.style.display = 'none';
             continue;
@@ -2108,7 +2130,7 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
         // 见 _stickyReadCellStyle）。
         // xScrollable 时格宽可能被视口裁剪，交集宽变化须重测（换行数会变）。
         var visXLeft = Math.max(cellLeftView, 0);
-        var visXRight = Math.min(cellLeftView + cand.cellWidth, viewW);
+        var visXRight = Math.min(cellLeftView + cellW, viewW);
         var visXW = visXRight - visXLeft;
         if (!els.textH || els.measuredW == null || Math.abs(els.measuredW - visXW) > 0.5) {
             var te = els.text;
@@ -2136,15 +2158,24 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
         var visBottom = Math.min(cellBottomView, viewBottom);
         var centerY = (visTop + visBottom) / 2;
         // 原文字位置（整格垂直居中）。
-        var origCenterY = cellTopView + cand.cellHeight / 2;
-        if (visBottom - visTop < els.textH + 2 ||
+        var origCenterY = (cellTopView + cellBottomView) / 2;
+        // 原生文字块与 body 视口的可见高度。交给原生渲染的判据是"原生文字
+        // 自身大部分在视口内且位置已接近期望位置"——格部分滚出时原生块
+        // （在整格中心）可能已整体滚出视口（尤其高于一屏的合并大格），
+        // 此时 handoff 会丢文字（既不在原生位置可见、overlay 又被隐藏）。
+        // 交集高度不足也不再 handoff，统一走 overlay 并把文字 clamp 进
+        // 视口（溢出部分被 overlay 的 overflow:hidden 裁掉，不丢字）。
+        var origTop = origCenterY - els.textH / 2;
+        var origBottom = origCenterY + els.textH / 2;
+        var origVisible = Math.min(origBottom, viewBottom) - Math.max(origTop, viewTop);
+        if (origVisible > els.textH * 0.6 &&
             Math.abs(origCenterY - centerY) < els.textH / 2 + 4) {
-            // 交集放不下文字，或原生渲染已在期望位置附近 → 交给 VTable 原生渲染。
+            // 原生文字大部分可见且已在期望位置附近 → 交给 VTable 原生渲染。
             els.cover.style.display = 'none';
             els.text.style.display = 'none';
             if (els.shown !== 0) {
                 els.shown = 0;
-                console.log('[STICKY] handoff "' + String(cand.text).slice(0, 8) + '" st=' + Math.round(scrollTop) + ' textH=' + els.textH + ' gap=' + Math.round(Math.abs(origCenterY - centerY)));
+                console.log('[STICKY] handoff "' + String(cand.text).slice(0, 8) + '" st=' + Math.round(scrollTop) + ' textH=' + els.textH + ' gap=' + Math.round(Math.abs(origCenterY - centerY)) + ' origVis=' + Math.round(origVisible));
             }
             continue;
         }
@@ -2172,10 +2203,18 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
         els.text.style.display = 'block';
         els.text.style.left = visXLeft + 'px';
         els.text.style.width = visXW + 'px';
-        els.text.style.top = (centerY - els.textH / 2) + 'px';
+        // 文字中心对齐交集中心；交集高度不足（格只剩一小条可见）时整体
+        // clamp 进 body 视口，溢出部分由 overlay 的 overflow:hidden 裁掉。
+        var textTop = centerY - els.textH / 2;
+        if (textTop < viewTop) textTop = viewTop;
+        if (textTop + els.textH > viewBottom) textTop = viewBottom - els.textH;
+        els.text.style.top = textTop + 'px';
         if (els.shown !== 1) {
             els.shown = 1;
-            console.log('[STICKY] overlay "' + String(cand.text).slice(0, 8) + '" st=' + Math.round(scrollTop) + ' textH=' + els.textH + ' cellH=' + Math.round(cand.cellHeight) + ' vis=[' + Math.round(visTop) + ',' + Math.round(visBottom) + ']');
+            console.log('[STICKY] overlay "' + String(cand.text).slice(0, 8) + '" st=' + Math.round(scrollTop) + ' textH=' + els.textH +
+                ' rectTop=' + Math.round(cellTopView) + ' rectH=' + Math.round(cellBottomView - cellTopView) +
+                ' snapTop=' + Math.round(_stickyState.headerH + cand.cellTopInContent - scrollTop) + ' snapH=' + Math.round(cand.cellHeight) +
+                ' vis=[' + Math.round(visTop) + ',' + Math.round(visBottom) + ']');
         }
     }
 }
