@@ -1856,8 +1856,17 @@ function _stickyReadCellStyle(options, anchor) {
     var base = theme.bodyStyle || theme.rowHeaderStyle || {};
     var padH = 12;
     if (Array.isArray(base.padding) && base.padding[1] != null) padH = base.padding[1];
+    // 行高必须与 VTable 原生渲染一致：VTable 未显式传 lineHeight 时按
+    // floor(1.2*fontSize) 计行高（vtable.min.js TextMetrics），且 clamp 到
+    // 不小于 fontSize。overlay 若按 fontSize 计，多行长文本格的文字块高度
+    // 会被低估，遮盖矩形盖不住原生文字 → 两份文字叠影。
+    var fs = base.fontSize || 14;
+    var lh = Number(base.lineHeight);
+    if (!(lh > 0)) lh = Math.floor(fs * 1.2);
+    lh = Math.max(Math.floor(lh), fs);
     var st = {
-        fontSize: base.fontSize || 14,
+        fontSize: fs,
+        lineHeight: lh,
         color: base.color || '#222222',
         bgColor: base.bgColor || '#ffffff',
         fontWeight: base.fontWeight || 'normal',
@@ -1875,6 +1884,8 @@ function _stickyReadCellStyle(options, anchor) {
                 var s = defMap[arrangement[ai].customStyleId != null ? arrangement[ai].customStyleId : arrangement[ai].styleId];
                 if (s) {
                     if (s.fontSize != null) st.fontSize = s.fontSize;
+                    var lh2 = Number(s.lineHeight);
+                    if (lh2 > 0) st.lineHeight = Math.max(Math.floor(lh2), st.fontSize);
                     if (s.color != null) st.color = s.color;
                     if (s.bgColor != null) st.bgColor = s.bgColor;
                     if (s.fontWeight != null) st.fontWeight = s.fontWeight;
@@ -2056,6 +2067,10 @@ function _stickyRebuild(options) {
     _stickyState.xScrollable = xScrollable;
     _stickyEnsureOverlay();
     if (!_stickyState.overlay) { _stickyState.candidates = []; return; }
+    console.log('[STICKY] rebuild candidates=' + candidates.length +
+        ' frozenCols=' + frozenCols + ' frozenRows=' + frozenRows +
+        ' xScrollable=' + xScrollable +
+        ' sample="' + (candidates[0] ? String(candidates[0].text).slice(0, 8) : '') + '"');
     _stickyState.running = true;
     _stickyState.rafId = requestAnimationFrame(_stickyLoop);
 }
@@ -2089,7 +2104,8 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
             els.text.style.display = 'none';
             continue;
         }
-        // 首次显示前测量文字块高度（line-height = fontSize，对齐 VTable 渲染约定）。
+        // 首次显示前测量文字块高度（line-height 与 VTable 原生行高一致，
+        // 见 _stickyReadCellStyle）。
         // xScrollable 时格宽可能被视口裁剪，交集宽变化须重测（换行数会变）。
         var visXLeft = Math.max(cellLeftView, 0);
         var visXRight = Math.min(cellLeftView + cand.cellWidth, viewW);
@@ -2102,7 +2118,7 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
             te.style.width = visXW + 'px';
             te.style.padding = '0 ' + st.padH + 'px';
             te.style.fontSize = st.fontSize + 'px';
-            te.style.lineHeight = st.fontSize + 'px';
+            te.style.lineHeight = st.lineHeight + 'px';
             te.style.color = st.color;
             te.style.fontWeight = st.fontWeight;
             te.style.textAlign = st.textAlign;
@@ -2126,14 +2142,22 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
             // 交集放不下文字，或原生渲染已在期望位置附近 → 交给 VTable 原生渲染。
             els.cover.style.display = 'none';
             els.text.style.display = 'none';
+            if (els.shown !== 0) {
+                els.shown = 0;
+                console.log('[STICKY] handoff "' + String(cand.text).slice(0, 8) + '" st=' + Math.round(scrollTop) + ' textH=' + els.textH + ' gap=' + Math.round(Math.abs(origCenterY - centerY)));
+            }
             continue;
         }
-        // 遮盖 VTable 原生文字留在可视区内的部分，外扩 2px 防字体边缘露头
-        // （斜体/粗体字形边缘可能超出行框）。x 方向同样按"格与视口交集"
-        // 裁剪后外扩 2px（xScrollable 时格可能被横向滚出部分），外扩后 clamp
-        // 到 [0, viewW] 防越出 overlay。
-        var coverTop = Math.max(viewTop, origCenterY - els.textH / 2 - 2);
-        var coverBottom = Math.min(viewBottom, origCenterY + els.textH / 2 + 2);
+        // 遮盖整个"合并格与 body 视口的可见交集"：x 方向按交集裁剪后外扩
+        // 2px（xScrollable 时格可能被横向滚出部分，斜体/粗体字形边缘可能
+        // 超出行框），外扩后 clamp 到 [0, viewW] 防越出 overlay；y 方向不按
+        // 估算的文字块高度遮盖——原生文字的行高/换行与 overlay 的 DOM 测量
+        // 存在系统性差异（VTable canvas 换行 vs CSS word-break），按估算高度
+        // 遮盖会露出原生文字的顶部/底部若干行，与 overlay 重绘文字叠成重影。
+        // 交集是原生格内容可能出现的全部范围，整块盖住即与估算误差无关；
+        // text 元素在 cover 之上，不受影响。
+        var coverTop = Math.max(viewTop, cellTopView);
+        var coverBottom = Math.min(viewBottom, cellBottomView);
         var coverLeft = Math.max(0, visXLeft - 2);
         var coverRight = Math.min(viewW, visXRight + 2);
         if (coverBottom - coverTop > 0 && coverRight - coverLeft > 0) {
@@ -2149,6 +2173,10 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
         els.text.style.left = visXLeft + 'px';
         els.text.style.width = visXW + 'px';
         els.text.style.top = (centerY - els.textH / 2) + 'px';
+        if (els.shown !== 1) {
+            els.shown = 1;
+            console.log('[STICKY] overlay "' + String(cand.text).slice(0, 8) + '" st=' + Math.round(scrollTop) + ' textH=' + els.textH + ' cellH=' + Math.round(cand.cellHeight) + ' vis=[' + Math.round(visTop) + ',' + Math.round(visBottom) + ']');
+        }
     }
 }
 
