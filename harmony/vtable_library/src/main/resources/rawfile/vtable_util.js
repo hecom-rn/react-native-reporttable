@@ -1872,6 +1872,9 @@ function _stickyReadCellStyle(options, anchor) {
         fontWeight: base.fontWeight || 'normal',
         textAlign: base.textAlign || 'left',
         padH: padH,
+        // 列分割线颜色：cover 遮住原生格右缘 1px 分割线后需在 overlay 上补画
+        // （缺陷 71269622：第一个维度列无列分割线）。
+        borderColor: base.borderColor || '#e8e8e8',
     };
     var styleDefs = options.customCellStyle;
     var arrangement = options.customCellStyleArrangement;
@@ -1931,7 +1934,15 @@ function _stickyEnsureEls(cand) {
         'white-space:pre-wrap;word-break:break-word;';
     _stickyState.overlay.appendChild(cover);
     _stickyState.overlay.appendChild(text);
-    cand.els = { cover: cover, text: text, textH: 0, measuredW: null };
+    var els = { cover: cover, text: text, textH: 0, measuredW: null };
+    // 展开/收起 icon 元素（缺陷 71269622）：与文字同层，src 延迟到显示时解析。
+    if (cand.icon) {
+        var iconEl = document.createElement('img');
+        iconEl.style.cssText = 'position:absolute;display:none;pointer-events:none;';
+        _stickyState.overlay.appendChild(iconEl);
+        els.icon = iconEl;
+    }
+    cand.els = els;
     return cand.els;
 }
 
@@ -1949,6 +1960,7 @@ function _stickyClear() {
         if (els) {
             els.cover.style.display = 'none';
             els.text.style.display = 'none';
+            if (els.icon) els.icon.style.display = 'none';
         }
     }
     _stickyState.candidates = [];
@@ -2049,6 +2061,19 @@ function _stickyRebuild(options) {
         if (!text) continue;
         var x0 = colPrefix[Math.min(sc, cols.length)];
         var x1 = colPrefix[Math.min(ec + 1, cols.length)];
+        // 锚点格 meta.icon（树形/分类报表的展开/收起箭头）：overlay 搬运文字时
+        // 必须一并重绘 icon，否则大合并格的 icon 留在整格垂直中心（原生渲染，
+        // 高于一屏时在视口外）永远不可见（缺陷 71269622：第一个维度未显示
+        // 展开/收起图标）。行号 → records 下标与 _injectMergedCellRenders 一致。
+        var candIcon = null;
+        if (Array.isArray(options.records)) {
+            var _sbShowHeader = options.showHeader !== false;
+            var _sbRecIdx = sr - (_sbShowHeader ? 1 : 0);
+            if (_sbRecIdx >= 0 && _sbRecIdx < options.records.length) {
+                var _sbMeta = options.records[_sbRecIdx]['__meta_' + sc];
+                if (_sbMeta && _sbMeta.icon) candIcon = _sbMeta.icon;
+            }
+        }
         candidates.push({
             sc: sc, sr: sr, ec: ec, er: er,
             cellLeft: x0,
@@ -2057,6 +2082,7 @@ function _stickyRebuild(options) {
             cellHeight: prefix[er + 1] - prefix[sr],
             firstRowH: rowH[sr] != null ? rowH[sr] : defRowH,
             text: text,
+            icon: candIcon,
             style: _stickyReadCellStyle(options, range.start),
             els: null,
         });
@@ -2124,6 +2150,7 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
             cellLeftView + cellW <= 0.5 || cellLeftView >= viewW - 0.5) {
             els.cover.style.display = 'none';
             els.text.style.display = 'none';
+            if (els.icon) els.icon.style.display = 'none';
             continue;
         }
         // 首次显示前测量文字块高度（line-height 与 VTable 原生行高一致，
@@ -2138,7 +2165,12 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
             te.style.top = '-9999px';
             te.style.left = visXLeft + 'px';
             te.style.width = visXW + 'px';
-            te.style.padding = '0 ' + st.padH + 'px';
+            // 有 icon 时文字让出左侧 icon 位（对齐原生 iconTextMaxW = maxLineWidth - iW - iPad），
+            // 换行数/块高测量才会与最终布局一致。
+            te.style.padding = (cand.icon && st.textAlign === 'left')
+                ? '0 ' + st.padH + 'px 0 ' + (st.padH + (Number(cand.icon.width) || 16) +
+                    (cand.icon.paddingHorizontal != null ? cand.icon.paddingHorizontal : 4)) + 'px'
+                : '0 ' + st.padH + 'px';
             te.style.fontSize = st.fontSize + 'px';
             te.style.lineHeight = st.lineHeight + 'px';
             te.style.color = st.color;
@@ -2173,6 +2205,7 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
             // 原生文字大部分可见且已在期望位置附近 → 交给 VTable 原生渲染。
             els.cover.style.display = 'none';
             els.text.style.display = 'none';
+            if (els.icon) els.icon.style.display = 'none';
             if (els.shown !== 0) {
                 els.shown = 0;
                 console.log('[STICKY] handoff "' + String(cand.text).slice(0, 8) + '" st=' + Math.round(scrollTop) + ' textH=' + els.textH + ' gap=' + Math.round(Math.abs(origCenterY - centerY)) + ' origVis=' + Math.round(origVisible));
@@ -2197,6 +2230,9 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
             els.cover.style.width = (coverRight - coverLeft) + 'px';
             els.cover.style.top = coverTop + 'px';
             els.cover.style.height = (coverBottom - coverTop) + 'px';
+            // cover 遮住原生格右缘的 1px 列分割线（x 外扩 +2px），在 cover 右缘
+            // 补画同色分割线，否则维度列与数据列之间无线（缺陷 71269622）。
+            els.cover.style.borderRight = '1px solid ' + st.borderColor;
         } else {
             els.cover.style.display = 'none';
         }
@@ -2209,6 +2245,44 @@ function _stickyApply(scrollTop, scrollLeft, viewH, viewW) {
         if (textTop < viewTop) textTop = viewTop;
         if (textTop + els.textH > viewBottom) textTop = viewBottom - els.textH;
         els.text.style.top = textTop + 'px';
+        // 展开/收起 icon 跟随文字块重绘（缺陷 71269622）：原生 icon 画在整格
+        // 垂直中心，高于一屏的合并格 icon 永远在视口外；overlay 只搬文字不画
+        // icon 时维度格的展开/收起图标消失。布局对齐原生 customRender 的
+        // imageAlignment=1（icon 在文字左侧，垂直与文字块居中），非 left 对齐
+        // 的场景维持旧行为（不画），避免引入新错位。
+        if (els.icon) {
+            if (cand.icon && st.textAlign === 'left') {
+                var _icW = Number(cand.icon.width) || 16;
+                var _icH = Number(cand.icon.height) || 16;
+                var _icSrc = els.iconSrc;
+                if (!_icSrc) {
+                    if (cand.icon.name) {
+                        _icSrc = _resolveAndroidImg(cand.icon.name);
+                        if (!_icSrc && _isValidIconUrl(cand.icon.name)) _icSrc = cand.icon.name;
+                    } else if (cand.icon.path && cand.icon.path.uri) {
+                        _icSrc = _resolveAndroidImg(_nameFromUri(cand.icon.path.uri));
+                        if (!_icSrc && _isValidIconUrl(cand.icon.path.uri)) _icSrc = cand.icon.path.uri;
+                    }
+                    els.iconSrc = _icSrc || '';
+                    if (els.iconSrc) els.icon.src = els.iconSrc;
+                }
+                if (els.iconSrc) {
+                    els.icon.style.display = 'block';
+                    els.icon.style.left = (visXLeft + st.padH) + 'px';
+                    els.icon.style.top = (textTop + (els.textH - _icH) / 2) + 'px';
+                    els.icon.style.width = _icW + 'px';
+                    els.icon.style.height = _icH + 'px';
+                    if (!els.iconShown) {
+                        els.iconShown = 1;
+                        console.log('[STICKY] icon overlay "' + String(cand.text).slice(0, 8) + '" src=' + (els.iconSrc.slice(0, 40)) + ' w=' + _icW);
+                    }
+                } else {
+                    els.icon.style.display = 'none';
+                }
+            } else {
+                els.icon.style.display = 'none';
+            }
+        }
         if (els.shown !== 1) {
             els.shown = 1;
             console.log('[STICKY] overlay "' + String(cand.text).slice(0, 8) + '" st=' + Math.round(scrollTop) + ' textH=' + els.textH +
