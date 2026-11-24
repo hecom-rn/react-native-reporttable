@@ -2054,9 +2054,17 @@ function _stickyRebuild(options) {
         if (!range || !range.start || !range.end) continue;
         var sr = range.start.row, er = range.end.row;
         var sc = range.start.col, ec = range.end.col;
-        // 仅处理单列垂直合并的维度格：跨列合并（ec > sc）是汇总行（小计/总计）
-        // 的横跨格，不是维度列，纳入后遮盖矩形会横跨多列盖住数据行。
-        if (er <= sr || sc !== ec || sr < frozenRows || ec >= frozenCols || er >= rowLen) continue;
+        // 仅处理首列（col 0，维度列）的单列垂直合并格：
+        // ① 跨列合并（ec > sc）是汇总行（小计/总计）的横跨格，纳入后遮盖矩形会
+        //    横跨多列盖住数据行；
+        // ② 非首列的内容格（markdown/富文本列）在 frozenCols 扩展为全部列后
+        //    （缺陷 71101165 复审的 xScrollable / 不超宽场景）也会落进 ec < frozenCols
+        //    判定，被 sticky overlay「遮盖 + DOM 重绘」接管；该模型按维度列短文字
+        //    设计，DOM 换行/行高与原生 richText 混排渲染必然不一致，cover 只盖交集
+        //    也盖不住多行原生文字，两份文字同时可见形成叠影（缺陷 71269661）。
+        //    iOS/Android 仅维度列文字跟随可视区，内容列合并格文字随格滚动，此处
+        //    与其对齐：只对首列启用 sticky。
+        if (er <= sr || sc !== ec || sc !== 0 || sr < frozenRows || ec >= frozenCols || er >= rowLen) continue;
         var text = item.text != null ? String(item.text) : '';
         if (!text) continue;
         var x0 = colPrefix[Math.min(sc, cols.length)];
