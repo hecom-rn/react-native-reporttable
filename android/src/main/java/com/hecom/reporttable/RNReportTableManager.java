@@ -295,17 +295,7 @@ public class RNReportTableManager extends SimpleViewManager<HecomTable> {
             HecomTable.SpliceItem item = new HecomTable.SpliceItem(data, y, l);
             spliceItems[i] = item;
         }
-        // 大表性能优化：spliceData 的全表重算（逐列插删 + mergeTable 全表合并）在 UI 线程
-        // 同步执行时会冻结整个界面十几秒。挪到 SmartTable 的单线程后台池执行：
-        // 1) ReadableArray 参数已在上方拷贝为 SpliceItem[]，跨线程安全；
-        // 2) spliceDataArray 内部以 synchronized(tableData) 保护数据，notifyDataChanged
-        //    同样走该单线程池，FIFO 保证先插删后重测的顺序。
-        root.getmExecutor().execute(new Runnable() {
-            @Override
-            public void run() {
-                root.spliceDataArray(spliceItems);
-            }
-        });
+        root.spliceDataArray(spliceItems);
 
         // ReadableMap map = args.getMap(0);
         // String data = map.getString("data");
